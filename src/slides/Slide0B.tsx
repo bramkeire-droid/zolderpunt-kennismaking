@@ -4,26 +4,71 @@ import SlideLabel from '@/components/SlideLabel';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { MapPin, Upload, X } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { MapPin, Upload, X, Loader2 } from 'lucide-react';
+import { useRef, useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+
+interface PhotoItem {
+  bestandsnaam: string;
+  storage_path: string;
+  url?: string;
+}
 
 export default function Slide0B() {
   const { lead, updateLead } = useSession();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [localPhotos, setLocalPhotos] = useState<{ name: string; url: string }[]>([]);
+  const [uploading, setUploading] = useState(false);
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Build public URLs for existing photos
+  const photos: (PhotoItem & { publicUrl: string })[] = (lead.fotos || []).map((f: PhotoItem) => ({
+    ...f,
+    publicUrl: f.url || supabase.storage.from('lead-fotos').getPublicUrl(f.storage_path).data.publicUrl,
+  }));
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (!files) return;
-    const newPhotos = Array.from(files).map(f => ({
-      name: f.name,
-      url: URL.createObjectURL(f),
-    }));
-    setLocalPhotos(prev => [...prev, ...newPhotos]);
+    if (!files || files.length === 0) return;
+
+    setUploading(true);
+    const newPhotos: PhotoItem[] = [];
+
+    for (const file of Array.from(files)) {
+      const leadId = lead.id || 'unsaved';
+      const path = `${leadId}/${Date.now()}-${file.name}`;
+
+      const { error } = await supabase.storage
+        .from('lead-fotos')
+        .upload(path, file, { upsert: false });
+
+      if (error) {
+        console.error('Upload error:', error);
+        continue;
+      }
+
+      const { data: urlData } = supabase.storage.from('lead-fotos').getPublicUrl(path);
+      newPhotos.push({
+        bestandsnaam: file.name,
+        storage_path: path,
+        url: urlData.publicUrl,
+      });
+    }
+
+    if (newPhotos.length > 0) {
+      updateLead({ fotos: [...(lead.fotos || []), ...newPhotos] });
+    }
+
+    setUploading(false);
+    // Reset input so same file can be selected again
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const removePhoto = (index: number) => {
-    setLocalPhotos(prev => prev.filter((_, i) => i !== index));
+  const removePhoto = async (index: number) => {
+    const photo = lead.fotos[index];
+    if (photo?.storage_path) {
+      await supabase.storage.from('lead-fotos').remove([photo.storage_path]);
+    }
+    const updated = lead.fotos.filter((_: any, i: number) => i !== index);
+    updateLead({ fotos: updated });
   };
 
   return (
@@ -53,7 +98,7 @@ export default function Slide0B() {
               <div className="text-muted-foreground text-sm flex flex-col items-center gap-2">
                 <MapPin className="h-8 w-8" />
                 <span>Kaart: {lead.adres}</span>
-                <span className="text-xs">(Google Maps integratie na Supabase setup)</span>
+                <span className="text-xs">(Google Maps integratie komt later)</span>
               </div>
             </div>
           )}
@@ -88,12 +133,20 @@ export default function Slide0B() {
           <div className="space-y-3">
             <Label className="font-body">Foto's uploaden</Label>
             <div
-              onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-primary/30 p-8 text-center cursor-pointer hover:border-primary/60 hover:bg-accent/50 transition-colors"
+              onClick={() => !uploading && fileInputRef.current?.click()}
+              className={`border-2 border-dashed p-8 text-center transition-colors ${
+                uploading
+                  ? 'border-muted cursor-wait'
+                  : 'border-primary/30 cursor-pointer hover:border-primary/60 hover:bg-accent/50'
+              }`}
             >
-              <Upload className="h-8 w-8 text-primary mx-auto mb-2" />
+              {uploading ? (
+                <Loader2 className="h-8 w-8 text-primary mx-auto mb-2 animate-spin" />
+              ) : (
+                <Upload className="h-8 w-8 text-primary mx-auto mb-2" />
+              )}
               <p className="text-sm text-muted-foreground">
-                Klik om foto's te selecteren of sleep ze hierheen
+                {uploading ? 'Bezig met uploaden...' : 'Klik om foto\'s te selecteren of sleep ze hierheen'}
               </p>
               <input
                 ref={fileInputRef}
@@ -105,17 +158,20 @@ export default function Slide0B() {
               />
             </div>
 
-            {localPhotos.length > 0 && (
+            {photos.length > 0 && (
               <div className="grid grid-cols-4 gap-3">
-                {localPhotos.map((photo, i) => (
+                {photos.map((photo, i) => (
                   <div key={i} className="relative group overflow-hidden border border-border aspect-square">
-                    <img src={photo.url} alt={photo.name} className="w-full h-full object-cover" />
+                    <img src={photo.publicUrl} alt={photo.bestandsnaam} className="w-full h-full object-cover" />
                     <button
                       onClick={() => removePhoto(i)}
                       className="absolute top-1 right-1 bg-destructive text-destructive-foreground p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                     >
                       <X className="h-3 w-3" />
                     </button>
+                    <span className="absolute bottom-0 left-0 right-0 bg-foreground/60 text-background text-[10px] px-1 py-0.5 truncate">
+                      {photo.bestandsnaam}
+                    </span>
                   </div>
                 ))}
               </div>
