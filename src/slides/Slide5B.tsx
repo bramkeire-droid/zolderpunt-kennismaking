@@ -282,7 +282,7 @@ export default function Slide5B() {
                   {/* BTW boxes */}
                   <div className="grid grid-cols-2 gap-2 mb-5">
                     <div className="rounded-lg p-3 border border-primary-foreground/10 bg-primary-foreground/5">
-                      <div className="text-[10px] font-bold text-primary-foreground/40 tracking-wider uppercase mb-1">Excl. BTW</div>
+                      <div className="text-xs font-bold text-primary-foreground/40 tracking-wider uppercase mb-1">Excl. BTW</div>
                       <div className="text-base font-bold text-primary-foreground/90">{fmt(result.excl)}</div>
                     </div>
                     <div className="rounded-lg p-3 border border-primary/30 bg-primary/10">
