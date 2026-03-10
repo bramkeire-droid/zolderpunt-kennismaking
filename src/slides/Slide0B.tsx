@@ -86,23 +86,13 @@ export default function Slide0B() {
               <MapPin className="h-4 w-4 text-primary" />
               Projectadres
             </Label>
-            <Input
+            <AddressAutocomplete
               value={lead.adres}
-              onChange={e => updateLead({ adres: e.target.value })}
+              onChange={val => updateLead({ adres: val })}
               placeholder="Straat, nummer, postcode, gemeente"
               className="bg-card"
             />
           </div>
-
-          {lead.adres && lead.adres.length > 5 && (
-            <div className="overflow-hidden border border-border h-[250px] bg-muted flex items-center justify-center">
-              <div className="text-muted-foreground text-sm flex flex-col items-center gap-2">
-                <MapPin className="h-8 w-8" />
-                <span>Kaart: {lead.adres}</span>
-                <span className="text-xs">(Google Maps integratie komt later)</span>
-              </div>
-            </div>
-          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
