@@ -380,7 +380,6 @@ export const s = StyleSheet.create({
     width: '100%',
     height: 300,
     backgroundColor: COLORS.lightGray,
-    borderRadius: 0,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
   },
