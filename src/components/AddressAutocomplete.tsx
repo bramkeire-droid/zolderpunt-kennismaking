@@ -1,0 +1,106 @@
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { Input } from '@/components/ui/input';
+import { MapPin } from 'lucide-react';
+
+interface PhotonFeature {
+  properties: {
+    name?: string;
+    street?: string;
+    housenumber?: string;
+    postcode?: string;
+    city?: string;
+    country?: string;
+  };
+}
+
+interface AddressAutocompleteProps {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  className?: string;
+}
+
+export default function AddressAutocomplete({ value, onChange, placeholder, className }: AddressAutocompleteProps) {
+  const [suggestions, setSuggestions] = useState<PhotonFeature[]>([]);
+  const [open, setOpen] = useState(false);
+  const [inputValue, setInputValue] = useState(value);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => { setInputValue(value); }, [value]);
+
+  // Close on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const search = useCallback(async (query: string) => {
+    if (query.length < 3) { setSuggestions([]); return; }
+    try {
+      const res = await fetch(
+        `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5&lang=nl&lat=50.85&lon=4.35`
+      );
+      const data = await res.json();
+      setSuggestions(data.features || []);
+      setOpen(true);
+    } catch { setSuggestions([]); }
+  }, []);
+
+  const handleChange = (val: string) => {
+    setInputValue(val);
+    onChange(val);
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => search(val), 300);
+  };
+
+  const formatAddress = (props: PhotonFeature['properties']) => {
+    const parts: string[] = [];
+    if (props.street) {
+      parts.push(props.housenumber ? `${props.street} ${props.housenumber}` : props.street);
+    } else if (props.name) {
+      parts.push(props.name);
+    }
+    if (props.postcode || props.city) {
+      parts.push([props.postcode, props.city].filter(Boolean).join(' '));
+    }
+    return parts.join(', ');
+  };
+
+  const selectSuggestion = (feature: PhotonFeature) => {
+    const formatted = formatAddress(feature.properties);
+    setInputValue(formatted);
+    onChange(formatted);
+    setOpen(false);
+    setSuggestions([]);
+  };
+
+  return (
+    <div ref={wrapperRef} className="relative">
+      <Input
+        value={inputValue}
+        onChange={e => handleChange(e.target.value)}
+        placeholder={placeholder}
+        className={className}
+        autoComplete="off"
+      />
+      {open && suggestions.length > 0 && (
+        <ul className="absolute z-50 top-full left-0 right-0 mt-1 bg-card border border-border shadow-lg max-h-[200px] overflow-auto">
+          {suggestions.map((s, i) => (
+            <li
+              key={i}
+              onClick={() => selectSuggestion(s)}
+              className="px-3 py-2 text-sm cursor-pointer hover:bg-accent flex items-center gap-2"
+            >
+              <MapPin className="h-3 w-3 text-muted-foreground shrink-0" />
+              <span>{formatAddress(s.properties)}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
