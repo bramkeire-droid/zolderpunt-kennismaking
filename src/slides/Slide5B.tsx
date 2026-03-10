@@ -256,7 +256,7 @@ export default function Slide5B() {
           {/* Right: Result panel */}
           <div className="lg:sticky lg:top-6 self-start">
             <div className="bg-foreground rounded-xl p-6 text-primary-foreground shadow-xl">
-              <div className="text-[10px] font-bold tracking-[1.8px] uppercase text-primary-foreground/40 mb-5">Prijsindicatie</div>
+              <div className="text-xs font-bold tracking-[1.8px] uppercase text-primary-foreground/40 mb-5">Prijsindicatie</div>
 
               {result ? (
                 <>
