@@ -56,6 +56,15 @@ export default function NavigationBar() {
           <span>Slide {slideIndex} / {modeSlides.length}</span>
         </div>
       )}
+
+      {/* Logout */}
+      <button
+        onClick={signOut}
+        className={`${currentMode === 'dossiers' ? 'ml-auto' : ''} p-2 text-muted-foreground hover:text-foreground transition-colors`}
+        title="Uitloggen"
+      >
+        <LogOut className="h-4 w-4" />
+      </button>
     </nav>
   );
 }
