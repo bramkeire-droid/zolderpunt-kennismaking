@@ -211,7 +211,6 @@ export const s = StyleSheet.create({
     width: '70%',
     height: '100%',
     backgroundColor: COLORS.primary,
-    borderRadius: 0,
     opacity: 0.7,
   },
   priceLabel: {
