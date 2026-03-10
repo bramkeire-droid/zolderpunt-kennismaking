@@ -111,7 +111,7 @@ export default function Slide0B() {
           </div>
 
           <div className="space-y-2">
-            <Label className="font-body">Project timing</Label>
+            <Label className="font-body text-base">Project timing</Label>
             <Textarea
               value={lead.project_timing}
               onChange={e => updateLead({ project_timing: e.target.value })}
