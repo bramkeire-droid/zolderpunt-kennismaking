@@ -42,6 +42,7 @@ export interface LeadData {
   rapport_tekst: string;
   rapport_highlights: string;
   waarde_tekst_ai: string;
+  transcript: string;
   rapport_gegenereerd_op: string | null;
   rapport_versies: any[];
   status: string;
