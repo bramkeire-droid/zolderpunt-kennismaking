@@ -95,7 +95,7 @@ function SamenvattingPage({ data }: { data: ReportData }) {
     { icon: 'MapPin', label: 'Jouw situatie', value: data.situatie },
     { icon: 'Target', label: 'Wat jij voor ogen hebt', value: data.gewenst_resultaat },
     { icon: 'Wrench', label: 'Besproken onderdelen', value: data.besproken_opties },
-    ...(data.aandachtspunten ? [{ icon: 'MessageCircle' as const, label: 'Aandachtspunten', value: data.aandachtspunten }] : []),
+    ...(data.aandachtspunten ? [{ icon: 'MessageCircle' as const, label: 'Aandachtspunten', value: data.aandachtspunten, clamped: true }] : []),
   ];
 
   return (
