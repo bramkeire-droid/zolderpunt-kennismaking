@@ -232,7 +232,7 @@ export default function Slide5B() {
                   </div>
                   {airco > 0 && (
                     <div className="px-3.5 pb-3.5 pt-2 border-t border-primary/20" onClick={e => e.stopPropagation()}>
-                      <div className="text-[11px] font-bold text-secondary mb-2">Aantal toestellen</div>
+                      <div className="text-xs font-bold text-secondary mb-2">Aantal toestellen</div>
                       <div className="inline-flex items-center border-2 border-primary/30 rounded-lg overflow-hidden bg-card">
                         <button onClick={() => setAirco(Math.max(0, airco - 1))} className="w-9 h-9 flex items-center justify-center text-lg font-bold text-primary hover:bg-accent">−</button>
                         <span className="w-11 text-center text-lg font-bold">{airco}</span>
