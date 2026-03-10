@@ -93,39 +93,45 @@ export const GARANTIES = [
 export const WERKWIJZE_STAPPEN = [
   {
     nr: 1,
-    title: 'Eerste contact',
+    title: 'Kennismakingsgesprek',
     status: 'done' as const,
-    copy: 'De klant neemt contact op via de website, telefoon of een ander kanaal. We beantwoorden hun eerste vragen en plannen een intakegesprek in.',
+    copy: 'Een persoonlijk gesprek om het project te bespreken, wensen te begrijpen en een eerste indicatie te geven.',
   },
   {
     nr: 2,
-    title: 'Intakegesprek',
-    status: 'current' as const,
-    copy: 'Een persoonlijk videogesprek om het project te bespreken, wensen te begrijpen en een eerste indicatie te geven.',
-  },
-  {
-    nr: 3,
     title: 'Plaatsbezoek',
-    status: 'upcoming' as const,
+    status: 'current' as const,
     copy: 'Een Zolderpunt-adviseur komt bij jou thuis om de ruimte te bekijken, te meten en eventuele technische aandachtspunten in kaart te brengen.',
   },
   {
-    nr: 4,
-    title: '3D-ontwerp & offerte',
+    nr: 3,
+    title: 'Gedetailleerde offerte',
     status: 'upcoming' as const,
-    copy: 'Op basis van de opmeting maken we een gedetailleerd 3D-ontwerp en een definitieve offerte.',
+    copy: 'Op basis van de opmeting maken we een gedetailleerd plan en een definitieve offerte met vaste prijzen.',
+  },
+  {
+    nr: 4,
+    title: 'Akkoord & planning',
+    status: 'upcoming' as const,
+    copy: 'Na jouw akkoord plannen we de werken in en bespreken we de exacte timing en praktische afspraken.',
   },
   {
     nr: 5,
     title: 'Uitvoering',
     status: 'upcoming' as const,
-    copy: 'Ons team voert de renovatie uit volgens het goedgekeurde ontwerp. Je hebt één vaste contactpersoon van begin tot einde.',
+    copy: 'Ons team voert de renovatie uit volgens het goedgekeurde plan. Je hebt één vaste contactpersoon van begin tot einde.',
   },
   {
     nr: 6,
     title: 'Oplevering',
     status: 'upcoming' as const,
     copy: 'Samen lopen we alles na. Pas als jij tevreden bent, is het project afgerond.',
+  },
+  {
+    nr: 7,
+    title: 'Jouw nieuwe ruimte',
+    status: 'upcoming' as const,
+    copy: 'Geniet van jouw volledig afgewerkte zolder — extra leefruimte die er altijd al was.',
   },
 ];
 
