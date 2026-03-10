@@ -64,7 +64,11 @@ export default function AddressAutocomplete({ value, onChange, onCoordinates, pl
       const data = await res.json();
       console.log('[AddressAutocomplete] Results:', data.features?.length ?? 0);
       setSearchError(false);
-      setSuggestions(data.features || []);
+      const features = data.features || [];
+      setSuggestions(features);
+      if (features.length > 0) {
+        console.log('[AddressAutocomplete] First suggestion:', formatAddress(features[0].properties));
+      }
       setOpen(true);
     } catch (err) {
       console.error('[AddressAutocomplete] Fetch error:', err);
