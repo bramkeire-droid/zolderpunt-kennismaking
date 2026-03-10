@@ -123,6 +123,7 @@ export const s = StyleSheet.create({
     backgroundColor: COLORS.white,
     padding: 16,
     flex: 1,
+    borderRadius: 8,
   },
 
   // ─── Decorative ───────────────────────────────────────
