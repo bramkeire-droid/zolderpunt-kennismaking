@@ -323,7 +323,7 @@ export const s = StyleSheet.create({
   ctaPhoto: {
     width: 180,
     height: 240,
-    borderRadius: 12,
+    borderRadius: 0,
     objectFit: 'cover' as const,
   },
   ctaContact: {
