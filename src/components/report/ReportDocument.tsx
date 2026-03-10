@@ -110,8 +110,9 @@ function SamenvattingPage({ data }: { data: ReportData }) {
 
       {fields.map((f, i) => {
         const isBulletList = f.label === 'Besproken onderdelen' && f.value && f.value.includes(',');
+        const isClamped = 'clamped' in f && f.clamped;
         return (
-          <View key={i} style={s.card}>
+          <View key={i} style={s.card} wrap={false}>
             <View style={[s.row, { marginBottom: 6, gap: 8 }]}>
               <PdfIcon name={f.icon} size={16} color={COLORS.primary} />
               <Text style={s.h3}>{f.label}</Text>
@@ -123,7 +124,9 @@ function SamenvattingPage({ data }: { data: ReportData }) {
                 ))}
               </View>
             ) : (
-              <Text style={s.body}>{f.value || '—'}</Text>
+              <View style={isClamped ? { maxHeight: 60, overflow: 'hidden' } : undefined}>
+                <Text style={s.body}>{f.value || '—'}</Text>
+              </View>
             )}
           </View>
         );
