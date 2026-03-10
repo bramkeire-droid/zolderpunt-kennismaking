@@ -114,7 +114,7 @@ export const s = StyleSheet.create({
   },
   cardThird: {
     backgroundColor: COLORS.white,
-    borderRadius: 12,
+    borderRadius: 0,
     padding: 16,
     flex: 1,
   },
