@@ -58,34 +58,57 @@ export default function Slide2A() {
         </h2>
 
         {/* Timeline */}
-        <div className="flex items-stretch gap-2 mb-8">
+        <div className="relative flex items-start mb-10 px-4">
+          {/* Base grey line */}
+          <div className="absolute top-[14px] left-[calc(8.33%)] right-[calc(8.33%)] h-[3px] bg-border" />
+          {/* Active blue overlay line */}
+          <div
+            className="absolute top-[14px] left-[calc(8.33%)] h-[3px] bg-primary transition-all duration-300"
+            style={{ width: `${(ACTIVE_INDEX / (STEPS.length - 1)) * (100 - 16.66)}%` }}
+          />
+
           {STEPS.map((s, i) => {
+            const isCompleted = i < ACTIVE_INDEX;
             const isActive = i === ACTIVE_INDEX;
             const isSelected = i === selectedStep;
+            const isFuture = i > ACTIVE_INDEX;
+
             return (
               <button
                 key={s.label}
                 onClick={() => setSelectedStep(i)}
-                className={`flex-1 relative py-4 px-3 flex flex-col justify-center items-center text-center transition-all cursor-pointer border-2 ${
-                  isSelected
-                    ? 'bg-primary text-primary-foreground border-primary shadow-lg scale-[1.03]'
-                    : isActive
-                      ? 'bg-accent border-primary/40 text-foreground'
-                      : 'bg-card border-border text-muted-foreground hover:border-primary/30'
-                }`}
+                className="flex-1 flex flex-col items-center relative cursor-pointer group"
               >
-                <span className={`text-xs font-bold mb-1 ${
-                  isSelected ? 'text-primary-foreground/70' : 'text-muted-foreground/60'
+                {/* Node */}
+                <div
+                  className={`relative z-10 transition-all duration-200 ${
+                    isSelected
+                      ? 'w-8 h-8 bg-primary shadow-lg'
+                      : isCompleted || isActive
+                        ? 'w-5 h-5 bg-primary mt-[6px]'
+                        : 'w-5 h-5 border-2 border-border bg-card mt-[6px]'
+                  }`}
+                />
+
+                {/* Step number */}
+                <span className={`mt-3 text-xs font-bold tracking-wide ${
+                  isSelected ? 'text-primary' : isFuture ? 'text-muted-foreground/40' : 'text-muted-foreground/70'
                 }`}>
                   {String(i + 1).padStart(2, '0')}
                 </span>
-                <span className={`text-base font-headline font-semibold ${
-                  isSelected ? 'text-primary-foreground' : ''
+
+                {/* Label */}
+                <span className={`text-sm font-headline leading-tight text-center mt-1 transition-all ${
+                  isSelected ? 'font-bold text-foreground' : isFuture ? 'text-muted-foreground/50' : 'text-foreground/80'
                 }`}>
                   {s.label}
                 </span>
-                {isSelected && (
-                  <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[8px] border-r-[8px] border-t-[8px] border-transparent border-t-primary" />
+
+                {/* "Je bent hier" indicator */}
+                {isActive && (
+                  <span className="label-style mt-2 text-[10px]">
+                    Je bent hier
+                  </span>
                 )}
               </button>
             );
