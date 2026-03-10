@@ -26,6 +26,8 @@ export interface LeadData {
   gezocht_naar: string;
   notities_vooraf: string;
   adres: string;
+  adres_lat: number | null;
+  adres_lng: number | null;
   oppervlakte_m2: number | null;
   project_type: string;
   project_timing: string;
