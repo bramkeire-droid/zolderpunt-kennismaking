@@ -21,16 +21,30 @@ export default function Slide9() {
       setIsGenerating(true);
       setError(null);
       try {
-        const { data, error: fnError } = await supabase.functions.invoke('generate-value-text', {
-          body: {
-            gewenst_resultaat: lead.gezocht_naar || 'extra leefruimte',
-            oppervlakte_m2: lead.oppervlakte_m2 || 0,
-          },
-        });
+        // Fire both AI calls in parallel: value text + notes summary
+        const [valueRes, notesRes] = await Promise.all([
+          supabase.functions.invoke('generate-value-text', {
+            body: {
+              gewenst_resultaat: lead.gezocht_naar || 'extra leefruimte',
+              oppervlakte_m2: lead.oppervlakte_m2 || 0,
+            },
+          }),
+          lead.gesprek_notities?.trim()
+            ? supabase.functions.invoke('generate-value-text', {
+                body: {
+                  type: 'summarize_notes',
+                  gewenst_resultaat: lead.gezocht_naar || 'extra leefruimte',
+                  oppervlakte_m2: lead.oppervlakte_m2 || 0,
+                  gesprek_notities: lead.gesprek_notities,
+                },
+              })
+            : Promise.resolve({ data: { text: '—' }, error: null }),
+        ]);
 
-        if (fnError) throw fnError;
+        if (valueRes.error) throw valueRes.error;
 
-        const aiText = data?.text || 'Extra leefruimte gecreëerd uit ruimte die er al was.';
+        const aiText = valueRes.data?.text || 'Extra leefruimte gecreëerd uit ruimte die er al was.';
+        const notesSummary = notesRes.data?.text || lead.gesprek_notities || '—';
 
         // Build a simple rapport summary
         const rapport = [
@@ -43,7 +57,8 @@ export default function Slide9() {
           '',
           `Waarde: ${aiText}`,
           '',
-          `Notities: ${lead.gesprek_notities || '—'}`,
+          `Samenvatting gesprek:`,
+          notesSummary,
         ].join('\n');
 
         updateLead({ rapport_tekst: rapport });

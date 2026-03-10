@@ -1,0 +1,1 @@
+ALTER TABLE public.leads ADD COLUMN adres_lat numeric, ADD COLUMN adres_lng numeric;
