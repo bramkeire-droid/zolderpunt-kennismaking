@@ -91,7 +91,7 @@ function CoverPage({ data }: { data: ReportData }) {
 // SECTIE 2 — SAMENVATTING GESPREK
 // ═══════════════════════════════════════════════════════════════════
 function SamenvattingPage({ data }: { data: ReportData }) {
-  const fields: { icon: 'MapPin' | 'Target' | 'Wrench' | 'MessageCircle'; label: string; value: string }[] = [
+  const fields: { icon: 'MapPin' | 'Target' | 'Wrench' | 'MessageCircle'; label: string; value: string; clamped?: boolean }[] = [
     { icon: 'MapPin', label: 'Jouw situatie', value: data.situatie },
     { icon: 'Target', label: 'Wat jij voor ogen hebt', value: data.gewenst_resultaat },
     { icon: 'Wrench', label: 'Besproken onderdelen', value: data.besproken_opties },
