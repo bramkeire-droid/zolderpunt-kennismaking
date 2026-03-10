@@ -16,14 +16,21 @@ DESIGN ELEMENTS:
 - "Punt" accent: small blue rectangle with clip-path
 - Lots of whitespace, modern, trustworthy
 - ALL corners: rounded-none (sharp rectangles, NO rounded corners anywhere)
+- Decorative shapes: also sharp corners (no rounded-[48px])
 
 RULES:
 - No required field markers (* symbols) — user decides what to fill
 - Separate "Opslaan" button distinct from "Volgende" navigation
 - gevonden_via: dedicated slide 0A2 with clickable cards (not dropdown)
 - Slide 3: all fields editable inline
-- Slide 2A: steps are clickable with image overlay
+- Slide 2A: steps are clickable with inline photo display
 - project_timing field on LeadData
+
+AUTH:
+- Email/password login, AuthProvider wraps app
+- profiles table + user_roles table (app_role enum: admin, user)
+- has_role() security definer function
+- Leads RLS: authenticated users only
 
 SLIDE ORDER:
 - 0A (klantdossier), 0A2 (gevonden via), 0B (projectinfo), 0C (technische config)
