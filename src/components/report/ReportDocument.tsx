@@ -379,7 +379,7 @@ function CTAPage({ data }: { data: ReportData }) {
 
       {/* Footer with logo + tagline */}
       <View style={[s.footer, { flexDirection: 'column' as const, alignItems: 'center' as const, gap: 6 }]}>
-        <Image src={logoSrc} style={{ width: 100 }} />
+        <LogoPdf width={100} />
         <Text style={s.footerText}>{TAGLINE}  ·  {CONTACT_WEBSITE}</Text>
       </View>
     </Page>
