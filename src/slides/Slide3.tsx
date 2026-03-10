@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { useSession } from '@/contexts/SessionContext';
 import SlideLayout from '@/components/SlideLayout';
 import SlideLabel from '@/components/SlideLabel';
@@ -7,6 +8,25 @@ import { MapPin, Image } from 'lucide-react';
 
 export default function Slide3() {
   const { lead, updateLead } = useSession();
+  const geocodedRef = useRef(false);
+
+  // Geocode fallback: fetch coordinates for existing addresses missing lat/lng
+  useEffect(() => {
+    if (geocodedRef.current) return;
+    if (!lead.adres || lead.adres.length < 3) return;
+    if (lead.adres_lat != null && lead.adres_lng != null) return;
+
+    geocodedRef.current = true;
+    fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(lead.adres)}&limit=1&lat=50.85&lon=4.35`)
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        const coords = data?.features?.[0]?.geometry?.coordinates;
+        if (coords) {
+          updateLead({ adres_lat: coords[1], adres_lng: coords[0] });
+        }
+      })
+      .catch(() => {});
+  }, [lead.adres, lead.adres_lat, lead.adres_lng, updateLead]);
 
   return (
     <SlideLayout showSave>
