@@ -378,7 +378,7 @@ export const s = StyleSheet.create({
   photoGridItem: {
     width: '48%',
     height: 160,
-    borderRadius: 12,
+    borderRadius: 0,
     objectFit: 'cover' as const,
   },
   photoPlaceholder: {
