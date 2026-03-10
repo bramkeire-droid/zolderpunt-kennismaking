@@ -141,7 +141,7 @@ export default function Slide5B() {
                   {(['vol', 'gesplitst'] as SplitType[]).map(s => (
                     <button key={s} onClick={() => setSplit(s)} className={`flex-1 px-3 py-2.5 rounded-lg border-2 text-sm font-semibold transition-all font-body ${split === s ? 'bg-primary border-primary text-primary-foreground' : 'border-border text-muted-foreground hover:border-primary hover:text-primary'}`}>
                       {s === 'vol' ? 'Volledig' : 'Gesplitst'}
-                      <span className="block text-[10px] font-medium opacity-70 mt-0.5">{s === 'vol' ? 'Netto = bruto' : 'Netto ≈ 73% van bruto'}</span>
+                      <span className="block text-xs font-medium opacity-70 mt-0.5">{s === 'vol' ? 'Netto = bruto' : 'Netto ≈ 73% van bruto'}</span>
                     </button>
                   ))}
                 </div>
