@@ -149,18 +149,28 @@ export const s = StyleSheet.create({
   // ─── Cover specific ──────────────────────────────────
   coverHero: {
     width: '100%',
-    height: 340,
+    height: 380,
     objectFit: 'cover' as const,
+  },
+  coverAngle: {
+    width: '100%',
+    height: 30,
+    backgroundColor: COLORS.primary,
+    transform: 'rotate(-3deg) scaleX(1.1)',
+    marginTop: -15,
+    opacity: 0.9,
   },
   coverContent: {
     padding: 50,
+    paddingTop: 30,
     flex: 1,
   },
   coverTitle: {
     fontFamily: 'SpaceGrotesk',
     fontWeight: 700,
-    fontSize: 32,
+    fontSize: 28,
     color: COLORS.dark,
+    marginTop: 20,
     marginBottom: 12,
     lineHeight: 1.2,
   },
@@ -170,7 +180,7 @@ export const s = StyleSheet.create({
     fontSize: 14,
     color: COLORS.primary,
     letterSpacing: 1,
-    marginBottom: 8,
+    marginTop: 16,
   },
   coverDate: {
     fontFamily: 'RethinkSans',
@@ -320,12 +330,17 @@ export const s = StyleSheet.create({
     flex: 1,
     justifyContent: 'center' as const,
   },
+  ctaContactLine: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 10,
+    marginBottom: 8,
+  },
   ctaLine: {
     fontFamily: 'SpaceGrotesk',
     fontWeight: 600,
     fontSize: 14,
     color: COLORS.dark,
-    marginBottom: 8,
   },
 
   // ─── Footer ───────────────────────────────────────────
