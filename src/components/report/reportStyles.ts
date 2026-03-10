@@ -112,6 +112,7 @@ export const s = StyleSheet.create({
     backgroundColor: COLORS.white,
     padding: 20,
     marginBottom: 12,
+    borderRadius: 8,
   },
   cardRow: {
     flexDirection: 'row' as const,
