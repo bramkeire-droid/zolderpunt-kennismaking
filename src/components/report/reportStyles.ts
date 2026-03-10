@@ -2,21 +2,22 @@ import { StyleSheet, Font } from '@react-pdf/renderer';
 import { COLORS } from './reportConstants';
 
 // Register fonts — Space Grotesk as fallback for Brockmann (not freely available)
+// Using woff2 from Google Fonts CDN (v22 / v7)
 Font.register({
   family: 'SpaceGrotesk',
   fonts: [
-    { src: 'https://fonts.gstatic.com/s/spacegrotesk/v16/V8mDoQDjQSkFtoMM3T6r8E7mPbF4Cw.ttf', fontWeight: 400 },
-    { src: 'https://fonts.gstatic.com/s/spacegrotesk/v16/V8mDoQDjQSkFtoMM3T6r8E7mPb94DQ.ttf', fontWeight: 600 },
-    { src: 'https://fonts.gstatic.com/s/spacegrotesk/v16/V8mDoQDjQSkFtoMM3T6r8E7mPbF4C65IA3Y.ttf', fontWeight: 700 },
+    { src: 'https://fonts.gstatic.com/s/spacegrotesk/v22/V8mDoQDjQSkFtoMM3T6r8E7mPbF4Cw.woff2', fontWeight: 400 },
+    { src: 'https://fonts.gstatic.com/s/spacegrotesk/v22/V8mDoQDjQSkFtoMM3T6r8E7mPbF4Cw.woff2', fontWeight: 600 },
+    { src: 'https://fonts.gstatic.com/s/spacegrotesk/v22/V8mDoQDjQSkFtoMM3T6r8E7mPbF4Cw.woff2', fontWeight: 700 },
   ],
 });
 
 Font.register({
   family: 'RethinkSans',
   fonts: [
-    { src: 'https://fonts.gstatic.com/s/rethinksans/v7/AMOKz4SDuBHCMJuolmysYtCp7E55Bn4.ttf', fontWeight: 400 },
-    { src: 'https://fonts.gstatic.com/s/rethinksans/v7/AMOKz4SDuBHCMJuolmysYtCp7F56Bn4.ttf', fontWeight: 600 },
-    { src: 'https://fonts.gstatic.com/s/rethinksans/v7/AMOKz4SDuBHCMJuolmysYtCp7Hp7Bn4.ttf', fontWeight: 700 },
+    { src: 'https://fonts.gstatic.com/s/rethinksans/v7/AMOWz4SDuXOMCPfdoglY9JQEVFi3.woff2', fontWeight: 400 },
+    { src: 'https://fonts.gstatic.com/s/rethinksans/v7/AMOWz4SDuXOMCPfdoglY9JQEVFi3.woff2', fontWeight: 600 },
+    { src: 'https://fonts.gstatic.com/s/rethinksans/v7/AMOWz4SDuXOMCPfdoglY9JQEVFi3.woff2', fontWeight: 700 },
   ],
 });
 
