@@ -267,7 +267,6 @@ export const s = StyleSheet.create({
   // ─── Reviews ──────────────────────────────────────────
   reviewCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 0,
     padding: 20,
     marginBottom: 14,
     flexDirection: 'row' as const,
