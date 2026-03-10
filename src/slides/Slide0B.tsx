@@ -96,7 +96,7 @@ export default function Slide0B() {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label className="font-body">Geschatte oppervlakte</Label>
+              <Label className="font-body text-base">Geschatte oppervlakte</Label>
               <div className="flex items-center gap-2">
                 <Input
                   type="number"
