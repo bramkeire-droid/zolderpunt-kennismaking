@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useSession } from '@/contexts/SessionContext';
 import { useToast } from '@/hooks/use-toast';
@@ -35,42 +35,63 @@ function leadToRow(lead: LeadData) {
   };
 }
 
+/** Returns saveLead (manual) + starts a 3-second debounced autosave */
 export function useLeadSave() {
   const { lead, updateLead } = useSession();
   const { toast } = useToast();
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const lastSavedRef = useRef<string>('');
+  const isSavingRef = useRef(false);
 
-  const saveLead = useCallback(async () => {
+  const persistLead = useCallback(async (leadData: LeadData, showToast: boolean) => {
+    // Skip if nothing meaningful to save (no name entered yet)
+    if (!leadData.voornaam && !leadData.achternaam && !leadData.adres && !leadData.email) return;
+
+    const serialized = JSON.stringify(leadToRow(leadData));
+    if (serialized === lastSavedRef.current) return; // no changes
+
+    if (isSavingRef.current) return;
+    isSavingRef.current = true;
+
     try {
-      const row = leadToRow(lead);
+      const row = leadToRow(leadData);
 
-      if (lead.id) {
-        // Update existing
-        const { error } = await supabase
-          .from('leads')
-          .update(row)
-          .eq('id', lead.id);
+      if (leadData.id) {
+        const { error } = await supabase.from('leads').update(row).eq('id', leadData.id);
         if (error) throw error;
       } else {
-        // Insert new
-        const { data, error } = await supabase
-          .from('leads')
-          .insert(row)
-          .select('id')
-          .single();
+        const { data, error } = await supabase.from('leads').insert(row).select('id').single();
         if (error) throw error;
         if (data) updateLead({ id: data.id });
       }
 
-      toast({ title: 'Opgeslagen', description: 'Gegevens zijn bewaard.' });
+      lastSavedRef.current = serialized;
+      if (showToast) {
+        toast({ title: 'Opgeslagen', description: 'Gegevens zijn bewaard.' });
+      }
     } catch (err: any) {
       console.error('Save error:', err);
-      toast({
-        title: 'Fout bij opslaan',
-        description: err.message || 'Probeer opnieuw.',
-        variant: 'destructive',
-      });
+      if (showToast) {
+        toast({ title: 'Fout bij opslaan', description: err.message || 'Probeer opnieuw.', variant: 'destructive' });
+      }
+    } finally {
+      isSavingRef.current = false;
     }
-  }, [lead, updateLead, toast]);
+  }, [updateLead, toast]);
+
+  // Manual save with toast
+  const saveLead = useCallback(async () => {
+    await persistLead(lead, true);
+  }, [lead, persistLead]);
+
+  // Autosave: debounce 3 seconds after any lead change
+  useEffect(() => {
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      persistLead(lead, false);
+    }, 3000);
+    return () => clearTimeout(debounceRef.current);
+  }, [lead, persistLead]);
 
   return { saveLead };
 }
