@@ -107,7 +107,7 @@ export const WERKWIJZE_STAPPEN = [
     nr: 3,
     title: 'Plaatsbezoek',
     status: 'upcoming' as const,
-    copy: 'We komen langs om alles op te meten, de dakconstructie te beoordelen en foto\'s te nemen.',
+    copy: 'Een Zolderpunt-adviseur komt bij jou thuis om de ruimte te bekijken, te meten en eventuele technische aandachtspunten in kaart te brengen.',
   },
   {
     nr: 4,
