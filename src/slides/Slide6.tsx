@@ -48,9 +48,11 @@ export default function Slide6() {
               <div className="flex-1 bg-primary-foreground/10 rounded-lg p-4 text-sm text-primary-foreground backdrop-blur-sm">
                 ⚠ Schilderwerk niet inbegrepen
               </div>
-              <div className="flex-1 bg-primary-foreground/10 rounded-lg p-4 text-sm text-primary-foreground backdrop-blur-sm">
-                ℹ Airco apart vermeld
-              </div>
+              {lead.technisch.airco && (
+                <div className="flex-1 bg-primary-foreground/10 rounded-lg p-4 text-sm text-primary-foreground backdrop-blur-sm">
+                  ℹ Airco is optioneel en apart geoffreerd
+                </div>
+              )}
             </div>
 
             {/* Disclaimer */}

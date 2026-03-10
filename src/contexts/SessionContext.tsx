@@ -70,6 +70,8 @@ export const defaultLeadData: LeadData = {
   gezocht_naar: '',
   notities_vooraf: '',
   adres: '',
+  adres_lat: null,
+  adres_lng: null,
   oppervlakte_m2: null,
   project_type: '',
   project_timing: '',

@@ -17,7 +17,7 @@ export default function SlideLayout({ children, variant = 'default', hideNav = f
           className="absolute -bottom-20 -right-20 w-[400px] h-[400px] bg-secondary opacity-30"
           style={{ transform: 'rotate(-40deg)' }}
         />
-        <div className={`flex-1 flex flex-col justify-center items-center p-12 relative z-10 ${className}`}>
+        <div className={`flex-1 overflow-y-auto flex flex-col justify-center items-center p-12 relative z-10 ${className}`}>
           {children}
         </div>
         {!hideNav && (

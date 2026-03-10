@@ -79,10 +79,14 @@ export default function AddressAutocomplete({ value, onChange, onCoordinates, pl
     return parts.join(', ');
   };
 
-  const selectSuggestion = (feature: PhotonFeature) => {
+  const selectSuggestion = (feature: PhotonFeatureWithGeometry) => {
     const formatted = formatAddress(feature.properties);
     setInputValue(formatted);
     onChange(formatted);
+    if (onCoordinates && feature.geometry?.coordinates) {
+      const [lng, lat] = feature.geometry.coordinates;
+      onCoordinates(lat, lng);
+    }
     setOpen(false);
     setSuggestions([]);
   };
