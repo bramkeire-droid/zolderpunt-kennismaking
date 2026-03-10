@@ -10,7 +10,9 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { gewenst_resultaat, oppervlakte_m2, gesprek_notities, type } = body;
+    const { gewenst_resultaat, oppervlakte_m2, gesprek_notities, transcript, type } = body;
+    // Use transcript as primary source, fall back to gesprek_notities
+    const primaryInput = transcript?.trim() || gesprek_notities?.trim() || '';
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
