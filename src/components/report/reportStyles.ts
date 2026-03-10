@@ -215,7 +215,10 @@ export const s = StyleSheet.create({
     marginVertical: 12,
     position: 'relative' as const,
     overflow: 'hidden' as const,
-    borderRadius: 6,
+    borderTopLeftRadius: 6,
+    borderTopRightRadius: 6,
+    borderBottomLeftRadius: 6,
+    borderBottomRightRadius: 6,
   },
   priceBarFill: {
     position: 'absolute' as const,
