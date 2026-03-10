@@ -35,10 +35,10 @@ export default function Slide0C() {
     <SlideLayout>
       <div className="max-w-3xl mx-auto w-full">
         <SlideLabel>TECHNISCHE VOORCONFIGURATIE</SlideLabel>
-        <h2 className="text-3xl font-headline font-bold text-foreground mb-2">
+        <h2 className="text-4xl font-headline font-bold text-foreground mb-2">
           Wat weet je al over dit project?
         </h2>
-        <p className="text-muted-foreground font-body mb-8">
+        <p className="text-base text-muted-foreground font-body mb-8">
           Vink aan wat van toepassing is. Dit configureert de calculator automatisch.
         </p>
 
