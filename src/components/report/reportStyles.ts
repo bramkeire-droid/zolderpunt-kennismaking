@@ -30,6 +30,9 @@ Font.register({
   ],
 });
 
+// Disable automatic hyphenation globally
+Font.registerHyphenationCallback(word => [word]);
+
 export const s = StyleSheet.create({
   // ─── Page ─────────────────────────────────────────────
   page: {
