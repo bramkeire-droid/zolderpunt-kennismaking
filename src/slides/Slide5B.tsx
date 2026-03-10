@@ -292,7 +292,7 @@ export default function Slide5B() {
                     <div className="col-span-2 rounded-lg p-3 border border-primary-foreground/10 bg-primary-foreground/5">
                       <div className="text-xs font-bold text-primary-foreground/40 tracking-wider uppercase mb-1">Incl. 21% BTW</div>
                       <div className="text-base font-bold text-primary-foreground/90">{fmt(result.incl21)}</div>
-                      <div className="text-[10px] text-primary-foreground/30 mt-0.5">nieuwbouw of woning &lt; 10 jaar</div>
+                      <div className="text-xs text-primary-foreground/30 mt-0.5">nieuwbouw of woning &lt; 10 jaar</div>
                     </div>
                   </div>
 
