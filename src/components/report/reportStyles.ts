@@ -330,12 +330,17 @@ export const s = StyleSheet.create({
     flex: 1,
     justifyContent: 'center' as const,
   },
+  ctaContactLine: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 10,
+    marginBottom: 8,
+  },
   ctaLine: {
     fontFamily: 'SpaceGrotesk',
     fontWeight: 600,
     fontSize: 14,
     color: COLORS.dark,
-    marginBottom: 8,
   },
 
   // ─── Footer ───────────────────────────────────────────
