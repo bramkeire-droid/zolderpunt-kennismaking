@@ -266,8 +266,8 @@ export default function Slide5B() {
                       <div className="h-full rounded-full bg-gradient-to-r from-primary to-cyan-400 w-full" />
                     </div>
                     <div className="grid grid-cols-[1fr_auto_1fr] gap-1 items-end">
-                      <div className="text-[11px] text-primary-foreground/40">
-                        <span className="block text-sm font-bold text-primary-foreground/60 mb-0.5">{fmt(result.min)}</span>minimum
+                      <div className="text-xs text-primary-foreground/40">
+                        <span className="block text-base font-bold text-primary-foreground/60 mb-0.5">{fmt(result.min)}</span>minimum
                       </div>
                       <div className="text-center">
                         <span className="text-[10px] text-primary-foreground/40 tracking-wider">INCL. 6% BTW</span>
