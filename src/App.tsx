@@ -3,6 +3,7 @@ import { SessionProvider, useSession } from '@/contexts/SessionContext';
 import NavigationBar from '@/components/NavigationBar';
 import Dossiers from '@/pages/Dossiers';
 import Slide0A from '@/slides/Slide0A';
+import Slide0A2 from '@/slides/Slide0A2';
 import Slide0B from '@/slides/Slide0B';
 import Slide0C from '@/slides/Slide0C';
 import Slide1 from '@/slides/Slide1';
@@ -26,7 +27,7 @@ import DecorativeAngle from '@/components/DecorativeAngle';
 import type { SlideId } from '@/contexts/SessionContext';
 
 const SLIDE_COMPONENTS: Record<SlideId, React.ComponentType> = {
-  '0A': Slide0A, '0B': Slide0B, '0C': Slide0C,
+  '0A': Slide0A, '0A2': Slide0A2, '0B': Slide0B, '0C': Slide0C,
   '1': Slide1, '2A': Slide2A, '2B': Slide2B, '3': Slide3,
   '4': Slide4, '5': Slide5, '5B': Slide5B, '6': Slide6, '7': Slide7,
   '8': Slide8, '9': Slide9, '10': Slide10,
