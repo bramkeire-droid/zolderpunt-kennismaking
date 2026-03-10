@@ -29,7 +29,7 @@ function mapLeadToReportData(lead: ReturnType<typeof useSession>['lead'], aiText
       : lead.gezocht_naar || '—',
     gewenst_resultaat: lead.gezocht_naar || '—',
     besproken_opties: postenLabels || lead.gezocht_naar || '—',
-    aandachtspunten: lead.gesprek_notities ? lead.gesprek_notities.substring(0, 300).trim() : '',
+    aandachtspunten: lead.rapport_highlights || '',
     oppervlakte_m2: lead.oppervlakte_m2 || 0,
     prijs_min: lead.budget_min || 0,
     prijs_max: lead.budget_max || 0,
@@ -58,8 +58,8 @@ export default function Slide10() {
   const handleDownload = async () => {
     setLoading(true);
     try {
-      // 1. Map lead data to report format (AI text already generated on Slide 9)
-      const aiText = lead.rapport_tekst || FALLBACK_AI_TEXT;
+      // Use the separate AI value text, not the full rapport
+      const aiText = lead.waarde_tekst_ai || FALLBACK_AI_TEXT;
       const reportData = mapLeadToReportData(lead, aiText);
 
       // 3. Generate PDF

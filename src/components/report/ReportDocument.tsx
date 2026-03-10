@@ -91,11 +91,11 @@ function CoverPage({ data }: { data: ReportData }) {
 // SECTIE 2 — SAMENVATTING GESPREK
 // ═══════════════════════════════════════════════════════════════════
 function SamenvattingPage({ data }: { data: ReportData }) {
-  const fields: { icon: 'MapPin' | 'Target' | 'Wrench' | 'MessageCircle'; label: string; value: string }[] = [
+  const fields: { icon: 'MapPin' | 'Target' | 'Wrench' | 'MessageCircle'; label: string; value: string; clamped?: boolean }[] = [
     { icon: 'MapPin', label: 'Jouw situatie', value: data.situatie },
     { icon: 'Target', label: 'Wat jij voor ogen hebt', value: data.gewenst_resultaat },
     { icon: 'Wrench', label: 'Besproken onderdelen', value: data.besproken_opties },
-    ...(data.aandachtspunten ? [{ icon: 'MessageCircle' as const, label: 'Aandachtspunten', value: data.aandachtspunten }] : []),
+    ...(data.aandachtspunten ? [{ icon: 'MessageCircle' as const, label: 'Aandachtspunten', value: data.aandachtspunten, clamped: true }] : []),
   ];
 
   return (
@@ -110,8 +110,9 @@ function SamenvattingPage({ data }: { data: ReportData }) {
 
       {fields.map((f, i) => {
         const isBulletList = f.label === 'Besproken onderdelen' && f.value && f.value.includes(',');
+        const isClamped = 'clamped' in f && f.clamped;
         return (
-          <View key={i} style={s.card}>
+          <View key={i} style={s.card} wrap={false}>
             <View style={[s.row, { marginBottom: 6, gap: 8 }]}>
               <PdfIcon name={f.icon} size={16} color={COLORS.primary} />
               <Text style={s.h3}>{f.label}</Text>
@@ -123,7 +124,9 @@ function SamenvattingPage({ data }: { data: ReportData }) {
                 ))}
               </View>
             ) : (
-              <Text style={s.body}>{f.value || '—'}</Text>
+              <View style={isClamped ? { maxHeight: 60, overflow: 'hidden' } : undefined}>
+                <Text style={s.body}>{f.value || '—'}</Text>
+              </View>
             )}
           </View>
         );
@@ -353,13 +356,17 @@ function GarantiesPage() {
       </Text>
 
       <View style={{ flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: 12 }}>
-        {GARANTIES.map((g, i) => (
-          <View key={i} style={[s.garantieCard, ...(i === 4 ? [{ width: '100%' }] : [])]}>
-            <PdfIcon name={g.iconName} size={20} color={COLORS.primary} />
-            <Text style={[s.garantieTitle, { marginTop: 8 }]}>{g.title}</Text>
-            <Text style={s.garantieText}>{g.text}</Text>
-          </View>
-        ))}
+        {GARANTIES.map((g, i) => {
+          // 2+2+1 grid: last item (index 4) gets 60% width centered
+          const isLastSingle = i === 4;
+          return (
+            <View key={i} style={[s.garantieCard, isLastSingle ? { width: '60%', marginLeft: '20%' } : {}]} wrap={false}>
+              <PdfIcon name={g.iconName} size={20} color={COLORS.primary} />
+              <Text style={[s.garantieTitle, { marginTop: 8 }]}>{g.title}</Text>
+              <Text style={s.garantieText}>{g.text}</Text>
+            </View>
+          );
+        })}
       </View>
 
       <PageFooter />

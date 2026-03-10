@@ -46,6 +46,8 @@ function rowToLead(row: any): LeadData {
     budget_incl21: row.budget_incl21 ?? null,
     inbegrepen_posten: Array.isArray(row.inbegrepen_posten) ? row.inbegrepen_posten : [],
     rapport_tekst: row.rapport_tekst ?? '',
+    rapport_highlights: row.rapport_highlights ?? '',
+    waarde_tekst_ai: row.waarde_tekst_ai ?? '',
     rapport_gegenereerd_op: row.rapport_gegenereerd_op ?? null,
     rapport_versies: Array.isArray(row.rapport_versies) ? row.rapport_versies : [],
     status: row.status ?? 'intake',
