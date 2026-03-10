@@ -307,7 +307,10 @@ export const s = StyleSheet.create({
     backgroundColor: COLORS.primary,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
-    borderRadius: 8,
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
+    borderBottomLeftRadius: 8,
+    borderBottomRightRadius: 8,
   },
   reviewInitials: {
     fontFamily: 'SpaceGrotesk',
