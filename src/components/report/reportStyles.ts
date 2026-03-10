@@ -418,7 +418,10 @@ export const s = StyleSheet.create({
     padding: 16,
     width: '48%',
     marginBottom: 12,
-    borderRadius: 8,
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
+    borderBottomLeftRadius: 8,
+    borderBottomRightRadius: 8,
   },
   garantieIcon: {
     fontSize: 20,
