@@ -2,36 +2,43 @@ import { useState } from 'react';
 import SlideLayout from '@/components/SlideLayout';
 import SlideLabel from '@/components/SlideLabel';
 
+import stapEersteContact from '@/assets/stap-eerste-contact.jpg';
+import stapIntakegesprek from '@/assets/stap-intakegesprek.jpg';
+import stapPlaatsbezoek from '@/assets/stap-plaatsbezoek.jpg';
+import stap3dOntwerp from '@/assets/stap-3d-ontwerp.jpg';
+import stapUitvoering from '@/assets/stap-uitvoering.jpg';
+import stapOplevering from '@/assets/stap-oplevering.jpg';
+
 const STEPS = [
   {
     label: 'Eerste contact',
     description: 'De klant neemt contact op via de website, telefoon of een ander kanaal. We beantwoorden hun eerste vragen en plannen een intakegesprek in.',
-    images: ['/placeholder.svg'],
+    images: [stapEersteContact],
   },
   {
     label: 'Intakegesprek',
     description: 'Een persoonlijk videogesprek om het project te bespreken, wensen te begrijpen en een eerste indicatie te geven.',
-    images: ['/placeholder.svg'],
+    images: [stapIntakegesprek],
   },
   {
     label: 'Plaatsbezoek',
     description: 'We komen langs om alles op te meten, de dakconstructie te beoordelen en foto\'s te nemen.',
-    images: ['/placeholder.svg'],
+    images: [stapPlaatsbezoek],
   },
   {
     label: '3D-ontwerp & offerte',
     description: 'Op basis van de opmeting maken we een gedetailleerd 3D-ontwerp en een definitieve offerte.',
-    images: ['/placeholder.svg'],
+    images: [stap3dOntwerp],
   },
   {
     label: 'Uitvoering',
     description: 'Ons team voert de renovatie uit volgens het goedgekeurde ontwerp, met vaste aanspreekpunten.',
-    images: ['/placeholder.svg'],
+    images: [stapUitvoering],
   },
   {
     label: 'Oplevering',
     description: 'Samen lopen we alles na. Pas als jij tevreden bent, is het project afgerond.',
-    images: ['/placeholder.svg'],
+    images: [stapOplevering],
   },
 ];
 
