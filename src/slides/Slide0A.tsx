@@ -28,7 +28,7 @@ export default function Slide0A() {
               />
             </div>
             <div className="space-y-2">
-              <Label className="font-body">Achternaam</Label>
+              <Label className="font-body text-base">Achternaam</Label>
               <Input
                 value={lead.achternaam}
                 onChange={e => updateLead({ achternaam: e.target.value })}
