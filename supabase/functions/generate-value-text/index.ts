@@ -32,7 +32,7 @@ Regels:
 - Maximaal 3 zinnen
 - Sluit NOOIT af met een conclusie of aanbeveling — enkel een samenvatting van het gesprek
 
-Gespreksnotities: "${gesprek_notities || '(geen notities)'}"
+Gespreksnotities/transcript: "${primaryInput || '(geen notities)'}"
 Gewenst resultaat: "${gewenst_resultaat || 'extra leefruimte'}"`;
     } else if (type === 'summarize_notes') {
       // Summarize gesprek_notities into a concise narrative for the rapport
