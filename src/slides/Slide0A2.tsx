@@ -40,8 +40,8 @@ export default function Slide0A2() {
                     : 'border-border bg-card hover:border-primary/30'
                 }`}
               >
-                <Icon className={`h-6 w-6 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`} />
-                <span className={`text-sm font-headline font-semibold ${isSelected ? 'text-foreground' : 'text-muted-foreground'}`}>
+                <Icon className={`h-8 w-8 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`} />
+                <span className={`text-base font-headline font-semibold ${isSelected ? 'text-foreground' : 'text-muted-foreground'}`}>
                   {opt.label}
                 </span>
               </button>

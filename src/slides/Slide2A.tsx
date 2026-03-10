@@ -104,7 +104,7 @@ export default function Slide2A() {
             <h3 className="text-2xl font-headline font-bold text-foreground mb-4">
               {step.label}
             </h3>
-            <p className="text-muted-foreground font-body leading-relaxed">
+            <p className="text-lg text-muted-foreground font-body leading-relaxed">
               {step.description}
             </p>
           </div>

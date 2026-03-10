@@ -52,8 +52,8 @@ export default function Slide5() {
                     : 'border-border bg-card text-muted-foreground hover:border-primary/30 hover:bg-accent/30'
                 }`}
               >
-                <Icon className={`h-8 w-8 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
-                <span className="text-sm font-medium font-body">{label}</span>
+                <Icon className={`h-10 w-10 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
+                <span className="text-base font-medium font-body">{label}</span>
               </button>
             );
           })}

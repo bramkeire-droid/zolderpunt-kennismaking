@@ -36,7 +36,7 @@ export default function Slide6() {
             {lead.inbegrepen_posten.length > 0 && (
               <div className="flex flex-wrap justify-center gap-2 mt-8">
                 {lead.inbegrepen_posten.map((post, i) => (
-                  <span key={i} className="bg-primary-foreground/10 text-primary-foreground px-3 py-1.5 rounded-full text-sm font-medium backdrop-blur-sm">
+                  <span key={i} className="bg-primary-foreground/10 text-primary-foreground px-4 py-2 rounded-full text-base font-medium backdrop-blur-sm">
                     ✓ {post.post} — {fmt(post.bedrag)}
                   </span>
                 ))}

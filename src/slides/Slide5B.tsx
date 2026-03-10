@@ -317,7 +317,7 @@ export default function Slide5B() {
                 </div>
               )}
             </div>
-            <div className="mt-3 text-[11px] text-muted-foreground leading-relaxed px-0.5">
+            <div className="mt-3 text-xs text-muted-foreground leading-relaxed px-0.5">
               ⚠ Indicatieve raming op basis van gemiddelde tarieven. Definitieve prijs na plaatsbezoek en opmeting. Schilderwerk steeds uitgesloten. Bandbreedte ±15%.
             </div>
           </div>

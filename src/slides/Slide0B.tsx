@@ -136,7 +136,7 @@ export default function Slide0B() {
               ) : (
                 <Upload className="h-8 w-8 text-primary mx-auto mb-2" />
               )}
-              <p className="text-sm text-muted-foreground">
+              <p className="text-base text-muted-foreground">
                 {uploading ? 'Bezig met uploaden...' : 'Klik om foto\'s te selecteren of sleep ze hierheen'}
               </p>
               <input

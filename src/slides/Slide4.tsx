@@ -39,7 +39,7 @@ export default function Slide4() {
 
         {/* Notes field */}
         <div className="space-y-2">
-          <label className="text-sm font-medium text-foreground font-body">
+          <label className="text-base font-medium text-foreground font-body">
             Aantekeningen
           </label>
           <Textarea

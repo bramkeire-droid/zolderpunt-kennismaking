@@ -53,8 +53,8 @@ export default function Slide10() {
 function SummaryRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between items-baseline">
-      <span className="text-sm text-muted-foreground font-body">{label}</span>
-      <span className="text-sm font-semibold text-foreground font-headline">{value}</span>
+      <span className="text-base text-muted-foreground font-body">{label}</span>
+      <span className="text-base font-semibold text-foreground font-headline">{value}</span>
     </div>
   );
 }

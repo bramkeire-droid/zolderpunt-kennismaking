@@ -56,7 +56,7 @@ export default function Slide8() {
 
         {/* Additions */}
         <div className="space-y-2 mb-8">
-          <label className="text-sm font-medium text-foreground font-body">
+          <label className="text-base font-medium text-foreground font-body">
             Aanvullingen of correcties
           </label>
           <Textarea

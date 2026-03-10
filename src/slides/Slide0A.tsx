@@ -72,7 +72,7 @@ export default function Slide0A() {
           </div>
 
           <div className="space-y-2">
-            <Label className="font-body">Notities vooraf</Label>
+            <Label className="font-body text-base">Notities vooraf</Label>
             <Textarea
               value={lead.notities_vooraf}
               onChange={e => updateLead({ notities_vooraf: e.target.value })}
