@@ -40,6 +40,8 @@ export interface LeadData {
   budget_incl21: number | null;
   inbegrepen_posten: any[];
   rapport_tekst: string;
+  rapport_highlights: string;
+  waarde_tekst_ai: string;
   rapport_gegenereerd_op: string | null;
   rapport_versies: any[];
   status: string;
