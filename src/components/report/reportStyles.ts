@@ -144,6 +144,7 @@ export const s = StyleSheet.create({
     backgroundColor: COLORS.primary,
     paddingHorizontal: 10,
     paddingVertical: 4,
+    borderRadius: 4,
   },
   badgeText: {
     fontFamily: 'SpaceGrotesk',
