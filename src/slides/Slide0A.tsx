@@ -50,7 +50,7 @@ export default function Slide0A() {
               />
             </div>
             <div className="space-y-2">
-              <Label className="font-body">Telefoonnummer</Label>
+              <Label className="font-body text-base">Telefoonnummer</Label>
               <Input
                 type="tel"
                 value={lead.telefoon}
