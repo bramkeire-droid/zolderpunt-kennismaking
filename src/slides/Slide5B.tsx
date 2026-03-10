@@ -149,12 +149,12 @@ export default function Slide5B() {
 
               {/* Dakbekleding */}
               <div className="mt-4">
-                <div className="text-xs font-semibold text-muted-foreground mb-2">Dakbekleding aanwezig?</div>
+                <div className="text-sm font-semibold text-muted-foreground mb-2">Dakbekleding aanwezig?</div>
                 <div className="flex gap-1.5">
-                  <button onClick={() => setDakBekleed(false)} className={`flex-1 px-2.5 py-2 rounded-lg border-2 text-xs font-semibold transition-all font-body text-center ${!dakBekleed ? 'bg-secondary border-secondary text-secondary-foreground' : 'border-border text-muted-foreground hover:border-secondary hover:text-secondary'}`}>
+                  <button onClick={() => setDakBekleed(false)} className={`flex-1 px-2.5 py-2.5 rounded-lg border-2 text-sm font-semibold transition-all font-body text-center ${!dakBekleed ? 'bg-secondary border-secondary text-secondary-foreground' : 'border-border text-muted-foreground hover:border-secondary hover:text-secondary'}`}>
                     Nog te bekleden<br /><span className="opacity-75">tarief €230/m²</span>
                   </button>
-                  <button onClick={() => setDakBekleed(true)} className={`flex-1 px-2.5 py-2 rounded-lg border-2 text-xs font-semibold transition-all font-body text-center ${dakBekleed ? 'bg-secondary border-secondary text-secondary-foreground' : 'border-border text-muted-foreground hover:border-secondary hover:text-secondary'}`}>
+                  <button onClick={() => setDakBekleed(true)} className={`flex-1 px-2.5 py-2.5 rounded-lg border-2 text-sm font-semibold transition-all font-body text-center ${dakBekleed ? 'bg-secondary border-secondary text-secondary-foreground' : 'border-border text-muted-foreground hover:border-secondary hover:text-secondary'}`}>
                     Al bekleed met platen<br /><span className="opacity-75">tarief €115/m²</span>
                   </button>
                 </div>
