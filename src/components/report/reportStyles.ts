@@ -281,6 +281,7 @@ export const s = StyleSheet.create({
     width: 80,
     height: 80,
     objectFit: 'cover' as const,
+    borderRadius: 8,
   },
   reviewAvatar: {
     width: 80,
@@ -288,6 +289,7 @@ export const s = StyleSheet.create({
     backgroundColor: COLORS.primary,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
+    borderRadius: 8,
   },
   reviewInitials: {
     fontFamily: 'SpaceGrotesk',
