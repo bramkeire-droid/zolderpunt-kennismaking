@@ -3,6 +3,7 @@ import { SessionProvider, useSession } from '@/contexts/SessionContext';
 import NavigationBar from '@/components/NavigationBar';
 import Dossiers from '@/pages/Dossiers';
 import Slide0A from '@/slides/Slide0A';
+import Slide0A2 from '@/slides/Slide0A2';
 import Slide0B from '@/slides/Slide0B';
 import Slide0C from '@/slides/Slide0C';
 import Slide1 from '@/slides/Slide1';
