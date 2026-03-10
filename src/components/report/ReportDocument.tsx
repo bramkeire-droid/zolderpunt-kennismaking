@@ -13,11 +13,21 @@ import PdfIcon from './PdfIcon';
 
 // Static asset imports
 import LogoPdf from './LogoPdf';
-import heroSrc from '@/assets/hero-cover.jpg';
-import bramSrc from '@/assets/foto-bram.png';
-import brandonSrc from '@/assets/review-foto-brandon.jpg';
-import tomSrc from '@/assets/review-foto-tom.png';
-import ceciliaSrc from '@/assets/review-foto-cecilia.png';
+import heroSrcRaw from '@/assets/hero-cover.jpg';
+import bramSrcRaw from '@/assets/foto-bram.png';
+import brandonSrcRaw from '@/assets/review-foto-brandon.jpg';
+import tomSrcRaw from '@/assets/review-foto-tom.png';
+import ceciliaSrcRaw from '@/assets/review-foto-cecilia.png';
+
+// Convert relative asset paths to absolute URLs for @react-pdf/renderer in production
+const toAbsoluteUrl = (src: string) =>
+  src.startsWith('http') ? src : new URL(src, window.location.origin).href;
+
+const heroSrc = toAbsoluteUrl(heroSrcRaw);
+const bramSrc = toAbsoluteUrl(bramSrcRaw);
+const brandonSrc = toAbsoluteUrl(brandonSrcRaw);
+const tomSrc = toAbsoluteUrl(tomSrcRaw);
+const ceciliaSrc = toAbsoluteUrl(ceciliaSrcRaw);
 
 const REVIEW_PHOTOS: Record<string, string> = {
   brandon: brandonSrc,

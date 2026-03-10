@@ -78,7 +78,16 @@ export default function Slide10() {
       const reportData = mapLeadToReportData(lead, aiText);
 
       // 3. Generate PDF
-      const blob = await pdf(<ReportDocument data={reportData} />).toBlob();
+      console.log('[PDF] Starting PDF generation with data:', { voornaam: reportData.voornaam, achternaam: reportData.achternaam, fotos: reportData.fotos?.length });
+      let blob: Blob;
+      try {
+        blob = await pdf(<ReportDocument data={reportData} />).toBlob();
+        console.log('[PDF] Blob generated, size:', blob.size);
+      } catch (pdfErr) {
+        console.error('[PDF] toBlob() failed:', pdfErr);
+        toast.error('PDF render mislukt — controleer de console voor details.');
+        return;
+      }
 
       // 4. Download
       const url = URL.createObjectURL(blob);
