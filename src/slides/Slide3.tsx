@@ -150,15 +150,15 @@ function EditableRow({ label, value, placeholder, onChange, suffix }: {
   return (
     <div className="flex justify-between items-center gap-4">
       <span className="text-base text-muted-foreground font-body whitespace-nowrap">{label}</span>
-      <div className="flex items-center gap-1">
+      <div className="relative w-56">
         <Input
           value={value}
           onChange={e => onChange(e.target.value)}
           placeholder={placeholder}
-          className="bg-background text-right text-base h-10 w-56"
+          className={`bg-background text-right text-base h-10 ${suffix ? 'pr-8' : ''}`}
         />
         {suffix && value && (
-          <span className="text-sm text-muted-foreground">{suffix}</span>
+          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">{suffix}</span>
         )}
       </div>
     </div>
