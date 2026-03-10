@@ -11,7 +11,7 @@ import {
 import type { ReportData } from './reportTypes';
 
 // Static asset imports — these resolve to URLs at build time
-import logoSrc from '@/assets/logo-blauw.svg';
+import LogoPdf from './LogoPdf';
 import bramSrc from '@/assets/foto-bram.png';
 import brandonSrc from '@/assets/review-foto-brandon.jpg';
 import tomSrc from '@/assets/review-foto-tom.png';
@@ -32,7 +32,7 @@ const fmt = (n: number) =>
 function PageFooter() {
   return (
     <View style={s.footer} fixed>
-      <Image src={logoSrc} style={s.footerLogo} />
+      <LogoPdf width={80} />
       <Text style={s.footerText}>{TAGLINE}  ·  {CONTACT_WEBSITE}</Text>
     </View>
   );
@@ -48,7 +48,7 @@ function CoverPage({ data }: { data: ReportData }) {
       <View style={[s.angleDecor, { top: -60, right: -80 }]} />
 
       <View style={s.coverContent}>
-        <Image src={logoSrc} style={s.coverLogo} />
+        <LogoPdf width={180} />
 
         <Text style={s.coverTagline}>{TAGLINE}</Text>
 
@@ -379,7 +379,7 @@ function CTAPage({ data }: { data: ReportData }) {
 
       {/* Footer with logo + tagline */}
       <View style={[s.footer, { flexDirection: 'column' as const, alignItems: 'center' as const, gap: 6 }]}>
-        <Image src={logoSrc} style={{ width: 100 }} />
+        <LogoPdf width={100} />
         <Text style={s.footerText}>{TAGLINE}  ·  {CONTACT_WEBSITE}</Text>
       </View>
     </Page>
