@@ -450,7 +450,10 @@ export const s = StyleSheet.create({
     backgroundColor: COLORS.white,
     padding: 12,
     alignSelf: 'flex-start' as const,
-    borderRadius: 8,
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
+    borderBottomLeftRadius: 8,
+    borderBottomRightRadius: 8,
   },
   googleScore: {
     fontFamily: 'SpaceGrotesk',
