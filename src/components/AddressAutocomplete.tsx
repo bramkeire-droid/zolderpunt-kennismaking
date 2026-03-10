@@ -107,13 +107,18 @@ export default function AddressAutocomplete({ value, onChange, onCoordinates, pl
 
   return (
     <div ref={wrapperRef} className="relative">
-      <Input
-        value={inputValue}
-        onChange={e => handleChange(e.target.value)}
-        placeholder={placeholder}
-        className={className}
-        autoComplete="off"
-      />
+      <div className="relative">
+        <Input
+          value={inputValue}
+          onChange={e => handleChange(e.target.value)}
+          placeholder={placeholder}
+          className={className}
+          autoComplete="off"
+        />
+        {searchError && (
+          <AlertCircle className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-destructive" title="Adres zoeken mislukt" />
+        )}
+      </div>
       {open && suggestions.length > 0 && (
         <ul className="absolute z-50 top-full left-0 right-0 mt-1 bg-card border border-border shadow-lg max-h-[200px] overflow-auto">
           {suggestions.map((s, i) => (
