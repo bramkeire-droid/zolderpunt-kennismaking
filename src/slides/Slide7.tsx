@@ -34,7 +34,7 @@ export default function Slide7() {
     <SlideLayout>
       <div className="max-w-4xl mx-auto w-full">
         <SlideLabel>JOUW KEUZE</SlideLabel>
-        <h2 className="text-3xl font-headline font-bold text-foreground mb-10">
+        <h2 className="text-4xl font-headline font-bold text-foreground mb-10">
           Hoe gaan we verder?
         </h2>
 
