@@ -38,3 +38,10 @@ SLIDE ORDER:
 - 8 (transcript), 9 (preview), 10 (PDF)
 
 SVG LOGOS: src/assets/logo-blauw.svg, logo-zwart.svg, beeldmerk-blauw.svg
+
+PDF RAPPORT:
+- @react-pdf/renderer for PDF generation
+- Edge function generate-value-text (Lovable AI, gemini-3-flash-preview) for dynamic value text
+- 8 sections: Cover, Samenvatting, Prijs+Waarde, Foto's, Werkwijze, Garanties, Reviews, CTA
+- Hardcoded constants in reportConstants.ts (reviews, guarantees, contact info)
+- Assets: foto-bram.png, review-foto-brandon.jpg, review-foto-tom.png, review-foto-cecilia.png
