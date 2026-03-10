@@ -103,7 +103,7 @@ export const s = StyleSheet.create({
   },
   card: {
     backgroundColor: COLORS.white,
-    borderRadius: 12,
+    borderRadius: 0,
     padding: 20,
     marginBottom: 12,
   },
