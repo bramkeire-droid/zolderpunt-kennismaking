@@ -17,7 +17,22 @@ serve(async (req) => {
     let prompt: string;
     let systemPrompt: string;
 
-    if (type === 'summarize_notes') {
+    if (type === 'extract_highlights') {
+      // Concise summary of gesprek_notities for the aandachtspunten field in the PDF
+      systemPrompt = "Je bent assistent voor Zolderpunt, een bedrijf gespecialiseerd in zolderrenovaties.";
+      prompt = `Op basis van de volgende gespreksnotities, schrijf een beknopte samenvatting van maximaal 60 woorden voor de klant.
+
+Regels:
+- Schrijf in de tweede persoon ("je", "jouw")
+- Focus op wat de klant heeft verteld en wat er besproken werd
+- Geen technisch jargon, geen prijzen, geen plannen voor de toekomst
+- Warm en persoonlijk van toon
+- Maximaal 3 zinnen
+- Sluit NOOIT af met een conclusie of aanbeveling — enkel een samenvatting van het gesprek
+
+Gespreksnotities: "${gesprek_notities || '(geen notities)'}"
+Gewenst resultaat: "${gewenst_resultaat || 'extra leefruimte'}"`;
+    } else if (type === 'summarize_notes') {
       // Summarize gesprek_notities into a concise narrative for the rapport
       systemPrompt = "Je bent een professionele rapportschrijver voor Zolderpunt, een Belgisch zolderrenovatiebedrijf. Je schrijft zakelijke, warme, beknopte teksten in het Nederlands. Geen verkooptaal. Geen bullet points, wel vloeiende zinnen.";
       prompt = `Hieronder staan de ruwe gespreksnotities van een intakegesprek over een zolderrenovatie (${oppervlakte_m2 || '?'} m², gewenst resultaat: "${gewenst_resultaat || 'extra leefruimte'}").

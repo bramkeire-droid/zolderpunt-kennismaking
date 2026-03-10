@@ -119,7 +119,7 @@ export const WERKWIJZE_STAPPEN = [
     nr: 5,
     title: 'Uitvoering',
     status: 'upcoming' as const,
-    copy: 'Ons team voert de renovatie uit volgens het goedgekeurde ontwerp, met vaste aanspreekpunten.',
+    copy: 'Ons team voert de renovatie uit volgens het goedgekeurde ontwerp. Je hebt één vaste contactpersoon van begin tot einde.',
   },
   {
     nr: 6,
