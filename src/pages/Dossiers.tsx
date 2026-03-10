@@ -32,6 +32,8 @@ function rowToLead(row: any): LeadData {
     gezocht_naar: row.gezocht_naar ?? '',
     notities_vooraf: row.notities_vooraf ?? '',
     adres: row.adres ?? '',
+    adres_lat: null,
+    adres_lng: null,
     oppervlakte_m2: row.oppervlakte_m2 ?? null,
     project_type: row.project_type ?? '',
     project_timing: row.project_timing ?? '',

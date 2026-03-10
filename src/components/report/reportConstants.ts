@@ -143,6 +143,6 @@ export const OPTIES_LABELS: Record<string, string> = {
   velux: 'Velux dakraam',
   trap: 'Vaste trap',
   elektriciteit: 'Elektriciteit',
-  airco: 'Airco (optioneel)',
+  airco: 'Airco (optioneel — apart geoffreerd)',
   schilderwerk: 'Schilderwerk',
 };

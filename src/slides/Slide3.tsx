@@ -1,6 +1,7 @@
 import { useSession } from '@/contexts/SessionContext';
 import SlideLayout from '@/components/SlideLayout';
 import SlideLabel from '@/components/SlideLabel';
+import AddressAutocomplete from '@/components/AddressAutocomplete';
 import { Input } from '@/components/ui/input';
 import { MapPin, Image } from 'lucide-react';
 
@@ -20,7 +21,17 @@ export default function Slide3() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left column: Project info */}
           <div className="space-y-4">
-            {lead.adres ? (
+            {lead.adres_lat && lead.adres_lng ? (
+              <div className="overflow-hidden border border-border h-[200px]">
+                <iframe
+                  title="Kaart"
+                  width="100%"
+                  height="100%"
+                  style={{ border: 0 }}
+                  src={`https://www.openstreetmap.org/export/embed.html?bbox=${lead.adres_lng - 0.005},${lead.adres_lat - 0.003},${lead.adres_lng + 0.005},${lead.adres_lat + 0.003}&layer=mapnik&marker=${lead.adres_lat},${lead.adres_lng}`}
+                />
+              </div>
+            ) : lead.adres ? (
               <div className="overflow-hidden border border-border h-[200px] bg-muted flex items-center justify-center">
                 <div className="text-muted-foreground text-sm flex flex-col items-center gap-2">
                   <MapPin className="h-8 w-8" />
@@ -37,12 +48,18 @@ export default function Slide3() {
             )}
 
             <div className="space-y-3 bg-card p-5 border border-border">
-              <EditableRow
-                label="Adres"
-                value={lead.adres}
-                placeholder="Nog niet ingevuld"
-                onChange={v => updateLead({ adres: v })}
-              />
+              <div className="flex justify-between items-center gap-4">
+                <span className="text-base text-muted-foreground font-body whitespace-nowrap">Adres</span>
+                <div className="w-56">
+                  <AddressAutocomplete
+                    value={lead.adres}
+                    onChange={v => updateLead({ adres: v })}
+                    onCoordinates={(lat, lng) => updateLead({ adres_lat: lat, adres_lng: lng })}
+                    placeholder="Nog niet ingevuld"
+                    className="bg-background text-right text-base h-10"
+                  />
+                </div>
+              </div>
               <EditableRow
                 label="Geschatte oppervlakte"
                 value={lead.oppervlakte_m2 ? `${lead.oppervlakte_m2}` : ''}

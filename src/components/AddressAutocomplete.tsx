@@ -13,15 +13,24 @@ interface PhotonFeature {
   };
 }
 
+interface PhotonGeometry {
+  coordinates: [number, number]; // [lng, lat]
+}
+
+interface PhotonFeatureWithGeometry extends PhotonFeature {
+  geometry?: PhotonGeometry;
+}
+
 interface AddressAutocompleteProps {
   value: string;
   onChange: (value: string) => void;
+  onCoordinates?: (lat: number, lng: number) => void;
   placeholder?: string;
   className?: string;
 }
 
-export default function AddressAutocomplete({ value, onChange, placeholder, className }: AddressAutocompleteProps) {
-  const [suggestions, setSuggestions] = useState<PhotonFeature[]>([]);
+export default function AddressAutocomplete({ value, onChange, onCoordinates, placeholder, className }: AddressAutocompleteProps) {
+  const [suggestions, setSuggestions] = useState<PhotonFeatureWithGeometry[]>([]);
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState(value);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
@@ -70,10 +79,14 @@ export default function AddressAutocomplete({ value, onChange, placeholder, clas
     return parts.join(', ');
   };
 
-  const selectSuggestion = (feature: PhotonFeature) => {
+  const selectSuggestion = (feature: PhotonFeatureWithGeometry) => {
     const formatted = formatAddress(feature.properties);
     setInputValue(formatted);
     onChange(formatted);
+    if (onCoordinates && feature.geometry?.coordinates) {
+      const [lng, lat] = feature.geometry.coordinates;
+      onCoordinates(lat, lng);
+    }
     setOpen(false);
     setSuggestions([]);
   };
