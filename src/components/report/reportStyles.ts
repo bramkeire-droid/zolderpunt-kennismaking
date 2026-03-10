@@ -393,7 +393,7 @@ export const s = StyleSheet.create({
   // ─── Guarantee cards ──────────────────────────────────
   garantieCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 12,
+    borderRadius: 0,
     padding: 16,
     width: '48%',
     marginBottom: 12,
