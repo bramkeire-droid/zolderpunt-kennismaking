@@ -92,7 +92,7 @@ export default function Dossiers({ onOpenLead }: DossiersProps) {
       if (l.gevonden_via) acc[l.gevonden_via] = (acc[l.gevonden_via] || 0) + 1;
       return acc;
     }, {});
-    const topChannel = Object.entries(channels).sort((a, b) => b[1] - a[1])[0]?.[0] || '—';
+    const topChannel = Object.entries(channels).sort(([,a], [,b]) => (b as number) - (a as number))[0]?.[0] || '—';
     const converted = leads.filter(l => ['offerte', 'uitvoering', 'afgesloten'].includes(l.status)).length;
     const ratio = total > 0 ? `${Math.round((converted / total) * 100)}%` : '—';
     return { total: String(total), avgBudget: avgBudget ? fmt(avgBudget) : '—', topChannel, ratio };
