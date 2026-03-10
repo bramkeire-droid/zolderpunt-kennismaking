@@ -1,0 +1,64 @@
+import { useSession } from '@/contexts/SessionContext';
+import SlideLayout from '@/components/SlideLayout';
+import SlideLabel from '@/components/SlideLabel';
+
+const OPTIONS = [
+  {
+    key: 'plaatsbezoek',
+    title: 'Plaatsbezoek inplannen',
+    text: 'We komen langs, meten alles op en maken een gedetailleerd 3D-ontwerp en offerte.',
+    label: '→ Bram neemt binnen 48u contact op',
+  },
+  {
+    key: 'overleggen',
+    title: 'Eerst intern overleggen',
+    text: 'Jullie bespreken dit samen. Wanneer jullie klaar zijn, plannen we het bezoek.',
+    label: '→ Jullie nemen contact op wanneer het past',
+  },
+  {
+    key: 'nadenken',
+    title: 'Nog even nadenken',
+    text: 'Geen probleem. Ik stuur jullie een korte vragenlijst zodat ik weet waar jullie staan.',
+    label: '→ Bram stuurt een mail met 3 keuzevragen',
+  },
+];
+
+export default function Slide7() {
+  const { lead, updateLead } = useSession();
+
+  return (
+    <SlideLayout>
+      <div className="max-w-4xl mx-auto w-full">
+        <SlideLabel>JOUW KEUZE</SlideLabel>
+        <h2 className="text-3xl font-headline font-bold text-foreground mb-10">
+          Hoe gaan we verder?
+        </h2>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          {OPTIONS.map(opt => {
+            const isSelected = lead.volgende_stap === opt.key;
+            return (
+              <button
+                key={opt.key}
+                onClick={() => updateLead({ volgende_stap: opt.key })}
+                className={`text-left p-6 rounded-xl border-2 transition-all ${
+                  isSelected
+                    ? 'border-primary bg-accent shadow-md'
+                    : 'border-border bg-card hover:border-primary/30'
+                }`}
+              >
+                <h3 className="text-lg font-headline font-bold text-foreground mb-3">{opt.title}</h3>
+                <p className="text-sm text-muted-foreground font-body mb-4 leading-relaxed">{opt.text}</p>
+                <p className={`text-xs font-medium ${isSelected ? 'text-primary' : 'text-muted-foreground'}`}>{opt.label}</p>
+              </button>
+            );
+          })}
+        </div>
+
+        <p className="text-sm text-muted-foreground font-body mt-10 text-center">
+          Hoe dan ook: jullie ontvangen vandaag nog een samenvatting van dit gesprek.
+        </p>
+      </div>
+    </SlideLayout>
+  );
+}
