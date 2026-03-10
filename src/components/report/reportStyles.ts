@@ -140,7 +140,6 @@ export const s = StyleSheet.create({
   },
   badge: {
     backgroundColor: COLORS.primary,
-    borderRadius: 0,
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
