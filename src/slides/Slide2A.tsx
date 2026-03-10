@@ -46,7 +46,7 @@ export default function Slide2A() {
     <SlideLayout>
       <div className="max-w-5xl mx-auto w-full flex flex-col h-full">
         <SlideLabel>HOE WE SAMENWERKEN</SlideLabel>
-        <h2 className="text-3xl font-headline font-bold text-foreground mb-8">
+        <h2 className="text-4xl font-headline font-bold text-foreground mb-8">
           Van eerste contact tot oplevering
         </h2>
 
