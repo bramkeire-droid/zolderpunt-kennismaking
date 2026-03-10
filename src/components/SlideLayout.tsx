@@ -32,11 +32,11 @@ export default function SlideLayout({ children, variant = 'default', hideNav = f
   if (variant === 'internal') {
     return (
       <div className="flex-1 flex flex-col bg-muted relative overflow-hidden">
-        <div className={`flex-1 overflow-y-auto p-8 lg:p-12 ${className}`}>
+        <div className={`flex-1 overflow-y-auto p-10 lg:p-16 ${className}`}>
           {children}
         </div>
         {!hideNav && (
-          <div className="px-8 lg:px-12 pb-6">
+          <div className="px-10 lg:px-16 pb-6">
             <SlideNavButtons showSave={showSave} />
           </div>
         )}
