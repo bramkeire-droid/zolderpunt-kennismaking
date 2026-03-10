@@ -24,7 +24,12 @@ export default function Slide8() {
 
   const handleGenerate = () => {
     const combined = [transcript, additions].filter(Boolean).join('\n\n---\nAanvullingen:\n');
-    updateLead({ transcript: combined });
+    updateLead({
+      transcript: combined,
+      rapport_tekst: '',
+      rapport_highlights: '',
+      waarde_tekst_ai: '',
+    });
     nextSlide();
   };
 
