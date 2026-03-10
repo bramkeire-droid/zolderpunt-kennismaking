@@ -72,7 +72,7 @@ export default function Slide2A() {
                 }`}>
                   {String(i + 1).padStart(2, '0')}
                 </span>
-                <span className={`text-sm font-headline font-semibold ${
+                <span className={`text-base font-headline font-semibold ${
                   isSelected ? 'text-primary-foreground' : ''
                 }`}>
                   {s.label}
