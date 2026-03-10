@@ -18,7 +18,7 @@ export default function Slide4() {
     <SlideLayout>
       <div className="max-w-3xl mx-auto w-full">
         <SlideLabel>LUISTEREN — KLANT PRAAT</SlideLabel>
-        <h2 className="text-3xl font-headline font-bold text-foreground mb-8">
+        <h2 className="text-4xl font-headline font-bold text-foreground mb-8">
           Vertel ons over jullie project
         </h2>
 
@@ -31,7 +31,7 @@ export default function Slide4() {
             {PROMPTS.map((prompt, i) => (
               <div key={i} className="flex items-start gap-2">
                 <span className="text-primary font-bold">→</span>
-                <span className="text-sm text-muted-foreground font-body">{prompt}</span>
+                <span className="text-base text-muted-foreground font-body">{prompt}</span>
               </div>
             ))}
           </div>
@@ -39,7 +39,7 @@ export default function Slide4() {
 
         {/* Notes field */}
         <div className="space-y-2">
-          <label className="text-sm font-medium text-foreground font-body">
+          <label className="text-base font-medium text-foreground font-body">
             Aantekeningen
           </label>
           <Textarea

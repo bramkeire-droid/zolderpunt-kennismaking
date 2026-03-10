@@ -46,7 +46,7 @@ export default function Slide2A() {
     <SlideLayout>
       <div className="max-w-5xl mx-auto w-full flex flex-col h-full">
         <SlideLabel>HOE WE SAMENWERKEN</SlideLabel>
-        <h2 className="text-3xl font-headline font-bold text-foreground mb-8">
+        <h2 className="text-4xl font-headline font-bold text-foreground mb-8">
           Van eerste contact tot oplevering
         </h2>
 
@@ -72,7 +72,7 @@ export default function Slide2A() {
                 }`}>
                   {String(i + 1).padStart(2, '0')}
                 </span>
-                <span className={`text-sm font-headline font-semibold ${
+                <span className={`text-base font-headline font-semibold ${
                   isSelected ? 'text-primary-foreground' : ''
                 }`}>
                   {s.label}
@@ -104,7 +104,7 @@ export default function Slide2A() {
             <h3 className="text-2xl font-headline font-bold text-foreground mb-4">
               {step.label}
             </h3>
-            <p className="text-muted-foreground font-body leading-relaxed">
+            <p className="text-lg text-muted-foreground font-body leading-relaxed">
               {step.description}
             </p>
           </div>

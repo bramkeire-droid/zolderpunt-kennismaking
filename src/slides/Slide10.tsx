@@ -19,7 +19,7 @@ export default function Slide10() {
     <SlideLayout>
       <div className="max-w-2xl mx-auto w-full">
         <SlideLabel>DOSSIER EXPORTEREN</SlideLabel>
-        <h2 className="text-3xl font-headline font-bold text-foreground mb-8">
+        <h2 className="text-4xl font-headline font-bold text-foreground mb-8">
           Dossier exporteren
         </h2>
 
@@ -53,8 +53,8 @@ export default function Slide10() {
 function SummaryRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between items-baseline">
-      <span className="text-sm text-muted-foreground font-body">{label}</span>
-      <span className="text-sm font-semibold text-foreground font-headline">{value}</span>
+      <span className="text-base text-muted-foreground font-body">{label}</span>
+      <span className="text-base font-semibold text-foreground font-headline">{value}</span>
     </div>
   );
 }

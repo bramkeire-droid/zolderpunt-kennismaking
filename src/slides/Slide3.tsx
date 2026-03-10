@@ -11,7 +11,7 @@ export default function Slide3() {
     <SlideLayout showSave>
       <div className="max-w-5xl mx-auto w-full">
         <SlideLabel>JULLIE PROJECT</SlideLabel>
-        <h2 className="text-3xl font-headline font-bold text-foreground mb-8">
+        <h2 className="text-4xl font-headline font-bold text-foreground mb-8">
           {lead.voornaam && lead.achternaam
             ? `${lead.voornaam} ${lead.achternaam}`
             : 'Klantgegevens'}
@@ -112,13 +112,13 @@ function EditableRow({ label, value, placeholder, onChange, suffix }: {
 }) {
   return (
     <div className="flex justify-between items-center gap-4">
-      <span className="text-sm text-muted-foreground font-body whitespace-nowrap">{label}</span>
+      <span className="text-base text-muted-foreground font-body whitespace-nowrap">{label}</span>
       <div className="flex items-center gap-1">
         <Input
           value={value}
           onChange={e => onChange(e.target.value)}
           placeholder={placeholder}
-          className="bg-background text-right text-sm h-8 w-48"
+          className="bg-background text-right text-base h-10 w-56"
         />
         {suffix && value && (
           <span className="text-sm text-muted-foreground">{suffix}</span>

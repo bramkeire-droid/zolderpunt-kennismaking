@@ -14,7 +14,7 @@ export default function Slide9() {
     <SlideLayout>
       <div className="max-w-3xl mx-auto w-full">
         <SlideLabel>RAPPORT PREVIEW</SlideLabel>
-        <h2 className="text-3xl font-headline font-bold text-foreground mb-8">
+        <h2 className="text-4xl font-headline font-bold text-foreground mb-8">
           Klantrapport
         </h2>
 

@@ -35,7 +35,7 @@ export default function Slide5() {
     <SlideLayout>
       <div className="max-w-4xl mx-auto w-full">
         <SlideLabel>TECHNISCHE ANALYSE</SlideLabel>
-        <h2 className="text-3xl font-headline font-bold text-foreground mb-8">
+        <h2 className="text-4xl font-headline font-bold text-foreground mb-8">
           Wat komt erbij kijken?
         </h2>
 
@@ -52,8 +52,8 @@ export default function Slide5() {
                     : 'border-border bg-card text-muted-foreground hover:border-primary/30 hover:bg-accent/30'
                 }`}
               >
-                <Icon className={`h-8 w-8 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
-                <span className="text-sm font-medium font-body">{label}</span>
+                <Icon className={`h-10 w-10 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
+                <span className="text-base font-medium font-body">{label}</span>
               </button>
             );
           })}

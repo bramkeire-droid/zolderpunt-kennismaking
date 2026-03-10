@@ -19,9 +19,9 @@ export default function SlideNavButtons({ showSave = false }: SlideNavButtonsPro
         variant="outline"
         onClick={prevSlide}
         disabled={isFirst}
-        className="gap-2 font-headline"
+        className="gap-2 font-headline text-base py-3 px-6"
       >
-        <ChevronLeft className="h-4 w-4" />
+        <ChevronLeft className="h-5 w-5" />
         Vorige
       </Button>
 
@@ -30,19 +30,19 @@ export default function SlideNavButtons({ showSave = false }: SlideNavButtonsPro
           <Button
             variant="outline"
             onClick={saveLead}
-            className="gap-2 font-headline border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+            className="gap-2 font-headline text-base py-3 px-6 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
           >
-            <Save className="h-4 w-4" />
+            <Save className="h-5 w-5" />
             Opslaan
           </Button>
         )}
         <Button
           onClick={nextSlide}
           disabled={isLast}
-          className="gap-2 font-headline bg-primary text-primary-foreground hover:bg-secondary"
+          className="gap-2 font-headline text-base py-3 px-6 bg-primary text-primary-foreground hover:bg-secondary"
         >
           Volgende
-          <ChevronRight className="h-4 w-4" />
+          <ChevronRight className="h-5 w-5" />
         </Button>
       </div>
     </div>

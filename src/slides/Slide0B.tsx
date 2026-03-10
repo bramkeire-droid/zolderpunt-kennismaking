@@ -76,14 +76,14 @@ export default function Slide0B() {
     <SlideLayout showSave>
       <div className="max-w-3xl mx-auto w-full">
         <SlideLabel>PROJECTINFO</SlideLabel>
-        <h2 className="text-3xl font-headline font-bold text-foreground mb-8">
+        <h2 className="text-4xl font-headline font-bold text-foreground mb-10">
           Over het project
         </h2>
 
         <div className="space-y-6">
           <div className="space-y-2">
-            <Label className="font-body flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-primary" />
+            <Label className="font-body text-base flex items-center gap-2">
+              <MapPin className="h-5 w-5 text-primary" />
               Projectadres
             </Label>
             <AddressAutocomplete
@@ -96,7 +96,7 @@ export default function Slide0B() {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label className="font-body">Geschatte oppervlakte</Label>
+              <Label className="font-body text-base">Geschatte oppervlakte</Label>
               <div className="flex items-center gap-2">
                 <Input
                   type="number"
@@ -111,7 +111,7 @@ export default function Slide0B() {
           </div>
 
           <div className="space-y-2">
-            <Label className="font-body">Project timing</Label>
+            <Label className="font-body text-base">Project timing</Label>
             <Textarea
               value={lead.project_timing}
               onChange={e => updateLead({ project_timing: e.target.value })}
@@ -122,7 +122,7 @@ export default function Slide0B() {
 
           {/* Photo upload */}
           <div className="space-y-3">
-            <Label className="font-body">Foto's uploaden</Label>
+            <Label className="font-body text-base">Foto's uploaden</Label>
             <div
               onClick={() => !uploading && fileInputRef.current?.click()}
               className={`border-2 border-dashed p-8 text-center transition-colors ${
@@ -136,7 +136,7 @@ export default function Slide0B() {
               ) : (
                 <Upload className="h-8 w-8 text-primary mx-auto mb-2" />
               )}
-              <p className="text-sm text-muted-foreground">
+              <p className="text-base text-muted-foreground">
                 {uploading ? 'Bezig met uploaden...' : 'Klik om foto\'s te selecteren of sleep ze hierheen'}
               </p>
               <input

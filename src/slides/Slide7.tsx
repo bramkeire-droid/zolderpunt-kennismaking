@@ -34,7 +34,7 @@ export default function Slide7() {
     <SlideLayout>
       <div className="max-w-4xl mx-auto w-full">
         <SlideLabel>JOUW KEUZE</SlideLabel>
-        <h2 className="text-3xl font-headline font-bold text-foreground mb-10">
+        <h2 className="text-4xl font-headline font-bold text-foreground mb-10">
           Hoe gaan we verder?
         </h2>
 
@@ -53,8 +53,8 @@ export default function Slide7() {
                 }`}
               >
                 <Icon className={`h-8 w-8 mb-4 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`} />
-                <h3 className="text-lg font-headline font-bold text-foreground mb-3">{opt.title}</h3>
-                <p className="text-sm text-muted-foreground font-body mb-4 leading-relaxed">{opt.text}</p>
+                <h3 className="text-xl font-headline font-bold text-foreground mb-3">{opt.title}</h3>
+                <p className="text-base text-muted-foreground font-body mb-4 leading-relaxed">{opt.text}</p>
                 <p className={`text-xs font-medium ${isSelected ? 'text-primary' : 'text-muted-foreground'}`}>{opt.label}</p>
               </button>
             );

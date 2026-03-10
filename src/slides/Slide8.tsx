@@ -26,7 +26,7 @@ export default function Slide8() {
     <SlideLayout>
       <div className="max-w-2xl mx-auto w-full">
         <SlideLabel>RAPPORT GENEREREN</SlideLabel>
-        <h2 className="text-3xl font-headline font-bold text-foreground mb-8">
+        <h2 className="text-4xl font-headline font-bold text-foreground mb-8">
           Gesprek verwerken
         </h2>
 
@@ -36,7 +36,7 @@ export default function Slide8() {
           className="border-2 border-dashed border-primary/30 rounded-xl p-10 text-center cursor-pointer hover:border-primary/60 hover:bg-accent/30 transition-colors mb-6"
         >
           <Upload className="h-10 w-10 text-primary mx-auto mb-3" />
-          <p className="text-sm text-muted-foreground font-body">
+          <p className="text-base text-muted-foreground font-body">
             Upload transcript (.md of .txt)
           </p>
           {fileName && (
@@ -56,7 +56,7 @@ export default function Slide8() {
 
         {/* Additions */}
         <div className="space-y-2 mb-8">
-          <label className="text-sm font-medium text-foreground font-body">
+          <label className="text-base font-medium text-foreground font-body">
             Aanvullingen of correcties
           </label>
           <Textarea

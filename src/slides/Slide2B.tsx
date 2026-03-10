@@ -14,17 +14,17 @@ export default function Slide2B() {
     <SlideLayout>
       <div className="max-w-2xl mx-auto w-full">
         <SlideLabel>VANDAAG BESPREKEN WE</SlideLabel>
-        <h2 className="text-3xl font-headline font-bold text-foreground mb-10">
+        <h2 className="text-4xl font-headline font-bold text-foreground mb-10">
           De agenda
         </h2>
 
-        <div className="space-y-4">
+        <div className="space-y-5">
           {AGENDA.map((item, i) => (
             <div key={i} className="flex items-center gap-5">
-              <span className="text-2xl font-headline font-bold text-primary w-10">
+              <span className="text-3xl font-headline font-bold text-primary w-12">
                 {String(i + 1).padStart(2, '0')}
               </span>
-              <span className="text-lg font-body text-foreground">
+              <span className="text-xl font-body text-foreground">
                 {item}
               </span>
             </div>

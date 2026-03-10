@@ -12,7 +12,7 @@ export default function Slide6() {
     <SlideLayout variant="blue">
       <div className="flex flex-col items-center w-full max-w-3xl">
         <div className="label-style text-primary-foreground/60 mb-2">EERSTE INDICATIE</div>
-        <h2 className="text-3xl font-headline font-bold text-primary-foreground mb-10">
+        <h2 className="text-4xl font-headline font-bold text-primary-foreground mb-10">
           Wat mag je verwachten?
         </h2>
 
@@ -36,7 +36,7 @@ export default function Slide6() {
             {lead.inbegrepen_posten.length > 0 && (
               <div className="flex flex-wrap justify-center gap-2 mt-8">
                 {lead.inbegrepen_posten.map((post, i) => (
-                  <span key={i} className="bg-primary-foreground/10 text-primary-foreground px-3 py-1.5 rounded-full text-sm font-medium backdrop-blur-sm">
+                  <span key={i} className="bg-primary-foreground/10 text-primary-foreground px-4 py-2 rounded-full text-base font-medium backdrop-blur-sm">
                     ✓ {post.post} — {fmt(post.bedrag)}
                   </span>
                 ))}
