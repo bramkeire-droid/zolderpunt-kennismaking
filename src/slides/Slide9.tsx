@@ -21,8 +21,8 @@ export default function Slide9() {
       setIsGenerating(true);
       setError(null);
       try {
-        // Fire both AI calls in parallel: value text + notes summary
-        const [valueRes, notesRes] = await Promise.all([
+        // Fire all AI calls in parallel: value text + notes summary + highlights
+        const [valueRes, notesRes, highlightsRes] = await Promise.all([
           supabase.functions.invoke('generate-value-text', {
             body: {
               gewenst_resultaat: lead.gezocht_naar || 'extra leefruimte',
@@ -39,12 +39,30 @@ export default function Slide9() {
                 },
               })
             : Promise.resolve({ data: { text: '—' }, error: null }),
+          lead.gesprek_notities?.trim()
+            ? supabase.functions.invoke('generate-value-text', {
+                body: {
+                  type: 'extract_highlights',
+                  gewenst_resultaat: lead.gezocht_naar || 'extra leefruimte',
+                  oppervlakte_m2: lead.oppervlakte_m2 || 0,
+                  gesprek_notities: lead.gesprek_notities,
+                },
+              })
+            : Promise.resolve({ data: { text: '' }, error: null }),
         ]);
 
         if (valueRes.error) throw valueRes.error;
 
         const aiText = valueRes.data?.text || 'Extra leefruimte gecreëerd uit ruimte die er al was.';
         const notesSummary = notesRes.data?.text || lead.gesprek_notities || '—';
+        
+        // Truncate highlights to 300 chars on sentence boundary
+        let highlights = highlightsRes.data?.text || '';
+        if (highlights.length > 300) {
+          const truncated = highlights.substring(0, 300);
+          const lastPeriod = truncated.lastIndexOf('.');
+          highlights = lastPeriod > 200 ? truncated.substring(0, lastPeriod + 1) : truncated + '…';
+        }
 
         // Build a simple rapport summary
         const rapport = [
@@ -61,7 +79,11 @@ export default function Slide9() {
           notesSummary,
         ].join('\n');
 
-        updateLead({ rapport_tekst: rapport });
+        updateLead({
+          rapport_tekst: rapport,
+          waarde_tekst_ai: aiText,
+          rapport_highlights: highlights,
+        });
       } catch (e: any) {
         console.error('Rapport generation failed:', e);
         setError('Rapport kon niet automatisch worden gegenereerd. Je kunt het handmatig invullen.');

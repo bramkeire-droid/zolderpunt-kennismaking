@@ -58,8 +58,8 @@ export default function Slide10() {
   const handleDownload = async () => {
     setLoading(true);
     try {
-      // 1. Map lead data to report format (AI text already generated on Slide 9)
-      const aiText = lead.rapport_tekst || FALLBACK_AI_TEXT;
+      // Use the separate AI value text, not the full rapport
+      const aiText = lead.waarde_tekst_ai || FALLBACK_AI_TEXT;
       const reportData = mapLeadToReportData(lead, aiText);
 
       // 3. Generate PDF

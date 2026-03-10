@@ -356,13 +356,17 @@ function GarantiesPage() {
       </Text>
 
       <View style={{ flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: 12 }}>
-        {GARANTIES.map((g, i) => (
-          <View key={i} style={[s.garantieCard, ...(i === 4 ? [{ width: '100%' }] : [])]}>
-            <PdfIcon name={g.iconName} size={20} color={COLORS.primary} />
-            <Text style={[s.garantieTitle, { marginTop: 8 }]}>{g.title}</Text>
-            <Text style={s.garantieText}>{g.text}</Text>
-          </View>
-        ))}
+        {GARANTIES.map((g, i) => {
+          // 2+2+1 grid: last item (index 4) gets 60% width centered
+          const isLastSingle = i === 4;
+          return (
+            <View key={i} style={[s.garantieCard, isLastSingle ? { width: '60%', marginLeft: '20%' } : {}]} wrap={false}>
+              <PdfIcon name={g.iconName} size={20} color={COLORS.primary} />
+              <Text style={[s.garantieTitle, { marginTop: 8 }]}>{g.title}</Text>
+              <Text style={s.garantieText}>{g.text}</Text>
+            </View>
+          );
+        })}
       </View>
 
       <PageFooter />
