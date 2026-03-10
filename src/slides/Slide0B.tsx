@@ -76,7 +76,7 @@ export default function Slide0B() {
     <SlideLayout showSave>
       <div className="max-w-3xl mx-auto w-full">
         <SlideLabel>PROJECTINFO</SlideLabel>
-        <h2 className="text-3xl font-headline font-bold text-foreground mb-8">
+        <h2 className="text-4xl font-headline font-bold text-foreground mb-10">
           Over het project
         </h2>
 
