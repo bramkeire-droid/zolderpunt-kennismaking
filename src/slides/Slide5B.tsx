@@ -111,7 +111,7 @@ export default function Slide5B() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">Bruto oppervlakte</label>
+                  <label className="text-sm font-semibold text-muted-foreground mb-1.5 block">Bruto oppervlakte</label>
                   <div className="flex items-center border-2 border-border rounded-xl bg-background overflow-hidden focus-within:border-primary transition-colors">
                     <input
                       type="number"
