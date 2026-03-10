@@ -1,7 +1,10 @@
 import { useState } from 'react';
+import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { SessionProvider, useSession } from '@/contexts/SessionContext';
 import NavigationBar from '@/components/NavigationBar';
 import Dossiers from '@/pages/Dossiers';
+import LoginPage from '@/pages/LoginPage';
+import ResetPasswordPage from '@/pages/ResetPasswordPage';
 import Slide0A from '@/slides/Slide0A';
 import Slide0A2 from '@/slides/Slide0A2';
 import Slide0B from '@/slides/Slide0B';
@@ -25,6 +28,7 @@ import { ArrowRight, FolderOpen } from 'lucide-react';
 import logoBlauw from '@/assets/logo-blauw.svg';
 import DecorativeAngle from '@/components/DecorativeAngle';
 import type { SlideId } from '@/contexts/SessionContext';
+import type { LeadData } from '@/contexts/SessionContext';
 
 const SLIDE_COMPONENTS: Record<SlideId, React.ComponentType> = {
   '0A': Slide0A, '0A2': Slide0A2, '0B': Slide0B, '0C': Slide0C,
@@ -35,9 +39,9 @@ const SLIDE_COMPONENTS: Record<SlideId, React.ComponentType> = {
 
 function AppContent() {
   const [view, setView] = useState<'start' | 'slides' | 'dossiers'>('start');
-  const { currentMode, currentSlide, resetSession, setCurrentSlide, setCurrentMode, loadLead } = useSession();
+  const { currentMode, currentSlide, resetSession, setCurrentMode, loadLead } = useSession();
 
-  const handleOpenLead = (lead: import('@/contexts/SessionContext').LeadData) => {
+  const handleOpenLead = (lead: LeadData) => {
     loadLead(lead);
     setView('slides');
   };
@@ -88,12 +92,39 @@ function AppContent() {
   );
 }
 
+function AuthGate() {
+  const { user, loading } = useAuth();
+
+  // Check for password reset route
+  if (window.location.pathname === '/reset-password') {
+    return <ResetPasswordPage />;
+  }
+
+  if (loading) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-background">
+        <img src={logoBlauw} alt="Zolderpunt" className="h-10 animate-pulse" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <LoginPage />;
+  }
+
+  return (
+    <SessionProvider>
+      <AppContent />
+    </SessionProvider>
+  );
+}
+
 const App = () => (
-  <SessionProvider>
+  <AuthProvider>
     <Toaster />
     <Sonner />
-    <AppContent />
-  </SessionProvider>
+    <AuthGate />
+  </AuthProvider>
 );
 
 export default App;

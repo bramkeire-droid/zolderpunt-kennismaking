@@ -22,7 +22,7 @@ export default function DecorativeAngle({
 
   return (
     <div
-      className={`absolute ${positionClasses[position]} ${bgColor} rounded-[48px] opacity-20 pointer-events-none ${className}`}
+      className={`absolute ${positionClasses[position]} ${bgColor} opacity-20 pointer-events-none ${className}`}
       style={{
         width: size,
         height: size,
