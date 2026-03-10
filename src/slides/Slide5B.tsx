@@ -286,7 +286,7 @@ export default function Slide5B() {
                       <div className="text-base font-bold text-primary-foreground/90">{fmt(result.excl)}</div>
                     </div>
                     <div className="rounded-lg p-3 border border-primary/30 bg-primary/10">
-                      <div className="text-[10px] font-bold text-cyan-300 tracking-wider uppercase mb-1">Incl. 6% BTW</div>
+                      <div className="text-xs font-bold text-cyan-300 tracking-wider uppercase mb-1">Incl. 6% BTW</div>
                       <div className="text-base font-bold text-primary-foreground">{fmt(result.incl6)}</div>
                     </div>
                     <div className="col-span-2 rounded-lg p-3 border border-primary-foreground/10 bg-primary-foreground/5">
