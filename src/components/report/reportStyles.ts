@@ -366,7 +366,7 @@ export const s = StyleSheet.create({
   photoHero: {
     width: '100%',
     height: 260,
-    borderRadius: 12,
+    borderRadius: 0,
     objectFit: 'cover' as const,
     marginBottom: 12,
   },
