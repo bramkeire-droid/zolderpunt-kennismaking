@@ -116,7 +116,7 @@ export default function AddressAutocomplete({ value, onChange, onCoordinates, pl
           autoComplete="off"
         />
         {searchError && (
-          <AlertCircle className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-destructive" title="Adres zoeken mislukt" />
+          <AlertCircle className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-destructive" />
         )}
       </div>
       {open && suggestions.length > 0 && (
