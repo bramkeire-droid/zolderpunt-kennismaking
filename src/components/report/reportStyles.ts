@@ -416,7 +416,6 @@ export const s = StyleSheet.create({
     gap: 8,
     marginBottom: 20,
     backgroundColor: COLORS.white,
-    borderRadius: 0,
     padding: 12,
     alignSelf: 'flex-start' as const,
   },
