@@ -138,7 +138,6 @@ function PrijsPage({ data }: { data: ReportData }) {
             <Text style={s.priceLabelSmall}>minimum</Text>
           </View>
           <View style={{ alignItems: 'center' as const }}>
-            <Text style={[s.priceLabelSmall, { letterSpacing: 1.2 }]}>INCL. 6% BTW</Text>
             <Text style={[s.priceLabel, { fontSize: 24, color: COLORS.primary }]}>{fmt(data.prijs_incl6)}</Text>
           </View>
           <View style={{ alignItems: 'flex-end' as const }}>
@@ -148,6 +147,10 @@ function PrijsPage({ data }: { data: ReportData }) {
         </View>
         <View style={s.priceBar}>
           <View style={s.priceBarFill} />
+        </View>
+        <View style={{ alignItems: 'center' as const, marginTop: 4 }}>
+          <Text style={[s.priceLabelSmall, { color: COLORS.primary, fontWeight: 600 }]}>Meest waarschijnlijk</Text>
+          <Text style={[s.priceLabelSmall, { color: COLORS.midGray, fontSize: 8, marginTop: 2 }]}>Inclusief 6% BTW</Text>
         </View>
       </View>
 
