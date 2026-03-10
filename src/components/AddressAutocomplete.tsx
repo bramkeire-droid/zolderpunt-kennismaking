@@ -47,16 +47,30 @@ export default function AddressAutocomplete({ value, onChange, onCoordinates, pl
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  const [searchError, setSearchError] = useState(false);
+
   const search = useCallback(async (query: string) => {
-    if (query.length < 3) { setSuggestions([]); return; }
+    if (query.length < 3) { setSuggestions([]); setSearchError(false); return; }
     try {
       const res = await fetch(
-        `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5&lang=nl&lat=50.85&lon=4.35`
+        `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5&lang=fr&lat=50.85&lon=4.35`
       );
+      if (!res.ok) {
+        console.error('[AddressAutocomplete] API error:', res.status, await res.text());
+        setSearchError(true);
+        setSuggestions([]);
+        return;
+      }
       const data = await res.json();
+      console.log('[AddressAutocomplete] Results:', data.features?.length ?? 0);
+      setSearchError(false);
       setSuggestions(data.features || []);
       setOpen(true);
-    } catch { setSuggestions([]); }
+    } catch (err) {
+      console.error('[AddressAutocomplete] Fetch error:', err);
+      setSearchError(true);
+      setSuggestions([]);
+    }
   }, []);
 
   const handleChange = (val: string) => {
