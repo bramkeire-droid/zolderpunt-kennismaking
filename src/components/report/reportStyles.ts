@@ -397,6 +397,7 @@ export const s = StyleSheet.create({
     padding: 16,
     width: '48%',
     marginBottom: 12,
+    borderRadius: 8,
   },
   garantieIcon: {
     fontSize: 20,
