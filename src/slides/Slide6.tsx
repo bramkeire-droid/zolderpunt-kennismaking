@@ -12,7 +12,7 @@ export default function Slide6() {
     <SlideLayout variant="blue">
       <div className="flex flex-col items-center w-full max-w-3xl">
         <div className="label-style text-primary-foreground/60 mb-2">EERSTE INDICATIE</div>
-        <h2 className="text-3xl font-headline font-bold text-primary-foreground mb-10">
+        <h2 className="text-4xl font-headline font-bold text-primary-foreground mb-10">
           Wat mag je verwachten?
         </h2>
 
