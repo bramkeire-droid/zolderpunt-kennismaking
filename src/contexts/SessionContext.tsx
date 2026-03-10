@@ -89,6 +89,7 @@ export const defaultLeadData: LeadData = {
   rapport_tekst: '',
   rapport_highlights: '',
   waarde_tekst_ai: '',
+  transcript: '',
   rapport_gegenereerd_op: null,
   rapport_versies: [],
   status: 'intake',
