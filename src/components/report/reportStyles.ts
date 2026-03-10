@@ -112,6 +112,7 @@ export const s = StyleSheet.create({
     backgroundColor: COLORS.white,
     padding: 20,
     marginBottom: 12,
+    borderRadius: 8,
   },
   cardRow: {
     flexDirection: 'row' as const,
@@ -122,6 +123,7 @@ export const s = StyleSheet.create({
     backgroundColor: COLORS.white,
     padding: 16,
     flex: 1,
+    borderRadius: 8,
   },
 
   // ─── Decorative ───────────────────────────────────────
@@ -142,6 +144,7 @@ export const s = StyleSheet.create({
     backgroundColor: COLORS.primary,
     paddingHorizontal: 10,
     paddingVertical: 4,
+    borderRadius: 4,
   },
   badgeText: {
     fontFamily: 'SpaceGrotesk',
@@ -203,6 +206,7 @@ export const s = StyleSheet.create({
     marginVertical: 12,
     position: 'relative' as const,
     overflow: 'hidden' as const,
+    borderRadius: 6,
   },
   priceBarFill: {
     position: 'absolute' as const,
@@ -271,11 +275,13 @@ export const s = StyleSheet.create({
     marginBottom: 14,
     flexDirection: 'row' as const,
     gap: 16,
+    borderRadius: 8,
   },
   reviewPhoto: {
     width: 80,
     height: 80,
     objectFit: 'cover' as const,
+    borderRadius: 8,
   },
   reviewAvatar: {
     width: 80,
@@ -283,6 +289,7 @@ export const s = StyleSheet.create({
     backgroundColor: COLORS.primary,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
+    borderRadius: 8,
   },
   reviewInitials: {
     fontFamily: 'SpaceGrotesk',
@@ -390,6 +397,7 @@ export const s = StyleSheet.create({
     padding: 16,
     width: '48%',
     marginBottom: 12,
+    borderRadius: 8,
   },
   garantieIcon: {
     fontSize: 20,
@@ -418,6 +426,7 @@ export const s = StyleSheet.create({
     backgroundColor: COLORS.white,
     padding: 12,
     alignSelf: 'flex-start' as const,
+    borderRadius: 8,
   },
   googleScore: {
     fontFamily: 'SpaceGrotesk',

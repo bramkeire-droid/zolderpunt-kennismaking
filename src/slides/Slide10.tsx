@@ -29,7 +29,7 @@ function mapLeadToReportData(lead: ReturnType<typeof useSession>['lead'], aiText
       : lead.gezocht_naar || '—',
     gewenst_resultaat: lead.gezocht_naar || '—',
     besproken_opties: postenLabels || lead.gezocht_naar || '—',
-    aandachtspunten: lead.gesprek_notities || '',
+    aandachtspunten: lead.rapport_tekst || lead.gesprek_notities || '',
     oppervlakte_m2: lead.oppervlakte_m2 || 0,
     prijs_min: lead.budget_min || 0,
     prijs_max: lead.budget_max || 0,
@@ -58,23 +58,8 @@ export default function Slide10() {
   const handleDownload = async () => {
     setLoading(true);
     try {
-      // 1. Get AI text for value module
-      let aiText = FALLBACK_AI_TEXT;
-      try {
-        const { data, error } = await supabase.functions.invoke('generate-value-text', {
-          body: {
-            gewenst_resultaat: lead.gezocht_naar,
-            oppervlakte_m2: lead.oppervlakte_m2,
-          },
-        });
-        if (!error && data?.text) {
-          aiText = data.text;
-        }
-      } catch {
-        console.warn('AI value text failed, using fallback');
-      }
-
-      // 2. Map lead data to report format
+      // 1. Map lead data to report format (AI text already generated on Slide 9)
+      const aiText = lead.rapport_tekst || FALLBACK_AI_TEXT;
       const reportData = mapLeadToReportData(lead, aiText);
 
       // 3. Generate PDF

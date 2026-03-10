@@ -93,45 +93,39 @@ export const GARANTIES = [
 export const WERKWIJZE_STAPPEN = [
   {
     nr: 1,
-    title: 'Kennismakingsgesprek',
+    title: 'Eerste contact',
     status: 'done' as const,
-    copy: 'Je hebt je situatie en wensen gedeeld. Op basis daarvan maakten we al een eerste prijsindicatie op.',
+    copy: 'De klant neemt contact op via de website, telefoon of een ander kanaal. We beantwoorden hun eerste vragen en plannen een intakegesprek in.',
   },
   {
     nr: 2,
-    title: 'Plaatsbezoek',
+    title: 'Intakegesprek',
     status: 'current' as const,
-    copy: 'Een Zolderpunt-adviseur komt bij jou thuis om de ruimte te bekijken, te meten en eventuele technische aandachtspunten in kaart te brengen.',
+    copy: 'Een persoonlijk videogesprek om het project te bespreken, wensen te begrijpen en een eerste indicatie te geven.',
   },
   {
     nr: 3,
-    title: 'Gedetailleerde offerte',
+    title: 'Plaatsbezoek',
     status: 'upcoming' as const,
-    copy: 'Na het plaatsbezoek ontvang je een transparante offerte met alle posten uitgesplitst — zodat je exact weet waarvoor je betaalt.',
+    copy: 'We komen langs om alles op te meten, de dakconstructie te beoordelen en foto\'s te nemen.',
   },
   {
     nr: 4,
-    title: 'Akkoord & planning',
+    title: '3D-ontwerp & offerte',
     status: 'upcoming' as const,
-    copy: 'Zodra je akkoord gaat, plannen we de werken in. Je ontvangt een duidelijke startdatum en verwachte einddatum.',
+    copy: 'Op basis van de opmeting maken we een gedetailleerd 3D-ontwerp en een definitieve offerte.',
   },
   {
     nr: 5,
     title: 'Uitvoering',
     status: 'upcoming' as const,
-    copy: 'Je hebt één vaste contactpersoon van begin tot einde. Je ontvangt regelmatig foto-updates van de voortgang — ook als je er zelf niet bij bent.',
+    copy: 'Ons team voert de renovatie uit volgens het goedgekeurde ontwerp, met vaste aanspreekpunten.',
   },
   {
     nr: 6,
     title: 'Oplevering',
     status: 'upcoming' as const,
-    copy: 'We leveren op wanneer alles tot in de puntjes afgewerkt is. Samen loop je de ruimte door en controleer je het resultaat.',
-  },
-  {
-    nr: 7,
-    title: 'Jouw nieuwe ruimte',
-    status: 'upcoming' as const,
-    copy: 'Van onbenutte zolder naar een volwaardige leefruimte. Precies zoals jij het voor ogen had.',
+    copy: 'Samen lopen we alles na. Pas als jij tevreden bent, is het project afgerond.',
   },
 ];
 
