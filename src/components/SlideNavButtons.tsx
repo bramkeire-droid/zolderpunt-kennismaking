@@ -1,7 +1,7 @@
 import { ChevronLeft, ChevronRight, Save } from 'lucide-react';
 import { useSession } from '@/contexts/SessionContext';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
+import { useLeadSave } from '@/hooks/useLeadSave';
 
 interface SlideNavButtonsProps {
   showSave?: boolean;
@@ -9,14 +9,9 @@ interface SlideNavButtonsProps {
 
 export default function SlideNavButtons({ showSave = false }: SlideNavButtonsProps) {
   const { nextSlide, prevSlide, currentSlide } = useSession();
-  const { toast } = useToast();
+  const { saveLead } = useLeadSave();
   const isFirst = currentSlide === '0A';
   const isLast = currentSlide === '10';
-
-  const handleSave = () => {
-    // TODO: persist to Supabase
-    toast({ title: 'Opgeslagen', description: 'Gegevens zijn opgeslagen.' });
-  };
 
   return (
     <div className="flex items-center justify-between pt-6">
@@ -34,7 +29,7 @@ export default function SlideNavButtons({ showSave = false }: SlideNavButtonsPro
         {showSave && (
           <Button
             variant="outline"
-            onClick={handleSave}
+            onClick={saveLead}
             className="gap-2 font-headline border-primary text-primary hover:bg-primary hover:text-primary-foreground"
           >
             <Save className="h-4 w-4" />

@@ -14,7 +14,99 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      leads: {
+        Row: {
+          achternaam: string
+          adres: string
+          budget_incl21: number | null
+          budget_incl6: number | null
+          budget_max: number | null
+          budget_min: number | null
+          created_at: string
+          email: string
+          fotos: Json
+          gesprek_datum: string | null
+          gesprek_notities: string
+          gevonden_via: string
+          gezocht_naar: string
+          id: string
+          inbegrepen_posten: Json
+          notities_vooraf: string
+          oppervlakte_m2: number | null
+          project_timing: string
+          project_type: string
+          rapport_gegenereerd_op: string | null
+          rapport_tekst: string
+          rapport_versies: Json
+          status: string
+          technisch: Json
+          telefoon: string
+          updated_at: string
+          volgende_stap: string
+          voornaam: string
+        }
+        Insert: {
+          achternaam?: string
+          adres?: string
+          budget_incl21?: number | null
+          budget_incl6?: number | null
+          budget_max?: number | null
+          budget_min?: number | null
+          created_at?: string
+          email?: string
+          fotos?: Json
+          gesprek_datum?: string | null
+          gesprek_notities?: string
+          gevonden_via?: string
+          gezocht_naar?: string
+          id?: string
+          inbegrepen_posten?: Json
+          notities_vooraf?: string
+          oppervlakte_m2?: number | null
+          project_timing?: string
+          project_type?: string
+          rapport_gegenereerd_op?: string | null
+          rapport_tekst?: string
+          rapport_versies?: Json
+          status?: string
+          technisch?: Json
+          telefoon?: string
+          updated_at?: string
+          volgende_stap?: string
+          voornaam?: string
+        }
+        Update: {
+          achternaam?: string
+          adres?: string
+          budget_incl21?: number | null
+          budget_incl6?: number | null
+          budget_max?: number | null
+          budget_min?: number | null
+          created_at?: string
+          email?: string
+          fotos?: Json
+          gesprek_datum?: string | null
+          gesprek_notities?: string
+          gevonden_via?: string
+          gezocht_naar?: string
+          id?: string
+          inbegrepen_posten?: Json
+          notities_vooraf?: string
+          oppervlakte_m2?: number | null
+          project_timing?: string
+          project_type?: string
+          rapport_gegenereerd_op?: string | null
+          rapport_tekst?: string
+          rapport_versies?: Json
+          status?: string
+          technisch?: Json
+          telefoon?: string
+          updated_at?: string
+          volgende_stap?: string
+          voornaam?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
