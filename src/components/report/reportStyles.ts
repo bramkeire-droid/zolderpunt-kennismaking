@@ -200,7 +200,6 @@ export const s = StyleSheet.create({
   priceBar: {
     height: 12,
     backgroundColor: COLORS.lightGray,
-    borderRadius: 0,
     marginVertical: 12,
     position: 'relative' as const,
     overflow: 'hidden' as const,
