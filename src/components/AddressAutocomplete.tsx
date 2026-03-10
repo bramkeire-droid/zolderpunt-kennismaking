@@ -53,7 +53,7 @@ export default function AddressAutocomplete({ value, onChange, onCoordinates, pl
     if (query.length < 3) { setSuggestions([]); setSearchError(false); return; }
     try {
       const res = await fetch(
-        `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5&lang=fr&lat=50.85&lon=4.35`
+        `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5&lang=default&lat=50.85&lon=4.35`
       );
       if (!res.ok) {
         console.error('[AddressAutocomplete] API error:', res.status, await res.text());
