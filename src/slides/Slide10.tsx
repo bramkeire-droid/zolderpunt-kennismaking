@@ -29,7 +29,7 @@ function mapLeadToReportData(lead: ReturnType<typeof useSession>['lead'], aiText
       : lead.gezocht_naar || '—',
     gewenst_resultaat: lead.gezocht_naar || '—',
     besproken_opties: postenLabels || lead.gezocht_naar || '—',
-    aandachtspunten: lead.gesprek_notities || '',
+    aandachtspunten: lead.rapport_tekst || lead.gesprek_notities || '',
     oppervlakte_m2: lead.oppervlakte_m2 || 0,
     prijs_min: lead.budget_min || 0,
     prijs_max: lead.budget_max || 0,
