@@ -48,7 +48,7 @@ function CoverPage({ data }: { data: ReportData }) {
       <View style={[s.angleDecor, { top: -60, right: -80 }]} />
 
       <View style={s.coverContent}>
-        <Image src={logoSrc} style={s.coverLogo} />
+        <LogoPdf width={180} />
 
         <Text style={s.coverTagline}>{TAGLINE}</Text>
 
