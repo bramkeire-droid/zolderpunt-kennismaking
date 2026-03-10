@@ -96,7 +96,7 @@ export default function Slide5B() {
     <SlideLayout variant="internal">
       <div className="max-w-[1060px] mx-auto w-full">
         <SlideLabel>CALCULATOR — INTERN</SlideLabel>
-        <h2 className="text-2xl font-headline font-bold text-foreground mb-6">
+        <h2 className="text-3xl font-headline font-bold text-foreground mb-6">
           Prijsindicatie berekenen
         </h2>
 
