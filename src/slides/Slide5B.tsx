@@ -273,8 +273,8 @@ export default function Slide5B() {
                         <span className="text-xs text-primary-foreground/40 tracking-wider">INCL. 6% BTW</span>
                         <span className="block text-2xl font-bold text-primary tracking-tight">{fmt(result.incl6)}</span>
                       </div>
-                      <div className="text-[11px] text-primary-foreground/40 text-right">
-                        <span className="block text-sm font-bold text-primary-foreground/60 mb-0.5">{fmt(result.max)}</span>maximum
+                      <div className="text-xs text-primary-foreground/40 text-right">
+                        <span className="block text-base font-bold text-primary-foreground/60 mb-0.5">{fmt(result.max)}</span>maximum
                       </div>
                     </div>
                   </div>
