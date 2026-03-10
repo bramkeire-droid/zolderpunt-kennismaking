@@ -62,7 +62,7 @@ export default function Slide0A() {
           </div>
 
           <div className="space-y-2">
-            <Label className="font-body">Wat zochten ze specifiek?</Label>
+            <Label className="font-body text-base">Wat zochten ze specifiek?</Label>
             <Input
               value={lead.gezocht_naar}
               onChange={e => updateLead({ gezocht_naar: e.target.value })}
