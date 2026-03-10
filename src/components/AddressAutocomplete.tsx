@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
-import { MapPin } from 'lucide-react';
+import { MapPin, AlertCircle } from 'lucide-react';
 
 interface PhotonFeature {
   properties: {
@@ -47,16 +47,30 @@ export default function AddressAutocomplete({ value, onChange, onCoordinates, pl
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  const [searchError, setSearchError] = useState(false);
+
   const search = useCallback(async (query: string) => {
-    if (query.length < 3) { setSuggestions([]); return; }
+    if (query.length < 3) { setSuggestions([]); setSearchError(false); return; }
     try {
       const res = await fetch(
-        `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5&lang=nl&lat=50.85&lon=4.35`
+        `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5&lang=fr&lat=50.85&lon=4.35`
       );
+      if (!res.ok) {
+        console.error('[AddressAutocomplete] API error:', res.status, await res.text());
+        setSearchError(true);
+        setSuggestions([]);
+        return;
+      }
       const data = await res.json();
+      console.log('[AddressAutocomplete] Results:', data.features?.length ?? 0);
+      setSearchError(false);
       setSuggestions(data.features || []);
       setOpen(true);
-    } catch { setSuggestions([]); }
+    } catch (err) {
+      console.error('[AddressAutocomplete] Fetch error:', err);
+      setSearchError(true);
+      setSuggestions([]);
+    }
   }, []);
 
   const handleChange = (val: string) => {
@@ -93,13 +107,18 @@ export default function AddressAutocomplete({ value, onChange, onCoordinates, pl
 
   return (
     <div ref={wrapperRef} className="relative">
-      <Input
-        value={inputValue}
-        onChange={e => handleChange(e.target.value)}
-        placeholder={placeholder}
-        className={className}
-        autoComplete="off"
-      />
+      <div className="relative">
+        <Input
+          value={inputValue}
+          onChange={e => handleChange(e.target.value)}
+          placeholder={placeholder}
+          className={className}
+          autoComplete="off"
+        />
+        {searchError && (
+          <AlertCircle className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-destructive" />
+        )}
+      </div>
       {open && suggestions.length > 0 && (
         <ul className="absolute z-50 top-full left-0 right-0 mt-1 bg-card border border-border shadow-lg max-h-[200px] overflow-auto">
           {suggestions.map((s, i) => (
