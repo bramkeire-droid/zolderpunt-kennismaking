@@ -125,7 +125,7 @@ export default function Slide5B() {
                   </div>
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">Netto leefoppervlakte</label>
+                  <label className="text-sm font-semibold text-muted-foreground mb-1.5 block">Netto leefoppervlakte</label>
                   <div className="flex items-center border-2 border-border rounded-xl bg-muted/50 overflow-hidden opacity-60">
                     <input type="number" readOnly value={brutoNum > 0 ? netto : ''} placeholder="—" className="flex-1 border-none bg-transparent px-3.5 py-3 text-2xl font-bold text-foreground outline-none w-full min-w-0 font-headline" />
                     <span className="px-3.5 text-xs font-semibold text-muted-foreground">m²</span>
