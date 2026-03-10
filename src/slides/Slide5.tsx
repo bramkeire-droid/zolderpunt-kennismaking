@@ -35,7 +35,7 @@ export default function Slide5() {
     <SlideLayout>
       <div className="max-w-4xl mx-auto w-full">
         <SlideLabel>TECHNISCHE ANALYSE</SlideLabel>
-        <h2 className="text-3xl font-headline font-bold text-foreground mb-8">
+        <h2 className="text-4xl font-headline font-bold text-foreground mb-8">
           Wat komt erbij kijken?
         </h2>
 
