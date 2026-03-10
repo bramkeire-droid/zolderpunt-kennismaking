@@ -13,9 +13,18 @@ interface PhotonFeature {
   };
 }
 
+interface PhotonGeometry {
+  coordinates: [number, number]; // [lng, lat]
+}
+
+interface PhotonFeatureWithGeometry extends PhotonFeature {
+  geometry?: PhotonGeometry;
+}
+
 interface AddressAutocompleteProps {
   value: string;
   onChange: (value: string) => void;
+  onCoordinates?: (lat: number, lng: number) => void;
   placeholder?: string;
   className?: string;
 }
