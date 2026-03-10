@@ -22,7 +22,7 @@ const OPTIONS = [
     key: 'nadenken',
     title: 'Nog even nadenken',
     text: 'Ik vraag feedback over je beslissing om onze dienstverlening alsmaar te verbeteren.',
-    label: '→ Bram stuurt een mail met 3 keuzevragen',
+    label: '',
     icon: MessageSquare,
   },
 ];
