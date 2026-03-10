@@ -112,10 +112,7 @@ export const s = StyleSheet.create({
     backgroundColor: COLORS.white,
     padding: 20,
     marginBottom: 12,
-    borderTopLeftRadius: 8,
-    borderTopRightRadius: 8,
-    borderBottomLeftRadius: 8,
-    borderBottomRightRadius: 8,
+    border: '1px solid #E2E8F0',
   },
   cardRow: {
     flexDirection: 'row' as const,
@@ -126,10 +123,7 @@ export const s = StyleSheet.create({
     backgroundColor: COLORS.white,
     padding: 16,
     flex: 1,
-    borderTopLeftRadius: 8,
-    borderTopRightRadius: 8,
-    borderBottomLeftRadius: 8,
-    borderBottomRightRadius: 8,
+    border: '1px solid #E2E8F0',
   },
 
   // ─── Decorative ───────────────────────────────────────
@@ -150,10 +144,6 @@ export const s = StyleSheet.create({
     backgroundColor: COLORS.primary,
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderTopLeftRadius: 4,
-    borderTopRightRadius: 4,
-    borderBottomLeftRadius: 4,
-    borderBottomRightRadius: 4,
   },
   badgeText: {
     fontFamily: 'SpaceGrotesk',
@@ -165,7 +155,7 @@ export const s = StyleSheet.create({
   // ─── Cover specific ──────────────────────────────────
   coverHero: {
     width: '100%',
-    height: 380,
+    height: 460,
     objectFit: 'cover' as const,
   },
   coverAngle: {
@@ -178,7 +168,7 @@ export const s = StyleSheet.create({
   },
   coverContent: {
     padding: 50,
-    paddingTop: 30,
+    paddingTop: 20,
     flex: 1,
   },
   coverTitle: {
@@ -215,16 +205,10 @@ export const s = StyleSheet.create({
     marginVertical: 12,
     position: 'relative' as const,
     overflow: 'hidden' as const,
-    borderTopLeftRadius: 6,
-    borderTopRightRadius: 6,
-    borderBottomLeftRadius: 6,
-    borderBottomRightRadius: 6,
   },
   priceBarFill: {
     position: 'absolute' as const,
     top: 0,
-    left: '15%',
-    width: '70%',
     height: '100%',
     backgroundColor: COLORS.primary,
     opacity: 0.7,
@@ -287,19 +271,14 @@ export const s = StyleSheet.create({
     marginBottom: 14,
     flexDirection: 'row' as const,
     gap: 16,
-    borderTopLeftRadius: 8,
-    borderTopRightRadius: 8,
-    borderBottomLeftRadius: 8,
-    borderBottomRightRadius: 8,
+    border: '1px solid #E2E8F0',
+    maxHeight: 120,
+    overflow: 'hidden' as const,
   },
   reviewPhoto: {
     width: 80,
     height: 80,
     objectFit: 'cover' as const,
-    borderTopLeftRadius: 8,
-    borderTopRightRadius: 8,
-    borderBottomLeftRadius: 8,
-    borderBottomRightRadius: 8,
   },
   reviewAvatar: {
     width: 80,
@@ -307,10 +286,6 @@ export const s = StyleSheet.create({
     backgroundColor: COLORS.primary,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
-    borderTopLeftRadius: 8,
-    borderTopRightRadius: 8,
-    borderBottomLeftRadius: 8,
-    borderBottomRightRadius: 8,
   },
   reviewInitials: {
     fontFamily: 'SpaceGrotesk',
@@ -343,12 +318,13 @@ export const s = StyleSheet.create({
   // ─── CTA ──────────────────────────────────────────────
   ctaRow: {
     flexDirection: 'row' as const,
-    gap: 30,
+    gap: 20,
     marginTop: 20,
+    alignItems: 'center' as const,
   },
   ctaPhoto: {
-    width: 180,
-    height: 240,
+    width: 80,
+    height: 80,
     objectFit: 'cover' as const,
   },
   ctaContact: {
@@ -366,6 +342,24 @@ export const s = StyleSheet.create({
     fontWeight: 600,
     fontSize: 14,
     color: COLORS.dark,
+  },
+  ctaBanner: {
+    backgroundColor: COLORS.primary,
+    padding: 24,
+    marginTop: 24,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+  },
+  ctaBannerText: {
+    fontFamily: 'SpaceGrotesk',
+    fontWeight: 700,
+    fontSize: 18,
+    color: COLORS.white,
+    textAlign: 'center' as const,
+  },
+  ctaPersonInfo: {
+    flex: 1,
+    justifyContent: 'center' as const,
   },
 
   // ─── Footer ───────────────────────────────────────────
@@ -418,10 +412,7 @@ export const s = StyleSheet.create({
     padding: 16,
     width: '48%',
     marginBottom: 12,
-    borderTopLeftRadius: 8,
-    borderTopRightRadius: 8,
-    borderBottomLeftRadius: 8,
-    borderBottomRightRadius: 8,
+    border: '1px solid #E2E8F0',
   },
   garantieIcon: {
     fontSize: 20,
@@ -450,10 +441,7 @@ export const s = StyleSheet.create({
     backgroundColor: COLORS.white,
     padding: 12,
     alignSelf: 'flex-start' as const,
-    borderTopLeftRadius: 8,
-    borderTopRightRadius: 8,
-    borderBottomLeftRadius: 8,
-    borderBottomRightRadius: 8,
+    border: '1px solid #E2E8F0',
   },
   googleScore: {
     fontFamily: 'SpaceGrotesk',

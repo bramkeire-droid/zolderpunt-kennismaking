@@ -25,8 +25,8 @@ function mapLeadToReportData(lead: ReturnType<typeof useSession>['lead'], aiText
     achternaam: lead.achternaam,
     datum_gesprek: lead.gesprek_datum || new Date().toISOString().split('T')[0],
     situatie: lead.oppervlakte_m2
-      ? `Zolder van ±${lead.oppervlakte_m2}m² — ${lead.gezocht_naar || 'renovatie gepland'}.`
-      : lead.gezocht_naar || '—',
+      ? `Onafgewerkte zolder van ±${lead.oppervlakte_m2}m².`
+      : '—',
     gewenst_resultaat: lead.gezocht_naar || '—',
     besproken_opties: postenLabels || lead.gezocht_naar || '—',
     aandachtspunten: lead.rapport_highlights || '',

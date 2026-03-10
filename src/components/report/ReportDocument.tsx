@@ -38,10 +38,14 @@ const REVIEW_PHOTOS: Record<string, string> = {
 const fmt = (n: number) =>
   new Intl.NumberFormat('nl-BE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
 
+// Truncate text to max chars with ellipsis
+const truncate = (text: string, max: number) =>
+  text.length > max ? text.slice(0, max).trimEnd() + '…' : text;
+
 // Helper: 5 gold stars as SVG
 function GoldStars({ size = 10 }: { size?: number }) {
   return (
-    <View style={{ flexDirection: 'row' as const, gap: 2 }}>
+    <View style={{ flexDirection: 'row' as const, flexWrap: 'nowrap' as const, gap: 2 }}>
       {[0, 1, 2, 3, 4].map(i => (
         <PdfIcon key={i} name="StarFilled" size={size} color={COLORS.gold} />
       ))}
@@ -148,6 +152,12 @@ function SamenvattingPage({ data }: { data: ReportData }) {
 function PrijsPage({ data }: { data: ReportData }) {
   const optieKeys = Object.keys(OPTIES_LABELS) as (keyof typeof OPTIES_LABELS)[];
 
+  // Calculate dynamic price bar fill position
+  const range = data.prijs_max - data.prijs_min;
+  const fillLeft = range > 0 ? ((data.prijs_incl6 - data.prijs_min) / range) * 100 : 15;
+  const fillWidth = 20; // 20% width centered on the likely price
+  const leftPos = Math.max(0, Math.min(fillLeft - fillWidth / 2, 100 - fillWidth));
+
   return (
     <Page size="A4" style={s.page}>
       <View style={[s.angleDecor, { top: -60, right: -80 }]} />
@@ -170,10 +180,12 @@ function PrijsPage({ data }: { data: ReportData }) {
           </View>
         </View>
         <View style={s.priceBar}>
-          <View style={s.priceBarFill} />
+          <View style={[s.priceBarFill, { left: `${leftPos}%`, width: `${fillWidth}%` }]} />
         </View>
         <View style={{ alignItems: 'center' as const, marginTop: 4 }}>
-          <Text style={[s.priceLabelSmall, { color: COLORS.primary, fontWeight: 600 }]}>Meest waarschijnlijk</Text>
+          <Text style={[s.priceLabelSmall, { color: COLORS.primary, fontWeight: 600 }]}>
+            Meest waarschijnlijk: {fmt(data.prijs_incl6)}
+          </Text>
           <Text style={[s.priceLabelSmall, { color: COLORS.midGray, fontSize: 8, marginTop: 2 }]}>Inclusief 6% BTW</Text>
         </View>
       </View>
@@ -233,7 +245,7 @@ function WaardePage({ data }: { data: ReportData }) {
         {/* Kader 2 — Bestemming (AI) */}
         <View style={s.cardThird}>
           <PdfIcon name="Home" size={20} color={COLORS.primary} />
-          <Text style={[s.h3, { marginTop: 8, flexWrap: 'wrap' as const }]}>{data.gewenst_resultaat || 'Jouw nieuwe ruimte'}</Text>
+          <Text style={[s.h3, { marginTop: 8 }]}>{data.gewenst_resultaat || 'Jouw nieuwe ruimte'}</Text>
           <Text style={s.body}>{data.waarde_tekst_ai}</Text>
         </View>
 
@@ -405,7 +417,7 @@ function ReviewsPage() {
           <View style={{ flex: 1 }}>
             <Text style={s.reviewName}>{review.name}</Text>
             <GoldStars size={10} />
-            <Text style={[s.reviewQuote, { marginTop: 6 }]}>"{review.quote}"</Text>
+            <Text style={[s.reviewQuote, { marginTop: 6 }]}>"{truncate(review.quote, 220)}"</Text>
           </View>
         </View>
       ))}
@@ -425,6 +437,7 @@ function CTAPage({ data }: { data: ReportData }) {
       <Text style={s.label}>VOLGENDE STAP</Text>
       <Text style={s.h2}>De volgende stap</Text>
 
+      {/* Intro text */}
       <Text style={[s.body, { marginBottom: 16 }]}>
         {data.voornaam || 'Beste klant'}, het Zolderpunt-team kijkt ernaar uit om jouw zolder met eigen ogen te zien. Tijdens het plaatsbezoek beantwoorden we al je vragen en maken we een gedetailleerde opmeting — zodat je daarna een offerte ontvangt zonder verrassingen.
       </Text>
@@ -433,10 +446,11 @@ function CTAPage({ data }: { data: ReportData }) {
         De meeste klanten plannen het plaatsbezoek binnen de week — zo blijft alles wat we bespraken vers en kunnen we snel schakelen.
       </Text>
 
+      {/* Person + Contact (2 columns) */}
       <View style={s.ctaRow}>
         <Image src={bramSrc} style={s.ctaPhoto} />
-        <View style={s.ctaContact}>
-          <Text style={[s.ctaLine, { marginBottom: 16 }]}>Neem contact op:</Text>
+        <View style={s.ctaPersonInfo}>
+          <Text style={[s.h3, { marginBottom: 12 }]}>Bram Keirsschieter</Text>
           <View style={s.ctaContactLine}>
             <PdfIcon name="Phone" size={14} color={COLORS.primary} />
             <Text style={s.ctaLine}>{CONTACT_TELEFOON}</Text>
@@ -450,6 +464,13 @@ function CTAPage({ data }: { data: ReportData }) {
             <Text style={s.ctaLine}>{CONTACT_WEBSITE}</Text>
           </View>
         </View>
+      </View>
+
+      {/* Blue CTA banner */}
+      <View style={s.ctaBanner}>
+        <Text style={s.ctaBannerText}>
+          Plan jouw gratis plaatsbezoek — en ontdek wat jouw zolder kan worden.
+        </Text>
       </View>
 
       {/* Footer with logo + tagline */}
