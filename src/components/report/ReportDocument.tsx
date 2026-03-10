@@ -98,15 +98,26 @@ function SamenvattingPage({ data }: { data: ReportData }) {
         Beste {data.voornaam || 'klant'}, bedankt voor ons gesprek op {formatDatum(data.datum_gesprek)}. Hieronder vind je een samenvatting van wat we bespraken en een eerste indicatie van wat jouw zolderrenovatie kan inhouden.
       </Text>
 
-      {fields.map((f, i) => (
-        <View key={i} style={s.card}>
-          <View style={[s.row, { marginBottom: 6, gap: 8 }]}>
-            <PdfIcon name={f.icon} size={16} color={COLORS.primary} />
-            <Text style={s.h3}>{f.label}</Text>
+      {fields.map((f, i) => {
+        const isBulletList = f.label === 'Besproken onderdelen' && f.value && f.value.includes(',');
+        return (
+          <View key={i} style={s.card}>
+            <View style={[s.row, { marginBottom: 6, gap: 8 }]}>
+              <PdfIcon name={f.icon} size={16} color={COLORS.primary} />
+              <Text style={s.h3}>{f.label}</Text>
+            </View>
+            {isBulletList ? (
+              <View>
+                {f.value.split(',').map((item: string, j: number) => (
+                  <Text key={j} style={s.body}>•  {item.trim()}</Text>
+                ))}
+              </View>
+            ) : (
+              <Text style={s.body}>{f.value || '—'}</Text>
+            )}
           </View>
-          <Text style={s.body}>{f.value || '—'}</Text>
-        </View>
-      ))}
+        );
+      })}
 
       <View style={s.divider} />
       <Text style={[s.body, { marginTop: 8 }]}>
