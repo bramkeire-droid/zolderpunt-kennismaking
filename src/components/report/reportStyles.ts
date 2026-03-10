@@ -126,7 +126,10 @@ export const s = StyleSheet.create({
     backgroundColor: COLORS.white,
     padding: 16,
     flex: 1,
-    borderRadius: 8,
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
+    borderBottomLeftRadius: 8,
+    borderBottomRightRadius: 8,
   },
 
   // ─── Decorative ───────────────────────────────────────
