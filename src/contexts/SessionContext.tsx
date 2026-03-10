@@ -117,6 +117,7 @@ interface SessionContextType {
   setLead: React.Dispatch<React.SetStateAction<LeadData>>;
   updateLead: (partial: Partial<LeadData>) => void;
   updateTechnisch: (partial: Partial<LeadTechnisch>) => void;
+  loadLead: (data: LeadData) => void;
   currentSlide: SlideId;
   setCurrentSlide: (slide: SlideId) => void;
   currentMode: AppMode;
