@@ -426,6 +426,7 @@ export const s = StyleSheet.create({
     backgroundColor: COLORS.white,
     padding: 12,
     alignSelf: 'flex-start' as const,
+    borderRadius: 8,
   },
   googleScore: {
     fontFamily: 'SpaceGrotesk',
