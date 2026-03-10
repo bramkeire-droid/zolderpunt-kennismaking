@@ -168,6 +168,13 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     }
   }, [currentSlide, setCurrentSlide]);
 
+  const loadLead = useCallback((data: LeadData) => {
+    setLead(data);
+    setCurrentSlideState('0A');
+    setCurrentMode('voorbereiding');
+    setIsEditing(false);
+  }, []);
+
   const resetSession = useCallback(() => {
     setLead({ ...defaultLeadData, gesprek_datum: new Date().toISOString().split('T')[0] });
     setCurrentSlideState('0A');
