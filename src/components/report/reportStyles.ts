@@ -246,7 +246,6 @@ export const s = StyleSheet.create({
   timelineCircle: {
     width: 28,
     height: 28,
-    borderRadius: 0,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
   },
