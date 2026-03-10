@@ -82,8 +82,8 @@ export default function Slide0B() {
 
         <div className="space-y-6">
           <div className="space-y-2">
-            <Label className="font-body flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-primary" />
+            <Label className="font-body text-base flex items-center gap-2">
+              <MapPin className="h-5 w-5 text-primary" />
               Projectadres
             </Label>
             <AddressAutocomplete
