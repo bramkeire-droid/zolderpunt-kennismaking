@@ -11,7 +11,7 @@ import {
 import type { ReportData } from './reportTypes';
 
 // Static asset imports — these resolve to URLs at build time
-import logoSrc from '@/assets/logo-blauw.svg';
+import LogoPdf from './LogoPdf';
 import bramSrc from '@/assets/foto-bram.png';
 import brandonSrc from '@/assets/review-foto-brandon.jpg';
 import tomSrc from '@/assets/review-foto-tom.png';
