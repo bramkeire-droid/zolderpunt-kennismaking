@@ -275,6 +275,7 @@ export const s = StyleSheet.create({
     marginBottom: 14,
     flexDirection: 'row' as const,
     gap: 16,
+    borderRadius: 8,
   },
   reviewPhoto: {
     width: 80,
