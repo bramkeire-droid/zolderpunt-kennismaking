@@ -117,6 +117,7 @@ interface SessionContextType {
   setLead: React.Dispatch<React.SetStateAction<LeadData>>;
   updateLead: (partial: Partial<LeadData>) => void;
   updateTechnisch: (partial: Partial<LeadTechnisch>) => void;
+  loadLead: (data: LeadData) => void;
   currentSlide: SlideId;
   setCurrentSlide: (slide: SlideId) => void;
   currentMode: AppMode;
@@ -167,6 +168,13 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     }
   }, [currentSlide, setCurrentSlide]);
 
+  const loadLead = useCallback((data: LeadData) => {
+    setLead(data);
+    setCurrentSlideState('0A');
+    setCurrentMode('voorbereiding');
+    setIsEditing(false);
+  }, []);
+
   const resetSession = useCallback(() => {
     setLead({ ...defaultLeadData, gesprek_datum: new Date().toISOString().split('T')[0] });
     setCurrentSlideState('0A');
@@ -187,7 +195,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <SessionContext.Provider value={{
-      lead, setLead, updateLead, updateTechnisch,
+      lead, setLead, updateLead, updateTechnisch, loadLead,
       currentSlide, setCurrentSlide,
       currentMode, setCurrentMode,
       nextSlide, prevSlide,

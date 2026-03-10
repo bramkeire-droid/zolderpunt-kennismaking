@@ -1,11 +1,13 @@
 import { useSession } from '@/contexts/SessionContext';
-import SlideLabel from '@/components/SlideLabel';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useState } from 'react';
-import { Search, FileDown, FolderOpen, Users, TrendingUp, DollarSign, Eye } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Search, FolderOpen, Users, TrendingUp, DollarSign, Eye, RefreshCw } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { defaultTechnisch } from '@/contexts/SessionContext';
+import type { LeadData } from '@/contexts/SessionContext';
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('nl-BE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
@@ -19,16 +21,98 @@ const STATUS_LABELS: Record<string, string> = {
   verloren: 'Verloren',
 };
 
-export default function Dossiers() {
-  const [search, setSearch] = useState('');
+function rowToLead(row: any): LeadData {
+  return {
+    id: row.id,
+    voornaam: row.voornaam ?? '',
+    achternaam: row.achternaam ?? '',
+    email: row.email ?? '',
+    telefoon: row.telefoon ?? '',
+    gevonden_via: row.gevonden_via ?? '',
+    gezocht_naar: row.gezocht_naar ?? '',
+    notities_vooraf: row.notities_vooraf ?? '',
+    adres: row.adres ?? '',
+    oppervlakte_m2: row.oppervlakte_m2 ?? null,
+    project_type: row.project_type ?? '',
+    project_timing: row.project_timing ?? '',
+    volgende_stap: row.volgende_stap ?? '',
+    gesprek_notities: row.gesprek_notities ?? '',
+    gesprek_datum: row.gesprek_datum ?? '',
+    budget_min: row.budget_min ?? null,
+    budget_max: row.budget_max ?? null,
+    budget_incl6: row.budget_incl6 ?? null,
+    budget_incl21: row.budget_incl21 ?? null,
+    inbegrepen_posten: Array.isArray(row.inbegrepen_posten) ? row.inbegrepen_posten : [],
+    rapport_tekst: row.rapport_tekst ?? '',
+    rapport_gegenereerd_op: row.rapport_gegenereerd_op ?? null,
+    rapport_versies: Array.isArray(row.rapport_versies) ? row.rapport_versies : [],
+    status: row.status ?? 'intake',
+    fotos: Array.isArray(row.fotos) ? row.fotos : [],
+    technisch: row.technisch ? { ...defaultTechnisch, ...(row.technisch as any) } : { ...defaultTechnisch },
+  };
+}
 
-  // Placeholder data — will come from Supabase
-  const leads: any[] = [];
+interface DossiersProps {
+  onOpenLead?: (lead: LeadData) => void;
+}
+
+export default function Dossiers({ onOpenLead }: DossiersProps) {
+  const [search, setSearch] = useState('');
+  const [leads, setLeads] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchLeads = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('leads')
+      .select('*')
+      .order('updated_at', { ascending: false });
+    if (!error && data) setLeads(data);
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchLeads(); }, []);
+
+  const filtered = useMemo(() => {
+    if (!search.trim()) return leads;
+    const q = search.toLowerCase();
+    return leads.filter(l =>
+      `${l.voornaam} ${l.achternaam}`.toLowerCase().includes(q) ||
+      (l.adres ?? '').toLowerCase().includes(q)
+    );
+  }, [leads, search]);
+
+  const stats = useMemo(() => {
+    const total = leads.length;
+    const withBudget = leads.filter(l => l.budget_min != null);
+    const avgBudget = withBudget.length
+      ? withBudget.reduce((s, l) => s + ((l.budget_min || 0) + (l.budget_max || 0)) / 2, 0) / withBudget.length
+      : 0;
+    const channels = leads.reduce((acc: Record<string, number>, l) => {
+      if (l.gevonden_via) acc[l.gevonden_via] = (acc[l.gevonden_via] || 0) + 1;
+      return acc;
+    }, {});
+    const topChannel = Object.entries(channels).sort(([,a], [,b]) => (b as number) - (a as number))[0]?.[0] || '—';
+    const converted = leads.filter(l => ['offerte', 'uitvoering', 'afgesloten'].includes(l.status)).length;
+    const ratio = total > 0 ? `${Math.round((converted / total) * 100)}%` : '—';
+    return { total: String(total), avgBudget: avgBudget ? fmt(avgBudget) : '—', topChannel, ratio };
+  }, [leads]);
+
+  const handleOpen = (row: any) => {
+    const leadData = rowToLead(row);
+    onOpenLead?.(leadData);
+  };
 
   return (
     <div className="flex-1 overflow-y-auto p-8 lg:p-12 bg-background">
       <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-headline font-bold text-foreground mb-8">Dossiers</h1>
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-3xl font-headline font-bold text-foreground">Dossiers</h1>
+          <Button variant="outline" onClick={fetchLeads} className="gap-2 font-headline" disabled={loading}>
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            Vernieuwen
+          </Button>
+        </div>
 
         <Tabs defaultValue="overzicht">
           <TabsList className="mb-6">
@@ -37,7 +121,6 @@ export default function Dossiers() {
           </TabsList>
 
           <TabsContent value="overzicht">
-            {/* Filter bar */}
             <div className="flex items-center gap-4 mb-6">
               <div className="relative flex-1 max-w-sm">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -50,8 +133,8 @@ export default function Dossiers() {
               </div>
             </div>
 
-            {leads.length > 0 ? (
-              <div className="bg-card rounded-xl border border-border overflow-hidden">
+            {filtered.length > 0 ? (
+              <div className="bg-card border border-border overflow-hidden">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -64,18 +147,28 @@ export default function Dossiers() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {leads.map((lead: any) => (
-                      <TableRow key={lead.id}>
-                        <TableCell className="font-medium">{lead.voornaam} {lead.achternaam}</TableCell>
-                        <TableCell>{lead.gesprek_datum}</TableCell>
-                        <TableCell>{STATUS_LABELS[lead.status] || lead.status}</TableCell>
-                        <TableCell>{lead.budget_min ? `${fmt(lead.budget_min)} — ${fmt(lead.budget_max)}` : '—'}</TableCell>
-                        <TableCell>{lead.volgende_stap || '—'}</TableCell>
+                    {filtered.map((lead: any) => (
+                      <TableRow key={lead.id} className="cursor-pointer hover:bg-accent/50" onClick={() => handleOpen(lead)}>
+                        <TableCell className="font-medium font-headline">
+                          {lead.voornaam || lead.achternaam
+                            ? `${lead.voornaam} ${lead.achternaam}`.trim()
+                            : <span className="text-muted-foreground italic">Geen naam</span>
+                          }
+                        </TableCell>
+                        <TableCell className="font-body">{lead.gesprek_datum || '—'}</TableCell>
                         <TableCell>
-                          <div className="flex gap-2">
-                            <Button size="sm" variant="ghost"><FolderOpen className="h-4 w-4" /></Button>
-                            <Button size="sm" variant="ghost"><FileDown className="h-4 w-4" /></Button>
-                          </div>
+                          <span className="text-xs font-bold tracking-wider uppercase text-primary">
+                            {STATUS_LABELS[lead.status] || lead.status}
+                          </span>
+                        </TableCell>
+                        <TableCell className="font-body">
+                          {lead.budget_min ? `${fmt(lead.budget_min)} — ${fmt(lead.budget_max)}` : '—'}
+                        </TableCell>
+                        <TableCell className="font-body">{lead.volgende_stap || '—'}</TableCell>
+                        <TableCell>
+                          <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); handleOpen(lead); }}>
+                            <FolderOpen className="h-4 w-4" />
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -83,31 +176,21 @@ export default function Dossiers() {
                 </Table>
               </div>
             ) : (
-              <div className="bg-card rounded-xl border border-dashed border-border p-16 text-center">
+              <div className="bg-card border border-dashed border-border p-16 text-center">
                 <FolderOpen className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
                 <p className="text-muted-foreground font-body">
-                  Nog geen dossiers. Start een nieuw intakegesprek om te beginnen.
-                </p>
-                <p className="text-xs text-muted-foreground/50 mt-2">
-                  (Dossiers worden geladen na Lovable Cloud setup)
+                  {loading ? 'Dossiers laden...' : 'Nog geen dossiers. Start een nieuw intakegesprek om te beginnen.'}
                 </p>
               </div>
             )}
           </TabsContent>
 
           <TabsContent value="statistieken">
-            {/* Stats cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-              <StatCard icon={Users} label="Totaal leads" value="0" />
-              <StatCard icon={TrendingUp} label="Conversieratio" value="—" />
-              <StatCard icon={DollarSign} label="Gem. budget" value="—" />
-              <StatCard icon={Eye} label="Top kanaal" value="—" />
-            </div>
-
-            <div className="bg-card rounded-xl border border-dashed border-border p-16 text-center">
-              <p className="text-muted-foreground font-body">
-                Statistieken worden beschikbaar zodra er dossiers zijn.
-              </p>
+              <StatCard icon={Users} label="Totaal leads" value={stats.total} />
+              <StatCard icon={TrendingUp} label="Conversieratio" value={stats.ratio} />
+              <StatCard icon={DollarSign} label="Gem. budget" value={stats.avgBudget} />
+              <StatCard icon={Eye} label="Top kanaal" value={stats.topChannel} />
             </div>
           </TabsContent>
         </Tabs>
@@ -118,7 +201,7 @@ export default function Dossiers() {
 
 function StatCard({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
   return (
-    <div className="bg-card rounded-xl border border-border p-5">
+    <div className="bg-card border border-border p-5">
       <div className="flex items-center gap-3 mb-2">
         <Icon className="h-5 w-5 text-primary" />
         <span className="text-xs text-muted-foreground font-body uppercase tracking-wider">{label}</span>
