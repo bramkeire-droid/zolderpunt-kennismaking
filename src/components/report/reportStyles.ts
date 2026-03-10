@@ -1,25 +1,32 @@
 import { StyleSheet, Font } from '@react-pdf/renderer';
 import { COLORS } from './reportConstants';
 
-// Register fonts — using Google Fonts CSS API to get TTF URLs
-// Space Grotesk (headlines)
+// Local font imports (bundled by Vite — no CDN fetch at runtime)
+import spaceGrotesk400 from '@/assets/fonts/space-grotesk-400.ttf';
+import spaceGrotesk600 from '@/assets/fonts/space-grotesk-600.ttf';
+import spaceGrotesk700 from '@/assets/fonts/space-grotesk-700.ttf';
+import rethinkSans400 from '@/assets/fonts/rethink-sans-400.ttf';
+import rethinkSans400i from '@/assets/fonts/rethink-sans-400-italic.ttf';
+import rethinkSans600 from '@/assets/fonts/rethink-sans-600.ttf';
+import rethinkSans700 from '@/assets/fonts/rethink-sans-700.ttf';
+
+// Register fonts from local assets
 Font.register({
   family: 'SpaceGrotesk',
   fonts: [
-    { src: 'https://cdn.jsdelivr.net/fontsource/fonts/space-grotesk@latest/latin-400-normal.ttf', fontWeight: 400 },
-    { src: 'https://cdn.jsdelivr.net/fontsource/fonts/space-grotesk@latest/latin-600-normal.ttf', fontWeight: 600 },
-    { src: 'https://cdn.jsdelivr.net/fontsource/fonts/space-grotesk@latest/latin-700-normal.ttf', fontWeight: 700 },
+    { src: spaceGrotesk400, fontWeight: 400 },
+    { src: spaceGrotesk600, fontWeight: 600 },
+    { src: spaceGrotesk700, fontWeight: 700 },
   ],
 });
 
-// Rethink Sans (body)
 Font.register({
   family: 'RethinkSans',
   fonts: [
-    { src: 'https://cdn.jsdelivr.net/fontsource/fonts/rethink-sans@latest/latin-400-normal.ttf', fontWeight: 400 },
-    { src: 'https://cdn.jsdelivr.net/fontsource/fonts/rethink-sans@latest/latin-400-italic.ttf', fontWeight: 400, fontStyle: 'italic' },
-    { src: 'https://cdn.jsdelivr.net/fontsource/fonts/rethink-sans@latest/latin-600-normal.ttf', fontWeight: 600 },
-    { src: 'https://cdn.jsdelivr.net/fontsource/fonts/rethink-sans@latest/latin-700-normal.ttf', fontWeight: 700 },
+    { src: rethinkSans400, fontWeight: 400 },
+    { src: rethinkSans400i, fontWeight: 400, fontStyle: 'italic' },
+    { src: rethinkSans600, fontWeight: 600 },
+    { src: rethinkSans700, fontWeight: 700 },
   ],
 });
 
