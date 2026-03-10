@@ -275,13 +275,13 @@ export const s = StyleSheet.create({
   reviewPhoto: {
     width: 80,
     height: 80,
-    borderRadius: 12,
+    borderRadius: 0,
     objectFit: 'cover' as const,
   },
   reviewAvatar: {
     width: 80,
     height: 80,
-    borderRadius: 12,
+    borderRadius: 0,
     backgroundColor: COLORS.primary,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
