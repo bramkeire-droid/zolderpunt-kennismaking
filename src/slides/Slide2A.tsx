@@ -1,12 +1,11 @@
 import { useState } from 'react';
 import SlideLayout from '@/components/SlideLayout';
 import SlideLabel from '@/components/SlideLabel';
-import { X } from 'lucide-react';
 
 const STEPS = [
   {
     label: 'Eerste contact',
-    description: 'De klant neemt contact op via de website, telefoon of een ander kanaal. We beantwoorden hun eerste vragen.',
+    description: 'De klant neemt contact op via de website, telefoon of een ander kanaal. We beantwoorden hun eerste vragen en plannen een intakegesprek in.',
     images: ['/placeholder.svg'],
   },
   {
@@ -39,84 +38,82 @@ const STEPS = [
 const ACTIVE_INDEX = 1;
 
 export default function Slide2A() {
-  const [selectedStep, setSelectedStep] = useState<number | null>(null);
+  const [selectedStep, setSelectedStep] = useState<number>(ACTIVE_INDEX);
+
+  const step = STEPS[selectedStep];
 
   return (
     <SlideLayout>
-      <div className="max-w-4xl mx-auto w-full">
+      <div className="max-w-5xl mx-auto w-full flex flex-col h-full">
         <SlideLabel>HOE WE SAMENWERKEN</SlideLabel>
-        <h2 className="text-3xl font-headline font-bold text-foreground mb-12">
+        <h2 className="text-3xl font-headline font-bold text-foreground mb-8">
           Van eerste contact tot oplevering
         </h2>
 
         {/* Timeline */}
-        <div className="flex items-stretch gap-3">
-          {STEPS.map((step, i) => {
+        <div className="flex items-stretch gap-2 mb-8">
+          {STEPS.map((s, i) => {
             const isActive = i === ACTIVE_INDEX;
+            const isSelected = i === selectedStep;
             return (
               <button
-                key={step.label}
+                key={s.label}
                 onClick={() => setSelectedStep(i)}
-                className={`flex-1 relative p-5 flex flex-col justify-center items-center text-center transition-all cursor-pointer ${
-                  isActive
-                    ? 'bg-primary text-primary-foreground scale-105 shadow-lg'
-                    : 'bg-card border border-border text-muted-foreground opacity-60 hover:opacity-80'
+                className={`flex-1 relative py-4 px-3 flex flex-col justify-center items-center text-center transition-all cursor-pointer border-2 ${
+                  isSelected
+                    ? 'bg-primary text-primary-foreground border-primary shadow-lg scale-[1.03]'
+                    : isActive
+                      ? 'bg-accent border-primary/40 text-foreground'
+                      : 'bg-card border-border text-muted-foreground hover:border-primary/30'
                 }`}
               >
-                <span className={`text-xs font-bold mb-1 ${isActive ? 'text-primary-foreground/60' : 'text-muted-foreground/60'}`}>
+                <span className={`text-xs font-bold mb-1 ${
+                  isSelected ? 'text-primary-foreground/70' : 'text-muted-foreground/60'
+                }`}>
                   {String(i + 1).padStart(2, '0')}
                 </span>
-                <span className={`text-sm font-headline font-semibold ${isActive ? 'text-primary-foreground' : ''}`}>
-                  {step.label}
+                <span className={`text-sm font-headline font-semibold ${
+                  isSelected ? 'text-primary-foreground' : ''
+                }`}>
+                  {s.label}
                 </span>
-                {isActive && (
-                  <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[8px] border-r-[8px] border-t-[8px] border-transparent border-t-primary" />
+                {isSelected && (
+                  <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[8px] border-r-[8px] border-t-[8px] border-transparent border-t-primary" />
                 )}
               </button>
             );
           })}
         </div>
 
-        <p className="text-muted-foreground font-body mt-12 text-center">
+        {/* Inline detail area */}
+        <div className="flex-1 grid grid-cols-5 gap-6 min-h-0">
+          {/* Image area — 3 cols */}
+          <div className="col-span-3 bg-muted border border-border flex items-center justify-center overflow-hidden">
+            <img
+              src={step.images[0]}
+              alt={step.label}
+              className="w-full h-full object-cover"
+            />
+          </div>
+
+          {/* Description — 2 cols */}
+          <div className="col-span-2 flex flex-col justify-center">
+            <span className="label-style mb-2">
+              STAP {String(selectedStep + 1).padStart(2, '0')}
+            </span>
+            <h3 className="text-2xl font-headline font-bold text-foreground mb-4">
+              {step.label}
+            </h3>
+            <p className="text-muted-foreground font-body leading-relaxed">
+              {step.description}
+            </p>
+          </div>
+        </div>
+
+        <p className="text-sm text-muted-foreground font-body mt-6 text-center">
           Vandaag zijn we bij stap 2. Na dit gesprek weet je precies wat volgt.
         </p>
       </div>
-
-      {/* Overlay modal for step details */}
-      {selectedStep !== null && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 backdrop-blur-sm"
-          onClick={() => setSelectedStep(null)}
-        >
-          <div
-            className="bg-card border border-border p-8 max-w-lg w-full mx-4 relative shadow-xl"
-            onClick={e => e.stopPropagation()}
-          >
-            <button
-              onClick={() => setSelectedStep(null)}
-              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"
-            >
-              <X className="h-5 w-5" />
-            </button>
-            <span className="label-style mb-2 block">
-              STAP {String(selectedStep + 1).padStart(2, '0')}
-            </span>
-            <h3 className="text-xl font-headline font-bold text-foreground mb-4">
-              {STEPS[selectedStep].label}
-            </h3>
-            <p className="text-muted-foreground font-body mb-6 leading-relaxed">
-              {STEPS[selectedStep].description}
-            </p>
-            <div className="grid grid-cols-2 gap-3">
-              {STEPS[selectedStep].images.map((img, i) => (
-                <div key={i} className="aspect-video bg-muted border border-border flex items-center justify-center">
-                  <img src={img} alt="" className="w-full h-full object-cover" />
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
     </SlideLayout>
   );
 }
