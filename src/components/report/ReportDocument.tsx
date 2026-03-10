@@ -32,7 +32,7 @@ const fmt = (n: number) =>
 function PageFooter() {
   return (
     <View style={s.footer} fixed>
-      <Image src={logoSrc} style={s.footerLogo} />
+      <LogoPdf width={80} />
       <Text style={s.footerText}>{TAGLINE}  ·  {CONTACT_WEBSITE}</Text>
     </View>
   );
