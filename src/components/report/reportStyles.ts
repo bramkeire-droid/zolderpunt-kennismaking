@@ -280,7 +280,6 @@ export const s = StyleSheet.create({
   reviewAvatar: {
     width: 80,
     height: 80,
-    borderRadius: 0,
     backgroundColor: COLORS.primary,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
