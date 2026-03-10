@@ -136,7 +136,7 @@ export default function Slide5B() {
 
               {/* Split pills */}
               <div className="mt-4">
-                <div className="text-xs font-semibold text-muted-foreground mb-2">Hoe wordt de zolder benut?</div>
+                <div className="text-sm font-semibold text-muted-foreground mb-2">Hoe wordt de zolder benut?</div>
                 <div className="flex gap-1.5">
                   {(['vol', 'gesplitst'] as SplitType[]).map(s => (
                     <button key={s} onClick={() => setSplit(s)} className={`flex-1 px-3 py-2.5 rounded-lg border-2 text-sm font-semibold transition-all font-body ${split === s ? 'bg-primary border-primary text-primary-foreground' : 'border-border text-muted-foreground hover:border-primary hover:text-primary'}`}>
