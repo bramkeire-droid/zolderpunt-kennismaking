@@ -31,7 +31,7 @@ export default function Slide4() {
             {PROMPTS.map((prompt, i) => (
               <div key={i} className="flex items-start gap-2">
                 <span className="text-primary font-bold">→</span>
-                <span className="text-sm text-muted-foreground font-body">{prompt}</span>
+                <span className="text-base text-muted-foreground font-body">{prompt}</span>
               </div>
             ))}
           </div>
