@@ -36,7 +36,7 @@ export default function Slide8() {
           className="border-2 border-dashed border-primary/30 rounded-xl p-10 text-center cursor-pointer hover:border-primary/60 hover:bg-accent/30 transition-colors mb-6"
         >
           <Upload className="h-10 w-10 text-primary mx-auto mb-3" />
-          <p className="text-sm text-muted-foreground font-body">
+          <p className="text-base text-muted-foreground font-body">
             Upload transcript (.md of .txt)
           </p>
           {fileName && (
