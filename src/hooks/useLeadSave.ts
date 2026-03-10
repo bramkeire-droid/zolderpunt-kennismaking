@@ -15,6 +15,8 @@ function leadToRow(lead: LeadData) {
     gezocht_naar: lead.gezocht_naar,
     notities_vooraf: lead.notities_vooraf,
     adres: lead.adres,
+    adres_lat: lead.adres_lat,
+    adres_lng: lead.adres_lng,
     oppervlakte_m2: lead.oppervlakte_m2,
     project_type: lead.project_type,
     project_timing: lead.project_timing,

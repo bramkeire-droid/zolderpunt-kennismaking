@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useSession } from '@/contexts/SessionContext';
 import SlideLayout from '@/components/SlideLayout';
 import SlideLabel from '@/components/SlideLabel';
@@ -79,9 +79,14 @@ export default function Slide5B() {
 
   const result = calc();
 
+  const prevResultRef = useRef<string>('');
+
   // Auto-save to lead on every change
   useEffect(() => {
     if (result) {
+      const key = `${result.min}-${result.max}-${result.incl6}-${result.incl21}-${result.items.length}`;
+      if (key === prevResultRef.current) return;
+      prevResultRef.current = key;
       updateLead({
         budget_min: Math.round(result.min),
         budget_max: Math.round(result.max),

@@ -18,6 +18,8 @@ export type Database = {
         Row: {
           achternaam: string
           adres: string
+          adres_lat: number | null
+          adres_lng: number | null
           budget_incl21: number | null
           budget_incl6: number | null
           budget_max: number | null
@@ -48,6 +50,8 @@ export type Database = {
         Insert: {
           achternaam?: string
           adres?: string
+          adres_lat?: number | null
+          adres_lng?: number | null
           budget_incl21?: number | null
           budget_incl6?: number | null
           budget_max?: number | null
@@ -78,6 +82,8 @@ export type Database = {
         Update: {
           achternaam?: string
           adres?: string
+          adres_lat?: number | null
+          adres_lng?: number | null
           budget_incl21?: number | null
           budget_incl6?: number | null
           budget_max?: number | null

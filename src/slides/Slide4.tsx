@@ -19,7 +19,7 @@ export default function Slide4() {
       <div className="max-w-3xl mx-auto w-full">
         <SlideLabel>LUISTEREN — KLANT PRAAT</SlideLabel>
         <h2 className="text-4xl font-headline font-bold text-foreground mb-8">
-          Vertel ons over jullie project
+          Klant aan het woord
         </h2>
 
         {/* Conversation prompts - subtle internal card */}
