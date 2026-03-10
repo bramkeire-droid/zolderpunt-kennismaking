@@ -287,7 +287,10 @@ export const s = StyleSheet.create({
     marginBottom: 14,
     flexDirection: 'row' as const,
     gap: 16,
-    borderRadius: 8,
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
+    borderBottomLeftRadius: 8,
+    borderBottomRightRadius: 8,
   },
   reviewPhoto: {
     width: 80,
