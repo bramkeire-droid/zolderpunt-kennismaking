@@ -29,8 +29,8 @@ interface AddressAutocompleteProps {
   className?: string;
 }
 
-export default function AddressAutocomplete({ value, onChange, placeholder, className }: AddressAutocompleteProps) {
-  const [suggestions, setSuggestions] = useState<PhotonFeature[]>([]);
+export default function AddressAutocomplete({ value, onChange, onCoordinates, placeholder, className }: AddressAutocompleteProps) {
+  const [suggestions, setSuggestions] = useState<PhotonFeatureWithGeometry[]>([]);
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState(value);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
