@@ -2,19 +2,10 @@ import { useSession } from '@/contexts/SessionContext';
 import SlideLayout from '@/components/SlideLayout';
 import SlideLabel from '@/components/SlideLabel';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MapPin, Upload, X } from 'lucide-react';
 import { useRef, useState } from 'react';
-
-const PROJECT_TYPES = [
-  'Tienerkamer',
-  'Slaapkamer',
-  'Thuiskantoor',
-  'Hobbyruimte',
-  'Multifunctioneel',
-  'Nog niet bepaald',
-];
 
 export default function Slide0B() {
   const { lead, updateLead } = useSession();
@@ -29,17 +20,14 @@ export default function Slide0B() {
       url: URL.createObjectURL(f),
     }));
     setLocalPhotos(prev => [...prev, ...newPhotos]);
-    // TODO: Upload to Supabase Storage
   };
 
   const removePhoto = (index: number) => {
     setLocalPhotos(prev => prev.filter((_, i) => i !== index));
   };
 
-  const encodedAddress = encodeURIComponent(lead.adres || 'Belgium');
-
   return (
-    <SlideLayout>
+    <SlideLayout showSave>
       <div className="max-w-3xl mx-auto w-full">
         <SlideLabel>PROJECTINFO</SlideLabel>
         <h2 className="text-3xl font-headline font-bold text-foreground mb-8">
@@ -60,9 +48,8 @@ export default function Slide0B() {
             />
           </div>
 
-          {/* Google Maps embed */}
           {lead.adres && lead.adres.length > 5 && (
-            <div className="rounded-lg overflow-hidden border border-border h-[250px] bg-muted flex items-center justify-center">
+            <div className="overflow-hidden border border-border h-[250px] bg-muted flex items-center justify-center">
               <div className="text-muted-foreground text-sm flex flex-col items-center gap-2">
                 <MapPin className="h-8 w-8" />
                 <span>Kaart: {lead.adres}</span>
@@ -85,19 +72,16 @@ export default function Slide0B() {
                 <span className="text-sm text-muted-foreground font-medium">m²</span>
               </div>
             </div>
-            <div className="space-y-2">
-              <Label className="font-body">Type project</Label>
-              <Select value={lead.project_type} onValueChange={v => updateLead({ project_type: v })}>
-                <SelectTrigger className="bg-card">
-                  <SelectValue placeholder="Selecteer type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {PROJECT_TYPES.map(t => (
-                    <SelectItem key={t} value={t}>{t}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="font-body">Project timing</Label>
+            <Textarea
+              value={lead.project_timing}
+              onChange={e => updateLead({ project_timing: e.target.value })}
+              placeholder="De klant wil het project afronden tegen periode 'x' omwille van 'y'"
+              className="bg-card min-h-[80px]"
+            />
           </div>
 
           {/* Photo upload */}
@@ -105,7 +89,7 @@ export default function Slide0B() {
             <Label className="font-body">Foto's uploaden</Label>
             <div
               onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-primary/30 rounded-lg p-8 text-center cursor-pointer hover:border-primary/60 hover:bg-accent/50 transition-colors"
+              className="border-2 border-dashed border-primary/30 p-8 text-center cursor-pointer hover:border-primary/60 hover:bg-accent/50 transition-colors"
             >
               <Upload className="h-8 w-8 text-primary mx-auto mb-2" />
               <p className="text-sm text-muted-foreground">
@@ -124,11 +108,11 @@ export default function Slide0B() {
             {localPhotos.length > 0 && (
               <div className="grid grid-cols-4 gap-3">
                 {localPhotos.map((photo, i) => (
-                  <div key={i} className="relative group rounded-lg overflow-hidden border border-border aspect-square">
+                  <div key={i} className="relative group overflow-hidden border border-border aspect-square">
                     <img src={photo.url} alt={photo.name} className="w-full h-full object-cover" />
                     <button
                       onClick={() => removePhoto(i)}
-                      className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute top-1 right-1 bg-destructive text-destructive-foreground p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                     >
                       <X className="h-3 w-3" />
                     </button>

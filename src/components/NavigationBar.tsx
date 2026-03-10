@@ -36,7 +36,7 @@ export default function NavigationBar() {
           <button
             key={mode}
             onClick={() => handleModeClick(mode)}
-            className={`px-4 py-2 rounded-lg text-sm font-headline font-semibold transition-colors ${
+            className={`px-4 py-2 rounded-none text-sm font-headline font-semibold transition-colors ${
               currentMode === mode
                 ? 'bg-primary text-primary-foreground'
                 : 'text-muted-foreground hover:text-foreground hover:bg-muted'

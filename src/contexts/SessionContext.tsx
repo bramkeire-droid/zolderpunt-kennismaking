@@ -88,18 +88,18 @@ export const defaultLeadData: LeadData = {
 };
 
 export type SlideId =
-  | '0A' | '0B' | '0C'
+  | '0A' | '0A2' | '0B' | '0C'
   | '1' | '2A' | '2B' | '3' | '4' | '5' | '5B' | '6' | '7'
   | '8' | '9' | '10';
 
 export const SLIDE_ORDER: SlideId[] = [
-  '0A', '0B', '0C',
+  '0A', '0A2', '0B', '0C',
   '1', '2A', '2B', '3', '4', '5', '5B', '6', '7',
   '8', '9', '10',
 ];
 
 export const SLIDE_MODES: Record<SlideId, AppMode> = {
-  '0A': 'voorbereiding', '0B': 'voorbereiding', '0C': 'voorbereiding',
+  '0A': 'voorbereiding', '0A2': 'voorbereiding', '0B': 'voorbereiding', '0C': 'voorbereiding',
   '1': 'gesprek', '2A': 'gesprek', '2B': 'gesprek', '3': 'gesprek',
   '4': 'gesprek', '5': 'gesprek', '5B': 'gesprek', '6': 'gesprek', '7': 'gesprek',
   '8': 'rapport', '9': 'rapport', '10': 'rapport',
