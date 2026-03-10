@@ -28,6 +28,7 @@ export interface LeadData {
   adres: string;
   oppervlakte_m2: number | null;
   project_type: string;
+  project_timing: string;
   volgende_stap: string;
   gesprek_notities: string;
   gesprek_datum: string;
