@@ -275,7 +275,6 @@ export const s = StyleSheet.create({
   reviewPhoto: {
     width: 80,
     height: 80,
-    borderRadius: 0,
     objectFit: 'cover' as const,
   },
   reviewAvatar: {
