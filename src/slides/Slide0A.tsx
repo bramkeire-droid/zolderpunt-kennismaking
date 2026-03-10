@@ -38,9 +38,9 @@ export default function Slide0A() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-5">
             <div className="space-y-2">
-              <Label className="font-body">E-mailadres</Label>
+              <Label className="font-body text-base">E-mailadres</Label>
               <Input
                 type="email"
                 value={lead.email}
