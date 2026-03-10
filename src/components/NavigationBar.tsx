@@ -14,6 +14,7 @@ const MODES: AppMode[] = ['voorbereiding', 'gesprek', 'rapport', 'dossiers'];
 
 export default function NavigationBar() {
   const { currentMode, currentSlide, setCurrentSlide, setCurrentMode } = useSession();
+  const { signOut } = useAuth();
 
   const handleModeClick = (mode: AppMode) => {
     if (mode === 'dossiers') {
