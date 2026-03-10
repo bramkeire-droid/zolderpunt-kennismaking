@@ -22,11 +22,11 @@ export default function Slide0A2() {
     <SlideLayout showSave>
       <div className="max-w-4xl mx-auto w-full">
         <SlideLabel>KENNISMAKING</SlideLabel>
-        <h2 className="text-3xl font-headline font-bold text-foreground mb-10">
+        <h2 className="text-4xl font-headline font-bold text-foreground mb-10">
           Hoe heb je Zolderpunt gevonden?
         </h2>
 
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-3 gap-5">
           {OPTIONS.map(opt => {
             const isSelected = lead.gevonden_via === opt.key;
             const Icon = opt.icon;
