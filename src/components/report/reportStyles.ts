@@ -296,7 +296,10 @@ export const s = StyleSheet.create({
     width: 80,
     height: 80,
     objectFit: 'cover' as const,
-    borderRadius: 8,
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
+    borderBottomLeftRadius: 8,
+    borderBottomRightRadius: 8,
   },
   reviewAvatar: {
     width: 80,
