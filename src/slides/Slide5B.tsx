@@ -209,7 +209,7 @@ export default function Slide5B() {
                   </div>
                   {trap && (
                     <div className="px-3.5 pb-3.5 pt-2 border-t border-primary/20" onClick={e => e.stopPropagation()}>
-                      <div className="text-[11px] font-bold text-secondary mb-2">Type trapgat</div>
+                      <div className="text-xs font-bold text-secondary mb-2">Type trapgat</div>
                       <div className="flex gap-1.5">
                         <button onClick={() => setTrapgat('hout')} className={`px-4 py-1.5 rounded-lg border-2 text-xs font-semibold transition-all ${trapgat === 'hout' ? 'bg-secondary border-secondary text-secondary-foreground' : 'border-primary/30 text-secondary'}`}>Hout — €1.750</button>
                         <button onClick={() => setTrapgat('beton')} className={`px-4 py-1.5 rounded-lg border-2 text-xs font-semibold transition-all ${trapgat === 'beton' ? 'bg-secondary border-secondary text-secondary-foreground' : 'border-primary/30 text-secondary'}`}>Beton — €5.500</button>
