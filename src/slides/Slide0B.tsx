@@ -122,7 +122,7 @@ export default function Slide0B() {
 
           {/* Photo upload */}
           <div className="space-y-3">
-            <Label className="font-body">Foto's uploaden</Label>
+            <Label className="font-body text-base">Foto's uploaden</Label>
             <div
               onClick={() => !uploading && fileInputRef.current?.click()}
               className={`border-2 border-dashed p-8 text-center transition-colors ${
