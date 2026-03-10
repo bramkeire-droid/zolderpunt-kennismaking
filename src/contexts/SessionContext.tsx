@@ -70,6 +70,7 @@ export const defaultLeadData: LeadData = {
   adres: '',
   oppervlakte_m2: null,
   project_type: '',
+  project_timing: '',
   volgende_stap: '',
   gesprek_notities: '',
   gesprek_datum: new Date().toISOString().split('T')[0],
