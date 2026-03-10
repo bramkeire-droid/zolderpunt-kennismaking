@@ -195,7 +195,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <SessionContext.Provider value={{
-      lead, setLead, updateLead, updateTechnisch,
+      lead, setLead, updateLead, updateTechnisch, loadLead,
       currentSlide, setCurrentSlide,
       currentMode, setCurrentMode,
       nextSlide, prevSlide,
