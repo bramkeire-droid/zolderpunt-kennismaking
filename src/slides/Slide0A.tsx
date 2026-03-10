@@ -12,14 +12,14 @@ export default function Slide0A() {
     <SlideLayout showSave>
       <div className="max-w-2xl mx-auto w-full">
         <SlideLabel>KLANTDOSSIER</SlideLabel>
-        <h2 className="text-3xl font-headline font-bold text-foreground mb-8">
+        <h2 className="text-4xl font-headline font-bold text-foreground mb-10">
           Nieuwe klant registreren
         </h2>
 
-        <div className="space-y-6">
-          <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-7">
+          <div className="grid grid-cols-2 gap-5">
             <div className="space-y-2">
-              <Label className="font-body">Voornaam</Label>
+              <Label className="font-body text-base">Voornaam</Label>
               <Input
                 value={lead.voornaam}
                 onChange={e => updateLead({ voornaam: e.target.value })}
