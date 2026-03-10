@@ -15,7 +15,22 @@ export const COLORS = {
   white: '#FFFFFF',
   lightGray: '#E5E5E5',
   midGray: '#999999',
+  red: '#E53E3E',
+  gold: '#F6AD55',
 };
+
+// ─── Date formatting ────────────────────────────────────────────────
+const MAANDEN = [
+  'januari','februari','maart','april','mei','juni',
+  'juli','augustus','september','oktober','november','december',
+];
+
+export function formatDatum(datum: string): string {
+  if (!datum) return '—';
+  const d = new Date(datum);
+  if (isNaN(d.getTime())) return datum;
+  return `${d.getDate()} ${MAANDEN[d.getMonth()]} ${d.getFullYear()}`;
+}
 
 // ─── Reviews ────────────────────────────────────────────────────────
 export const REVIEWS = [
@@ -48,27 +63,27 @@ export const REVIEWS = [
 // ─── Garanties ──────────────────────────────────────────────────────
 export const GARANTIES = [
   {
-    icon: '📅',
+    iconName: 'Calendar' as const,
     title: 'Wij staan voor ons woord én onze planning',
     text: 'Wat we afspreken, doen we. De startdatum en uitvoeringsperiode worden vooraf duidelijk gecommuniceerd en actief bewaakt, zodat jullie exact weten wanneer we beginnen en opleveren.',
   },
   {
-    icon: '💬',
+    iconName: 'MessageCircle' as const,
     title: 'Communicatie en opvolging, ook na oplevering',
     text: 'Jullie krijgen tijdens de werken heldere updates (planning, mijlpalen, keuzes). We blijven bereikbaar voor vragen en advies, ook wanneer het project is opgeleverd.',
   },
   {
-    icon: '🛡️',
+    iconName: 'Shield' as const,
     title: 'Onvoorziene situaties? We lossen het correct op',
     text: 'Duikt er iets onverwachts op, dan bespreken we dat meteen transparant. We stellen een gepaste oplossing voor, inclusief impact op timing en eventuele kosten, zodat er geen verrassingen zijn.',
   },
   {
-    icon: '⭐',
+    iconName: 'Star' as const,
     title: 'Kwaliteit als ons visitekaartje',
     text: 'We leveren af alsof het ons eigen huis is: nette afwerking, duurzame materialen en oog voor detail. Het resultaat moet een referentie zijn waar we beiden trots op zijn.',
   },
   {
-    icon: '✅',
+    iconName: 'CheckCircle' as const,
     title: 'Transparante prijsafspraken',
     text: 'De prijzen in deze offerte zijn duidelijk en volledig. Extra werken voeren we uitsluitend uit na jullie expliciete akkoord, zodat het budget onder controle blijft.',
   },
@@ -86,7 +101,7 @@ export const WERKWIJZE_STAPPEN = [
     nr: 2,
     title: 'Plaatsbezoek',
     status: 'current' as const,
-    copy: 'Bram komt bij jou thuis om de ruimte te bekijken, te meten en eventuele technische aandachtspunten in kaart te brengen.',
+    copy: 'Een Zolderpunt-adviseur komt bij jou thuis om de ruimte te bekijken, te meten en eventuele technische aandachtspunten in kaart te brengen.',
   },
   {
     nr: 3,
@@ -104,7 +119,7 @@ export const WERKWIJZE_STAPPEN = [
     nr: 5,
     title: 'Uitvoering',
     status: 'upcoming' as const,
-    copy: 'Bram is je vaste contactpersoon van begin tot einde. Je ontvangt regelmatig foto-updates van de voortgang — ook als je er zelf niet bij bent.',
+    copy: 'Je hebt één vaste contactpersoon van begin tot einde. Je ontvangt regelmatig foto-updates van de voortgang — ook als je er zelf niet bij bent.',
   },
   {
     nr: 6,
@@ -114,7 +129,7 @@ export const WERKWIJZE_STAPPEN = [
   },
   {
     nr: 7,
-    title: 'Jouw nieuwe ruimte 🎉',
+    title: 'Jouw nieuwe ruimte',
     status: 'upcoming' as const,
     copy: 'Van onbenutte zolder naar een volwaardige leefruimte. Precies zoals jij het voor ogen had.',
   },

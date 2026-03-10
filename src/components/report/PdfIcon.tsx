@@ -157,8 +157,8 @@ export default function PdfIcon({ name, size = 16, color = '#008CFF' }: PdfIconP
           d={d}
           stroke={isFilled ? 'none' : color}
           strokeWidth={2}
-          strokeLineCap="round"
-          strokeLineJoin="round"
+          strokeLinecap="round"
+          strokeLinejoin="round"
           fill={isFilled ? color : 'none'}
         />
       ))}
@@ -169,8 +169,8 @@ export default function PdfIcon({ name, size = 16, color = '#008CFF' }: PdfIconP
           d={d}
           stroke={color}
           strokeWidth={2}
-          strokeLineCap="round"
-          strokeLineJoin="round"
+          strokeLinecap="round"
+          strokeLinejoin="round"
           fill="none"
         />
       ))}
