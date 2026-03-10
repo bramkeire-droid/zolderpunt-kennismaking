@@ -1,5 +1,7 @@
 import { useSession, AppMode, MODE_FIRST_SLIDE, SLIDE_ORDER, SLIDE_MODES, SlideId } from '@/contexts/SessionContext';
+import { useAuth } from '@/contexts/AuthContext';
 import logoBlauw from '@/assets/logo-blauw.svg';
+import { LogOut } from 'lucide-react';
 
 const MODE_LABELS: Record<AppMode, string> = {
   voorbereiding: 'Voorbereiding',
