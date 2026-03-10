@@ -103,7 +103,7 @@ export const s = StyleSheet.create({
   },
   card: {
     backgroundColor: COLORS.white,
-    borderRadius: 12,
+    borderRadius: 0,
     padding: 20,
     marginBottom: 12,
   },
@@ -114,7 +114,7 @@ export const s = StyleSheet.create({
   },
   cardThird: {
     backgroundColor: COLORS.white,
-    borderRadius: 12,
+    borderRadius: 0,
     padding: 16,
     flex: 1,
   },
@@ -135,7 +135,7 @@ export const s = StyleSheet.create({
   },
   badge: {
     backgroundColor: COLORS.primary,
-    borderRadius: 6,
+    borderRadius: 0,
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
@@ -196,7 +196,7 @@ export const s = StyleSheet.create({
   priceBar: {
     height: 12,
     backgroundColor: COLORS.lightGray,
-    borderRadius: 6,
+    borderRadius: 0,
     marginVertical: 12,
     position: 'relative' as const,
     overflow: 'hidden' as const,
@@ -208,7 +208,7 @@ export const s = StyleSheet.create({
     width: '70%',
     height: '100%',
     backgroundColor: COLORS.primary,
-    borderRadius: 6,
+    borderRadius: 0,
     opacity: 0.7,
   },
   priceLabel: {
@@ -244,7 +244,7 @@ export const s = StyleSheet.create({
   timelineCircle: {
     width: 28,
     height: 28,
-    borderRadius: 14,
+    borderRadius: 0,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
   },
@@ -266,7 +266,7 @@ export const s = StyleSheet.create({
   // ─── Reviews ──────────────────────────────────────────
   reviewCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 12,
+    borderRadius: 0,
     padding: 20,
     marginBottom: 14,
     flexDirection: 'row' as const,
@@ -275,13 +275,13 @@ export const s = StyleSheet.create({
   reviewPhoto: {
     width: 80,
     height: 80,
-    borderRadius: 12,
+    borderRadius: 0,
     objectFit: 'cover' as const,
   },
   reviewAvatar: {
     width: 80,
     height: 80,
-    borderRadius: 12,
+    borderRadius: 0,
     backgroundColor: COLORS.primary,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
@@ -323,7 +323,7 @@ export const s = StyleSheet.create({
   ctaPhoto: {
     width: 180,
     height: 240,
-    borderRadius: 12,
+    borderRadius: 0,
     objectFit: 'cover' as const,
   },
   ctaContact: {
@@ -366,7 +366,7 @@ export const s = StyleSheet.create({
   photoHero: {
     width: '100%',
     height: 260,
-    borderRadius: 12,
+    borderRadius: 0,
     objectFit: 'cover' as const,
     marginBottom: 12,
   },
@@ -378,14 +378,14 @@ export const s = StyleSheet.create({
   photoGridItem: {
     width: '48%',
     height: 160,
-    borderRadius: 12,
+    borderRadius: 0,
     objectFit: 'cover' as const,
   },
   photoPlaceholder: {
     width: '100%',
     height: 300,
     backgroundColor: COLORS.lightGray,
-    borderRadius: 12,
+    borderRadius: 0,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
   },
@@ -393,7 +393,7 @@ export const s = StyleSheet.create({
   // ─── Guarantee cards ──────────────────────────────────
   garantieCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 12,
+    borderRadius: 0,
     padding: 16,
     width: '48%',
     marginBottom: 12,
@@ -423,7 +423,7 @@ export const s = StyleSheet.create({
     gap: 8,
     marginBottom: 20,
     backgroundColor: COLORS.white,
-    borderRadius: 8,
+    borderRadius: 0,
     padding: 12,
     alignSelf: 'flex-start' as const,
   },
