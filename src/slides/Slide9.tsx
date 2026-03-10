@@ -21,6 +21,9 @@ export default function Slide9() {
       setIsGenerating(true);
       setError(null);
       try {
+        // Use transcript (from Slide 8) as primary source, gesprek_notities as fallback
+        const primarySource = lead.transcript?.trim() || lead.gesprek_notities?.trim() || '';
+
         // Fire all AI calls in parallel: value text + notes summary + highlights
         const [valueRes, notesRes, highlightsRes] = await Promise.all([
           supabase.functions.invoke('generate-value-text', {
@@ -29,23 +32,25 @@ export default function Slide9() {
               oppervlakte_m2: lead.oppervlakte_m2 || 0,
             },
           }),
-          lead.gesprek_notities?.trim()
+          primarySource
             ? supabase.functions.invoke('generate-value-text', {
                 body: {
                   type: 'summarize_notes',
                   gewenst_resultaat: lead.gezocht_naar || 'extra leefruimte',
                   oppervlakte_m2: lead.oppervlakte_m2 || 0,
-                  gesprek_notities: lead.gesprek_notities,
+                  gesprek_notities: primarySource,
+                  transcript: lead.transcript || '',
                 },
               })
             : Promise.resolve({ data: { text: '—' }, error: null }),
-          lead.gesprek_notities?.trim()
+          primarySource
             ? supabase.functions.invoke('generate-value-text', {
                 body: {
                   type: 'extract_highlights',
                   gewenst_resultaat: lead.gezocht_naar || 'extra leefruimte',
                   oppervlakte_m2: lead.oppervlakte_m2 || 0,
-                  gesprek_notities: lead.gesprek_notities,
+                  gesprek_notities: primarySource,
+                  transcript: lead.transcript || '',
                 },
               })
             : Promise.resolve({ data: { text: '' }, error: null }),

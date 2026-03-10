@@ -48,6 +48,7 @@ function rowToLead(row: any): LeadData {
     rapport_tekst: row.rapport_tekst ?? '',
     rapport_highlights: row.rapport_highlights ?? '',
     waarde_tekst_ai: row.waarde_tekst_ai ?? '',
+    transcript: '',
     rapport_gegenereerd_op: row.rapport_gegenereerd_op ?? null,
     rapport_versies: Array.isArray(row.rapport_versies) ? row.rapport_versies : [],
     status: row.status ?? 'intake',

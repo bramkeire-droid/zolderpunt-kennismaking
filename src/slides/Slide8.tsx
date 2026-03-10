@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { useSession } from '@/contexts/SessionContext';
 
 export default function Slide8() {
-  const { nextSlide } = useSession();
+  const { nextSlide, updateLead } = useSession();
   const [transcript, setTranscript] = useState('');
   const [fileName, setFileName] = useState('');
   const [additions, setAdditions] = useState('');
@@ -20,6 +20,12 @@ export default function Slide8() {
     const reader = new FileReader();
     reader.onload = () => setTranscript(reader.result as string);
     reader.readAsText(file);
+  };
+
+  const handleGenerate = () => {
+    const combined = [transcript, additions].filter(Boolean).join('\n\n---\nAanvullingen:\n');
+    updateLead({ transcript: combined });
+    nextSlide();
   };
 
   return (
@@ -68,7 +74,7 @@ export default function Slide8() {
         </div>
 
         <Button
-          onClick={nextSlide}
+          onClick={handleGenerate}
           disabled={!transcript}
           className="w-full bg-primary text-primary-foreground hover:bg-secondary font-headline text-base py-6"
         >

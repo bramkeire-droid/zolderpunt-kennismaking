@@ -10,7 +10,9 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { gewenst_resultaat, oppervlakte_m2, gesprek_notities, type } = body;
+    const { gewenst_resultaat, oppervlakte_m2, gesprek_notities, transcript, type } = body;
+    // Use transcript as primary source, fall back to gesprek_notities
+    const primaryInput = transcript?.trim() || gesprek_notities?.trim() || '';
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
@@ -30,7 +32,7 @@ Regels:
 - Maximaal 3 zinnen
 - Sluit NOOIT af met een conclusie of aanbeveling — enkel een samenvatting van het gesprek
 
-Gespreksnotities: "${gesprek_notities || '(geen notities)'}"
+Gespreksnotities/transcript: "${primaryInput || '(geen notities)'}"
 Gewenst resultaat: "${gewenst_resultaat || 'extra leefruimte'}"`;
     } else if (type === 'summarize_notes') {
       // Summarize gesprek_notities into a concise narrative for the rapport
@@ -44,8 +46,8 @@ Vat deze notities samen in een verhalende paragraaf van maximaal 6 zinnen. Focus
 
 Laat onbelangrijke details weg. Schrijf in de derde persoon ("De klant..."). Geef ENKEL de samenvatting terug, geen aanhalingstekens, geen titel.
 
-NOTITIES:
-${gesprek_notities || '(geen notities)'}`;
+TRANSCRIPT / NOTITIES:
+${primaryInput || '(geen notities)'}`;
     } else {
       // Original: generate value text
       systemPrompt = "Je bent een copywriter voor Zolderpunt, een Belgisch zolderrenovatiebedrijf. Je schrijft zakelijke, warme, concrete teksten. Geen verkooptaal.";
