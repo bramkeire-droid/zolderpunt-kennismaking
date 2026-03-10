@@ -35,7 +35,12 @@ const SLIDE_COMPONENTS: Record<SlideId, React.ComponentType> = {
 
 function AppContent() {
   const [view, setView] = useState<'start' | 'slides' | 'dossiers'>('start');
-  const { currentMode, currentSlide, resetSession, setCurrentSlide, setCurrentMode } = useSession();
+  const { currentMode, currentSlide, resetSession, setCurrentSlide, setCurrentMode, loadLead } = useSession();
+
+  const handleOpenLead = (lead: import('@/contexts/SessionContext').LeadData) => {
+    loadLead(lead);
+    setView('slides');
+  };
 
   if (view === 'start') {
     return (
@@ -72,7 +77,7 @@ function AppContent() {
     <div className="h-screen flex flex-col">
       <NavigationBar />
       {actualMode === 'dossiers' ? (
-        <Dossiers />
+        <Dossiers onOpenLead={handleOpenLead} />
       ) : (
         (() => {
           const SlideComponent = SLIDE_COMPONENTS[currentSlide];
