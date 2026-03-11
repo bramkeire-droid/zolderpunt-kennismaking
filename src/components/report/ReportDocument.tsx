@@ -389,7 +389,7 @@ function ReviewsPage() {
       <View style={s.googleBadge}>
         <GoldStars size={12} />
         <Text style={s.googleScore}>{GOOGLE_REVIEW_SCORE}/5</Text>
-        <Text style={s.googleCount}> — {GOOGLE_REVIEW_COUNT} reviews op Google</Text>
+        <Text style={s.googleCount}> op Google</Text>
       </View>
 
       {REVIEWS.map((review, i) => (
