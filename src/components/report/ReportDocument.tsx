@@ -14,15 +14,13 @@ import PdfIcon from './PdfIcon';
 
 // Static asset imports
 import LogoPdf from './LogoPdf';
-import heroSrcRaw from '@/assets/hero-cover-new.webp';
-import bramSrcRaw from '@/assets/foto-bram.png';
+import heroSrc from '@/assets/hero-cover.jpg';
+import bramSrc from '@/assets/foto-bram.png';
+import mathieuSrc from '@/assets/review-foto-mathieu.png';
 
-// Convert relative asset paths to absolute URLs for @react-pdf/renderer in production
-const toAbsoluteUrl = (src: string) =>
-  src.startsWith('http') ? src : new URL(src, window.location.origin).href;
-
-const heroSrc = toAbsoluteUrl(heroSrcRaw);
-const bramSrc = toAbsoluteUrl(bramSrcRaw);
+const REVIEW_PHOTO_MAP: Record<string, string> = {
+  mathieu: mathieuSrc,
+};
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('nl-BE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
@@ -423,10 +421,16 @@ function ReviewsPage() {
         <Text style={s.googleCount}> op Google</Text>
       </View>
 
-      {REVIEWS.map((review, i) => (
+      {REVIEWS.map((review, i) => {
+        const photoSrc = review.hasPhoto ? REVIEW_PHOTO_MAP[review.photoKey] : null;
+        return (
         <View key={i} style={s.reviewCard}>
           <View style={s.reviewAvatar}>
-            <Text style={s.reviewInitials}>{review.name.split(' ').map(w => w[0]).join('')}</Text>
+            {photoSrc ? (
+              <Image src={photoSrc} style={{ width: 40, height: 40, borderRadius: 20 }} />
+            ) : (
+              <Text style={s.reviewInitials}>{review.name.split(' ').map(w => w[0]).join('')}</Text>
+            )}
           </View>
           <View style={{ flex: 1 }}>
             <Text style={s.reviewName}>{review.name}</Text>
@@ -434,7 +438,8 @@ function ReviewsPage() {
             <Text style={[s.reviewQuote, { marginTop: 6 }]}>"{truncate(review.quote, 220)}"</Text>
           </View>
         </View>
-      ))}
+        );
+      })}
 
       <PageFooter />
     </Page>

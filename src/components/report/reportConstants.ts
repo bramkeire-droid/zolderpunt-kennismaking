@@ -55,7 +55,7 @@ export const REVIEWS = [
   {
     name: 'Mathieu Ackerman',
     quote: 'Heel goede opvolging. Ideaal voor personen die ontzorgd wensen te worden. Een voorbeeld qua klantenservice!',
-    hasPhoto: false,
+    hasPhoto: true,
     photoKey: 'mathieu',
   },
 ];
