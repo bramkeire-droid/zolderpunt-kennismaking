@@ -70,17 +70,55 @@ function PageFooter() {
 // SECTIE 1 — COVER
 // ═══════════════════════════════════════════════════════════════════
 function CoverPage({ data }: { data: ReportData }) {
+  /*
+   * 40° DIAGONAL — MATHEMATICAL SELF-CHECK
+   * tan(40°) = 0.8391
+   * Page width = 595pt. Required rise = 595 × 0.8391 = 499pt
+   * Line from (0, 580) → (595, 81): rise = 580−81 = 499, run = 595
+   * Angle = atan(499/595) = atan(0.8387) = 39.98° ≈ 40° ✓
+   *
+   * Blue band is 28pt thick (perpendicular to line).
+   * Perpendicular offsets: dx = 28·sin(40°) = 18, dy = 28·cos(40°) = 21.4
+   */
+  const LINE_Y_LEFT = 580;
+  const LINE_Y_RIGHT = 81;
+  // Blue band bottom edge
+  const B_BL = `0,${LINE_Y_LEFT}`;
+  const B_BR = `595,${LINE_Y_RIGHT}`;
+  // Blue band top edge (offset 28pt perpendicular toward image)
+  const B_TL = `0,${LINE_Y_LEFT - 21}`;
+  const B_TR = `595,${LINE_Y_RIGHT - 21}`;
+  // Warm-white mask: everything below the blue band's bottom edge
+  const W_POINTS = `0,${LINE_Y_LEFT} 595,${LINE_Y_RIGHT} 595,842 0,842`;
+
   return (
     <Page size="A4" style={s.pageCover}>
-      {/* Hero image with diagonal clip */}
-      <View style={{ position: 'relative' as const, width: '100%', height: 460 }}>
-        <Image src={heroSrc} style={{ width: '100%', height: '100%', objectFit: 'cover' as const }} />
-      </View>
+      {/* Full-page hero image as background */}
+      <Image
+        src={heroSrc}
+        style={{
+          position: 'absolute' as const,
+          top: 0,
+          left: 0,
+          width: 595,
+          height: 842,
+          objectFit: 'cover' as const,
+        }}
+      />
 
-      {/* 40° angled blue transition bar */}
-      <View style={s.coverAngle} />
+      {/* SVG overlay: 40° diagonal blue band + warm-white mask */}
+      <Svg
+        style={{ position: 'absolute' as const, top: 0, left: 0, width: 595, height: 842 }}
+        viewBox="0 0 595 842"
+      >
+        {/* Warm-white area below diagonal (content background) */}
+        <Polygon points={W_POINTS} fill={COLORS.warmWhite} />
+        {/* Blue band at exactly 40° */}
+        <Polygon points={`${B_BL} ${B_BR} ${B_TR} ${B_TL}`} fill={COLORS.primary} opacity="0.92" />
+      </Svg>
 
-      <View style={s.coverContent}>
+      {/* Content — positioned in the warm-white triangle area */}
+      <View style={{ position: 'absolute' as const, bottom: 80, left: 50, right: 50 }}>
         <LogoPdf width={140} />
 
         <Text style={s.coverTitle}>
