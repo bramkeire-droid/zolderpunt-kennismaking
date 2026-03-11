@@ -92,7 +92,6 @@ function CoverPage({ data }: { data: ReportData }) {
         paddingTop: 60,
         paddingHorizontal: 50,
       }}>
-        <LogoPdf width={160} />
 
         <View style={{ marginTop: 40 }}>
           <Text style={{
