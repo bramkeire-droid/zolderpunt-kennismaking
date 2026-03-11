@@ -42,6 +42,10 @@ export interface LeadData {
   rapport_tekst: string;
   rapport_highlights: string;
   waarde_tekst_ai: string;
+  rapport_situatie_ai: string;
+  rapport_verwachtingen_ai: string;
+  rapport_besproken_ai: string;
+  rapport_aandachtspunten_ai: string;
   transcript: string;
   rapport_gegenereerd_op: string | null;
   rapport_versies: any[];
@@ -89,6 +93,10 @@ export const defaultLeadData: LeadData = {
   rapport_tekst: '',
   rapport_highlights: '',
   waarde_tekst_ai: '',
+  rapport_situatie_ai: '',
+  rapport_verwachtingen_ai: '',
+  rapport_besproken_ai: '',
+  rapport_aandachtspunten_ai: '',
   transcript: '',
   rapport_gegenereerd_op: null,
   rapport_versies: [],

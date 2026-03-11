@@ -19,69 +19,72 @@ export default function Slide9() {
     setIsGenerating(true);
     setError(null);
     try {
-      const primarySource = lead.transcript?.trim() || lead.gesprek_notities?.trim() || '';
+      const { data, error: fnError } = await supabase.functions.invoke('generate-rapport-summary', {
+        body: {
+          voornaam: lead.voornaam,
+          achternaam: lead.achternaam,
+          adres: lead.adres,
+          oppervlakte_m2: lead.oppervlakte_m2,
+          gezocht_naar: lead.gezocht_naar,
+          gewenst_resultaat: lead.gezocht_naar,
+          gesprek_notities: lead.gesprek_notities,
+          transcript: lead.transcript,
+          inbegrepen_posten: lead.inbegrepen_posten,
+          technisch: lead.technisch,
+          gesprek_datum: lead.gesprek_datum,
+        },
+      });
 
-      const [valueRes, notesRes, highlightsRes] = await Promise.all([
-        supabase.functions.invoke('generate-value-text', {
-          body: {
-            gewenst_resultaat: lead.gezocht_naar || 'extra leefruimte',
-            oppervlakte_m2: lead.oppervlakte_m2 || 0,
-          },
-        }),
-        primarySource
-          ? supabase.functions.invoke('generate-value-text', {
-              body: {
-                type: 'summarize_notes',
-                gewenst_resultaat: lead.gezocht_naar || 'extra leefruimte',
-                oppervlakte_m2: lead.oppervlakte_m2 || 0,
-                gesprek_notities: primarySource,
-                transcript: lead.transcript || '',
-              },
-            })
-          : Promise.resolve({ data: { text: '—' }, error: null }),
-        primarySource
-          ? supabase.functions.invoke('generate-value-text', {
-              body: {
-                type: 'extract_highlights',
-                gewenst_resultaat: lead.gezocht_naar || 'extra leefruimte',
-                oppervlakte_m2: lead.oppervlakte_m2 || 0,
-                gesprek_notities: primarySource,
-                transcript: lead.transcript || '',
-              },
-            })
-          : Promise.resolve({ data: { text: '' }, error: null }),
-      ]);
+      if (fnError) throw fnError;
 
-      if (valueRes.error) throw valueRes.error;
+      if (data?.fallback) {
+        // AI failed — build a basic rapport from available data
+        const fallbackRapport = [
+          `Rapport voor ${lead.voornaam || 'klant'} ${lead.achternaam || ''}`.trim(),
+          `Datum: ${lead.gesprek_datum || new Date().toLocaleDateString('nl-BE')}`,
+          '',
+          `Situatie: ${lead.adres || '—'}`,
+          `Gewenst resultaat: ${lead.gezocht_naar || '—'}`,
+          `Oppervlakte: ${lead.oppervlakte_m2 || '?'} m²`,
+        ].join('\n');
 
-      const aiText = valueRes.data?.text || 'Extra leefruimte gecreëerd uit ruimte die er al was.';
-      const notesSummary = notesRes.data?.text || lead.gesprek_notities || '—';
+        updateLead({
+          rapport_tekst: fallbackRapport,
+          waarde_tekst_ai: 'Extra leefruimte gecreëerd uit ruimte die er al was.',
+        });
 
-      let highlights = highlightsRes.data?.text || '';
-      if (highlights.length > 300) {
-        const truncated = highlights.substring(0, 300);
-        const lastPeriod = truncated.lastIndexOf('.');
-        highlights = lastPeriod > 200 ? truncated.substring(0, lastPeriod + 1) : truncated + '…';
+        if (data?.error) {
+          setError(data.error);
+        }
+        return;
       }
 
+      // AI returned structured narrative texts
       const rapport = [
         `Rapport voor ${lead.voornaam || 'klant'} ${lead.achternaam || ''}`.trim(),
         `Datum: ${lead.gesprek_datum || new Date().toLocaleDateString('nl-BE')}`,
         '',
-        `Situatie: ${lead.adres || '—'}`,
-        `Gewenst resultaat: ${lead.gezocht_naar || '—'}`,
-        `Oppervlakte: ${lead.oppervlakte_m2 || '?'} m²`,
+        '— Situatie —',
+        data.situatie_tekst || '',
         '',
-        `Waarde: ${aiText}`,
+        '— Verwachtingen —',
+        data.verwachtingen_tekst || '',
         '',
-        `Samenvatting gesprek:`,
-        notesSummary,
+        '— Wat we bespraken —',
+        data.besproken_tekst || '',
+        '',
+        '— Aandachtspunten —',
+        data.aandachtspunten_tekst || '',
       ].join('\n');
 
       updateLead({
         rapport_tekst: rapport,
-        waarde_tekst_ai: aiText,
-        rapport_highlights: highlights,
+        waarde_tekst_ai: data.waarde_tekst || 'Extra leefruimte gecreëerd uit ruimte die er al was.',
+        rapport_situatie_ai: data.situatie_tekst || '',
+        rapport_verwachtingen_ai: data.verwachtingen_tekst || '',
+        rapport_besproken_ai: data.besproken_tekst || '',
+        rapport_aandachtspunten_ai: data.aandachtspunten_tekst || '',
+        rapport_highlights: data.aandachtspunten_tekst || '',
       });
     } catch (e: any) {
       console.error('Rapport generation failed:', e);
@@ -89,7 +92,7 @@ export default function Slide9() {
     } finally {
       setIsGenerating(false);
     }
-  }, [lead.transcript, lead.gesprek_notities, lead.gezocht_naar, lead.oppervlakte_m2, lead.voornaam, lead.achternaam, lead.gesprek_datum, lead.adres, updateLead]);
+  }, [lead.voornaam, lead.achternaam, lead.adres, lead.oppervlakte_m2, lead.gezocht_naar, lead.gesprek_notities, lead.transcript, lead.inbegrepen_posten, lead.technisch, lead.gesprek_datum, updateLead]);
 
   useEffect(() => {
     if (hasRapport || isGenerating) return;
@@ -97,7 +100,15 @@ export default function Slide9() {
   }, [hasRapport, lead.transcript]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleRegenerate = () => {
-    updateLead({ rapport_tekst: '', rapport_highlights: '', waarde_tekst_ai: '' });
+    updateLead({
+      rapport_tekst: '',
+      rapport_highlights: '',
+      waarde_tekst_ai: '',
+      rapport_situatie_ai: '',
+      rapport_verwachtingen_ai: '',
+      rapport_besproken_ai: '',
+      rapport_aandachtspunten_ai: '',
+    });
   };
 
   return (

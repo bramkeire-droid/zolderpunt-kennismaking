@@ -95,11 +95,11 @@ function CoverPage({ data }: { data: ReportData }) {
 // SECTIE 2 — SAMENVATTING GESPREK
 // ═══════════════════════════════════════════════════════════════════
 function SamenvattingPage({ data }: { data: ReportData }) {
-  const fields: { icon: 'MapPin' | 'Target' | 'Wrench' | 'MessageCircle'; label: string; value: string; clamped?: boolean }[] = [
+  const sections: { icon: 'MapPin' | 'Target' | 'Wrench' | 'MessageCircle'; label: string; value: string }[] = [
     { icon: 'MapPin', label: 'Jouw situatie', value: data.situatie },
-    { icon: 'Target', label: 'Wat jij voor ogen hebt', value: data.gewenst_resultaat },
-    { icon: 'Wrench', label: 'Besproken onderdelen', value: data.besproken_opties },
-    ...(data.aandachtspunten ? [{ icon: 'MessageCircle' as const, label: 'Aandachtspunten', value: data.aandachtspunten, clamped: true }] : []),
+    { icon: 'Target', label: 'Wat jullie voor ogen hebben', value: data.verwachtingen },
+    { icon: 'Wrench', label: 'Wat we bespraken', value: data.besproken },
+    ...(data.aandachtspunten ? [{ icon: 'MessageCircle' as const, label: 'Aandachtspunten', value: data.aandachtspunten }] : []),
   ];
 
   return (
@@ -112,29 +112,15 @@ function SamenvattingPage({ data }: { data: ReportData }) {
         Beste {data.voornaam || 'klant'}, bedankt voor ons gesprek op {formatDatum(data.datum_gesprek)}. Hieronder vind je een samenvatting van wat we bespraken en een eerste indicatie van wat jouw zolderrenovatie kan inhouden.
       </Text>
 
-      {fields.map((f, i) => {
-        const isBulletList = f.label === 'Besproken onderdelen' && f.value && f.value.includes(',');
-        const isClamped = 'clamped' in f && f.clamped;
-        return (
-          <View key={i} style={s.card} wrap={false}>
-            <View style={[s.row, { marginBottom: 6, gap: 8 }]}>
-              <PdfIcon name={f.icon} size={16} color={COLORS.primary} />
-              <Text style={s.h3}>{f.label}</Text>
-            </View>
-            {isBulletList ? (
-              <View>
-                {f.value.split(',').map((item: string, j: number) => (
-                  <Text key={j} style={s.body}>•  {item.trim()}</Text>
-                ))}
-              </View>
-            ) : (
-              <View style={isClamped ? { maxHeight: 60, overflow: 'hidden' } : undefined}>
-                <Text style={s.body}>{f.value || '—'}</Text>
-              </View>
-            )}
+      {sections.map((f, i) => (
+        <View key={i} style={s.card} wrap={false}>
+          <View style={[s.row, { marginBottom: 6, gap: 8 }]}>
+            <PdfIcon name={f.icon} size={16} color={COLORS.primary} />
+            <Text style={s.h3}>{f.label}</Text>
           </View>
-        );
-      })}
+          <Text style={s.body}>{f.value || '—'}</Text>
+        </View>
+      ))}
 
       <View style={s.divider} />
       <Text style={[s.body, { marginTop: 8 }]}>

@@ -29,6 +29,10 @@ export default function Slide8() {
       rapport_tekst: '',
       rapport_highlights: '',
       waarde_tekst_ai: '',
+      rapport_situatie_ai: '',
+      rapport_verwachtingen_ai: '',
+      rapport_besproken_ai: '',
+      rapport_aandachtspunten_ai: '',
     });
     nextSlide();
   };
