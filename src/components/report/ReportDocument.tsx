@@ -74,26 +74,33 @@ function PageFooter() {
 function CoverPage({ data }: { data: ReportData }) {
   return (
     <Page size="A4" style={s.pageCover}>
-      {/* Cover image — absolute positioned in the bottom half */}
+      {/* Achtergrondafbeelding — vult hele pagina */}
       <Image
         src={coverSrc}
         style={{
           position: 'absolute' as const,
-          bottom: 0,
+          top: 0,
           left: 0,
           right: 0,
-          height: 560,
+          bottom: 0,
           objectFit: 'cover' as const,
         }}
       />
 
-      {/* Top section: logo + client data (sits above the image) */}
+      {/* Wit vlak bovenaan voor logo + klantdata */}
       <View style={{
+        position: 'absolute' as const,
+        top: 0,
+        left: 0,
+        right: 0,
+        height: 280,
+        backgroundColor: 'white',
         paddingTop: 60,
         paddingHorizontal: 50,
       }}>
+        <LogoPdf width={120} />
 
-        <View style={{ marginTop: 40 }}>
+        <View style={{ marginTop: 24 }}>
           <Text style={{
             fontFamily: 'SpaceGrotesk',
             fontWeight: 700,
