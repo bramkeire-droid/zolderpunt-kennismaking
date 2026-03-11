@@ -25,7 +25,7 @@ import mathieuSrcRaw from '@/assets/review-foto-mathieu.png';
 const toAbsoluteUrl = (src: string) =>
   src.startsWith('http') ? src : new URL(src, window.location.origin).href;
 
-const heroSrc = toAbsoluteUrl(heroSrcRaw);
+const coverSrc = toAbsoluteUrl(coverSrcRaw);
 const bramSrc = toAbsoluteUrl(bramSrcRaw);
 const brandonSrc = toAbsoluteUrl(brandonSrcRaw);
 const tomSrc = toAbsoluteUrl(tomSrcRaw);
