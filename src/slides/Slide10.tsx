@@ -15,21 +15,28 @@ const fmt = (n: number) =>
 
 const FALLBACK_AI_TEXT = 'Extra leefruimte gecreëerd uit ruimte die er al was.';
 
-function mapLeadToReportData(lead: ReturnType<typeof useSession>['lead'], aiText: string): ReportData {
+function mapLeadToReportData(lead: ReturnType<typeof useSession>['lead']): ReportData {
   const posten = (lead.inbegrepen_posten || []) as { post: string; bedrag: number }[];
-  const postenLabels = posten.map(p => p.post).join(', ');
   const t = lead.technisch;
+
+  // Use AI narrative fields, with sensible fallbacks
+  const situatieFallback = lead.oppervlakte_m2
+    ? `Onafgewerkte zolder van ±${lead.oppervlakte_m2}m².`
+    : '—';
+  const verwachtingenFallback = lead.gezocht_naar || '—';
+  const besprokenFallback = posten.length > 0
+    ? posten.map(p => p.post).join(', ')
+    : lead.gezocht_naar || '—';
 
   return {
     voornaam: lead.voornaam,
     achternaam: lead.achternaam,
     datum_gesprek: lead.gesprek_datum || new Date().toISOString().split('T')[0],
-    situatie: lead.oppervlakte_m2
-      ? `Onafgewerkte zolder van ±${lead.oppervlakte_m2}m².`
-      : '—',
+    situatie: lead.rapport_situatie_ai || situatieFallback,
+    verwachtingen: lead.rapport_verwachtingen_ai || verwachtingenFallback,
+    besproken: lead.rapport_besproken_ai || besprokenFallback,
+    aandachtspunten: lead.rapport_aandachtspunten_ai || lead.rapport_highlights || '',
     gewenst_resultaat: lead.gezocht_naar || '—',
-    besproken_opties: postenLabels || lead.gezocht_naar || '—',
-    aandachtspunten: lead.rapport_highlights || '',
     oppervlakte_m2: lead.oppervlakte_m2 || 0,
     prijs_min: lead.budget_min || 0,
     prijs_max: lead.budget_max || 0,
@@ -43,10 +50,10 @@ function mapLeadToReportData(lead: ReturnType<typeof useSession>['lead'], aiText
       trap: t.trap,
       elektriciteit: t.elektriciteit_uitgebreid,
       airco: t.airco,
-      schilderwerk: false, // always excluded
+      schilderwerk: false,
     },
     fotos: (lead.fotos || []).filter(f => f.url).map(f => f.url!),
-    waarde_tekst_ai: aiText,
+    waarde_tekst_ai: lead.waarde_tekst_ai || 'Extra leefruimte gecreëerd uit ruimte die er al was.',
     inbegrepen_posten: posten,
   };
 }
