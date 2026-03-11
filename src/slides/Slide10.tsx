@@ -65,19 +65,7 @@ export default function Slide10() {
   const handleDownload = async () => {
     setLoading(true);
     try {
-      // Use the separate AI value text, not the full rapport
-      const aiText = lead.waarde_tekst_ai || FALLBACK_AI_TEXT;
-
-      // Fallback for empty rapport_highlights
-      if (!lead.rapport_highlights) {
-        const posten = (lead.inbegrepen_posten || []) as { post: string }[];
-        const fallbackHighlights = posten.length > 0
-          ? posten.slice(0, 4).map(p => p.post).join(' • ')
-          : 'Isolatie • Binnenafwerking • Vloer • Trap';
-        lead.rapport_highlights = fallbackHighlights;
-      }
-
-      const reportData = mapLeadToReportData(lead, aiText);
+      const reportData = mapLeadToReportData(lead);
 
       // 3. Generate PDF
       console.log('[PDF] Starting PDF generation with data:', { voornaam: reportData.voornaam, achternaam: reportData.achternaam, fotos: reportData.fotos?.length });
