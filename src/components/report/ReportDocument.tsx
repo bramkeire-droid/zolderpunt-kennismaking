@@ -96,40 +96,43 @@ function CoverPage({ data }: { data: ReportData }) {
 
   return (
     <Page size="A4" style={s.pageCover}>
-      {/* Full-page hero image as background */}
-      <Image
-        src={heroSrc}
-        style={{
-          position: 'absolute' as const,
-          top: 0,
-          left: 0,
-          width: 595,
-          height: 842,
-          objectFit: 'cover' as const,
-        }}
-      />
+      {/* Single container with fixed A4 size — prevents absolute children from splitting across pages */}
+      <View style={{ width: 595, height: 842, position: 'relative' as const }}>
+        {/* Full-page hero image as background */}
+        <Image
+          src={heroSrc}
+          style={{
+            position: 'absolute' as const,
+            top: 0,
+            left: 0,
+            width: 595,
+            height: 842,
+            objectFit: 'cover' as const,
+          }}
+        />
 
-      {/* SVG overlay: 40° diagonal blue band + warm-white mask */}
-      <Svg
-        style={{ position: 'absolute' as const, top: 0, left: 0, width: 595, height: 842 }}
-        viewBox="0 0 595 842"
-      >
-        {/* Warm-white area below diagonal (content background) */}
-        <Polygon points={W_POINTS} fill={COLORS.warmWhite} />
-        {/* Blue band at exactly 40° */}
-        <Polygon points={`${B_BL} ${B_BR} ${B_TR} ${B_TL}`} fill={COLORS.primary} opacity="0.92" />
-      </Svg>
+        {/* SVG overlay: 40° diagonal blue band + warm-white mask */}
+        <Svg
+          style={{ position: 'absolute' as const, top: 0, left: 0, width: 595, height: 842 }}
+          viewBox="0 0 595 842"
+        >
+          {/* Warm-white area below diagonal (content background) */}
+          <Polygon points={W_POINTS} fill={COLORS.warmWhite} />
+          {/* Blue band at exactly 40° */}
+          <Polygon points={`${B_BL} ${B_BR} ${B_TR} ${B_TL}`} fill={COLORS.primary} opacity="0.92" />
+        </Svg>
 
-      {/* Content — positioned in the warm-white triangle area */}
-      <View style={{ position: 'absolute' as const, bottom: 80, left: 50, right: 50 }}>
-        <LogoPdf width={140} />
+        {/* Content — positioned in the warm-white triangle area */}
+        <View style={{ position: 'absolute' as const, bottom: 80, left: 50, right: 50 }}>
+          <LogoPdf width={140} />
 
-        <Text style={s.coverTitle}>
-          {data.voornaam || 'Beste klant'}, jouw zolder heeft potentieel.{'\n'}Wij maken het waar.
-        </Text>
+          <Text style={s.coverTitle}>
+            {data.voornaam || 'Beste klant'}, jouw zolder heeft potentieel.{'\n'}Wij maken het waar.
+          </Text>
 
-        <Text style={s.coverDate}>Datum gesprek: {formatDatum(data.datum_gesprek)}</Text>
-        <Text style={s.coverTagline}>{TAGLINE}</Text>
+          <Text style={s.coverDate}>Datum gesprek: {formatDatum(data.datum_gesprek)}</Text>
+          <Text style={s.coverTagline}>{TAGLINE}</Text>
+        </View>
       </View>
     </Page>
   );
