@@ -421,10 +421,16 @@ function ReviewsPage() {
         <Text style={s.googleCount}> op Google</Text>
       </View>
 
-      {REVIEWS.map((review, i) => (
+      {REVIEWS.map((review, i) => {
+        const photoSrc = review.hasPhoto ? REVIEW_PHOTO_MAP[review.photoKey] : null;
+        return (
         <View key={i} style={s.reviewCard}>
           <View style={s.reviewAvatar}>
-            <Text style={s.reviewInitials}>{review.name.split(' ').map(w => w[0]).join('')}</Text>
+            {photoSrc ? (
+              <Image src={photoSrc} style={{ width: 40, height: 40, borderRadius: 20 }} />
+            ) : (
+              <Text style={s.reviewInitials}>{review.name.split(' ').map(w => w[0]).join('')}</Text>
+            )}
           </View>
           <View style={{ flex: 1 }}>
             <Text style={s.reviewName}>{review.name}</Text>
