@@ -16,10 +16,6 @@ import PdfIcon from './PdfIcon';
 import LogoPdf from './LogoPdf';
 import heroSrcRaw from '@/assets/hero-cover-new.webp';
 import bramSrcRaw from '@/assets/foto-bram.png';
-import brandonSrcRaw from '@/assets/review-foto-brandon.jpg';
-import tomSrcRaw from '@/assets/review-foto-tom.png';
-import ceciliaSrcRaw from '@/assets/review-foto-cecilia.png';
-import mathieuSrcRaw from '@/assets/review-foto-mathieu.png';
 
 // Convert relative asset paths to absolute URLs for @react-pdf/renderer in production
 const toAbsoluteUrl = (src: string) =>
@@ -27,17 +23,6 @@ const toAbsoluteUrl = (src: string) =>
 
 const heroSrc = toAbsoluteUrl(heroSrcRaw);
 const bramSrc = toAbsoluteUrl(bramSrcRaw);
-const brandonSrc = toAbsoluteUrl(brandonSrcRaw);
-const tomSrc = toAbsoluteUrl(tomSrcRaw);
-const ceciliaSrc = toAbsoluteUrl(ceciliaSrcRaw);
-const mathieuSrc = toAbsoluteUrl(mathieuSrcRaw);
-
-const REVIEW_PHOTOS: Record<string, string> = {
-  brandon: brandonSrc,
-  tom: tomSrc,
-  cecilia: ceciliaSrc,
-  mathieu: mathieuSrc,
-};
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('nl-BE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
