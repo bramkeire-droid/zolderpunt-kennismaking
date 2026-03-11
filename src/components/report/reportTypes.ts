@@ -1,6 +1,7 @@
 export interface ReportData {
   voornaam: string;
   achternaam: string;
+  adres: string;
   datum_gesprek: string;
   // Narrative AI-generated texts for SamenvattingPage
   situatie: string;

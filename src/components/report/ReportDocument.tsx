@@ -74,40 +74,57 @@ function PageFooter() {
 function CoverPage({ data }: { data: ReportData }) {
   return (
     <Page size="A4" style={s.pageCover}>
-      <View style={{ width: 595, height: 842, position: 'relative' as const }}>
-        {/* Full-page Canva cover as background */}
-        <Image
-          src={coverSrc}
-          style={{
-            position: 'absolute' as const,
-            top: 0,
-            left: 0,
-            width: 595,
-            height: 842,
-          }}
-        />
+      {/* Top section: logo + client data */}
+      <View style={{
+        height: 420,
+        paddingTop: 60,
+        paddingHorizontal: 50,
+        justifyContent: 'flex-start' as const,
+      }}>
+        <LogoPdf width={160} />
 
-        {/* Client name + date overlay */}
-        <View style={{ position: 'absolute' as const, top: 570, left: 50, width: 300 }}>
+        <View style={{ marginTop: 40 }}>
           <Text style={{
             fontFamily: 'SpaceGrotesk',
             fontWeight: 700,
-            fontSize: 26,
+            fontSize: 28,
             color: COLORS.dark,
             lineHeight: 1.3,
           }}>
             {data.voornaam || 'Beste klant'} {data.achternaam || ''}
           </Text>
+
+          {data.adres ? (
+            <Text style={{
+              fontFamily: 'RethinkSans',
+              fontSize: 12,
+              color: COLORS.dark,
+              marginTop: 10,
+            }}>
+              {data.adres}
+            </Text>
+          ) : null}
+
           <Text style={{
             fontFamily: 'RethinkSans',
             fontSize: 12,
             color: COLORS.midGray,
-            marginTop: 8,
+            marginTop: 6,
           }}>
             Datum gesprek: {formatDatum(data.datum_gesprek)}
           </Text>
         </View>
       </View>
+
+      {/* Bottom section: cover image */}
+      <Image
+        src={coverSrc}
+        style={{
+          width: 595,
+          height: 422,
+          objectFit: 'cover' as const,
+        }}
+      />
     </Page>
   );
 }

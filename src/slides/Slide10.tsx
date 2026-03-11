@@ -20,6 +20,7 @@ function mapLeadToReportData(lead: ReturnType<typeof useSession>['lead']): Repor
   return {
     voornaam: lead.voornaam,
     achternaam: lead.achternaam,
+    adres: lead.adres || '',
     datum_gesprek: lead.gesprek_datum || new Date().toISOString().split('T')[0],
     situatie: lead.rapport_situatie_ai || '',
     verwachtingen: lead.rapport_verwachtingen_ai || '',
