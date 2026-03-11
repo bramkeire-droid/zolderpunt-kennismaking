@@ -124,8 +124,7 @@ function SamenvattingPage({ data }: { data: ReportData }) {
         </View>
       ))}
 
-      <View style={s.divider} />
-      <Text style={[s.body, { marginTop: 8 }]}>
+      <Text style={[s.italic, { marginTop: 12 }]}>
         Op basis van dit gesprek maakten we onderstaande prijsindicatie op. Tijdens het plaatsbezoek verfijnen we dit verder tot een gedetailleerde offerte op maat.
       </Text>
 
