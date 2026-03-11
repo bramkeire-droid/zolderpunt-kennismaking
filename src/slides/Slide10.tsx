@@ -7,13 +7,10 @@ import { FileDown, Loader2 } from 'lucide-react';
 import { pdf } from '@react-pdf/renderer';
 import ReportDocument from '@/components/report/ReportDocument';
 import type { ReportData } from '@/components/report/reportTypes';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('nl-BE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
-
-const FALLBACK_AI_TEXT = 'Extra leefruimte gecreëerd uit ruimte die er al was.';
 
 function mapLeadToReportData(lead: ReturnType<typeof useSession>['lead']): ReportData {
   const posten = (lead.inbegrepen_posten || []) as { post: string; bedrag: number }[];
