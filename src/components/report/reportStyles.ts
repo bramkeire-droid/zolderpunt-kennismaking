@@ -48,7 +48,7 @@ export const s = StyleSheet.create({
     fontFamily: 'RethinkSans',
     fontSize: 11,
     color: COLORS.dark,
-    backgroundColor: COLORS.warmWhite,
+    backgroundColor: 'white',
     padding: 0,
     overflow: 'hidden' as const,
   },
