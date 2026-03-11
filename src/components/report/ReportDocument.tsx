@@ -88,7 +88,7 @@ function CoverPage({ data }: { data: ReportData }) {
       />
 
       {/* Client name — positioned in the white area left side, below the logo/tagline */}
-      <View style={{ position: 'absolute' as const, bottom: 260, left: 50, right: 200 }}>
+      <View style={{ position: 'absolute' as const, top: 570, left: 50, width: 300 }}>
         <Text style={{
           fontFamily: 'SpaceGrotesk',
           fontWeight: 700,
