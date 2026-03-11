@@ -131,23 +131,33 @@ function SamenvattingPage({ data }: { data: ReportData }) {
       <Text style={s.label}>SAMENVATTING GESPREK</Text>
       <Text style={s.h2}>Wat we bespraken</Text>
 
-      <Text style={[s.body, { marginBottom: 14 }]}>
+      <Text style={[s.body, { marginBottom: 10 }]}>
         Beste {data.voornaam || 'klant'}, bedankt voor ons gesprek op {formatDatum(data.datum_gesprek)}. Hieronder vind je een samenvatting van wat we bespraken en een eerste indicatie van wat jouw zolderrenovatie kan inhouden.
       </Text>
 
-      {sections.map((f, i) => (
-        <View key={i} style={s.card} wrap={false}>
-          <View style={[s.row, { marginBottom: 6, gap: 8 }]}>
-            <PdfIcon name={f.icon} size={16} color={COLORS.primary} />
-            <Text style={s.h3}>{f.label}</Text>
+      {sections.map((f, i) => {
+        const isLast = i === sections.length - 1;
+        const card = (
+          <View key={i} style={[s.card, { marginBottom: 8 }]} wrap={false}>
+            <View style={[s.row, { marginBottom: 6, gap: 8 }]}>
+              <PdfIcon name={f.icon} size={16} color={COLORS.primary} />
+              <Text style={s.h3}>{f.label}</Text>
+            </View>
+            <Text style={s.body}>{f.value || '—'}</Text>
           </View>
-          <Text style={s.body}>{f.value || '—'}</Text>
-        </View>
-      ))}
-
-      <Text style={[s.italic, { marginTop: 12 }]}>
-        Op basis van dit gesprek maakten we onderstaande prijsindicatie op. Tijdens het plaatsbezoek verfijnen we dit verder tot een gedetailleerde offerte op maat.
-      </Text>
+        );
+        if (isLast) {
+          return (
+            <View key={i} wrap={false}>
+              {card}
+              <Text style={[s.italic, { marginTop: 6 }]}>
+                Op basis van dit gesprek maakten we onderstaande prijsindicatie op. Tijdens het plaatsbezoek verfijnen we dit verder tot een gedetailleerde offerte op maat.
+              </Text>
+            </View>
+          );
+        }
+        return card;
+      })}
 
       <PageFooter />
     </Page>
