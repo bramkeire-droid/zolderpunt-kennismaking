@@ -110,7 +110,7 @@ function SamenvattingPage({ data }: { data: ReportData }) {
       <Text style={s.label}>SAMENVATTING GESPREK</Text>
       <Text style={s.h2}>Wat we bespraken</Text>
 
-      <Text style={[s.body, { marginBottom: 20 }]}>
+      <Text style={[s.body, { marginBottom: 14 }]}>
         Beste {data.voornaam || 'klant'}, bedankt voor ons gesprek op {formatDatum(data.datum_gesprek)}. Hieronder vind je een samenvatting van wat we bespraken en een eerste indicatie van wat jouw zolderrenovatie kan inhouden.
       </Text>
 

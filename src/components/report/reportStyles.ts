@@ -162,11 +162,12 @@ export const s = StyleSheet.create({
     objectFit: 'cover' as const,
   },
   coverAngle: {
-    width: '100%',
-    height: 30,
+    width: '140%',
+    height: 60,
     backgroundColor: COLORS.primary,
-    transform: 'rotate(-3deg) scaleX(1.1)',
-    marginTop: -15,
+    transform: 'rotate(-4deg)',
+    marginTop: -30,
+    marginLeft: -40,
     opacity: 0.9,
   },
   coverContent: {
