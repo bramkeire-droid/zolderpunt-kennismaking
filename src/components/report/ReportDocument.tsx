@@ -74,57 +74,59 @@ function PageFooter() {
 function CoverPage({ data }: { data: ReportData }) {
   return (
     <Page size="A4" style={s.pageCover}>
-      {/* Top section: logo + client data */}
-      <View style={{
-        height: 420,
-        paddingTop: 60,
-        paddingHorizontal: 50,
-        justifyContent: 'flex-start' as const,
-      }}>
-        <LogoPdf width={160} />
+      <View style={{ flex: 1, flexDirection: 'column' as const }}>
+        {/* Top section: logo + client data */}
+        <View style={{
+          height: 340,
+          paddingTop: 60,
+          paddingHorizontal: 50,
+          justifyContent: 'flex-start' as const,
+        }}>
+          <LogoPdf width={160} />
 
-        <View style={{ marginTop: 40 }}>
-          <Text style={{
-            fontFamily: 'SpaceGrotesk',
-            fontWeight: 700,
-            fontSize: 28,
-            color: COLORS.dark,
-            lineHeight: 1.3,
-          }}>
-            {data.voornaam || 'Beste klant'} {data.achternaam || ''}
-          </Text>
+          <View style={{ marginTop: 40 }}>
+            <Text style={{
+              fontFamily: 'SpaceGrotesk',
+              fontWeight: 700,
+              fontSize: 28,
+              color: COLORS.dark,
+              lineHeight: 1.3,
+            }}>
+              {data.voornaam || 'Beste klant'} {data.achternaam || ''}
+            </Text>
 
-          {data.adres ? (
+            {data.adres ? (
+              <Text style={{
+                fontFamily: 'RethinkSans',
+                fontSize: 12,
+                color: COLORS.dark,
+                marginTop: 10,
+              }}>
+                {data.adres}
+              </Text>
+            ) : null}
+
             <Text style={{
               fontFamily: 'RethinkSans',
               fontSize: 12,
-              color: COLORS.dark,
-              marginTop: 10,
+              color: COLORS.midGray,
+              marginTop: 6,
             }}>
-              {data.adres}
+              Datum gesprek: {formatDatum(data.datum_gesprek)}
             </Text>
-          ) : null}
-
-          <Text style={{
-            fontFamily: 'RethinkSans',
-            fontSize: 12,
-            color: COLORS.midGray,
-            marginTop: 6,
-          }}>
-            Datum gesprek: {formatDatum(data.datum_gesprek)}
-          </Text>
+          </View>
         </View>
-      </View>
 
-      {/* Bottom section: cover image */}
-      <Image
-        src={coverSrc}
-        style={{
-          width: 595,
-          height: 422,
-          objectFit: 'cover' as const,
-        }}
-      />
+        {/* Bottom section: cover image fills remaining space */}
+        <Image
+          src={coverSrc}
+          style={{
+            flex: 1,
+            width: '100%' as any,
+            objectFit: 'cover' as const,
+          }}
+        />
+      </View>
     </Page>
   );
 }
