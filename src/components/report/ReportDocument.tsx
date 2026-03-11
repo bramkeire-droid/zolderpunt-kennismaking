@@ -87,50 +87,46 @@ function CoverPage({ data }: { data: ReportData }) {
         }}
       />
 
-      {/* Wit vlak bovenaan voor logo + klantdata */}
+      {/* Overlay blok voor logo + klantdata */}
       <View style={{
         position: 'absolute' as const,
-        top: 0,
-        left: 0,
-        right: 0,
-        height: 280,
-        backgroundColor: 'white',
-        paddingTop: 60,
-        paddingHorizontal: 50,
+        top: 50,
+        left: 50,
+        backgroundColor: 'rgba(255,255,255,0.85)',
+        padding: 20,
       }}>
         <LogoPdf width={120} />
 
-        <View style={{ marginTop: 24 }}>
-          <Text style={{
-            fontFamily: 'SpaceGrotesk',
-            fontWeight: 700,
-            fontSize: 28,
-            color: COLORS.dark,
-            lineHeight: 1.3,
-          }}>
-            {data.voornaam || 'Beste klant'} {data.achternaam || ''}
-          </Text>
+        <Text style={{
+          fontFamily: 'SpaceGrotesk',
+          fontWeight: 700,
+          fontSize: 24,
+          color: COLORS.dark,
+          lineHeight: 1.3,
+          marginTop: 14,
+        }}>
+          {data.voornaam || 'Beste klant'} {data.achternaam || ''}
+        </Text>
 
-          {data.adres ? (
-            <Text style={{
-              fontFamily: 'RethinkSans',
-              fontSize: 12,
-              color: COLORS.dark,
-              marginTop: 10,
-            }}>
-              {data.adres}
-            </Text>
-          ) : null}
-
+        {data.adres ? (
           <Text style={{
             fontFamily: 'RethinkSans',
-            fontSize: 12,
-            color: COLORS.midGray,
+            fontSize: 11,
+            color: COLORS.dark,
             marginTop: 6,
           }}>
-            Datum gesprek: {formatDatum(data.datum_gesprek)}
+            {data.adres}
           </Text>
-        </View>
+        ) : null}
+
+        <Text style={{
+          fontFamily: 'RethinkSans',
+          fontSize: 11,
+          color: COLORS.midGray,
+          marginTop: 4,
+        }}>
+          Datum gesprek: {formatDatum(data.datum_gesprek)}
+        </Text>
       </View>
     </Page>
   );
