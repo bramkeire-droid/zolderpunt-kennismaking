@@ -16,10 +16,6 @@ import PdfIcon from './PdfIcon';
 import LogoPdf from './LogoPdf';
 import heroSrcRaw from '@/assets/hero-cover-new.webp';
 import bramSrcRaw from '@/assets/foto-bram.png';
-import brandonSrcRaw from '@/assets/review-foto-brandon.jpg';
-import tomSrcRaw from '@/assets/review-foto-tom.png';
-import ceciliaSrcRaw from '@/assets/review-foto-cecilia.png';
-import mathieuSrcRaw from '@/assets/review-foto-mathieu.png';
 
 // Convert relative asset paths to absolute URLs for @react-pdf/renderer in production
 const toAbsoluteUrl = (src: string) =>
@@ -27,17 +23,6 @@ const toAbsoluteUrl = (src: string) =>
 
 const heroSrc = toAbsoluteUrl(heroSrcRaw);
 const bramSrc = toAbsoluteUrl(bramSrcRaw);
-const brandonSrc = toAbsoluteUrl(brandonSrcRaw);
-const tomSrc = toAbsoluteUrl(tomSrcRaw);
-const ceciliaSrc = toAbsoluteUrl(ceciliaSrcRaw);
-const mathieuSrc = toAbsoluteUrl(mathieuSrcRaw);
-
-const REVIEW_PHOTOS: Record<string, string> = {
-  brandon: brandonSrc,
-  tom: tomSrc,
-  cecilia: ceciliaSrc,
-  mathieu: mathieuSrc,
-};
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('nl-BE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
@@ -74,65 +59,56 @@ function PageFooter() {
 // ═══════════════════════════════════════════════════════════════════
 function CoverPage({ data }: { data: ReportData }) {
   /*
-   * 40° DIAGONAL — MATHEMATICAL SELF-CHECK
-   * tan(40°) = 0.8391
-   * Page width = 595pt. Required rise = 595 × 0.8391 = 499pt
-   * Line from (0, 580) → (595, 81): rise = 580−81 = 499, run = 595
-   * Angle = atan(499/595) = atan(0.8387) = 39.98° ≈ 40° ✓
+   * ALL-ABSOLUTE cover on a single Page. No wrapper View, no flow content.
+   * Page size="A4" IS the 595×842 container.
+   * wrap={false} prevents any page-break logic.
    *
-   * Blue band is 28pt thick (perpendicular to line).
-   * Perpendicular offsets: dx = 28·sin(40°) = 18, dy = 28·cos(40°) = 21.4
+   * 40° diagonal: tan(40°) = 0.8391
+   * Line from (0, 580) → (595, 81): rise = 499, run = 595
+   * atan(499/595) = 39.98° ≈ 40° ✓
    */
   const LINE_Y_LEFT = 580;
   const LINE_Y_RIGHT = 81;
-  // Blue band bottom edge
+  const W_POINTS = `0,${LINE_Y_LEFT} 595,${LINE_Y_RIGHT} 595,842 0,842`;
   const B_BL = `0,${LINE_Y_LEFT}`;
   const B_BR = `595,${LINE_Y_RIGHT}`;
-  // Blue band top edge (offset 28pt perpendicular toward image)
   const B_TL = `0,${LINE_Y_LEFT - 21}`;
   const B_TR = `595,${LINE_Y_RIGHT - 21}`;
-  // Warm-white mask: everything below the blue band's bottom edge
-  const W_POINTS = `0,${LINE_Y_LEFT} 595,${LINE_Y_RIGHT} 595,842 0,842`;
 
   return (
-    <Page size="A4" style={s.pageCover}>
-      {/* Single container with fixed A4 size — prevents absolute children from splitting across pages */}
-      <View style={{ width: 595, height: 842, position: 'relative' as const }}>
-        {/* Full-page hero image as background */}
-        <Image
-          src={heroSrc}
-          style={{
-            position: 'absolute' as const,
-            top: 0,
-            left: 0,
-            width: 595,
-            height: 842,
-            objectFit: 'cover' as const,
-          }}
-        />
+    <Page
+      size="A4"
+      style={{ padding: 0, position: 'relative' as const, backgroundColor: COLORS.warmWhite }}
+      wrap={false}
+    >
+      {/* Layer 1: Full-page hero image */}
+      <Image
+        src={heroSrc}
+        style={{
+          position: 'absolute' as const,
+          top: 0, left: 0,
+          width: 595, height: 842,
+          objectFit: 'cover' as const,
+        }}
+      />
 
-        {/* SVG overlay: 40° diagonal blue band + warm-white mask */}
-        <Svg
-          style={{ position: 'absolute' as const, top: 0, left: 0, width: 595, height: 842 }}
-          viewBox="0 0 595 842"
-        >
-          {/* Warm-white area below diagonal (content background) */}
-          <Polygon points={W_POINTS} fill={COLORS.warmWhite} />
-          {/* Blue band at exactly 40° */}
-          <Polygon points={`${B_BL} ${B_BR} ${B_TR} ${B_TL}`} fill={COLORS.primary} opacity="0.92" />
-        </Svg>
+      {/* Layer 2: SVG overlay — dark tint + warm-white zone + blue band */}
+      <Svg
+        style={{ position: 'absolute' as const, top: 0, left: 0, width: 595, height: 842 }}
+        viewBox="0 0 595 842"
+      >
+        <Polygon points={W_POINTS} fill={COLORS.warmWhite} />
+        <Polygon points={`${B_BL} ${B_BR} ${B_TR} ${B_TL}`} fill={COLORS.primary} opacity="0.92" />
+      </Svg>
 
-        {/* Content — positioned in the warm-white triangle area */}
-        <View style={{ position: 'absolute' as const, bottom: 80, left: 50, right: 50 }}>
-          <LogoPdf width={140} />
-
-          <Text style={s.coverTitle}>
-            {data.voornaam || 'Beste klant'}, jouw zolder heeft potentieel.{'\n'}Wij maken het waar.
-          </Text>
-
-          <Text style={s.coverDate}>Datum gesprek: {formatDatum(data.datum_gesprek)}</Text>
-          <Text style={s.coverTagline}>{TAGLINE}</Text>
-        </View>
+      {/* Layer 3: Content in warm-white zone */}
+      <View style={{ position: 'absolute' as const, bottom: 80, left: 50, right: 50 }}>
+        <LogoPdf width={140} />
+        <Text style={s.coverTitle}>
+          {data.voornaam || 'Beste klant'}, jouw zolder heeft potentieel.{'\n'}Wij maken het waar.
+        </Text>
+        <Text style={s.coverDate}>Datum gesprek: {formatDatum(data.datum_gesprek)}</Text>
+        <Text style={s.coverTagline}>{TAGLINE}</Text>
       </View>
     </Page>
   );
@@ -155,23 +131,33 @@ function SamenvattingPage({ data }: { data: ReportData }) {
       <Text style={s.label}>SAMENVATTING GESPREK</Text>
       <Text style={s.h2}>Wat we bespraken</Text>
 
-      <Text style={[s.body, { marginBottom: 14 }]}>
+      <Text style={[s.body, { marginBottom: 10 }]}>
         Beste {data.voornaam || 'klant'}, bedankt voor ons gesprek op {formatDatum(data.datum_gesprek)}. Hieronder vind je een samenvatting van wat we bespraken en een eerste indicatie van wat jouw zolderrenovatie kan inhouden.
       </Text>
 
-      {sections.map((f, i) => (
-        <View key={i} style={s.card} wrap={false}>
-          <View style={[s.row, { marginBottom: 6, gap: 8 }]}>
-            <PdfIcon name={f.icon} size={16} color={COLORS.primary} />
-            <Text style={s.h3}>{f.label}</Text>
+      {sections.map((f, i) => {
+        const isLast = i === sections.length - 1;
+        const card = (
+          <View key={i} style={[s.card, { marginBottom: 8 }]} wrap={false}>
+            <View style={[s.row, { marginBottom: 6, gap: 8 }]}>
+              <PdfIcon name={f.icon} size={16} color={COLORS.primary} />
+              <Text style={s.h3}>{f.label}</Text>
+            </View>
+            <Text style={s.body}>{f.value || '—'}</Text>
           </View>
-          <Text style={s.body}>{f.value || '—'}</Text>
-        </View>
-      ))}
-
-      <Text style={[s.italic, { marginTop: 12 }]}>
-        Op basis van dit gesprek maakten we onderstaande prijsindicatie op. Tijdens het plaatsbezoek verfijnen we dit verder tot een gedetailleerde offerte op maat.
-      </Text>
+        );
+        if (isLast) {
+          return (
+            <View key={i} wrap={false}>
+              {card}
+              <Text style={[s.italic, { marginTop: 6 }]}>
+                Op basis van dit gesprek maakten we onderstaande prijsindicatie op. Tijdens het plaatsbezoek verfijnen we dit verder tot een gedetailleerde offerte op maat.
+              </Text>
+            </View>
+          );
+        }
+        return card;
+      })}
 
       <PageFooter />
     </Page>
@@ -439,13 +425,9 @@ function ReviewsPage() {
 
       {REVIEWS.map((review, i) => (
         <View key={i} style={s.reviewCard}>
-          {review.hasPhoto && review.photoKey ? (
-            <Image src={REVIEW_PHOTOS[review.photoKey]} style={s.reviewPhoto} />
-          ) : (
-            <View style={s.reviewAvatar}>
-              <Text style={s.reviewInitials}>{'initials' in review ? (review as any).initials : review.name.split(' ').map(w => w[0]).join('')}</Text>
-            </View>
-          )}
+          <View style={s.reviewAvatar}>
+            <Text style={s.reviewInitials}>{review.name.split(' ').map(w => w[0]).join('')}</Text>
+          </View>
           <View style={{ flex: 1 }}>
             <Text style={s.reviewName}>{review.name}</Text>
             <GoldStars size={10} />
