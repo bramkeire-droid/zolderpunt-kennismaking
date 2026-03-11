@@ -13,7 +13,7 @@ import PdfIcon from './PdfIcon';
 
 // Static asset imports
 import LogoPdf from './LogoPdf';
-import coverSrcRaw from '@/assets/cover-pdf.png';
+import coverSrcRaw from '@/assets/cover-pdf-clean.png';
 import bramSrcRaw from '@/assets/foto-bram.png';
 import brandonSrcRaw from '@/assets/review-foto-brandon.jpg';
 import tomSrcRaw from '@/assets/review-foto-tom.png';
