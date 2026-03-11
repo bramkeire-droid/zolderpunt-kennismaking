@@ -241,7 +241,7 @@ function WaardePage({ data }: { data: ReportData }) {
           <PdfIcon name="TrendingUp" size={20} color={COLORS.primary} />
           <Text style={[s.h3, { marginTop: 8 }]}>8 à 15% meer waard</Text>
           <Text style={s.body}>
-            Een afgewerkte zolder verhoogt de verkoopwaarde van je woning gemiddeld met 8 à 15% — vastgesteld door vastgoedexperts.
+            Een afgewerkte zolder verhoogt de verkoopwaarde van je woning gemiddeld met 8 à 15% — vastgesteld door vastgoedexperts. Jouw investering verdient zichzelf dus makkelijk terug.
           </Text>
         </View>
       </View>
