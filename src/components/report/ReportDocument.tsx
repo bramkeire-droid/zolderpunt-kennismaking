@@ -82,7 +82,7 @@ function CoverPage({ data }: { data: ReportData }) {
           bottom: 0,
           left: 0,
           right: 0,
-          height: 480,
+          height: 560,
           objectFit: 'cover' as const,
         }}
       />
