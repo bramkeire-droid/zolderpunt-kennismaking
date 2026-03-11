@@ -2,10 +2,13 @@ export interface ReportData {
   voornaam: string;
   achternaam: string;
   datum_gesprek: string;
+  // Narrative AI-generated texts for SamenvattingPage
   situatie: string;
-  gewenst_resultaat: string;
-  besproken_opties: string;
+  verwachtingen: string;
+  besproken: string;
   aandachtspunten: string;
+  // Project data
+  gewenst_resultaat: string;
   oppervlakte_m2: number;
   prijs_min: number;
   prijs_max: number;
