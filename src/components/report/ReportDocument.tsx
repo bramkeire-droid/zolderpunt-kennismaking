@@ -71,10 +71,12 @@ function PageFooter() {
 function CoverPage({ data }: { data: ReportData }) {
   return (
     <Page size="A4" style={s.pageCover}>
-      {/* Hero image top 55% */}
-      <Image src={heroSrc} style={s.coverHero} />
+      {/* Hero image with diagonal clip */}
+      <View style={{ position: 'relative' as const, width: '100%', height: 460 }}>
+        <Image src={heroSrc} style={{ width: '100%', height: '100%', objectFit: 'cover' as const }} />
+      </View>
 
-      {/* Angled blue transition */}
+      {/* 40° angled blue transition bar */}
       <View style={s.coverAngle} />
 
       <View style={s.coverContent}>
