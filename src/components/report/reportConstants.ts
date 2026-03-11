@@ -37,25 +37,25 @@ export const REVIEWS = [
   {
     name: 'Brandon Van Moorleghem',
     quote: 'Wat Bram écht onderscheidt van de rest is zijn communicatie en oog voor detail. Zo kregen we elke dag een update van de werken, laat hij op tijd weten als er iets wijzigt en krijg je heel snel antwoord op vragen. Nu zijn we een enorm mooie, afgewerkte zolderruimte rijker en daar kijken we met heel veel plezier en dankbaarheid naar terug!',
-    hasPhoto: true,
+    hasPhoto: false,
     photoKey: 'brandon',
   },
   {
     name: 'Tom Van Roye',
     quote: 'Bram zorgt voor een totale ontzorging en coördinatie van de werken, komt elke werkdag minstens 1x alles bekijken en volgt kort op. De meerprijs die dit met zich meebrengt, is het meer dan waard.',
-    hasPhoto: true,
+    hasPhoto: false,
     photoKey: 'tom',
   },
   {
     name: 'Cecilia Olivet',
     quote: 'Hij voltooide het werk binnen de afgesproken tijd en hield zich aan het vooraf afgesproken budget, zonder verborgen kosten of verrassingen.',
-    hasPhoto: true,
+    hasPhoto: false,
     photoKey: 'cecilia',
   },
   {
     name: 'Mathieu Ackerman',
     quote: 'Heel goede opvolging. Ideaal voor personen die ontzorgd wensen te worden. Een voorbeeld qua klantenservice!',
-    hasPhoto: true,
+    hasPhoto: false,
     photoKey: 'mathieu',
   },
 ];

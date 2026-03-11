@@ -50,6 +50,7 @@ export const s = StyleSheet.create({
     color: COLORS.dark,
     backgroundColor: COLORS.warmWhite,
     padding: 0,
+    position: 'relative' as const,
   },
 
   // ─── Typography ───────────────────────────────────────

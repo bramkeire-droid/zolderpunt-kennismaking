@@ -425,13 +425,9 @@ function ReviewsPage() {
 
       {REVIEWS.map((review, i) => (
         <View key={i} style={s.reviewCard}>
-          {review.hasPhoto && review.photoKey ? (
-            <Image src={REVIEW_PHOTOS[review.photoKey]} style={s.reviewPhoto} />
-          ) : (
-            <View style={s.reviewAvatar}>
-              <Text style={s.reviewInitials}>{'initials' in review ? (review as any).initials : review.name.split(' ').map(w => w[0]).join('')}</Text>
-            </View>
-          )}
+          <View style={s.reviewAvatar}>
+            <Text style={s.reviewInitials}>{review.name.split(' ').map(w => w[0]).join('')}</Text>
+          </View>
           <View style={{ flex: 1 }}>
             <Text style={s.reviewName}>{review.name}</Text>
             <GoldStars size={10} />
