@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   Document, Page, View, Text, Image, Link,
-  Svg, Polygon,
 } from '@react-pdf/renderer';
 import { s } from './reportStyles';
 import {
@@ -14,7 +13,7 @@ import PdfIcon from './PdfIcon';
 
 // Static asset imports
 import LogoPdf from './LogoPdf';
-import heroSrcRaw from '@/assets/hero-cover-new.webp';
+import coverSrcRaw from '@/assets/cover-pdf.png';
 import bramSrcRaw from '@/assets/foto-bram.png';
 import brandonSrcRaw from '@/assets/review-foto-brandon.jpg';
 import tomSrcRaw from '@/assets/review-foto-tom.png';
@@ -25,7 +24,7 @@ import mathieuSrcRaw from '@/assets/review-foto-mathieu.png';
 const toAbsoluteUrl = (src: string) =>
   src.startsWith('http') ? src : new URL(src, window.location.origin).href;
 
-const heroSrc = toAbsoluteUrl(heroSrcRaw);
+const coverSrc = toAbsoluteUrl(coverSrcRaw);
 const bramSrc = toAbsoluteUrl(bramSrcRaw);
 const brandonSrc = toAbsoluteUrl(brandonSrcRaw);
 const tomSrc = toAbsoluteUrl(tomSrcRaw);
@@ -73,32 +72,11 @@ function PageFooter() {
 // SECTIE 1 — COVER
 // ═══════════════════════════════════════════════════════════════════
 function CoverPage({ data }: { data: ReportData }) {
-  /*
-   * 40° DIAGONAL — MATHEMATICAL SELF-CHECK
-   * tan(40°) = 0.8391
-   * Page width = 595pt. Required rise = 595 × 0.8391 = 499pt
-   * Line from (0, 580) → (595, 81): rise = 580−81 = 499, run = 595
-   * Angle = atan(499/595) = atan(0.8387) = 39.98° ≈ 40° ✓
-   *
-   * Blue band is 28pt thick (perpendicular to line).
-   * Perpendicular offsets: dx = 28·sin(40°) = 18, dy = 28·cos(40°) = 21.4
-   */
-  const LINE_Y_LEFT = 580;
-  const LINE_Y_RIGHT = 81;
-  // Blue band bottom edge
-  const B_BL = `0,${LINE_Y_LEFT}`;
-  const B_BR = `595,${LINE_Y_RIGHT}`;
-  // Blue band top edge (offset 28pt perpendicular toward image)
-  const B_TL = `0,${LINE_Y_LEFT - 21}`;
-  const B_TR = `595,${LINE_Y_RIGHT - 21}`;
-  // Warm-white mask: everything below the blue band's bottom edge
-  const W_POINTS = `0,${LINE_Y_LEFT} 595,${LINE_Y_RIGHT} 595,842 0,842`;
-
   return (
     <Page size="A4" style={s.pageCover}>
-      {/* Full-page hero image as background */}
+      {/* Full-page Canva cover as background */}
       <Image
-        src={heroSrc}
+        src={coverSrc}
         style={{
           position: 'absolute' as const,
           top: 0,
@@ -109,27 +87,25 @@ function CoverPage({ data }: { data: ReportData }) {
         }}
       />
 
-      {/* SVG overlay: 40° diagonal blue band + warm-white mask */}
-      <Svg
-        style={{ position: 'absolute' as const, top: 0, left: 0, width: 595, height: 842 }}
-        viewBox="0 0 595 842"
-      >
-        {/* Warm-white area below diagonal (content background) */}
-        <Polygon points={W_POINTS} fill={COLORS.warmWhite} />
-        {/* Blue band at exactly 40° */}
-        <Polygon points={`${B_BL} ${B_BR} ${B_TR} ${B_TL}`} fill={COLORS.primary} opacity="0.92" />
-      </Svg>
-
-      {/* Content — positioned in the warm-white triangle area */}
-      <View style={{ position: 'absolute' as const, bottom: 80, left: 50, right: 50 }}>
-        <LogoPdf width={140} />
-
-        <Text style={s.coverTitle}>
-          {data.voornaam || 'Beste klant'}, jouw zolder heeft potentieel.{'\n'}Wij maken het waar.
+      {/* Client name — positioned in the white area left side, below the logo/tagline */}
+      <View style={{ position: 'absolute' as const, bottom: 260, left: 50, right: 200 }}>
+        <Text style={{
+          fontFamily: 'SpaceGrotesk',
+          fontWeight: 700,
+          fontSize: 26,
+          color: COLORS.dark,
+          lineHeight: 1.3,
+        }}>
+          {data.voornaam || 'Beste klant'} {data.achternaam || ''}
         </Text>
-
-        <Text style={s.coverDate}>Datum gesprek: {formatDatum(data.datum_gesprek)}</Text>
-        <Text style={s.coverTagline}>{TAGLINE}</Text>
+        <Text style={{
+          fontFamily: 'RethinkSans',
+          fontSize: 12,
+          color: COLORS.midGray,
+          marginTop: 8,
+        }}>
+          Datum gesprek: {formatDatum(data.datum_gesprek)}
+        </Text>
       </View>
     </Page>
   );
