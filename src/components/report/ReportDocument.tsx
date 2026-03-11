@@ -59,65 +59,56 @@ function PageFooter() {
 // ═══════════════════════════════════════════════════════════════════
 function CoverPage({ data }: { data: ReportData }) {
   /*
-   * 40° DIAGONAL — MATHEMATICAL SELF-CHECK
-   * tan(40°) = 0.8391
-   * Page width = 595pt. Required rise = 595 × 0.8391 = 499pt
-   * Line from (0, 580) → (595, 81): rise = 580−81 = 499, run = 595
-   * Angle = atan(499/595) = atan(0.8387) = 39.98° ≈ 40° ✓
+   * ALL-ABSOLUTE cover on a single Page. No wrapper View, no flow content.
+   * Page size="A4" IS the 595×842 container.
+   * wrap={false} prevents any page-break logic.
    *
-   * Blue band is 28pt thick (perpendicular to line).
-   * Perpendicular offsets: dx = 28·sin(40°) = 18, dy = 28·cos(40°) = 21.4
+   * 40° diagonal: tan(40°) = 0.8391
+   * Line from (0, 580) → (595, 81): rise = 499, run = 595
+   * atan(499/595) = 39.98° ≈ 40° ✓
    */
   const LINE_Y_LEFT = 580;
   const LINE_Y_RIGHT = 81;
-  // Blue band bottom edge
+  const W_POINTS = `0,${LINE_Y_LEFT} 595,${LINE_Y_RIGHT} 595,842 0,842`;
   const B_BL = `0,${LINE_Y_LEFT}`;
   const B_BR = `595,${LINE_Y_RIGHT}`;
-  // Blue band top edge (offset 28pt perpendicular toward image)
   const B_TL = `0,${LINE_Y_LEFT - 21}`;
   const B_TR = `595,${LINE_Y_RIGHT - 21}`;
-  // Warm-white mask: everything below the blue band's bottom edge
-  const W_POINTS = `0,${LINE_Y_LEFT} 595,${LINE_Y_RIGHT} 595,842 0,842`;
 
   return (
-    <Page size="A4" style={s.pageCover}>
-      {/* Single container with fixed A4 size — prevents absolute children from splitting across pages */}
-      <View style={{ width: 595, height: 842, position: 'relative' as const }}>
-        {/* Full-page hero image as background */}
-        <Image
-          src={heroSrc}
-          style={{
-            position: 'absolute' as const,
-            top: 0,
-            left: 0,
-            width: 595,
-            height: 842,
-            objectFit: 'cover' as const,
-          }}
-        />
+    <Page
+      size="A4"
+      style={{ padding: 0, position: 'relative' as const, backgroundColor: COLORS.warmWhite }}
+      wrap={false}
+    >
+      {/* Layer 1: Full-page hero image */}
+      <Image
+        src={heroSrc}
+        style={{
+          position: 'absolute' as const,
+          top: 0, left: 0,
+          width: 595, height: 842,
+          objectFit: 'cover' as const,
+        }}
+      />
 
-        {/* SVG overlay: 40° diagonal blue band + warm-white mask */}
-        <Svg
-          style={{ position: 'absolute' as const, top: 0, left: 0, width: 595, height: 842 }}
-          viewBox="0 0 595 842"
-        >
-          {/* Warm-white area below diagonal (content background) */}
-          <Polygon points={W_POINTS} fill={COLORS.warmWhite} />
-          {/* Blue band at exactly 40° */}
-          <Polygon points={`${B_BL} ${B_BR} ${B_TR} ${B_TL}`} fill={COLORS.primary} opacity="0.92" />
-        </Svg>
+      {/* Layer 2: SVG overlay — dark tint + warm-white zone + blue band */}
+      <Svg
+        style={{ position: 'absolute' as const, top: 0, left: 0, width: 595, height: 842 }}
+        viewBox="0 0 595 842"
+      >
+        <Polygon points={W_POINTS} fill={COLORS.warmWhite} />
+        <Polygon points={`${B_BL} ${B_BR} ${B_TR} ${B_TL}`} fill={COLORS.primary} opacity="0.92" />
+      </Svg>
 
-        {/* Content — positioned in the warm-white triangle area */}
-        <View style={{ position: 'absolute' as const, bottom: 80, left: 50, right: 50 }}>
-          <LogoPdf width={140} />
-
-          <Text style={s.coverTitle}>
-            {data.voornaam || 'Beste klant'}, jouw zolder heeft potentieel.{'\n'}Wij maken het waar.
-          </Text>
-
-          <Text style={s.coverDate}>Datum gesprek: {formatDatum(data.datum_gesprek)}</Text>
-          <Text style={s.coverTagline}>{TAGLINE}</Text>
-        </View>
+      {/* Layer 3: Content in warm-white zone */}
+      <View style={{ position: 'absolute' as const, bottom: 80, left: 50, right: 50 }}>
+        <LogoPdf width={140} />
+        <Text style={s.coverTitle}>
+          {data.voornaam || 'Beste klant'}, jouw zolder heeft potentieel.{'\n'}Wij maken het waar.
+        </Text>
+        <Text style={s.coverDate}>Datum gesprek: {formatDatum(data.datum_gesprek)}</Text>
+        <Text style={s.coverTagline}>{TAGLINE}</Text>
       </View>
     </Page>
   );
