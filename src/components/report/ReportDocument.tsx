@@ -82,7 +82,7 @@ function CoverPage({ data }: { data: ReportData }) {
           bottom: 0,
           left: 0,
           right: 0,
-          height: 480,
+          height: 560,
           objectFit: 'cover' as const,
         }}
       />
@@ -92,7 +92,6 @@ function CoverPage({ data }: { data: ReportData }) {
         paddingTop: 60,
         paddingHorizontal: 50,
       }}>
-        <LogoPdf width={160} />
 
         <View style={{ marginTop: 40 }}>
           <Text style={{
