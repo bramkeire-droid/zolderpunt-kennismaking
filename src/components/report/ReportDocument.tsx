@@ -438,7 +438,8 @@ function ReviewsPage() {
             <Text style={[s.reviewQuote, { marginTop: 6 }]}>"{truncate(review.quote, 220)}"</Text>
           </View>
         </View>
-      ))}
+        );
+      })}
 
       <PageFooter />
     </Page>
