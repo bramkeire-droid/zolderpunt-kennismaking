@@ -19,6 +19,7 @@ import bramSrcRaw from '@/assets/foto-bram.png';
 import brandonSrcRaw from '@/assets/review-foto-brandon.jpg';
 import tomSrcRaw from '@/assets/review-foto-tom.png';
 import ceciliaSrcRaw from '@/assets/review-foto-cecilia.png';
+import mathieuSrcRaw from '@/assets/review-foto-mathieu.png';
 
 // Convert relative asset paths to absolute URLs for @react-pdf/renderer in production
 const toAbsoluteUrl = (src: string) =>
@@ -29,11 +30,13 @@ const bramSrc = toAbsoluteUrl(bramSrcRaw);
 const brandonSrc = toAbsoluteUrl(brandonSrcRaw);
 const tomSrc = toAbsoluteUrl(tomSrcRaw);
 const ceciliaSrc = toAbsoluteUrl(ceciliaSrcRaw);
+const mathieuSrc = toAbsoluteUrl(mathieuSrcRaw);
 
 const REVIEW_PHOTOS: Record<string, string> = {
   brandon: brandonSrc,
   tom: tomSrc,
   cecilia: ceciliaSrc,
+  mathieu: mathieuSrc,
 };
 
 const fmt = (n: number) =>
@@ -437,7 +440,7 @@ function ReviewsPage() {
             <Image src={REVIEW_PHOTOS[review.photoKey]} style={s.reviewPhoto} />
           ) : (
             <View style={s.reviewAvatar}>
-              <Text style={s.reviewInitials}>{review.initials}</Text>
+              <Text style={s.reviewInitials}>{'initials' in review ? (review as any).initials : review.name.split(' ').map(w => w[0]).join('')}</Text>
             </View>
           )}
           <View style={{ flex: 1 }}>
