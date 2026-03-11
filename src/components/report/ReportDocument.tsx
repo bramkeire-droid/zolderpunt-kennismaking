@@ -440,7 +440,7 @@ function ReviewsPage() {
             <Image src={REVIEW_PHOTOS[review.photoKey]} style={s.reviewPhoto} />
           ) : (
             <View style={s.reviewAvatar}>
-              <Text style={s.reviewInitials}>{review.initials}</Text>
+              <Text style={s.reviewInitials}>{'initials' in review ? (review as any).initials : review.name.split(' ').map(w => w[0]).join('')}</Text>
             </View>
           )}
           <View style={{ flex: 1 }}>
