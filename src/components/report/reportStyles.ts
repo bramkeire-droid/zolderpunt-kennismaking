@@ -50,6 +50,7 @@ export const s = StyleSheet.create({
     color: COLORS.dark,
     backgroundColor: COLORS.warmWhite,
     padding: 0,
+    overflow: 'hidden' as const,
   },
 
   // ─── Typography ───────────────────────────────────────
