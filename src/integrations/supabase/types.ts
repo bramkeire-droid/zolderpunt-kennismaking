@@ -37,15 +37,20 @@ export type Database = {
           oppervlakte_m2: number | null
           project_timing: string
           project_type: string
+          rapport_aandachtspunten_ai: string
+          rapport_besproken_ai: string
           rapport_gegenereerd_op: string | null
+          rapport_situatie_ai: string
           rapport_tekst: string
           rapport_versies: Json
+          rapport_verwachtingen_ai: string
           status: string
           technisch: Json
           telefoon: string
           updated_at: string
           volgende_stap: string
           voornaam: string
+          waarde_tekst_ai: string
         }
         Insert: {
           achternaam?: string
@@ -69,15 +74,20 @@ export type Database = {
           oppervlakte_m2?: number | null
           project_timing?: string
           project_type?: string
+          rapport_aandachtspunten_ai?: string
+          rapport_besproken_ai?: string
           rapport_gegenereerd_op?: string | null
+          rapport_situatie_ai?: string
           rapport_tekst?: string
           rapport_versies?: Json
+          rapport_verwachtingen_ai?: string
           status?: string
           technisch?: Json
           telefoon?: string
           updated_at?: string
           volgende_stap?: string
           voornaam?: string
+          waarde_tekst_ai?: string
         }
         Update: {
           achternaam?: string
@@ -101,15 +111,20 @@ export type Database = {
           oppervlakte_m2?: number | null
           project_timing?: string
           project_type?: string
+          rapport_aandachtspunten_ai?: string
+          rapport_besproken_ai?: string
           rapport_gegenereerd_op?: string | null
+          rapport_situatie_ai?: string
           rapport_tekst?: string
           rapport_versies?: Json
+          rapport_verwachtingen_ai?: string
           status?: string
           technisch?: Json
           telefoon?: string
           updated_at?: string
           volgende_stap?: string
           voornaam?: string
+          waarde_tekst_ai?: string
         }
         Relationships: []
       }
