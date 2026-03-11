@@ -13,7 +13,7 @@ import PdfIcon from './PdfIcon';
 
 // Static asset imports
 import LogoPdf from './LogoPdf';
-import heroSrcRaw from '@/assets/hero-cover.jpg';
+import heroSrcRaw from '@/assets/hero-cover-new.webp';
 import bramSrcRaw from '@/assets/foto-bram.png';
 import brandonSrcRaw from '@/assets/review-foto-brandon.jpg';
 import tomSrcRaw from '@/assets/review-foto-tom.png';
@@ -71,10 +71,12 @@ function PageFooter() {
 function CoverPage({ data }: { data: ReportData }) {
   return (
     <Page size="A4" style={s.pageCover}>
-      {/* Hero image top 55% */}
-      <Image src={heroSrc} style={s.coverHero} />
+      {/* Hero image with diagonal clip */}
+      <View style={{ position: 'relative' as const, width: '100%', height: 460 }}>
+        <Image src={heroSrc} style={{ width: '100%', height: '100%', objectFit: 'cover' as const }} />
+      </View>
 
-      {/* Angled blue transition */}
+      {/* 40° angled blue transition bar */}
       <View style={s.coverAngle} />
 
       <View style={s.coverContent}>
@@ -108,7 +110,7 @@ function SamenvattingPage({ data }: { data: ReportData }) {
       <Text style={s.label}>SAMENVATTING GESPREK</Text>
       <Text style={s.h2}>Wat we bespraken</Text>
 
-      <Text style={[s.body, { marginBottom: 20 }]}>
+      <Text style={[s.body, { marginBottom: 14 }]}>
         Beste {data.voornaam || 'klant'}, bedankt voor ons gesprek op {formatDatum(data.datum_gesprek)}. Hieronder vind je een samenvatting van wat we bespraken en een eerste indicatie van wat jouw zolderrenovatie kan inhouden.
       </Text>
 
@@ -122,8 +124,7 @@ function SamenvattingPage({ data }: { data: ReportData }) {
         </View>
       ))}
 
-      <View style={s.divider} />
-      <Text style={[s.body, { marginTop: 8 }]}>
+      <Text style={[s.italic, { marginTop: 12 }]}>
         Op basis van dit gesprek maakten we onderstaande prijsindicatie op. Tijdens het plaatsbezoek verfijnen we dit verder tot een gedetailleerde offerte op maat.
       </Text>
 
@@ -240,7 +241,7 @@ function WaardePage({ data }: { data: ReportData }) {
           <PdfIcon name="TrendingUp" size={20} color={COLORS.primary} />
           <Text style={[s.h3, { marginTop: 8 }]}>8 à 15% meer waard</Text>
           <Text style={s.body}>
-            Een afgewerkte zolder verhoogt de verkoopwaarde van je woning gemiddeld met 8 à 15% — vastgesteld door vastgoedexperts.
+            Een afgewerkte zolder verhoogt de verkoopwaarde van je woning gemiddeld met 8 à 15% — vastgesteld door vastgoedexperts. Jouw investering verdient zichzelf dus makkelijk terug.
           </Text>
         </View>
       </View>
@@ -388,7 +389,7 @@ function ReviewsPage() {
       <View style={s.googleBadge}>
         <GoldStars size={12} />
         <Text style={s.googleScore}>{GOOGLE_REVIEW_SCORE}/5</Text>
-        <Text style={s.googleCount}> — {GOOGLE_REVIEW_COUNT} reviews op Google</Text>
+        <Text style={s.googleCount}> op Google</Text>
       </View>
 
       {REVIEWS.map((review, i) => (
