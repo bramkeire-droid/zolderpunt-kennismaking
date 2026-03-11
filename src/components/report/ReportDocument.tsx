@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   Document, Page, View, Text, Image, Link,
-  Svg, Polygon,
 } from '@react-pdf/renderer';
 import { s } from './reportStyles';
 import {
