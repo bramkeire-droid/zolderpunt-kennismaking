@@ -22,6 +22,7 @@ const RATES = {
     if (netto < 85) return Math.round(5750 * INDEX);
     return Math.round(8000 * INDEX);
   },
+  schilderwerken: (netto: number) => netto < 40 ? 2500 : 4000,
   bandbreedte: 0.15,
   btw6: 0.06,
   btw21: 0.21,
@@ -35,25 +36,22 @@ type SplitType = 'vol' | 'gesplitst';
 export default function Slide5B() {
   const { lead, updateLead } = useSession();
 
-  // Local state for calculator
+  // Standalone calculator state — no sync from Slide5 technisch
   const [bruto, setBruto] = useState(String(lead.oppervlakte_m2 || ''));
   const [split, setSplit] = useState<SplitType>('vol');
   const [dakBekleed, setDakBekleed] = useState(false);
   const [dakisolatie, setDakisolatie] = useState(false);
   const [vloer, setVloer] = useState(false);
-  const [velux, setVelux] = useState(lead.technisch.dakraam ? lead.technisch.aantal_velux : 0);
-  const [trap, setTrap] = useState(lead.technisch.trap);
-  const [trapgat, setTrapgat] = useState<'hout' | 'beton'>(lead.technisch.trapgat);
-  const [airco, setAirco] = useState(lead.technisch.airco ? lead.technisch.aantal_airco : 0);
+  const [velux, setVelux] = useState(0);
+  const [trap, setTrap] = useState(false);
+  const [trapgat, setTrapgat] = useState<'hout' | 'beton' | 'geen'>('geen');
+  const [airco, setAirco] = useState(0);
+  const [schilderwerken, setSchilderwerken] = useState(false);
 
-  // Sync from technisch when slide opens
+  // Only sync oppervlakte from lead (not technisch)
   useEffect(() => {
     if (lead.oppervlakte_m2) setBruto(String(lead.oppervlakte_m2));
-    setVelux(lead.technisch.dakraam ? lead.technisch.aantal_velux : 0);
-    setTrap(lead.technisch.trap);
-    setTrapgat(lead.technisch.trapgat);
-    setAirco(lead.technisch.airco ? lead.technisch.aantal_airco : 0);
-  }, [lead.technisch, lead.oppervlakte_m2]);
+  }, [lead.oppervlakte_m2]);
 
   const brutoNum = parseFloat(bruto) || 0;
   const netto = split === 'vol' ? brutoNum : Math.round(brutoNum * 0.73);
@@ -70,12 +68,15 @@ export default function Slide5B() {
     if (velux > 0) items.push({ key: 'vx', label: `Velux dakramen (${velux}×)`, amount: velux * RATES.velux });
     if (trap) {
       items.push({ key: 'tr', label: 'Trap', amount: RATES.trap });
-      items.push({ key: 'tg', label: `Trapgat (${trapgat})`, amount: trapgat === 'beton' ? RATES.trapgatBeton : RATES.trapgatHout });
+      if (trapgat !== 'geen') {
+        items.push({ key: 'tg', label: `Trapgat (${trapgat})`, amount: trapgat === 'beton' ? RATES.trapgatBeton : RATES.trapgatHout });
+      }
     }
     if (airco > 0) items.push({ key: 'ac', label: `Airco (${airco} toestel${airco > 1 ? 'len' : ''})`, amount: RATES.airco[Math.min(airco, 4)] });
+    if (schilderwerken) items.push({ key: 'sw', label: 'Schilderwerken', amount: RATES.schilderwerken(netto) });
     const excl = items.reduce((s, i) => s + i.amount, 0);
     return { items, excl, incl6: excl * 1.06, incl21: excl * 1.21, min: excl * 1.06 * 0.85, max: excl * 1.06 * 1.15 };
-  }, [brutoNum, netto, dakBekleed, dakisolatie, vloer, velux, trap, trapgat, airco]);
+  }, [brutoNum, netto, dakBekleed, dakisolatie, vloer, velux, trap, trapgat, airco, schilderwerken]);
 
   const result = calc();
 
@@ -207,15 +208,26 @@ export default function Slide5B() {
                       {trap && <span className="text-primary-foreground text-[10px] font-bold">✓</span>}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-semibold text-foreground">Trap + trapgat</div>
-                      <div className="text-xs text-muted-foreground">{trap ? `Trap €6.000 + ${trapgat === 'beton' ? 'betonnen trapgat €5.500' : 'houten trapgat €1.750'}` : 'Trap €6.000 + trapgat (keuze)'}</div>
+                      <div className="text-sm font-semibold text-foreground">Trap</div>
+                      <div className="text-xs text-muted-foreground">
+                        {trap
+                          ? trapgat === 'geen'
+                            ? 'Trap €6.000 — geen trapgat'
+                            : `Trap €6.000 + ${trapgat === 'beton' ? 'betonnen trapgat €5.500' : 'houten trapgat €1.750'}`
+                          : 'Trap €6.000 + trapgat (optioneel)'}
+                      </div>
                     </div>
-                    {trap && <div className="text-sm font-bold text-primary">{fmt(RATES.trap + (trapgat === 'beton' ? RATES.trapgatBeton : RATES.trapgatHout))}</div>}
+                    {trap && (
+                      <div className="text-sm font-bold text-primary">
+                        {fmt(RATES.trap + (trapgat === 'beton' ? RATES.trapgatBeton : trapgat === 'hout' ? RATES.trapgatHout : 0))}
+                      </div>
+                    )}
                   </div>
                   {trap && (
                     <div className="px-3.5 pb-3.5 pt-2 border-t border-primary/20" onClick={e => e.stopPropagation()}>
-                      <div className="text-xs font-bold text-secondary mb-2">Type trapgat</div>
+                      <div className="text-xs font-bold text-secondary mb-2">Trapgat (optioneel)</div>
                       <div className="flex gap-1.5">
+                        <button onClick={() => setTrapgat('geen')} className={`px-4 py-1.5 rounded-lg border-2 text-xs font-semibold transition-all ${trapgat === 'geen' ? 'bg-secondary border-secondary text-secondary-foreground' : 'border-primary/30 text-secondary'}`}>Geen trapgat</button>
                         <button onClick={() => setTrapgat('hout')} className={`px-4 py-1.5 rounded-lg border-2 text-xs font-semibold transition-all ${trapgat === 'hout' ? 'bg-secondary border-secondary text-secondary-foreground' : 'border-primary/30 text-secondary'}`}>Hout — €1.750</button>
                         <button onClick={() => setTrapgat('beton')} className={`px-4 py-1.5 rounded-lg border-2 text-xs font-semibold transition-all ${trapgat === 'beton' ? 'bg-secondary border-secondary text-secondary-foreground' : 'border-primary/30 text-secondary'}`}>Beton — €5.500</button>
                       </div>
@@ -230,7 +242,7 @@ export default function Slide5B() {
                       {airco > 0 && <span className="text-primary-foreground text-[10px] font-bold">✓</span>}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-semibold text-foreground">❄️ Airco-installatie <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-accent text-primary ml-1">APART</span></div>
+                      <div className="text-sm font-semibold text-foreground">Airco</div>
                       <div className="text-xs text-muted-foreground">{airco > 0 ? `${airco} toestel${airco > 1 ? 'len' : ''} — staffelprijs` : '1→€4K · 2→€6K · 3→€7,5K · 4→€9K'}</div>
                     </div>
                     {airco > 0 && <div className="text-sm font-bold text-primary">{fmt(RATES.airco[Math.min(airco, 4)])}</div>}
@@ -246,14 +258,15 @@ export default function Slide5B() {
                     </div>
                   )}
                 </div>
-              </div>
 
-              {/* Notice */}
-              <div className="mt-4 p-3 rounded-lg border border-orange-200 bg-orange-50 flex gap-2.5 items-start">
-                <span className="text-sm shrink-0 mt-0.5">🎨</span>
-                <div className="text-xs text-orange-800 leading-relaxed">
-                  <strong>Schilderwerk niet inbegrepen</strong> — Verf- en behangwerk valt buiten deze raming en wordt steeds apart geoffreerd.
-                </div>
+                {/* Schilderwerken */}
+                <ToggleOption
+                  label="Schilderwerken"
+                  desc={netto > 0 ? `Forfait: ${netto < 40 ? '€2.500 (< 40m²)' : '€4.000 (≥ 40m²)'}` : '€2.500 (< 40m²) of €4.000 (≥ 40m²)'}
+                  active={schilderwerken}
+                  onToggle={() => setSchilderwerken(v => !v)}
+                  amount={schilderwerken && netto > 0 ? fmt(RATES.schilderwerken(netto)) : undefined}
+                />
               </div>
             </div>
           </div>
@@ -323,7 +336,7 @@ export default function Slide5B() {
               )}
             </div>
             <div className="mt-3 text-xs text-muted-foreground leading-relaxed px-0.5">
-              ⚠ Indicatieve raming op basis van gemiddelde tarieven. Definitieve prijs na plaatsbezoek en opmeting. Schilderwerk steeds uitgesloten. Bandbreedte ±15%.
+              ⚠ Indicatieve raming op basis van gemiddelde tarieven. Definitieve prijs na plaatsbezoek en opmeting. Bandbreedte ±15%.
             </div>
           </div>
         </div>

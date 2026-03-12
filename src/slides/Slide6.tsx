@@ -43,18 +43,6 @@ export default function Slide6() {
               </div>
             )}
 
-            {/* Notes */}
-            <div className="space-y-3 mt-8 w-full max-w-lg">
-              <div className="bg-primary-foreground/10 rounded-lg p-4 text-sm text-primary-foreground backdrop-blur-sm">
-                ⚠ Schilderwerk niet inbegrepen
-              </div>
-              {lead.technisch.airco && (
-                <div className="bg-primary-foreground/10 rounded-lg p-4 text-sm text-primary-foreground backdrop-blur-sm">
-                  ℹ Airco is optioneel en apart geoffreerd
-                </div>
-              )}
-            </div>
-
             {/* Disclaimer */}
             <p className="text-primary-foreground/50 text-xs mt-8 text-center">
               Indicatieve raming ±15%. Definitieve prijs na plaatsbezoek.

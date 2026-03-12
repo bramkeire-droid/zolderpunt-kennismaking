@@ -15,16 +15,6 @@ export interface ReportData {
   prijs_max: number;
   prijs_incl6: number;
   prijs_incl21: number;
-  opties: {
-    isolatie: boolean;
-    binnenafwerking: boolean;
-    vloer: boolean;
-    velux: boolean;
-    trap: boolean;
-    elektriciteit: boolean;
-    airco: boolean;
-    schilderwerk: boolean; // always false
-  };
   fotos: string[]; // storage URLs
   waarde_tekst_ai: string; // AI-generated or fallback
   inbegrepen_posten: { post: string; bedrag: number }[];

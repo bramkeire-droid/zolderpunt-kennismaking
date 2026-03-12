@@ -4,7 +4,7 @@ export type AppMode = 'voorbereiding' | 'gesprek' | 'rapport' | 'dossiers';
 
 export interface LeadTechnisch {
   trap: boolean;
-  trapgat: 'hout' | 'beton';
+  trapgat: 'hout' | 'beton' | 'geen';
   dakraam: boolean;
   aantal_velux: number;
   airco: boolean;

@@ -15,7 +15,6 @@ const fmt = (n: number) =>
 
 function mapLeadToReportData(lead: ReturnType<typeof useSession>['lead']): ReportData {
   const posten = (lead.inbegrepen_posten || []) as { post: string; bedrag: number }[];
-  const t = lead.technisch;
 
   return {
     voornaam: lead.voornaam,
@@ -32,16 +31,6 @@ function mapLeadToReportData(lead: ReturnType<typeof useSession>['lead']): Repor
     prijs_max: lead.budget_max || 0,
     prijs_incl6: lead.budget_incl6 || 0,
     prijs_incl21: lead.budget_incl21 || 0,
-    opties: {
-      isolatie: posten.some(p => p.post.toLowerCase().includes('isolatie')),
-      binnenafwerking: posten.some(p => p.post.toLowerCase().includes('binnenplaat') || p.post.toLowerCase().includes('afwerking')),
-      vloer: posten.some(p => p.post.toLowerCase().includes('vloer')),
-      velux: t.dakraam,
-      trap: t.trap,
-      elektriciteit: false,
-      airco: t.airco,
-      schilderwerk: false,
-    },
     fotos: (lead.fotos || []).filter(f => f.url).map(f => f.url!),
     waarde_tekst_ai: lead.waarde_tekst_ai || 'Extra leefruimte gecreëerd uit ruimte die er al was.',
     inbegrepen_posten: posten,

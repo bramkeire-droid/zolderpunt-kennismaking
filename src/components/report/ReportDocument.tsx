@@ -6,7 +6,7 @@ import { s } from './reportStyles';
 import {
   COLORS, TAGLINE, CONTACT_TELEFOON, CONTACT_EMAIL, CONTACT_WEBSITE,
   GOOGLE_REVIEW_SCORE, GOOGLE_REVIEW_COUNT,
-  REVIEWS, GARANTIES, WERKWIJZE_STAPPEN, OPTIES_LABELS, formatDatum,
+  REVIEWS, GARANTIES, WERKWIJZE_STAPPEN, formatDatum,
 } from './reportConstants';
 import type { ReportData } from './reportTypes';
 import PdfIcon from './PdfIcon';
@@ -176,13 +176,14 @@ function SamenvattingPage({ data }: { data: ReportData }) {
 // SECTIE 3 — PRIJSINDICATIE
 // ═══════════════════════════════════════════════════════════════════
 function PrijsPage({ data }: { data: ReportData }) {
-  const optieKeys = Object.keys(OPTIES_LABELS) as (keyof typeof OPTIES_LABELS)[];
-
   // Calculate dynamic price bar fill position
   const range = data.prijs_max - data.prijs_min;
   const fillLeft = range > 0 ? ((data.prijs_incl6 - data.prijs_min) / range) * 100 : 15;
   const fillWidth = 20; // 20% width centered on the likely price
   const leftPos = Math.max(0, Math.min(fillLeft - fillWidth / 2, 100 - fillWidth));
+
+  // Only show items that were actually calculated (from inbegrepen_posten)
+  const posten = data.inbegrepen_posten || [];
 
   return (
     <Page size="A4" style={s.page}>
@@ -216,27 +217,15 @@ function PrijsPage({ data }: { data: ReportData }) {
         </View>
       </View>
 
-      {/* Checklist */}
-      <Text style={[s.h3, { marginBottom: 10 }]}>Inbegrepen opties</Text>
-      {optieKeys.map(key => {
-        const included = data.opties[key];
-        const isSchilderwerk = key === 'schilderwerk';
-        return (
-          <View key={key} style={s.checkRow}>
-            <PdfIcon
-              name={included ? 'CheckCircle' : 'XCircle'}
-              size={14}
-              color={included ? COLORS.primary : COLORS.red}
-            />
-            <Text style={s.body}>
-              {OPTIES_LABELS[key]}
-            </Text>
-            {isSchilderwerk && (
-              <Text style={s.italic}> (altijd exclusief)</Text>
-            )}
-          </View>
-        );
-      })}
+      {/* Inbegrepen posten — directly from calculator */}
+      <Text style={[s.h3, { marginBottom: 10 }]}>Inbegrepen in deze raming</Text>
+      {posten.map((post, i) => (
+        <View key={i} style={s.checkRow}>
+          <PdfIcon name="CheckCircle" size={14} color={COLORS.primary} />
+          <Text style={[s.body, { flex: 1 }]}>{post.post}</Text>
+          <Text style={[s.body, { fontWeight: 600 }]}>{fmt(post.bedrag)}</Text>
+        </View>
+      ))}
 
       <View style={s.divider} />
       <Text style={s.italic}>

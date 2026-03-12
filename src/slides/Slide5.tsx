@@ -64,7 +64,7 @@ export default function Slide5() {
         </div>
 
         <p className="text-sm text-muted-foreground font-body mt-8 text-center">
-          Elke aanvinking verfijnt de prijsindicatie.
+          Deze selectie wordt meegenomen in het klantrapport.
         </p>
       </div>
     </SlideLayout>
