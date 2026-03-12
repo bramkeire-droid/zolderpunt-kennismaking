@@ -38,7 +38,7 @@ function mapLeadToReportData(lead: ReturnType<typeof useSession>['lead']): Repor
       vloer: posten.some(p => p.post.toLowerCase().includes('vloer')),
       velux: t.dakraam,
       trap: t.trap,
-      elektriciteit: t.elektriciteit_uitgebreid,
+      elektriciteit: false,
       airco: t.airco,
       schilderwerk: false,
     },

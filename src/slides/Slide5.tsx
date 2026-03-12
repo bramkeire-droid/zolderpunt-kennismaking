@@ -1,7 +1,7 @@
 import { useSession, LeadTechnisch } from '@/contexts/SessionContext';
 import SlideLayout from '@/components/SlideLayout';
 import SlideLabel from '@/components/SlideLabel';
-import { ArrowUpDown, Sun, Wind, Layers, Droplets, Archive, Zap, AlertTriangle } from 'lucide-react';
+import { ArrowUpDown, Sun, Wind, Droplets, Archive, Cuboid, TreeDeciduous, Thermometer, Home, Volume2, Ruler, Layers } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 interface TechOption {
@@ -12,13 +12,17 @@ interface TechOption {
 
 const TECH_OPTIONS: TechOption[] = [
   { key: 'trap', label: 'Vaste trap', icon: ArrowUpDown },
+  { key: 'betonnen_trapgat', label: 'Betonnen trapgat', icon: Cuboid },
+  { key: 'houten_trapgat', label: 'Houten trapgat', icon: TreeDeciduous },
   { key: 'dakraam', label: 'Dakraam(en)', icon: Sun },
+  { key: 'dak_isoleren', label: 'Dak isoleren', icon: Thermometer },
+  { key: 'dakkapel', label: 'Dakkapel plaatsen', icon: Home },
   { key: 'airco', label: 'Airco', icon: Wind },
-  { key: 'draagmuur', label: 'Draagmuur', icon: Layers },
   { key: 'badkamer', label: 'Badkamer', icon: Droplets },
   { key: 'maatwerk_kasten', label: 'Maatwerk kasten', icon: Archive },
-  { key: 'elektriciteit_uitgebreid', label: 'Elektriciteit uitgebreid', icon: Zap },
-  { key: 'dakconstructie_twijfelachtig', label: 'Dakconstructie twijfelachtig', icon: AlertTriangle },
+  { key: 'akoestiek', label: 'Akoestiek verbeteren', icon: Volume2 },
+  { key: 'vloer_uitpassen', label: 'Vloer uitpassen', icon: Ruler },
+  { key: 'chape', label: 'Chape', icon: Layers },
 ];
 
 export default function Slide5() {

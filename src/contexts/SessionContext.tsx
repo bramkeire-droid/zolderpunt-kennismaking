@@ -9,11 +9,15 @@ export interface LeadTechnisch {
   aantal_velux: number;
   airco: boolean;
   aantal_airco: number;
-  draagmuur: boolean;
   badkamer: boolean;
   maatwerk_kasten: boolean;
-  elektriciteit_uitgebreid: boolean;
-  dakconstructie_twijfelachtig: boolean;
+  betonnen_trapgat: boolean;
+  houten_trapgat: boolean;
+  dak_isoleren: boolean;
+  dakkapel: boolean;
+  akoestiek: boolean;
+  vloer_uitpassen: boolean;
+  chape: boolean;
 }
 
 export interface LeadData {
@@ -61,11 +65,15 @@ export const defaultTechnisch: LeadTechnisch = {
   aantal_velux: 1,
   airco: false,
   aantal_airco: 1,
-  draagmuur: false,
   badkamer: false,
   maatwerk_kasten: false,
-  elektriciteit_uitgebreid: false,
-  dakconstructie_twijfelachtig: false,
+  betonnen_trapgat: false,
+  houten_trapgat: false,
+  dak_isoleren: false,
+  dakkapel: false,
+  akoestiek: false,
+  vloer_uitpassen: false,
+  chape: false,
 };
 
 export const defaultLeadData: LeadData = {
@@ -106,19 +114,19 @@ export const defaultLeadData: LeadData = {
 };
 
 export type SlideId =
-  | '0A' | '0A2' | '0B' | '0C'
-  | '1' | '2A' | '2B' | '3' | '4' | '5' | '5B' | '6' | '7'
+  | '0A' | '0A2' | '0B'
+  | '1' | '2A' | '2B' | '2C' | '3' | '4' | '5' | '5B' | '6' | '7'
   | '8' | '9' | '10';
 
 export const SLIDE_ORDER: SlideId[] = [
-  '0A', '0A2', '0B', '0C',
-  '1', '2A', '2B', '3', '4', '5', '5B', '6', '7',
+  '0A', '0A2', '0B',
+  '1', '2A', '2B', '2C', '3', '4', '5', '5B', '6', '7',
   '8', '9', '10',
 ];
 
 export const SLIDE_MODES: Record<SlideId, AppMode> = {
-  '0A': 'voorbereiding', '0A2': 'voorbereiding', '0B': 'voorbereiding', '0C': 'voorbereiding',
-  '1': 'gesprek', '2A': 'gesprek', '2B': 'gesprek', '3': 'gesprek',
+  '0A': 'voorbereiding', '0A2': 'voorbereiding', '0B': 'voorbereiding',
+  '1': 'gesprek', '2A': 'gesprek', '2B': 'gesprek', '2C': 'gesprek', '3': 'gesprek',
   '4': 'gesprek', '5': 'gesprek', '5B': 'gesprek', '6': 'gesprek', '7': 'gesprek',
   '8': 'rapport', '9': 'rapport', '10': 'rapport',
 };
