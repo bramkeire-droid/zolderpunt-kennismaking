@@ -14,7 +14,7 @@ serve(async (req) => {
       voornaam, achternaam, adres, oppervlakte_m2,
       gezocht_naar, gesprek_notities, transcript,
       inbegrepen_posten, technisch, gesprek_datum,
-      gewenst_resultaat, project_feiten,
+      gewenst_resultaat,
     } = body;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -27,15 +27,11 @@ serve(async (req) => {
       if (technisch.trap) techDetails.push('trap voorzien');
       if (technisch.dakraam) techDetails.push(`${technisch.aantal_velux || 1} dakraam(en)`);
       if (technisch.airco) techDetails.push(`airco (${technisch.aantal_airco || 1} unit(s))`);
+      if (technisch.elektriciteit_uitgebreid) techDetails.push('uitgebreide elektriciteit');
       if (technisch.badkamer) techDetails.push('badkamer');
+      if (technisch.draagmuur) techDetails.push('draagmuur aanwezig');
       if (technisch.maatwerk_kasten) techDetails.push('maatwerk kasten');
-      if (technisch.betonnen_trapgat) techDetails.push('betonnen trapgat');
-      if (technisch.houten_trapgat) techDetails.push('houten trapgat');
-      if (technisch.dak_isoleren) techDetails.push('dak isoleren');
-      if (technisch.dakkapel) techDetails.push('dakkapel');
-      if (technisch.akoestiek) techDetails.push('akoestiek verbeteren');
-      if (technisch.vloer_uitpassen) techDetails.push('vloer uitpassen');
-      if (technisch.chape) techDetails.push('chape');
+      if (technisch.dakconstructie_twijfelachtig) techDetails.push('dakconstructie moet gecontroleerd worden');
     }
 
     const dossierContext = `
@@ -49,9 +45,6 @@ PROJECT:
 - Gewenst resultaat: ${gezocht_naar || gewenst_resultaat || '(niet opgegeven)'}
 - Inbegrepen posten: ${postenList || '(nog niet bepaald)'}
 - Technische details: ${techDetails.join(', ') || '(geen)'}
-
-PROJECT INZICHTEN (vastgesteld tijdens gesprek):
-${(project_feiten || []).map((f: string, i: number) => `${i+1}. ${f}`).join('\n') || '(geen)'}
 
 GESPREKSNOTITIES:
 ${gesprek_notities || '(geen notities)'}

@@ -32,7 +32,6 @@ export default function Slide9() {
           inbegrepen_posten: lead.inbegrepen_posten,
           technisch: lead.technisch,
           gesprek_datum: lead.gesprek_datum,
-          project_feiten: lead.project_feiten,
         },
       });
 

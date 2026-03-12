@@ -55,7 +55,6 @@ export interface LeadData {
   rapport_versies: any[];
   status: string;
   fotos: { bestandsnaam: string; storage_path: string; url?: string }[];
-  project_feiten: string[];
   technisch: LeadTechnisch;
 }
 
@@ -111,7 +110,6 @@ export const defaultLeadData: LeadData = {
   rapport_versies: [],
   status: 'intake',
   fotos: [],
-  project_feiten: [],
   technisch: { ...defaultTechnisch },
 };
 
@@ -121,15 +119,15 @@ export type SlideId =
   | '8' | '9' | '10';
 
 export const SLIDE_ORDER: SlideId[] = [
-  '0A', '0A2', '0B',
-  '1', '2A', '2B', '2C', '3', '4', '5', '5B', '6', '7',
+  '0A', '0B',
+  '1', '2A', '2B', '2C', '3', '4', '0A2', '5', '5B', '6', '7',
   '8', '9', '10',
 ];
 
 export const SLIDE_MODES: Record<SlideId, AppMode> = {
-  '0A': 'voorbereiding', '0A2': 'voorbereiding', '0B': 'voorbereiding',
+  '0A': 'voorbereiding', '0B': 'voorbereiding',
   '1': 'gesprek', '2A': 'gesprek', '2B': 'gesprek', '2C': 'gesprek', '3': 'gesprek',
-  '4': 'gesprek', '5': 'gesprek', '5B': 'gesprek', '6': 'gesprek', '7': 'gesprek',
+  '4': 'gesprek', '0A2': 'gesprek', '5': 'gesprek', '5B': 'gesprek', '6': 'gesprek', '7': 'gesprek',
   '8': 'rapport', '9': 'rapport', '10': 'rapport',
 };
 

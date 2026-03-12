@@ -459,12 +459,4 @@ export const s = StyleSheet.create({
     fontSize: 9,
     color: COLORS.midGray,
   },
-
-  // ─── Feitje cards ───────────────────────────────────
-  feitjeCard: {
-    backgroundColor: COLORS.white,
-    padding: 14,
-    marginBottom: 8,
-    border: '1px solid #E2E8F0',
-  },
 });

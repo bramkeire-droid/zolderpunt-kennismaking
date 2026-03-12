@@ -57,7 +57,6 @@ function rowToLead(row: any): LeadData {
     rapport_versies: Array.isArray(row.rapport_versies) ? row.rapport_versies : [],
     status: row.status ?? 'intake',
     fotos: Array.isArray(row.fotos) ? row.fotos : [],
-    project_feiten: Array.isArray(row.project_feiten) ? row.project_feiten : [],
     technisch: row.technisch ? { ...defaultTechnisch, ...(row.technisch as any) } : { ...defaultTechnisch },
   };
 }
