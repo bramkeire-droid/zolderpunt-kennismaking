@@ -53,6 +53,7 @@ export interface LeadData {
   transcript: string;
   rapport_gegenereerd_op: string | null;
   rapport_versies: any[];
+  project_feiten: string[];
   status: string;
   fotos: { bestandsnaam: string; storage_path: string; url?: string }[];
   technisch: LeadTechnisch;
@@ -108,6 +109,7 @@ export const defaultLeadData: LeadData = {
   transcript: '',
   rapport_gegenereerd_op: null,
   rapport_versies: [],
+  project_feiten: [],
   status: 'intake',
   fotos: [],
   technisch: { ...defaultTechnisch },
