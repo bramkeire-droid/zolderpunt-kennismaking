@@ -28,4 +28,5 @@ export interface ReportData {
   fotos: string[]; // storage URLs
   waarde_tekst_ai: string; // AI-generated or fallback
   inbegrepen_posten: { post: string; bedrag: number }[];
+  project_feiten: string[];
 }

@@ -45,6 +45,7 @@ function mapLeadToReportData(lead: ReturnType<typeof useSession>['lead']): Repor
     fotos: (lead.fotos || []).filter(f => f.url).map(f => f.url!),
     waarde_tekst_ai: lead.waarde_tekst_ai || 'Extra leefruimte gecreëerd uit ruimte die er al was.',
     inbegrepen_posten: posten,
+    project_feiten: lead.project_feiten || [],
   };
 }
 
@@ -69,6 +70,7 @@ export default function Slide10() {
           inbegrepen_posten: lead.inbegrepen_posten,
           technisch: lead.technisch,
           gesprek_datum: lead.gesprek_datum,
+          project_feiten: lead.project_feiten,
         },
       });
 

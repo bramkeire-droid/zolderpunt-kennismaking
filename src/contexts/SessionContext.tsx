@@ -55,6 +55,7 @@ export interface LeadData {
   rapport_versies: any[];
   status: string;
   fotos: { bestandsnaam: string; storage_path: string; url?: string }[];
+  project_feiten: string[];
   technisch: LeadTechnisch;
 }
 
@@ -110,6 +111,7 @@ export const defaultLeadData: LeadData = {
   rapport_versies: [],
   status: 'intake',
   fotos: [],
+  project_feiten: [],
   technisch: { ...defaultTechnisch },
 };
 

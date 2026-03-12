@@ -509,6 +509,30 @@ function CTAPage({ data }: { data: ReportData }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
+// SECTIE 2B — PROJECT FEITEN
+// ═══════════════════════════════════════════════════════════════════
+function ProjectFeitenPage({ data }: { data: ReportData }) {
+  return (
+    <Page size="A4" style={s.page}>
+      <Text style={s.label}>PROJECT INZICHTEN</Text>
+      <Text style={s.h2}>Wat we samen vaststellden</Text>
+      <Text style={[s.body, { marginBottom: 16 }]}>
+        Tijdens ons gesprek kwamen deze concrete vaststellingen naar boven die we meenemen in de verdere uitwerking van jouw project.
+      </Text>
+      {data.project_feiten.map((feit, i) => (
+        <View key={i} style={s.feitjeCard} wrap={false}>
+          <View style={{ flexDirection: 'row' as const, gap: 10, alignItems: 'flex-start' as const }}>
+            <View style={{ width: 8, height: 8, backgroundColor: COLORS.primary, marginTop: 3 }} />
+            <Text style={s.body}>{feit}</Text>
+          </View>
+        </View>
+      ))}
+      <PageFooter />
+    </Page>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════
 // MAIN DOCUMENT
 // ═══════════════════════════════════════════════════════════════════
 export default function ReportDocument({ data }: { data: ReportData }) {
@@ -520,6 +544,7 @@ export default function ReportDocument({ data }: { data: ReportData }) {
     >
       <CoverPage data={data} />
       <SamenvattingPage data={data} />
+      {data.project_feiten.length > 0 && <ProjectFeitenPage data={data} />}
       <PrijsPage data={data} />
       <WaardePage data={data} />
       <FotosPage data={data} />
