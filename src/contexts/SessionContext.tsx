@@ -109,6 +109,7 @@ export const defaultLeadData: LeadData = {
   transcript: '',
   rapport_gegenereerd_op: null,
   rapport_versies: [],
+  project_feiten: [],
   status: 'intake',
   fotos: [],
   technisch: { ...defaultTechnisch },
