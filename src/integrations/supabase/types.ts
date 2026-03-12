@@ -35,6 +35,7 @@ export type Database = {
           inbegrepen_posten: Json
           notities_vooraf: string
           oppervlakte_m2: number | null
+          project_feiten: Json | null
           project_timing: string
           project_type: string
           rapport_aandachtspunten_ai: string
@@ -72,6 +73,7 @@ export type Database = {
           inbegrepen_posten?: Json
           notities_vooraf?: string
           oppervlakte_m2?: number | null
+          project_feiten?: Json | null
           project_timing?: string
           project_type?: string
           rapport_aandachtspunten_ai?: string
@@ -109,6 +111,7 @@ export type Database = {
           inbegrepen_posten?: Json
           notities_vooraf?: string
           oppervlakte_m2?: number | null
+          project_feiten?: Json | null
           project_timing?: string
           project_type?: string
           rapport_aandachtspunten_ai?: string
