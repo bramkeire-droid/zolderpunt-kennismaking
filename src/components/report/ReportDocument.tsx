@@ -397,83 +397,88 @@ function FotosPage({ data }: { data: ReportData }) {
 // ═══════════════════════════════════════════════════════════════════════
 // PAGINA 5 — PRIJSINDICATIE MET GAUSSCURVE
 // ═══════════════════════════════════════════════════════════════════════
-function GaussCurveSvg({ min, max, likely }: { min: number; max: number; likely: number }) {
-  const svgWidth = 480;
-  const svgHeight = 120;
-  const xMin = 20;
-  const xMax = svgWidth - 20;
-  const yBase = 100;
-  const yPeak = 20;
+/**
+ * Asymmetric Gauss curve for PDF (same algorithm as Slide6).
+ * SVG only draws the curve + gradient fill. No SVG text.
+ * Price labels are placed by the parent using react-pdf Views.
+ */
+function GaussCurveSvg({ min, max, peak }: { min: number; max: number; peak: number }) {
+  const svgW = 480;
+  const svgH = 100;
+  const padX = 40;
+  const drawW = svgW - padX * 2;
+  const yBase = 90;
+  const yPeak = 10;
 
   const range = max - min || 1;
-  const toX = (p: number) => xMin + ((p - min) / range) * (xMax - xMin);
+  const clampedPeak = Math.min(max, Math.max(min, peak));
+  const toX = (p: number) => padX + ((p - min) / range) * drawW;
 
-  // "Most likely" zone: 15% around the likely price
-  const mwSpread = range * 0.15;
-  const xMwMin = toX(Math.max(min, likely - mwSpread));
-  const xMwMax = toX(Math.min(max, likely + mwSpread));
-  const xCenter = toX(likely);
+  const xMin = toX(min);
+  const xMax = toX(max);
+  const xPeak = toX(clampedPeak);
+
+  // Asymmetric bezier control points (same as Slide6)
+  const leftSpread = xPeak - xMin;
+  const rightSpread = xMax - xPeak;
+  const cp1x = xMin + leftSpread * 0.25;
+  const cp2x = xPeak - leftSpread * 0.35;
+  const cp3x = xPeak + rightSpread * 0.35;
+  const cp4x = xMax - rightSpread * 0.25;
+
+  const curvePath = [
+    `M ${xMin} ${yBase}`,
+    `C ${cp1x} ${yBase}, ${cp2x} ${yPeak}, ${xPeak} ${yPeak}`,
+    `C ${cp3x} ${yPeak}, ${cp4x} ${yBase}, ${xMax} ${yBase}`,
+  ].join(' ');
+
+  const fillPath = `${curvePath} L ${xMax} ${yBase} L ${xMin} ${yBase} Z`;
 
   return (
-    <Svg width={svgWidth} height={svgHeight} viewBox={`0 0 ${svgWidth} ${svgHeight}`}>
+    <Svg width={svgW} height={svgH} viewBox={`0 0 ${svgW} ${svgH}`}>
+      {/* Gradient fill under curve */}
+      <Path d={fillPath} fill={COLORS.primary} opacity={0.08} />
+      {/* Curve stroke */}
+      <Path d={curvePath} fill="none" stroke={COLORS.primary} strokeWidth={2.5} />
       {/* Baseline */}
-      <Line x1={xMin} y1={yBase} x2={xMax} y2={yBase} strokeWidth={1} stroke={COLORS.lightGray} />
-
-      {/* Filled zone (most likely) */}
-      <Path
-        d={`M ${xMwMin} ${yBase} C ${xMwMin} ${yBase}, ${xMwMin} ${yPeak}, ${xCenter} ${yPeak} C ${xCenter} ${yPeak}, ${xMwMax} ${yPeak}, ${xMwMax} ${yBase} Z`}
-        fill={COLORS.primary}
-        opacity={0.15}
-      />
-
-      {/* Bell curve line */}
-      <Path
-        d={`M ${xMin} ${yBase - 2} C ${xMin + 60} ${yBase - 2}, ${xMwMin} ${yPeak + 5}, ${xCenter} ${yPeak} C ${xCenter} ${yPeak}, ${xMwMax} ${yPeak + 5}, ${xMax - 60} ${yBase - 2} L ${xMax} ${yBase - 2}`}
-        stroke={COLORS.primary}
-        strokeWidth={2}
-        fill="none"
-      />
-
-      {/* Dashed vertical markers */}
-      <Line x1={xMwMin} y1={yPeak} x2={xMwMin} y2={yBase} strokeWidth={1} stroke={COLORS.primary} strokeDasharray="3,3" />
-      <Line x1={xMwMax} y1={yPeak} x2={xMwMax} y2={yBase} strokeWidth={1} stroke={COLORS.primary} strokeDasharray="3,3" />
+      <Line x1={padX} y1={yBase} x2={svgW - padX} y2={yBase} strokeWidth={0.5} stroke={COLORS.lightGray} />
     </Svg>
   );
 }
 
 function PrijsPage({ data }: { data: ReportData }) {
   const posten = data.inbegrepen_posten || [];
+  const likely = data.prijs_incl6 || (data.prijs_min + data.prijs_max) / 2;
 
   return (
     <Page size="A4" style={s.page}>
       <Text style={s.sectionLabel}>PRIJSINDICATIE</Text>
       <Text style={s.pageTitle}>Jouw investering - een eerste indicatie</Text>
 
-      {/* Gausscurve SVG */}
+      {/* Gausscurve + price labels */}
       {data.prijs_min > 0 && data.prijs_max > 0 && (
-        <View style={{ marginBottom: 8 }} wrap={false}>
-          <GaussCurveSvg
-            min={data.prijs_min}
-            max={data.prijs_max}
-            likely={data.prijs_incl6 || (data.prijs_min + data.prijs_max) / 2}
-          />
+        <View style={{ marginBottom: 16 }} wrap={false}>
+          {/* Peak price ABOVE curve */}
+          <View style={{ alignItems: 'center' as const, marginBottom: 6 }}>
+            <Text style={[s.prijsLabel, { fontSize: 26, color: COLORS.primary }]}>
+              {fmt(likely)}
+            </Text>
+            <Text style={[s.prijsLabelKlein, { color: COLORS.primary, fontWeight: 600, marginTop: 2 }]}>
+              Meest waarschijnlijk - incl. 6% BTW
+            </Text>
+          </View>
 
-          {/* Price labels under curve */}
-          <View style={{ flexDirection: 'row' as const, justifyContent: 'space-between' as const, paddingHorizontal: 20, marginTop: 4 }}>
+          {/* The curve */}
+          <GaussCurveSvg min={data.prijs_min} max={data.prijs_max} peak={likely} />
+
+          {/* Min & max BELOW curve, aligned with curve feet */}
+          <View style={{ flexDirection: 'row' as const, justifyContent: 'space-between' as const, paddingHorizontal: 30, marginTop: 6 }}>
             <View>
-              <Text style={s.prijsLabel}>{fmt(data.prijs_min)}</Text>
+              <Text style={[s.prijsLabel, { fontSize: 14, color: COLORS.dark }]}>{fmt(data.prijs_min)}</Text>
               <Text style={s.prijsLabelKlein}>minimum</Text>
             </View>
-            <View style={{ alignItems: 'center' as const }}>
-              <Text style={[s.prijsLabel, { fontSize: 22, color: COLORS.primary }]}>
-                {fmt(data.prijs_incl6 || (data.prijs_min + data.prijs_max) / 2)}
-              </Text>
-              <Text style={[s.prijsLabelKlein, { color: COLORS.primary, fontWeight: 600 }]}>
-                Meest waarschijnlijk · incl. 6% BTW
-              </Text>
-            </View>
             <View style={{ alignItems: 'flex-end' as const }}>
-              <Text style={s.prijsLabel}>{fmt(data.prijs_max)}</Text>
+              <Text style={[s.prijsLabel, { fontSize: 14, color: COLORS.dark }]}>{fmt(data.prijs_max)}</Text>
               <Text style={s.prijsLabelKlein}>maximum</Text>
             </View>
           </View>
