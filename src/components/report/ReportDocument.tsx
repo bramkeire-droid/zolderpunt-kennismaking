@@ -124,41 +124,40 @@ function PageFooter() {
 // ═══════════════════════════════════════════════════════════════════════
 function CoverPage({ data }: { data: ReportData }) {
   return (
-    <Page size="A4" style={{ backgroundColor: COLORS.primary }}>
-      {/* Wrapper View = enig flow-element op de Page.
-          Yoga berekent paginahoogte op basis van dit element (595x842).
-          Alle kinderen zijn position:absolute BINNEN deze View,
-          niet direct op de Page — dat voorkomt dat Yoga de intrinsieke
-          afmetingen van de Image als flow-content meeneemt. */}
-      <View style={{ width: 595, height: 842 }}>
+    <Page size="A4" wrap={false} style={{
+      position: 'relative' as const,
+      width: 595.28,
+      height: 841.89,
+      backgroundColor: COLORS.primary,
+    }}>
+      {/* LAAG 1: Achtergrond foto — wrap={false} op Page voorkomt
+          dat Yoga de Image over meerdere pagina's verdeelt */}
+      <Image
+        src={coverBackground}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: 595.28,
+          height: 841.89,
+        }}
+      />
 
-        {/* LAAG 1: Achtergrond foto */}
-        <Image
-          src={coverBackground}
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: 595,
-            height: 842,
-          }}
-        />
-
-        {/* LAAG 2: Tekst-overlay */}
-        <View
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: 270,
-            height: 842,
-            paddingTop: 44,
-            paddingLeft: 44,
-            paddingRight: 28,
-            paddingBottom: 36,
-            flexDirection: 'column',
-          }}
-        >
+      {/* LAAG 2: Tekst-overlay */}
+      <View
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: 270,
+          height: 841.89,
+          paddingTop: 44,
+          paddingLeft: 44,
+          paddingRight: 28,
+          paddingBottom: 36,
+          flexDirection: 'column',
+        }}
+      >
         {/* Logo */}
         <LogoPdfWit width={100} />
 
@@ -242,7 +241,6 @@ function CoverPage({ data }: { data: ReportData }) {
         }}>
           {CONTACT_WEBSITE}
         </Text>
-        </View>
       </View>
     </Page>
   );
