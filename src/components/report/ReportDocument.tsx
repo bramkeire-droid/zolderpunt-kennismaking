@@ -125,17 +125,12 @@ function PageFooter() {
 function CoverPage({ data }: { data: ReportData }) {
   return (
     <Page size="A4" wrap={false} style={{ backgroundColor: COLORS.primary }}>
-      {/* Spacer: enig flow-element, geeft Yoga een paginahoogte.
-          Zonder dit is de Page 0px hoog en zijn absolute kinderen onzichtbaar. */}
-      <View style={{ width: 595.28, height: 841.89 }} />
-
-      {/* LAAG 1: Achtergrond foto */}
+      {/* LAAG 1: Achtergrond foto — IN de flow (niet absolute).
+          wrap={false} op Page voorkomt dat Yoga de Image splitst.
+          De Image IS het flow-element dat de paginahoogte bepaalt. */}
       <Image
         src={coverBackground}
         style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
           width: 595.28,
           height: 841.89,
         }}
