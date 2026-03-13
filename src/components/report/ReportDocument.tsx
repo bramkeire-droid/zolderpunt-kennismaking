@@ -8,7 +8,7 @@ import {
   GOOGLE_REVIEW_SCORE, GOOGLE_REVIEW_COUNT,
   REVIEWS, GARANTIES, WERKWIJZE_STAPPEN, formatDatum,
 } from './reportConstants';
-import type { ReportData } from './reportTypes';
+import type { ReportData, FeitjeItem } from './reportTypes';
 import PdfIcon from './PdfIcon';
 
 // Static asset imports
@@ -286,10 +286,96 @@ function WaardePage({ data }: { data: ReportData }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// SECTIE 5 — FOTO'S
+// SECTIE 5 — FOTO'S + FEITJES
 // ═══════════════════════════════════════════════════════════════════
+
+function groepeerFeitjesPerFoto(
+  fotos: { url: string; storage_path: string }[],
+  feitjes: FeitjeItem[]
+): { foto: { url: string; storage_path: string } | null; feitjes: FeitjeItem[] }[] {
+  const groepen: { foto: { url: string; storage_path: string } | null; feitjes: FeitjeItem[] }[] = [];
+
+  fotos.forEach(foto => {
+    const gekoppeld = feitjes.filter(f => f.foto_path === foto.storage_path);
+    groepen.push({ foto, feitjes: gekoppeld });
+  });
+
+  const ontkoppeld = feitjes.filter(f => f.foto_path === null || !fotos.some(foto => foto.storage_path === f.foto_path));
+  if (ontkoppeld.length > 0) {
+    groepen.push({ foto: null, feitjes: ontkoppeld });
+  }
+
+  return groepen;
+}
+
+function FeitjeInPdf({ tekst, half = false }: { tekst: string; half?: boolean }) {
+  return (
+    <View style={[s.feitjeInPdf, half ? { width: '48%' } : {}]} wrap={false}>
+      <View style={s.feitjeBullet} />
+      <Text style={s.body}>{tekst}</Text>
+    </View>
+  );
+}
+
+function FotoGroepBlock({
+  groep,
+  isFirst,
+}: {
+  groep: { foto: { url: string; storage_path: string } | null; feitjes: FeitjeItem[] };
+  isFirst: boolean;
+}) {
+  const hasFeitjes = groep.feitjes.length > 0;
+  const veelFeitjes = groep.feitjes.length > 4;
+
+  if (!groep.foto) {
+    return (
+      <View style={{ marginBottom: 16 }} wrap={false}>
+        <Text style={[s.label, { marginBottom: 8 }]}>ALGEMENE VASTSTELLINGEN</Text>
+        {veelFeitjes ? (
+          <View style={s.feitjesGrid}>
+            {groep.feitjes.map((feitje, i) => (
+              <FeitjeInPdf key={i} tekst={feitje.tekst} half />
+            ))}
+          </View>
+        ) : (
+          groep.feitjes.map((feitje, i) => (
+            <FeitjeInPdf key={i} tekst={feitje.tekst} />
+          ))
+        )}
+      </View>
+    );
+  }
+
+  return (
+    <View style={{ marginBottom: 20 }} wrap={false}>
+      <Image
+        src={groep.foto.url}
+        style={isFirst ? s.photoHero : s.photoGridItemGroter}
+      />
+      {hasFeitjes && (
+        <View style={{ marginTop: 8 }}>
+          {veelFeitjes ? (
+            <View style={s.feitjesGrid}>
+              {groep.feitjes.map((feitje, i) => (
+                <FeitjeInPdf key={i} tekst={feitje.tekst} half />
+              ))}
+            </View>
+          ) : (
+            groep.feitjes.map((feitje, i) => (
+              <FeitjeInPdf key={i} tekst={feitje.tekst} />
+            ))
+          )}
+        </View>
+      )}
+    </View>
+  );
+}
+
 function FotosPage({ data }: { data: ReportData }) {
-  const hasPhotos = data.fotos && data.fotos.length > 0;
+  const hasPhotos = data.fotos_met_path && data.fotos_met_path.length > 0;
+  const groepen = hasPhotos
+    ? groepeerFeitjesPerFoto(data.fotos_met_path, data.project_feiten || [])
+    : [];
 
   return (
     <Page size="A4" style={s.page}>
@@ -300,16 +386,9 @@ function FotosPage({ data }: { data: ReportData }) {
       </Text>
 
       {hasPhotos ? (
-        <View>
-          <Image src={data.fotos[0]} style={s.photoHero} />
-          {data.fotos.length > 1 && (
-            <View style={s.photoGrid}>
-              {data.fotos.slice(1, 5).map((url, i) => (
-                <Image key={i} src={url} style={s.photoGridItem} />
-              ))}
-            </View>
-          )}
-        </View>
+        groepen.map((groep, i) => (
+          <FotoGroepBlock key={i} groep={groep} isFirst={i === 0} />
+        ))
       ) : (
         <View style={s.photoPlaceholder}>
           <Text style={[s.body, { color: COLORS.midGray }]}>

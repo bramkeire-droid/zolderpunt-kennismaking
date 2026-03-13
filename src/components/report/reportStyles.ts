@@ -459,4 +459,33 @@ export const s = StyleSheet.create({
     fontSize: 9,
     color: COLORS.midGray,
   },
+
+  // ─── Foto-feitjes ───────────────────────────────────────
+  photoGridItemGroter: {
+    width: '100%',
+    height: 200,
+    objectFit: 'cover' as const,
+    marginBottom: 8,
+  },
+  feitjeInPdf: {
+    flexDirection: 'row' as const,
+    alignItems: 'flex-start' as const,
+    gap: 8,
+    backgroundColor: COLORS.white,
+    padding: 10,
+    marginBottom: 6,
+    border: '1px solid #E2E8F0',
+  },
+  feitjeBullet: {
+    width: 6,
+    height: 6,
+    backgroundColor: COLORS.primary,
+    marginTop: 4,
+    flexShrink: 0,
+  },
+  feitjesGrid: {
+    flexDirection: 'row' as const,
+    flexWrap: 'wrap' as const,
+    gap: 6,
+  },
 });

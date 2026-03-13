@@ -14,7 +14,7 @@ serve(async (req) => {
       voornaam, achternaam, adres, oppervlakte_m2,
       gezocht_naar, gesprek_notities, transcript,
       inbegrepen_posten, technisch, gesprek_datum,
-      gewenst_resultaat,
+      gewenst_resultaat, project_feiten,
     } = body;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -45,6 +45,12 @@ PROJECT:
 - Gewenst resultaat: ${gezocht_naar || gewenst_resultaat || '(niet opgegeven)'}
 - Inbegrepen posten: ${postenList || '(nog niet bepaald)'}
 - Technische details: ${techDetails.join(', ') || '(geen)'}
+
+FOTO-GEKOPPELDE VASTSTELLINGEN:
+${(project_feiten || []).map((f: any, i: number) => {
+  const fotoLabel = f.foto_path ? `[bij foto ${f.foto_index !== null ? f.foto_index + 1 : '?'}]` : '[algemeen]';
+  return `${i+1}. ${fotoLabel} ${f.tekst}`;
+}).join('\n') || '(geen vaststellingen genoteerd)'}
 
 GESPREKSNOTITIES:
 ${gesprek_notities || '(geen notities)'}
