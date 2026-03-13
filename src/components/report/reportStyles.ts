@@ -121,7 +121,6 @@ export const s = StyleSheet.create({
   // ─── Layout helpers ─────────────────────────────────────────────
   row: {
     flexDirection: 'row' as const,
-    gap: 12,
   },
   col: {
     flex: 1,
@@ -273,14 +272,12 @@ export const s = StyleSheet.create({
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
     marginBottom: 5,
-    gap: 8,
   },
 
   // ─── Timeline ───────────────────────────────────────────────────
   timelineRow: {
     flexDirection: 'row' as const,
     marginBottom: 4,
-    gap: 12,
   },
   timelineCircle: {
     width: 20,
@@ -288,6 +285,7 @@ export const s = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
+    marginRight: 12,
   },
   timelineNr: {
     fontFamily: 'SpaceGrotesk',
@@ -318,7 +316,6 @@ export const s = StyleSheet.create({
     padding: 14,
     marginBottom: 10,
     flexDirection: 'row' as const,
-    gap: 14,
     borderWidth: 1,
     borderColor: COLORS.lightGray,
   },
@@ -326,6 +323,7 @@ export const s = StyleSheet.create({
     width: 48,
     height: 48,
     objectFit: 'cover' as const,
+    marginRight: 14,
   },
   reviewAvatar: {
     width: 48,
@@ -334,6 +332,7 @@ export const s = StyleSheet.create({
     backgroundColor: COLORS.primary,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
+    marginRight: 14,
   },
   reviewInitials: {
     fontFamily: 'SpaceGrotesk',
@@ -358,7 +357,6 @@ export const s = StyleSheet.create({
   googleBadge: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    gap: 8,
     marginBottom: 16,
     backgroundColor: COLORS.white,
     padding: 10,
@@ -372,11 +370,13 @@ export const s = StyleSheet.create({
     fontWeight: 700,
     fontSize: 14,
     color: COLORS.dark,
+    marginLeft: 8,
   },
   googleCount: {
     fontFamily: 'RethinkSans',
     fontSize: 9,
     color: COLORS.grijs,
+    marginLeft: 4,
   },
 
   // ─── CTA ────────────────────────────────────────────────────────

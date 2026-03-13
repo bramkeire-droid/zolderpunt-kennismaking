@@ -1,12 +1,12 @@
 import React from 'react';
 import {
   Document, Page, View, Text, Image, Svg, Path, Polygon, Line,
-  Circle as SvgCircle,
 } from '@react-pdf/renderer';
 import { s } from './reportStyles';
 import {
   COLORS, TAGLINE, CONTACT_TELEFOON, CONTACT_EMAIL, CONTACT_WEBSITE,
-  GOOGLE_REVIEW_SCORE, REVIEWS, GARANTIES, WERKWIJZE_STAPPEN, formatDatum,
+  GOOGLE_REVIEW_SCORE, REVIEWS, GARANTIES, WERKWIJZE_STAPPEN,
+  STANDAARD_CHECKLIST_ITEMS, formatDatum,
 } from './reportConstants';
 import type { ReportData, FeitjeItem } from './reportTypes';
 import PdfIcon from './PdfIcon';
@@ -68,16 +68,18 @@ function makeSafe(data: ReportData) {
 // ─── Gold Stars helper ───────────────────────────────────────────────
 function GoldStars({ size = 10 }: { size?: number }) {
   return (
-    <View style={{ flexDirection: 'row' as const, gap: 2 }}>
+    <View style={{ flexDirection: 'row' as const }}>
       {[0, 1, 2, 3, 4].map(i => (
-        <PdfIcon key={i} name="StarFilled" size={size} color={COLORS.gold} />
+        <View key={i} style={{ marginRight: i < 4 ? 2 : 0 }}>
+          <PdfIcon name="StarFilled" size={size} color={COLORS.gold} />
+        </View>
       ))}
     </View>
   );
 }
 
 // ─── White logo for cover ────────────────────────────────────────────
-function LogoPdfWit({ width = 110 }: { width?: number }) {
+function LogoPdfWit({ width = 140 }: { width?: number }) {
   const height = (419.1 / 1080) * width;
   const fill = COLORS.white;
   return (
@@ -123,9 +125,18 @@ function CoverPage({ data }: { data: ReportData }) {
     <Page size="A4" style={[s.pageCover, { flexDirection: 'row' as const, backgroundColor: COLORS.primary }]}>
       {/* Linkerzone: logo + tekst */}
       <View style={s.coverLeft}>
-        <LogoPdfWit width={110} />
+        <LogoPdfWit width={140} />
+        <Text style={{
+          fontFamily: 'RethinkSans',
+          fontSize: 8,
+          color: COLORS.white,
+          opacity: 0.55,
+          marginTop: 6,
+        }}>
+          {TAGLINE}
+        </Text>
 
-        <View style={{ height: 56 }} />
+        <View style={{ height: 48 }} />
 
         <Text style={s.coverLabel}>UW PERSOONLIJK DOSSIER</Text>
         <View style={{ height: 8 }} />
@@ -140,15 +151,7 @@ function CoverPage({ data }: { data: ReportData }) {
 
         <View style={{ flex: 1 }} />
 
-        <Text style={s.coverTagline}>{TAGLINE}</Text>
-
-        {/* Decorative watermark bottom-left */}
-        <Svg
-          viewBox="0 0 100 100"
-          style={{ position: 'absolute' as const, bottom: 40, left: 40, width: 80, height: 80, opacity: 0.08 }}
-        >
-          <SvgCircle cx={50} cy={50} r={48} fill={COLORS.white} />
-        </Svg>
+        <Text style={s.coverTagline}>{CONTACT_WEBSITE}</Text>
       </View>
 
       {/* Rechterzone: hero foto met overlay */}
@@ -164,7 +167,7 @@ function CoverPage({ data }: { data: ReportData }) {
             objectFit: 'cover' as const,
           }}
         />
-        {/* Blue triangle overlay for 40° diagonal */}
+        {/* Blue triangle overlay for diagonal */}
         <Svg
           viewBox="0 0 330 842"
           style={{ position: 'absolute' as const, top: 0, left: 0, width: '100%', height: '100%' }}
@@ -201,9 +204,15 @@ function SamenvattingPage({ data }: { data: ReportData }) {
       {hasSummary ? (
         aiSections.map((sec, i) =>
           sec.text ? (
-            <View key={i} style={{ flexDirection: 'row' as const, marginBottom: 16 }}>
+            <View key={i} wrap={false} style={{
+              flexDirection: 'row' as const,
+              marginBottom: 16,
+              backgroundColor: COLORS.white,
+              borderWidth: 1,
+              borderColor: COLORS.lightGray,
+            }}>
               <View style={s.accentBalk} />
-              <View style={{ flex: 1 }}>
+              <View style={{ flex: 1, padding: 12 }}>
                 <Text style={[s.sectionLabel, { marginBottom: 4 }]}>{sec.label}</Text>
                 <Text style={s.bodyText}>{sec.text}</Text>
               </View>
@@ -228,74 +237,7 @@ function SamenvattingPage({ data }: { data: ReportData }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// PAGINA 3 — KLANTPROFIEL + TECHNISCHE ANALYSE
-// ═══════════════════════════════════════════════════════════════════════
-function KlantprofielPage({ data }: { data: ReportData }) {
-  const profiel = [
-    { label: 'Naam', value: `${data.voornaam} ${data.achternaam}`.trim() || '-' },
-    { label: 'Adres', value: data.adres || '-' },
-    { label: 'Datum gesprek', value: formatDatum(data.datum_gesprek) },
-    { label: 'Oppervlakte', value: data.oppervlakte_m2 ? `${data.oppervlakte_m2} m2 bruto` : '-' },
-  ];
-
-  // Build tech items from inbegrepen_posten
-  const techItems = (data.inbegrepen_posten || []).map(p => ({
-    label: p.post,
-    active: true,
-  }));
-
-  return (
-    <Page size="A4" style={s.page}>
-      <View style={{ flexDirection: 'row' as const, gap: 24 }}>
-        {/* Left column: klantprofiel */}
-        <View style={{ width: '38%' }}>
-          <Text style={s.sectionLabel}>KLANTPROFIEL</Text>
-          {profiel.map((r, i) => (
-            <View key={i} style={s.profielRij}>
-              <Text style={s.profielLabel}>{r.label}</Text>
-              <Text style={s.profielWaarde}>{r.value}</Text>
-            </View>
-          ))}
-
-          {data.gewenst_resultaat ? (
-            <View style={{ marginTop: 16 }}>
-              <Text style={s.sectionLabel}>GEWENST RESULTAAT</Text>
-              <Text style={s.bodyText}>{data.gewenst_resultaat}</Text>
-            </View>
-          ) : null}
-        </View>
-
-        {/* Right column: technische analyse */}
-        <View style={{ flex: 1 }}>
-          <Text style={s.sectionLabel}>TECHNISCHE ANALYSE</Text>
-          <Text style={[s.bodyKlein, { marginBottom: 12 }]}>
-            Op basis van onze analyse van de ruimte en het gesprek:
-          </Text>
-
-          {techItems.length > 0 ? (
-            <View style={{ flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: 8 }}>
-              {techItems.map((item, i) => (
-                <View key={i} style={s.techCard} wrap={false}>
-                  <PdfIcon name="CheckCircle" size={14} color={COLORS.checkGreen} />
-                  <Text style={[s.bodyKlein, { marginTop: 4, color: COLORS.dark, fontWeight: 600 }]}>
-                    {item.label}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          ) : (
-            <Text style={s.bodyItalic}>Technische details worden aangevuld na het plaatsbezoek.</Text>
-          )}
-        </View>
-      </View>
-
-      <PageFooter />
-    </Page>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════
-// PAGINA 4 — FOTO'S + FEITJES
+// PAGINA 3 — FOTO'S + FEITJES
 // ═══════════════════════════════════════════════════════════════════════
 function groepeerFeitjesPerFoto(
   fotos: { url: string; storage_path: string }[],
@@ -317,7 +259,11 @@ function groepeerFeitjesPerFoto(
 
 function FeitjeInPdf({ tekst, half = false }: { tekst: string; half?: boolean }) {
   return (
-    <View style={[{ flexDirection: 'row' as const, alignItems: 'flex-start' as const, marginBottom: 4 }, half ? { width: '48%' } : {}]} wrap={false}>
+    <View style={[{
+      flexDirection: 'row' as const,
+      alignItems: 'flex-start' as const,
+      marginBottom: 4,
+    }, half ? { width: '48%' } : {}]} wrap={false}>
       <View style={s.feitjeBullet} />
       <Text style={s.bodyKlein}>{tekst}</Text>
     </View>
@@ -335,7 +281,7 @@ function FotoGroepBlock({ groep }: {
       <View style={{ marginBottom: 16 }}>
         <Text style={[s.sectionLabel, { marginBottom: 8 }]}>ALGEMENE VASTSTELLINGEN</Text>
         {veelFeitjes ? (
-          <View style={{ flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: 6 }}>
+          <View style={{ flexDirection: 'row' as const, flexWrap: 'wrap' as const }}>
             {groep.feitjes.map((f, i) => <FeitjeInPdf key={i} tekst={f.tekst} half />)}
           </View>
         ) : (
@@ -353,7 +299,7 @@ function FotoGroepBlock({ groep }: {
       {hasFeitjes && (
         <View style={{ marginTop: 4 }}>
           {veelFeitjes ? (
-            <View style={{ flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: 6 }}>
+            <View style={{ flexDirection: 'row' as const, flexWrap: 'wrap' as const }}>
               {groep.feitjes.map((f, i) => <FeitjeInPdf key={i} tekst={f.tekst} half />)}
             </View>
           ) : (
@@ -395,13 +341,8 @@ function FotosPage({ data }: { data: ReportData }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// PAGINA 5 — PRIJSINDICATIE MET GAUSSCURVE
+// GAUSSCURVE SVG (same algorithm as Slide6)
 // ═══════════════════════════════════════════════════════════════════════
-/**
- * Asymmetric Gauss curve for PDF (same algorithm as Slide6).
- * SVG only draws the curve + gradient fill. No SVG text.
- * Price labels are placed by the parent using react-pdf Views.
- */
 function GaussCurveSvg({ min, max, peak }: { min: number; max: number; peak: number }) {
   const svgW = 480;
   const svgH = 100;
@@ -418,7 +359,6 @@ function GaussCurveSvg({ min, max, peak }: { min: number; max: number; peak: num
   const xMax = toX(max);
   const xPeak = toX(clampedPeak);
 
-  // Asymmetric bezier control points (same as Slide6)
   const leftSpread = xPeak - xMin;
   const rightSpread = xMax - xPeak;
   const cp1x = xMin + leftSpread * 0.25;
@@ -436,24 +376,61 @@ function GaussCurveSvg({ min, max, peak }: { min: number; max: number; peak: num
 
   return (
     <Svg width={svgW} height={svgH} viewBox={`0 0 ${svgW} ${svgH}`}>
-      {/* Gradient fill under curve */}
       <Path d={fillPath} fill={COLORS.primary} opacity={0.08} />
-      {/* Curve stroke */}
       <Path d={curvePath} fill="none" stroke={COLORS.primary} strokeWidth={2.5} />
-      {/* Baseline */}
       <Line x1={padX} y1={yBase} x2={svgW - padX} y2={yBase} strokeWidth={0.5} stroke={COLORS.lightGray} />
     </Svg>
   );
 }
 
-function PrijsPage({ data }: { data: ReportData }) {
-  const posten = data.inbegrepen_posten || [];
+// ═══════════════════════════════════════════════════════════════════════
+// PAGINA 4 — INVESTERING (merged: prijs + checklist + waarde + ROI)
+// ═══════════════════════════════════════════════════════════════════════
+function getTitelKader2(gewenstResultaat: string): string {
+  const r = (gewenstResultaat || '').toLowerCase();
+  if (r.includes('slaapkamer') && r.includes('badkamer')) return 'Volwaardige suite';
+  if (r.includes('slaapkamer')) return 'Extra slaapkamer';
+  if (r.includes('kantoor') || r.includes('bureau')) return 'Thuiskantoor';
+  if (r.includes('speel')) return 'Speelruimte';
+  return 'Extra leefruimte';
+}
+
+function buildChecklist(inbegrepen: { post: string; bedrag: number }[]) {
+  const activeNames = new Set(inbegrepen.map(p => p.post.toLowerCase().trim()));
+
+  // Start with inbegrepen items (active)
+  const items: { label: string; active: boolean }[] = inbegrepen.map(p => ({
+    label: p.post,
+    active: true,
+  }));
+
+  // Add standard items that aren't already covered
+  for (const stdItem of STANDAARD_CHECKLIST_ITEMS) {
+    const exists = activeNames.has(stdItem.toLowerCase().trim()) ||
+      items.some(it => it.label.toLowerCase().trim() === stdItem.toLowerCase().trim());
+    if (!exists) {
+      items.push({ label: stdItem, active: false });
+    }
+  }
+
+  // Cap at 15 items
+  return items.slice(0, 15);
+}
+
+function InvesteringPage({ data }: { data: ReportData }) {
   const likely = data.prijs_incl6 || (data.prijs_min + data.prijs_max) / 2;
+  const checklist = buildChecklist(data.inbegrepen_posten || []);
+
+  // Split checklist into rows of 3
+  const rows: { label: string; active: boolean }[][] = [];
+  for (let i = 0; i < checklist.length; i += 3) {
+    rows.push(checklist.slice(i, i + 3));
+  }
 
   return (
     <Page size="A4" style={s.page}>
-      <Text style={s.sectionLabel}>PRIJSINDICATIE</Text>
-      <Text style={s.pageTitle}>Jouw investering - een eerste indicatie</Text>
+      <Text style={s.sectionLabel}>INVESTERING</Text>
+      <Text style={s.pageTitle}>Jouw investering</Text>
 
       {/* Gausscurve + price labels */}
       {data.prijs_min > 0 && data.prijs_max > 0 && (
@@ -468,10 +445,9 @@ function PrijsPage({ data }: { data: ReportData }) {
             </Text>
           </View>
 
-          {/* The curve */}
           <GaussCurveSvg min={data.prijs_min} max={data.prijs_max} peak={likely} />
 
-          {/* Min & max BELOW curve, aligned with curve feet */}
+          {/* Min & max BELOW curve */}
           <View style={{ flexDirection: 'row' as const, justifyContent: 'space-between' as const, paddingHorizontal: 30, marginTop: 6 }}>
             <View>
               <Text style={[s.prijsLabel, { fontSize: 14, color: COLORS.dark }]}>{fmt(data.prijs_min)}</Text>
@@ -485,53 +461,50 @@ function PrijsPage({ data }: { data: ReportData }) {
         </View>
       )}
 
-      {/* Checklist inbegrepen */}
-      <Text style={[s.h3, { marginTop: 20, marginBottom: 10 }]}>Wat is inbegrepen?</Text>
+      {/* 3-column checklist */}
+      <Text style={[s.h3, { marginTop: 12, marginBottom: 8 }]}>Wat is inbegrepen?</Text>
 
-      <View style={{ flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: 4 }}>
-        {posten.map((post, i) => (
-          <View key={i} style={[s.checkRow, { width: '48%' }]} wrap={false}>
-            <PdfIcon name="CheckCircle" size={12} color={COLORS.checkGreen} />
-            <Text style={[s.bodyKlein, { flex: 1, color: COLORS.dark }]}>{post.post}</Text>
-          </View>
-        ))}
-      </View>
+      {rows.map((row, ri) => (
+        <View key={ri} style={{ flexDirection: 'row' as const, marginBottom: 4 }}>
+          {row.map((item, ci) => (
+            <View key={ci} style={{
+              width: '33%',
+              flexDirection: 'row' as const,
+              alignItems: 'center' as const,
+              paddingRight: 6,
+              marginBottom: 4,
+            }}>
+              <View style={{ marginRight: 6 }}>
+                <PdfIcon
+                  name={item.active ? 'CheckCircle' : 'XCircle'}
+                  size={11}
+                  color={item.active ? COLORS.checkGreen : COLORS.lightGray}
+                />
+              </View>
+              <Text style={[s.bodyKlein, {
+                flex: 1,
+                color: item.active ? COLORS.dark : COLORS.grijs,
+                fontWeight: item.active ? 600 : 400,
+              }]}>
+                {item.label}
+              </Text>
+            </View>
+          ))}
+          {/* Fill empty cols if row has < 3 items */}
+          {row.length < 3 && Array.from({ length: 3 - row.length }).map((_, fi) => (
+            <View key={`fill-${fi}`} style={{ width: '33%' }} />
+          ))}
+        </View>
+      ))}
 
-      {/* Disclaimer */}
-      <Text style={[s.bodyItalic, { marginTop: 16 }]}>
-        Deze indicatie is gebaseerd op ons gesprek en de opgegeven oppervlakte. Na het plaatsbezoek ontvang je een gedetailleerde offerte met vaste prijzen - geen verrassingen achteraf.
-      </Text>
-
-      <PageFooter />
-    </Page>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════
-// PAGINA 6 — WAARDEMODULE
-// ═══════════════════════════════════════════════════════════════════════
-function getTitelKader2(gewenstResultaat: string): string {
-  const r = (gewenstResultaat || '').toLowerCase();
-  if (r.includes('slaapkamer') && r.includes('badkamer')) return 'Volwaardige suite';
-  if (r.includes('slaapkamer')) return 'Extra slaapkamer';
-  if (r.includes('kantoor') || r.includes('bureau')) return 'Thuiskantoor';
-  if (r.includes('speel')) return 'Speelruimte';
-  return 'Extra leefruimte';
-}
-
-function WaardePage({ data }: { data: ReportData }) {
-  return (
-    <Page size="A4" style={s.page}>
-      <Text style={s.sectionLabel}>WAARDE</Text>
-      <Text style={s.pageTitleSmall}>Wat betekent deze investering voor jouw woning?</Text>
-
-      <View style={{ flexDirection: 'row' as const, gap: 10, marginTop: 8 }}>
+      {/* 3 Waarde cards */}
+      <View style={{ flexDirection: 'row' as const, marginTop: 16 }}>
         {/* Kader 1 — Ruimte */}
-        <View style={s.waardeCard}>
+        <View style={[s.waardeCard, { marginRight: 8 }]}>
           <View style={s.waardeAccent} />
           <View style={s.waardeContent}>
-            <PdfIcon name="Maximize2" size={18} color={COLORS.primary} />
-            <Text style={[s.h3, { marginTop: 8, fontSize: 11 }]}>
+            <PdfIcon name="Maximize2" size={16} color={COLORS.primary} />
+            <Text style={[s.h3, { marginTop: 6, fontSize: 10 }]}>
               {data.oppervlakte_m2 || '?'} m2 nieuwe leefruimte
             </Text>
             <Text style={s.bodyKlein}>
@@ -541,11 +514,11 @@ function WaardePage({ data }: { data: ReportData }) {
         </View>
 
         {/* Kader 2 — Bestemming (AI) */}
-        <View style={s.waardeCard}>
+        <View style={[s.waardeCard, { marginRight: 8 }]}>
           <View style={s.waardeAccent} />
           <View style={s.waardeContent}>
-            <PdfIcon name="Home" size={18} color={COLORS.primary} />
-            <Text style={[s.h3, { marginTop: 8, fontSize: 11 }]}>
+            <PdfIcon name="Home" size={16} color={COLORS.primary} />
+            <Text style={[s.h3, { marginTop: 6, fontSize: 10 }]}>
               {getTitelKader2(data.gewenst_resultaat)}
             </Text>
             <Text style={s.bodyKlein}>{data.waarde_tekst_ai}</Text>
@@ -556,26 +529,25 @@ function WaardePage({ data }: { data: ReportData }) {
         <View style={s.waardeCard}>
           <View style={s.waardeAccent} />
           <View style={s.waardeContent}>
-            <PdfIcon name="TrendingUp" size={18} color={COLORS.primary} />
-            <Text style={[s.h3, { marginTop: 8, fontSize: 11 }]}>8 à 15% meer waard</Text>
+            <PdfIcon name="TrendingUp" size={16} color={COLORS.primary} />
+            <Text style={[s.h3, { marginTop: 6, fontSize: 10 }]}>8 a 15% meer waard</Text>
             <Text style={s.bodyKlein}>
-              Een afgewerkte zolder verhoogt de verkoopwaarde van je woning gemiddeld met 8 a 15% - vastgesteld door vastgoedexperts.
+              Een afgewerkte zolder verhoogt de verkoopwaarde van je woning gemiddeld met 8 a 15%.
             </Text>
           </View>
         </View>
       </View>
 
-      {/* Closing statement */}
-      <Text style={{
-        fontFamily: 'RethinkSans',
-        fontWeight: 600,
-        fontSize: 12,
-        color: COLORS.primary,
-        fontStyle: 'italic' as const,
-        marginTop: 20,
-        lineHeight: 1.4,
-      }}>
-        {data.oppervlakte_m2 || '?'}m2 onbenutte ruimte omvormen tot {(data.gewenst_resultaat || 'extra leefruimte').toLowerCase()} - dat is de slimste investering die je vandaag in jouw woning kunt doen.
+      {/* ROI blue banner */}
+      <View style={s.ctaBanner} wrap={false}>
+        <Text style={[s.ctaBannerText, { fontSize: 11 }]}>
+          {data.oppervlakte_m2 || '?'}m2 onbenutte ruimte omvormen tot {(data.gewenst_resultaat || 'extra leefruimte').toLowerCase()} - dat is de slimste investering in jouw woning.
+        </Text>
+      </View>
+
+      {/* Disclaimer */}
+      <Text style={[s.bodyItalic, { marginTop: 12 }]}>
+        Deze indicatie is gebaseerd op ons gesprek en de opgegeven oppervlakte. Na het plaatsbezoek ontvang je een gedetailleerde offerte met vaste prijzen - geen verrassingen achteraf.
       </Text>
 
       <PageFooter />
@@ -584,7 +556,7 @@ function WaardePage({ data }: { data: ReportData }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// PAGINA 7 — WERKWIJZE & TIJDLIJN
+// PAGINA 5 — WERKWIJZE & TIJDLIJN (8 stappen + CTA banner)
 // ═══════════════════════════════════════════════════════════════════════
 function WerkwijzePage() {
   return (
@@ -617,8 +589,8 @@ function WerkwijzePage() {
                 )}
               </View>
               <View style={{ flex: 1 }}>
-                <View style={{ flexDirection: 'row' as const, alignItems: 'center' as const, gap: 8 }}>
-                  <Text style={[s.h3, { color: textColor, marginBottom: 2, fontWeight: isCurrent ? 700 : 600 }]}>
+                <View style={{ flexDirection: 'row' as const, alignItems: 'center' as const }}>
+                  <Text style={[s.h3, { color: textColor, marginBottom: 2, fontWeight: isCurrent ? 700 : 600, marginRight: 8 }]}>
                     {stap.title}
                   </Text>
                   {isCurrent && (
@@ -637,39 +609,11 @@ function WerkwijzePage() {
         );
       })}
 
-      <PageFooter />
-    </Page>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════
-// PAGINA 8 — GARANTIES
-// ═══════════════════════════════════════════════════════════════════════
-function GarantiesPage() {
-  return (
-    <Page size="A4" style={s.page}>
-      <Text style={s.sectionLabel}>GARANTIES</Text>
-      <Text style={s.pageTitle}>Waarom klanten voor Zolderpunt kiezen</Text>
-      <Text style={[s.bodyGrijs, { marginBottom: 20 }]}>
-        Een renovatie is een groot vertrouwen. Dit zijn de afspraken die wij met elke klant maken - zonder uitzondering.
-      </Text>
-
-      {/* Rows of 2 */}
-      <View style={{ flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: 10 }}>
-        {GARANTIES.map((g, i) => {
-          const isLastSingle = i === 4;
-          return (
-            <View
-              key={i}
-              style={[s.garantieCard, isLastSingle ? { width: '60%', marginLeft: '20%' } : {}]}
-              wrap={false}
-            >
-              <PdfIcon name={g.iconName} size={18} color={COLORS.primary} />
-              <Text style={[s.h3, { marginTop: 8, fontSize: 10 }]}>{g.title}</Text>
-              <Text style={s.bodyKlein}>{g.text}</Text>
-            </View>
-          );
-        })}
+      {/* CTA banner */}
+      <View style={[s.ctaBanner, { marginTop: 16 }]} wrap={false}>
+        <Text style={[s.ctaBannerText, { fontSize: 12 }]}>
+          Plan jouw gratis plaatsbezoek en ontdek wat jouw zolder kan worden.
+        </Text>
       </View>
 
       <PageFooter />
@@ -678,7 +622,111 @@ function GarantiesPage() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// PAGINA 9 — REVIEWS
+// PAGINA 6 — GARANTIES (numbered 01-05, compact 2-col, 5th full-width)
+// ═══════════════════════════════════════════════════════════════════════
+function GarantiesPage() {
+  const first4 = GARANTIES.slice(0, 4);
+  const fifth = GARANTIES[4];
+
+  return (
+    <Page size="A4" style={s.page}>
+      <Text style={s.sectionLabel}>GARANTIES</Text>
+      <Text style={s.pageTitle}>Waarom klanten voor Zolderpunt kiezen</Text>
+
+      {/* Dark intro statement */}
+      <View style={{
+        backgroundColor: COLORS.dark,
+        padding: 16,
+        marginBottom: 20,
+      }} wrap={false}>
+        <Text style={{
+          fontFamily: 'RethinkSans',
+          fontSize: 10,
+          color: COLORS.white,
+          lineHeight: 1.5,
+        }}>
+          Een renovatie is een groot vertrouwen. Dit zijn de afspraken die wij met elke klant maken - zonder uitzondering.
+        </Text>
+      </View>
+
+      {/* 2x2 grid: rows of 2 */}
+      <View style={{ flexDirection: 'row' as const, marginBottom: 10 }}>
+        <View style={[s.garantieCard, { marginRight: 10 }]} wrap={false}>
+          <Text style={{
+            fontFamily: 'SpaceGrotesk',
+            fontWeight: 700,
+            fontSize: 20,
+            color: COLORS.primary,
+            marginBottom: 6,
+          }}>01</Text>
+          <Text style={[s.h3, { fontSize: 10 }]}>{first4[0].title}</Text>
+          <Text style={s.bodyKlein}>{first4[0].text}</Text>
+        </View>
+        <View style={s.garantieCard} wrap={false}>
+          <Text style={{
+            fontFamily: 'SpaceGrotesk',
+            fontWeight: 700,
+            fontSize: 20,
+            color: COLORS.primary,
+            marginBottom: 6,
+          }}>02</Text>
+          <Text style={[s.h3, { fontSize: 10 }]}>{first4[1].title}</Text>
+          <Text style={s.bodyKlein}>{first4[1].text}</Text>
+        </View>
+      </View>
+
+      <View style={{ flexDirection: 'row' as const, marginBottom: 10 }}>
+        <View style={[s.garantieCard, { marginRight: 10 }]} wrap={false}>
+          <Text style={{
+            fontFamily: 'SpaceGrotesk',
+            fontWeight: 700,
+            fontSize: 20,
+            color: COLORS.primary,
+            marginBottom: 6,
+          }}>03</Text>
+          <Text style={[s.h3, { fontSize: 10 }]}>{first4[2].title}</Text>
+          <Text style={s.bodyKlein}>{first4[2].text}</Text>
+        </View>
+        <View style={s.garantieCard} wrap={false}>
+          <Text style={{
+            fontFamily: 'SpaceGrotesk',
+            fontWeight: 700,
+            fontSize: 20,
+            color: COLORS.primary,
+            marginBottom: 6,
+          }}>04</Text>
+          <Text style={[s.h3, { fontSize: 10 }]}>{first4[3].title}</Text>
+          <Text style={s.bodyKlein}>{first4[3].text}</Text>
+        </View>
+      </View>
+
+      {/* 5th garantie: full-width, light blue bg */}
+      {fifth && (
+        <View style={{
+          backgroundColor: '#E8F4FF',
+          padding: 16,
+          borderWidth: 1,
+          borderColor: COLORS.primary,
+        }} wrap={false}>
+          <Text style={{
+            fontFamily: 'SpaceGrotesk',
+            fontWeight: 700,
+            fontSize: 20,
+            color: COLORS.primary,
+            marginBottom: 6,
+          }}>05</Text>
+          <Text style={[s.h3, { fontSize: 10 }]}>{fifth.title}</Text>
+          <Text style={s.bodyKlein}>{fifth.text}</Text>
+        </View>
+      )}
+
+      <PageFooter />
+    </Page>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// PAGINA 7 — REVIEWS
 // ═══════════════════════════════════════════════════════════════════════
 function ReviewsPage() {
   return (
@@ -723,7 +771,7 @@ function ReviewsPage() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// PAGINA 10 — CTA
+// PAGINA 8 — CTA
 // ═══════════════════════════════════════════════════════════════════════
 function CTAPage({ data }: { data: ReportData }) {
   return (
@@ -742,23 +790,29 @@ function CTAPage({ data }: { data: ReportData }) {
       </Text>
 
       {/* Contact block */}
-      <View style={{ flexDirection: 'row' as const, gap: 20, alignItems: 'center' as const }} wrap={false}>
+      <View style={{ flexDirection: 'row' as const, alignItems: 'center' as const }} wrap={false}>
         <Image
           src={bramSrc}
-          style={{ width: 60, height: 60, borderRadius: 30, objectFit: 'cover' as const }}
+          style={{ width: 60, height: 60, objectFit: 'cover' as const, marginRight: 20 }}
         />
         <View style={{ flex: 1 }}>
           <Text style={[s.h3, { marginBottom: 8 }]}>Bram Keirsschieter</Text>
-          <View style={{ flexDirection: 'row' as const, alignItems: 'center' as const, gap: 8, marginBottom: 4 }}>
-            <PdfIcon name="Phone" size={12} color={COLORS.primary} />
+          <View style={{ flexDirection: 'row' as const, alignItems: 'center' as const, marginBottom: 4 }}>
+            <View style={{ marginRight: 8 }}>
+              <PdfIcon name="Phone" size={12} color={COLORS.primary} />
+            </View>
             <Text style={[s.bodyText, { fontWeight: 600 }]}>{CONTACT_TELEFOON}</Text>
           </View>
-          <View style={{ flexDirection: 'row' as const, alignItems: 'center' as const, gap: 8, marginBottom: 4 }}>
-            <PdfIcon name="Mail" size={12} color={COLORS.primary} />
+          <View style={{ flexDirection: 'row' as const, alignItems: 'center' as const, marginBottom: 4 }}>
+            <View style={{ marginRight: 8 }}>
+              <PdfIcon name="Mail" size={12} color={COLORS.primary} />
+            </View>
             <Text style={[s.bodyText, { fontWeight: 600 }]}>{CONTACT_EMAIL}</Text>
           </View>
-          <View style={{ flexDirection: 'row' as const, alignItems: 'center' as const, gap: 8 }}>
-            <PdfIcon name="Globe" size={12} color={COLORS.primary} />
+          <View style={{ flexDirection: 'row' as const, alignItems: 'center' as const }}>
+            <View style={{ marginRight: 8 }}>
+              <PdfIcon name="Globe" size={12} color={COLORS.primary} />
+            </View>
             <Text style={[s.bodyText, { fontWeight: 600 }]}>{CONTACT_WEBSITE}</Text>
           </View>
         </View>
@@ -771,25 +825,18 @@ function CTAPage({ data }: { data: ReportData }) {
         </Text>
       </View>
 
-      {/* Decorative watermark */}
-      <Svg
-        viewBox="0 0 100 100"
-        style={{ position: 'absolute' as const, bottom: 40, right: 40, width: 100, height: 100, opacity: 0.06 }}
-      >
-        <SvgCircle cx={50} cy={50} r={48} fill={COLORS.primary} />
-      </Svg>
-
       {/* CTA page footer: centered logo + tagline */}
-      <View style={{ marginTop: 'auto' as unknown as number, alignItems: 'center' as const, gap: 6, paddingTop: 16 }}>
+      <View style={{ marginTop: 'auto' as unknown as number, alignItems: 'center' as const, paddingTop: 16 }}>
         <LogoPdf width={100} />
-        <Text style={s.footerText}>{TAGLINE}  ·  {CONTACT_WEBSITE}</Text>
+        <Text style={[s.footerText, { marginTop: 6 }]}>{TAGLINE}  ·  {CONTACT_WEBSITE}</Text>
       </View>
     </Page>
   );
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// MAIN DOCUMENT — 10 pagina's
+// MAIN DOCUMENT — 8 pagina's (v4)
+// Cover > Samenvatting > Fotos > Investering > Werkwijze > Garanties > Reviews > CTA
 // ═══════════════════════════════════════════════════════════════════════
 export default function ReportDocument({ data }: { data: ReportData }) {
   const d = makeSafe(data);
@@ -802,10 +849,8 @@ export default function ReportDocument({ data }: { data: ReportData }) {
     >
       <CoverPage data={d} />
       <SamenvattingPage data={d} />
-      <KlantprofielPage data={d} />
       <FotosPage data={d} />
-      <PrijsPage data={d} />
-      <WaardePage data={d} />
+      <InvesteringPage data={d} />
       <WerkwijzePage />
       <GarantiesPage />
       <ReviewsPage />

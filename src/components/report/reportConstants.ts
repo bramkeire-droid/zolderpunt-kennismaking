@@ -40,13 +40,13 @@ export function formatDatum(datum: string): string {
 export const REVIEWS = [
   {
     name: 'Brandon Van Moorleghem',
-    quote: 'Wat Bram écht onderscheidt van de rest is zijn communicatie en oog voor detail. Zo kregen we elke dag een update van de werken, laat hij op tijd weten als er iets wijzigt en krijg je heel snel antwoord op vragen. Nu zijn we een enorm mooie, afgewerkte zolderruimte rijker en daar kijken we met heel veel plezier en dankbaarheid naar terug!',
+    quote: 'Wat Bram echt onderscheidt van de rest is zijn communicatie en oog voor detail. Zo kregen we elke dag een update van de werken, laat hij op tijd weten als er iets wijzigt en krijg je heel snel antwoord op vragen. Nu zijn we een enorm mooie, afgewerkte zolderruimte rijker en daar kijken we met heel veel plezier en dankbaarheid naar terug!',
     hasPhoto: true,
     photoKey: 'brandon',
   },
   {
     name: 'Tom Van Roye',
-    quote: 'Bram zorgt voor een totale ontzorging en coördinatie van de werken, komt elke werkdag minstens 1x alles bekijken en volgt kort op. De meerprijs die dit met zich meebrengt, is het meer dan waard.',
+    quote: 'Bram zorgt voor een totale ontzorging en coordinatie van de werken, komt elke werkdag minstens 1x alles bekijken en volgt kort op. De meerprijs die dit met zich meebrengt, is het meer dan waard.',
     hasPhoto: true,
     photoKey: 'tom',
   },
@@ -68,32 +68,32 @@ export const REVIEWS = [
 export const GARANTIES = [
   {
     iconName: 'Calendar' as const,
-    title: 'Wij staan voor ons woord én onze planning',
-    text: 'Wat we afspreken, doen we. De startdatum en uitvoeringsperiode worden vooraf duidelijk gecommuniceerd en actief bewaakt, zodat jullie exact weten wanneer we beginnen en opleveren.',
+    title: 'Wij staan voor ons woord en onze planning',
+    text: 'Wat we afspreken, doen we. De startdatum en uitvoeringsperiode worden vooraf duidelijk gecommuniceerd en actief bewaakt.',
   },
   {
     iconName: 'MessageCircle' as const,
-    title: 'Communicatie en opvolging, ook na oplevering',
-    text: 'Jullie krijgen tijdens de werken heldere updates (planning, mijlpalen, keuzes). We blijven bereikbaar voor vragen en advies, ook wanneer het project is opgeleverd.',
+    title: 'Communicatie en opvolging',
+    text: 'Jullie krijgen tijdens de werken heldere updates. We blijven bereikbaar voor vragen en advies, ook na oplevering.',
   },
   {
     iconName: 'Shield' as const,
-    title: 'Onvoorziene situaties? We lossen het correct op',
-    text: 'Duikt er iets onverwachts op, dan bespreken we dat meteen transparant. We stellen een gepaste oplossing voor, inclusief impact op timing en eventuele kosten, zodat er geen verrassingen zijn.',
+    title: 'Onvoorziene situaties? Correct opgelost',
+    text: 'Duikt er iets onverwachts op, dan bespreken we dat meteen transparant, inclusief impact op timing en kosten.',
   },
   {
     iconName: 'Star' as const,
-    title: 'Kwaliteit als ons visitekaartje',
-    text: 'We leveren af alsof het ons eigen huis is: nette afwerking, duurzame materialen en oog voor detail. Het resultaat moet een referentie zijn waar we beiden trots op zijn.',
+    title: 'Kwaliteit als visitekaartje',
+    text: 'We leveren af alsof het ons eigen huis is: nette afwerking, duurzame materialen en oog voor detail.',
   },
   {
     iconName: 'CheckCircle' as const,
     title: 'Transparante prijsafspraken',
-    text: 'De prijzen in deze offerte zijn duidelijk en volledig. Extra werken voeren we uitsluitend uit na jullie expliciete akkoord, zodat het budget onder controle blijft.',
+    text: 'De prijzen in deze offerte zijn duidelijk en volledig. Extra werken voeren we uitsluitend uit na jullie akkoord.',
   },
 ];
 
-// ─── Werkwijze stappen ──────────────────────────────────────────────
+// ─── Werkwijze stappen (8 stappen, incl. 3D Ontwerp) ───────────────
 export const WERKWIJZE_STAPPEN = [
   {
     nr: 1,
@@ -105,38 +105,63 @@ export const WERKWIJZE_STAPPEN = [
     nr: 2,
     title: 'Plaatsbezoek',
     status: 'current' as const,
-    copy: 'Een Zolderpunt-adviseur komt bij jou thuis om de ruimte te bekijken, te meten en eventuele technische aandachtspunten in kaart te brengen.',
+    copy: 'We komen bij jou langs om de ruimte op te meten, technische aandachtspunten te bekijken en alles in kaart te brengen.',
   },
   {
     nr: 3,
-    title: 'Gedetailleerde offerte',
+    title: '3D Ontwerp & visualisatie',
     status: 'upcoming' as const,
-    copy: 'Op basis van de opmeting maken we een gedetailleerd plan en een definitieve offerte met vaste prijzen.',
+    copy: 'Op basis van de opmeting maken we een 3D-ontwerp zodat je jouw toekomstige zolder al kunt zien voor de werken starten.',
   },
   {
     nr: 4,
+    title: 'Gedetailleerde offerte',
+    status: 'upcoming' as const,
+    copy: 'Op basis van de opmeting en het ontwerp maken we een gedetailleerd plan en een definitieve offerte met vaste prijzen.',
+  },
+  {
+    nr: 5,
     title: 'Akkoord & planning',
     status: 'upcoming' as const,
     copy: 'Na jouw akkoord plannen we de werken in en bespreken we de exacte timing en praktische afspraken.',
   },
   {
-    nr: 5,
+    nr: 6,
     title: 'Uitvoering',
     status: 'upcoming' as const,
-    copy: 'Ons team voert de renovatie uit volgens het goedgekeurde plan. Je hebt één vaste contactpersoon van begin tot einde.',
+    copy: 'Ons team voert de renovatie uit volgens het goedgekeurde plan. Je hebt een vaste contactpersoon van begin tot einde.',
   },
   {
-    nr: 6,
+    nr: 7,
     title: 'Oplevering',
     status: 'upcoming' as const,
     copy: 'Samen lopen we alles na. Pas als jij tevreden bent, is het project afgerond.',
   },
   {
-    nr: 7,
+    nr: 8,
     title: 'Jouw nieuwe ruimte',
     status: 'upcoming' as const,
     copy: 'Geniet van jouw volledig afgewerkte zolder - extra leefruimte die er altijd al was.',
   },
+];
+
+// ─── Standaard checklist items (voor InvesteringPage 3-kolom grid) ──
+export const STANDAARD_CHECKLIST_ITEMS = [
+  'Isolatie dak',
+  'Isolatie wanden',
+  'Binnenafwerking (gyproc)',
+  'Vloer (laminaat)',
+  'Vaste trap',
+  'Dakraam(en)',
+  'Elektriciteit',
+  'Verlichting',
+  'Verwarming',
+  'Badkamer',
+  'Airco',
+  'Maatwerk kasten',
+  'Chape',
+  'Schilderwerk',
+  'Ruwbouw aanpassingen',
 ];
 
 // ─── Opties checklist labels ────────────────────────────────────────
