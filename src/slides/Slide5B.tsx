@@ -37,17 +37,43 @@ type DakisolatieType = 'geen' | 'spantendak' | 'gordingendak';
 export default function Slide5B() {
   const { lead, updateLead } = useSession();
 
+  // ─── Restore calculator state from lead (persisted) ───────────────
+  const cs = lead.calculator_state;
   const [bruto, setBruto] = useState(String(lead.oppervlakte_m2 || ''));
-  const [nettoStr, setNettoStr] = useState(String(lead.oppervlakte_m2 || ''));
-  const [nettoManuallySet, setNettoManuallySet] = useState(false);
-  const [dakBekleed, setDakBekleed] = useState(false);
-  const [dakisolatieType, setDakisolatieType] = useState<DakisolatieType>('geen');
-  const [vloer, setVloer] = useState(false);
-  const [velux, setVelux] = useState(0);
-  const [trap, setTrap] = useState(false);
-  const [trapgat, setTrapgat] = useState<'hout' | 'beton' | 'geen'>('geen');
-  const [airco, setAirco] = useState(0);
-  const [schilderwerken, setSchilderwerken] = useState(false);
+  const [nettoStr, setNettoStr] = useState(
+    cs?.netto_m2 != null ? String(cs.netto_m2) : String(lead.oppervlakte_m2 || '')
+  );
+  const [nettoManuallySet, setNettoManuallySet] = useState(cs?.netto_manually_set ?? false);
+  const [dakBekleed, setDakBekleed] = useState(cs?.dak_bekleed ?? false);
+  const [dakisolatieType, setDakisolatieType] = useState<DakisolatieType>(cs?.dakisolatie_type ?? 'geen');
+  const [vloer, setVloer] = useState(cs?.vloer ?? false);
+  const [velux, setVelux] = useState(cs?.velux ?? 0);
+  const [trap, setTrap] = useState(cs?.trap ?? false);
+  const [trapgat, setTrapgat] = useState<'hout' | 'beton' | 'geen'>(cs?.trapgat ?? 'geen');
+  const [airco, setAirco] = useState(cs?.airco ?? 0);
+  const [schilderwerken, setSchilderwerken] = useState(cs?.schilderwerken ?? false);
+
+  // ─── Persist calculator state to lead on every change ─────────────
+  const calcStateRef = useRef<string>('');
+  useEffect(() => {
+    const state = {
+      dak_bekleed: dakBekleed,
+      dakisolatie_type: dakisolatieType,
+      vloer,
+      velux,
+      trap,
+      trapgat,
+      airco,
+      schilderwerken,
+      netto_m2: parseFloat(nettoStr) || null,
+      netto_manually_set: nettoManuallySet,
+    };
+    const key = JSON.stringify(state);
+    if (key !== calcStateRef.current) {
+      calcStateRef.current = key;
+      updateLead({ calculator_state: state });
+    }
+  }, [dakBekleed, dakisolatieType, vloer, velux, trap, trapgat, airco, schilderwerken, nettoStr, nettoManuallySet, updateLead]);
 
   // Sync bruto from lead.oppervlakte_m2
   useEffect(() => {
@@ -103,17 +129,15 @@ export default function Slide5B() {
   const btwPercentage = lead.btw_percentage ?? 6;
 
   const setBtwPercentage = (nieuwTarief: 6 | 21) => {
+    // Recalculate incl BTW from the stored excl value
+    const excl = result?.excl ?? lead.budget_excl ?? 0;
     const multiplier = 1 + nieuwTarief / 100;
-    const minExcl = result ? Math.round(result.excl * 0.85) : (lead.budget_min || 0);
-    const maxExcl = result ? Math.round(result.excl * 1.15) : (lead.budget_max || 0);
-    const mwMin = result ? Math.round(result.excl) : 0;
-    const mwMax = mwMin; // single-point for now
     updateLead({
       btw_percentage: nieuwTarief,
-      prijs_min_incl_btw: Math.round(minExcl * multiplier),
-      prijs_max_incl_btw: Math.round(maxExcl * multiplier),
-      prijs_mw_min_incl_btw: Math.round(mwMin * multiplier),
-      prijs_mw_max_incl_btw: Math.round(mwMax * multiplier),
+      prijs_min_incl_btw: Math.round(excl * 0.85 * multiplier),
+      prijs_max_incl_btw: Math.round(excl * 1.15 * multiplier),
+      prijs_mw_min_incl_btw: Math.round(excl * multiplier),
+      prijs_mw_max_incl_btw: Math.round(excl * multiplier),
     });
   };
 
@@ -121,24 +145,23 @@ export default function Slide5B() {
 
   useEffect(() => {
     if (result) {
-      const key = `${result.min}-${result.max}-${result.incl6}-${result.incl21}-${result.items.length}-${btwPercentage}`;
+      const key = `${result.excl}-${result.items.length}-${btwPercentage}`;
       if (key === prevResultRef.current) return;
       prevResultRef.current = key;
-      const multiplier = 1 + (btwPercentage) / 100;
-      const berekendeMin = Math.round(result.min);
-      const berekendeMax = Math.round(result.max);
-      const mwMin = Math.round(result.excl);
-      const mwMax = mwMin;
+      // incl BTW = excl band value × (1 + btw/100)
+      const multiplier = 1 + btwPercentage / 100;
       updateLead({
-        budget_min: berekendeMin,
-        budget_max: berekendeMax,
+        budget_excl: Math.round(result.excl),
+        budget_min: Math.round(result.min),
+        budget_max: Math.round(result.max),
         budget_incl6: Math.round(result.incl6),
         budget_incl21: Math.round(result.incl21),
         inbegrepen_posten: result.items.map(i => ({ post: i.label, bedrag: Math.round(i.amount) })),
-        prijs_min_incl_btw: Math.round(berekendeMin * multiplier),
-        prijs_max_incl_btw: Math.round(berekendeMax * multiplier),
-        prijs_mw_min_incl_btw: Math.round(mwMin * multiplier),
-        prijs_mw_max_incl_btw: Math.round(mwMax * multiplier),
+        // incl BTW from EXCL values (not from budget_min/max which are incl 6%)
+        prijs_min_incl_btw: Math.round(result.excl * 0.85 * multiplier),
+        prijs_max_incl_btw: Math.round(result.excl * 1.15 * multiplier),
+        prijs_mw_min_incl_btw: Math.round(result.excl * multiplier),
+        prijs_mw_max_incl_btw: Math.round(result.excl * multiplier),
       });
     }
   }, [result, updateLead, btwPercentage]);

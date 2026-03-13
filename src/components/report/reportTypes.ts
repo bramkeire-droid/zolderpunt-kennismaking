@@ -23,6 +23,7 @@ export interface ReportData {
   prijs_max: number;
   prijs_incl6: number;
   prijs_incl21: number;
+  budget_excl: number;
   btw_percentage: 6 | 21;
   prijs_min_incl_btw: number;
   prijs_max_incl_btw: number;

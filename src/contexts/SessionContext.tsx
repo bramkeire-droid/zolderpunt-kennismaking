@@ -28,6 +28,19 @@ export interface FeitjeItem {
   aangemaakt_op: string;
 }
 
+export interface CalcState {
+  dak_bekleed: boolean;
+  dakisolatie_type: 'geen' | 'spantendak' | 'gordingendak';
+  vloer: boolean;
+  velux: number;
+  trap: boolean;
+  trapgat: 'hout' | 'beton' | 'geen';
+  airco: number;
+  schilderwerken: boolean;
+  netto_m2: number | null;
+  netto_manually_set: boolean;
+}
+
 export interface LeadData {
   id?: string;
   voornaam: string;
@@ -50,11 +63,13 @@ export interface LeadData {
   budget_max: number | null;
   budget_incl6: number | null;
   budget_incl21: number | null;
+  budget_excl: number | null;
   btw_percentage: 6 | 21;
   prijs_min_incl_btw: number;
   prijs_max_incl_btw: number;
   prijs_mw_min_incl_btw: number;
   prijs_mw_max_incl_btw: number;
+  calculator_state: CalcState | null;
   inbegrepen_posten: any[];
   rapport_tekst: string;
   rapport_highlights: string;
@@ -111,11 +126,13 @@ export const defaultLeadData: LeadData = {
   budget_max: null,
   budget_incl6: null,
   budget_incl21: null,
+  budget_excl: null,
   btw_percentage: 6,
   prijs_min_incl_btw: 0,
   prijs_max_incl_btw: 0,
   prijs_mw_min_incl_btw: 0,
   prijs_mw_max_incl_btw: 0,
+  calculator_state: null,
   inbegrepen_posten: [],
   rapport_tekst: '',
   rapport_highlights: '',

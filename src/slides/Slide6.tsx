@@ -245,14 +245,15 @@ export default function Slide6() {
   const { lead } = useSession();
   const hasData = lead.budget_min && lead.budget_max && lead.budget_incl6;
 
-  // Fallback: compute incl BTW on-the-fly if not yet stored
+  // Compute incl BTW from excl values (budget_excl or fallback from budget_incl6)
   const btwPct = lead.btw_percentage ?? 6;
-  const inclBtw = (excl: number) =>
-    excl > 0 ? Math.round(excl * (1 + btwPct / 100)) : 0;
-  const minIncl = lead.prijs_min_incl_btw || inclBtw(lead.budget_min || 0);
-  const maxIncl = lead.prijs_max_incl_btw || inclBtw(lead.budget_max || 0);
-  const mwMinIncl = lead.prijs_mw_min_incl_btw || inclBtw(lead.budget_incl6 || 0);
-  const mwMaxIncl = lead.prijs_mw_max_incl_btw || inclBtw(lead.budget_incl6 || 0);
+  const excl = lead.budget_excl ?? (lead.budget_incl6 ? Math.round(lead.budget_incl6 / 1.06) : 0);
+  const multiplier = 1 + btwPct / 100;
+  // Use stored values, or compute from excl as fallback
+  const minIncl = lead.prijs_min_incl_btw || Math.round(excl * 0.85 * multiplier);
+  const maxIncl = lead.prijs_max_incl_btw || Math.round(excl * 1.15 * multiplier);
+  const mwMinIncl = lead.prijs_mw_min_incl_btw || Math.round(excl * multiplier);
+  const mwMaxIncl = lead.prijs_mw_max_incl_btw || Math.round(excl * multiplier);
   const mwInclLabel = mwMinIncl === mwMaxIncl
     ? formatPrijs(mwMinIncl)
     : `${formatPrijs(mwMinIncl)} - ${formatPrijs(mwMaxIncl)}`;

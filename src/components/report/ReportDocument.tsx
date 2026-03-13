@@ -430,13 +430,13 @@ function InvesteringPage({ data }: { data: ReportData }) {
   const likely = data.prijs_incl6 || (data.prijs_min + data.prijs_max) / 2;
   const btwPct = data.btw_percentage ?? 6;
 
-  // Fallback: compute incl BTW on-the-fly if not stored
-  const inclBtw = (excl: number) =>
-    excl > 0 ? Math.round(excl * (1 + btwPct / 100)) : 0;
-  const minIncl = data.prijs_min_incl_btw || inclBtw(data.prijs_min);
-  const maxIncl = data.prijs_max_incl_btw || inclBtw(data.prijs_max);
-  const mwMinIncl = data.prijs_mw_min_incl_btw || inclBtw(likely);
-  const mwMaxIncl = data.prijs_mw_max_incl_btw || inclBtw(likely);
+  // Compute incl BTW from excl values (budget_excl or back-calc from incl6)
+  const excl = data.budget_excl ?? (data.prijs_incl6 ? Math.round(data.prijs_incl6 / 1.06) : 0);
+  const btwMultiplier = 1 + btwPct / 100;
+  const minIncl = data.prijs_min_incl_btw || Math.round(excl * 0.85 * btwMultiplier);
+  const maxIncl = data.prijs_max_incl_btw || Math.round(excl * 1.15 * btwMultiplier);
+  const mwMinIncl = data.prijs_mw_min_incl_btw || Math.round(excl * btwMultiplier);
+  const mwMaxIncl = data.prijs_mw_max_incl_btw || Math.round(excl * btwMultiplier);
   const mwInclLabel = mwMinIncl === mwMaxIncl
     ? fmt(mwMinIncl)
     : `${fmt(mwMinIncl)} - ${fmt(mwMaxIncl)}`;

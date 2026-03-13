@@ -31,6 +31,7 @@ function mapLeadToReportData(lead: ReturnType<typeof useSession>['lead']): Repor
     prijs_max: lead.budget_max || 0,
     prijs_incl6: lead.budget_incl6 || 0,
     prijs_incl21: lead.budget_incl21 || 0,
+    budget_excl: lead.budget_excl || 0,
     btw_percentage: lead.btw_percentage ?? 6,
     prijs_min_incl_btw: lead.prijs_min_incl_btw ?? 0,
     prijs_max_incl_btw: lead.prijs_max_incl_btw ?? 0,
