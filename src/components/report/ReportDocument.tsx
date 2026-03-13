@@ -125,34 +125,40 @@ function PageFooter() {
 function CoverPage({ data }: { data: ReportData }) {
   return (
     <Page size="A4" style={{ backgroundColor: COLORS.primary }}>
-      {/* LAAG 1: Achtergrond foto — volledige pagina, position absolute
-          Hardcoded 595x842 pt (A4) — geen '%' om Yoga flow-problemen te vermijden */}
-      <Image
-        src={coverBackground}
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: 595,
-          height: 842,
-        }}
-      />
+      {/* Wrapper View = enig flow-element op de Page.
+          Yoga berekent paginahoogte op basis van dit element (595x842).
+          Alle kinderen zijn position:absolute BINNEN deze View,
+          niet direct op de Page — dat voorkomt dat Yoga de intrinsieke
+          afmetingen van de Image als flow-content meeneemt. */}
+      <View style={{ width: 595, height: 842 }}>
 
-      {/* LAAG 2: Tekst-overlay — position absolute, blijft in blauwe zone */}
-      <View
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: 270,
-          height: 842,
-          paddingTop: 44,
-          paddingLeft: 44,
-          paddingRight: 28,
-          paddingBottom: 36,
-          flexDirection: 'column',
-        }}
-      >
+        {/* LAAG 1: Achtergrond foto */}
+        <Image
+          src={coverBackground}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: 595,
+            height: 842,
+          }}
+        />
+
+        {/* LAAG 2: Tekst-overlay */}
+        <View
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: 270,
+            height: 842,
+            paddingTop: 44,
+            paddingLeft: 44,
+            paddingRight: 28,
+            paddingBottom: 36,
+            flexDirection: 'column',
+          }}
+        >
         {/* Logo */}
         <LogoPdfWit width={100} />
 
@@ -236,6 +242,7 @@ function CoverPage({ data }: { data: ReportData }) {
         }}>
           {CONTACT_WEBSITE}
         </Text>
+        </View>
       </View>
     </Page>
   );
