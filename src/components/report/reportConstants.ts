@@ -145,23 +145,14 @@ export const WERKWIJZE_STAPPEN = [
   },
 ];
 
-// ─── Standaard checklist items (voor InvesteringPage 3-kolom grid) ──
-export const STANDAARD_CHECKLIST_ITEMS = [
-  'Isolatie dak',
-  'Isolatie wanden',
-  'Binnenafwerking (gyproc)',
-  'Vloer (laminaat)',
-  'Vaste trap',
-  'Dakraam(en)',
+// ─── Standaard inbegrepen items (altijd getoond als inbegrepen) ──────
+export const STANDAARD_INBEGREPEN = [
+  'Vloerafwerking',
   'Elektriciteit',
   'Verlichting',
-  'Verwarming',
-  'Badkamer',
-  'Airco',
-  'Maatwerk kasten',
-  'Chape',
-  'Schilderwerk',
-  'Ruwbouw aanpassingen',
+  'Binnenafwerking',
+  'Wanden en deuren',
+  'Plamuurwerken, schildersklaar',
 ];
 
 // ─── Opties checklist labels ────────────────────────────────────────

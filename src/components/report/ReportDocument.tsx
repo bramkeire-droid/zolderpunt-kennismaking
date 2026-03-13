@@ -6,7 +6,7 @@ import { s } from './reportStyles';
 import {
   COLORS, TAGLINE, CONTACT_TELEFOON, CONTACT_EMAIL, CONTACT_WEBSITE,
   GOOGLE_REVIEW_SCORE, REVIEWS, GARANTIES, WERKWIJZE_STAPPEN,
-  STANDAARD_CHECKLIST_ITEMS, formatDatum,
+  STANDAARD_INBEGREPEN, formatDatum,
 } from './reportConstants';
 import type { ReportData, FeitjeItem } from './reportTypes';
 import PdfIcon from './PdfIcon';
@@ -395,26 +395,35 @@ function getTitelKader2(gewenstResultaat: string): string {
   return 'Extra leefruimte';
 }
 
-function buildChecklist(inbegrepen: { post: string; bedrag: number }[]) {
-  const activeNames = new Set(inbegrepen.map(p => p.post.toLowerCase().trim()));
+/**
+ * Build the "inbegrepen" checklist. Only shows items that ARE included:
+ * 1. Explicit calculator items (inbegrepen_posten) — only when selected
+ * 2. 6 standard items always included (vloerafwerking, elektriciteit, etc.)
+ * Items like Badkamer, Maatwerk kasten, Verwarming, Isolatie wanden are never shown.
+ */
+function buildChecklist(inbegrepen: { post: string; bedrag: number }[]): string[] {
+  const seen = new Set<string>();
+  const items: string[] = [];
 
-  // Start with inbegrepen items (active)
-  const items: { label: string; active: boolean }[] = inbegrepen.map(p => ({
-    label: p.post,
-    active: true,
-  }));
-
-  // Add standard items that aren't already covered
-  for (const stdItem of STANDAARD_CHECKLIST_ITEMS) {
-    const exists = activeNames.has(stdItem.toLowerCase().trim()) ||
-      items.some(it => it.label.toLowerCase().trim() === stdItem.toLowerCase().trim());
-    if (!exists) {
-      items.push({ label: stdItem, active: false });
+  // 1. Calculator items first
+  for (const p of inbegrepen) {
+    const key = p.post.toLowerCase().trim();
+    if (!seen.has(key)) {
+      seen.add(key);
+      items.push(p.post);
     }
   }
 
-  // Cap at 15 items
-  return items.slice(0, 15);
+  // 2. Add standard items (dedup against calculator items)
+  for (const std of STANDAARD_INBEGREPEN) {
+    const key = std.toLowerCase().trim();
+    if (!seen.has(key)) {
+      seen.add(key);
+      items.push(std);
+    }
+  }
+
+  return items;
 }
 
 function InvesteringPage({ data }: { data: ReportData }) {
@@ -422,7 +431,7 @@ function InvesteringPage({ data }: { data: ReportData }) {
   const checklist = buildChecklist(data.inbegrepen_posten || []);
 
   // Split checklist into rows of 3
-  const rows: { label: string; active: boolean }[][] = [];
+  const rows: string[][] = [];
   for (let i = 0; i < checklist.length; i += 3) {
     rows.push(checklist.slice(i, i + 3));
   }
@@ -466,7 +475,7 @@ function InvesteringPage({ data }: { data: ReportData }) {
 
       {rows.map((row, ri) => (
         <View key={ri} style={{ flexDirection: 'row' as const, marginBottom: 4 }}>
-          {row.map((item, ci) => (
+          {row.map((label, ci) => (
             <View key={ci} style={{
               width: '33%',
               flexDirection: 'row' as const,
@@ -475,18 +484,14 @@ function InvesteringPage({ data }: { data: ReportData }) {
               marginBottom: 4,
             }}>
               <View style={{ marginRight: 6 }}>
-                <PdfIcon
-                  name={item.active ? 'CheckCircle' : 'XCircle'}
-                  size={11}
-                  color={item.active ? COLORS.checkGreen : COLORS.lightGray}
-                />
+                <PdfIcon name="CheckCircle" size={11} color={COLORS.checkGreen} />
               </View>
               <Text style={[s.bodyKlein, {
                 flex: 1,
-                color: item.active ? COLORS.dark : COLORS.grijs,
-                fontWeight: item.active ? 600 : 400,
+                color: COLORS.dark,
+                fontWeight: 600,
               }]}>
-                {item.label}
+                {label}
               </Text>
             </View>
           ))}
