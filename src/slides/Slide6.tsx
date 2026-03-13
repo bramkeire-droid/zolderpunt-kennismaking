@@ -6,17 +6,16 @@ const fmt = (n: number) =>
   new Intl.NumberFormat('nl-BE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
 
 /**
- * Data-driven Gauss curve.
+ * Data-driven Gauss curve — pure HTML/CSS text labels over SVG curve.
  *
- * How it works:
- * - The full SVG viewBox is 600×240.
- * - The usable x-range is 60–540 (480px of drawing space).
- * - min maps to x=60, max maps to x=540.
- * - peak maps to a calculated x based on its ratio within [min, max].
- * - The curve is a cubic bezier whose peak is at the computed peak-x,
- *   with control points that widen the spread proportionally.
- * - This means an asymmetric peak (closer to min or max) produces
- *   an asymmetric curve — as it should.
+ * SVG is ONLY used for the bezier path + gradient fill.
+ * All text is rendered as absolutely positioned HTML elements,
+ * because SVG <text> with custom fontFamily is unreliable in Lovable.
+ *
+ * Coordinate system:
+ * - SVG viewBox = 600×240
+ * - Usable x-range = 60–540 (480px drawing space)
+ * - Positions are converted to percentages for the HTML overlay
  */
 function GaussCurve({ min, max, peak }: { min: number; max: number; peak: number }) {
   const svgW = 600;
@@ -37,8 +36,7 @@ function GaussCurve({ min, max, peak }: { min: number; max: number; peak: number
   const xMax = toX(max);
   const xPeak = toX(clampedPeak);
 
-  // Build asymmetric bezier: left half and right half have independent control points
-  // Spread = distance from edge to peak. Control points sit at ~40% from edge.
+  // Asymmetric bezier control points
   const leftSpread = xPeak - xMin;
   const rightSpread = xMax - xPeak;
 
@@ -55,82 +53,123 @@ function GaussCurve({ min, max, peak }: { min: number; max: number; peak: number
 
   const fillPath = `${curvePath} L ${xMax} ${yBase} L ${xMin} ${yBase} Z`;
 
-  // Position labels: min at left edge, max at right edge, peak at computed center
-  // Offset peak label slightly if too close to edges
-  const peakLabelX = Math.min(svgW - 60, Math.max(60, xPeak));
+  // Convert SVG coordinates to percentage positions for HTML overlay
+  const toPctX = (x: number) => (x / svgW) * 100;
+  const toPctY = (y: number) => (y / svgH) * 100;
+
+  // Peak label — clamped so it doesn't go off-screen
+  const peakX = Math.min(svgW - 60, Math.max(60, xPeak));
 
   return (
     <div className="w-full max-w-2xl mx-auto px-4">
-      <svg viewBox={`0 0 ${svgW} ${svgH}`} className="w-full h-auto" preserveAspectRatio="xMidYMid meet">
-        <defs>
-          <linearGradient id="curveGrad" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="white" stopOpacity="0" />
-            <stop offset="25%" stopColor="white" stopOpacity="0.12" />
-            <stop offset="50%" stopColor="white" stopOpacity="0.22" />
-            <stop offset="75%" stopColor="white" stopOpacity="0.12" />
-            <stop offset="100%" stopColor="white" stopOpacity="0" />
-          </linearGradient>
-        </defs>
+      {/* Container with relative positioning for HTML text overlay */}
+      <div className="relative w-full" style={{ aspectRatio: `${svgW} / ${svgH}` }}>
+        {/* SVG: only curve paths, NO text */}
+        <svg
+          viewBox={`0 0 ${svgW} ${svgH}`}
+          className="absolute inset-0 w-full h-full"
+          preserveAspectRatio="xMidYMid meet"
+        >
+          <defs>
+            <linearGradient id="curveGrad6" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="white" stopOpacity="0" />
+              <stop offset="25%" stopColor="white" stopOpacity="0.12" />
+              <stop offset="50%" stopColor="white" stopOpacity="0.22" />
+              <stop offset="75%" stopColor="white" stopOpacity="0.12" />
+              <stop offset="100%" stopColor="white" stopOpacity="0" />
+            </linearGradient>
+          </defs>
 
-        {/* Filled area under curve */}
-        <path d={fillPath} fill="url(#curveGrad)" />
+          {/* Filled area under curve */}
+          <path d={fillPath} fill="url(#curveGrad6)" />
 
-        {/* Curve stroke */}
-        <path d={curvePath} fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
+          {/* Curve stroke */}
+          <path d={curvePath} fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
+        </svg>
 
-        {/* Peak price label — above the curve peak */}
-        <text
-          x={peakLabelX} y={yPeak - 14}
-          textAnchor="middle" fill="white"
-          fontFamily="'Space Grotesk', sans-serif" fontWeight="700" fontSize="26"
+        {/* HTML text overlay — all labels are positioned with percentages */}
+
+        {/* Peak price (large, above curve top) */}
+        <span
+          className="absolute font-headline font-bold text-primary-foreground"
+          style={{
+            left: `${toPctX(peakX)}%`,
+            top: `${toPctY(yPeak - 20)}%`,
+            transform: 'translateX(-50%)',
+            fontSize: 'clamp(1.25rem, 4vw, 1.75rem)',
+          }}
         >
           {fmt(peak)}
-        </text>
+        </span>
 
-        {/* Min price — at the left foot of the curve */}
-        <text
-          x={xMin} y={yBase - 16}
-          textAnchor="middle" fill="white"
-          fontFamily="'Space Grotesk', sans-serif" fontWeight="600" fontSize="16" opacity="0.7"
+        {/* Min price (smaller, at left foot) */}
+        <span
+          className="absolute font-headline font-semibold text-primary-foreground/70"
+          style={{
+            left: `${toPctX(xMin)}%`,
+            top: `${toPctY(yBase - 24)}%`,
+            transform: 'translateX(-50%)',
+            fontSize: 'clamp(0.7rem, 2.5vw, 1rem)',
+          }}
         >
           {fmt(min)}
-        </text>
+        </span>
 
-        {/* Max price — at the right foot of the curve */}
-        <text
-          x={xMax} y={yBase - 16}
-          textAnchor="middle" fill="white"
-          fontFamily="'Space Grotesk', sans-serif" fontWeight="600" fontSize="16" opacity="0.7"
+        {/* Max price (smaller, at right foot) */}
+        <span
+          className="absolute font-headline font-semibold text-primary-foreground/70"
+          style={{
+            left: `${toPctX(xMax)}%`,
+            top: `${toPctY(yBase - 24)}%`,
+            transform: 'translateX(-50%)',
+            fontSize: 'clamp(0.7rem, 2.5vw, 1rem)',
+          }}
         >
           {fmt(max)}
-        </text>
+        </span>
 
-        {/* Labels */}
-        <text
-          x={peakLabelX} y={yBase + 24}
-          textAnchor="middle" fill="white"
-          fontFamily="'Rethink Sans', sans-serif" fontSize="10" opacity="0.5"
-          letterSpacing="1.5"
+        {/* "MEEST WAARSCHIJNLIJK" label under peak */}
+        <span
+          className="absolute font-body text-primary-foreground/50 uppercase tracking-widest"
+          style={{
+            left: `${toPctX(peakX)}%`,
+            top: `${toPctY(yBase + 16)}%`,
+            transform: 'translateX(-50%)',
+            fontSize: 'clamp(0.45rem, 1.5vw, 0.625rem)',
+            whiteSpace: 'nowrap',
+          }}
         >
           MEEST WAARSCHIJNLIJK
-        </text>
-        <text
-          x={xMin} y={yBase + 20}
-          textAnchor="middle" fill="white"
-          fontFamily="'Rethink Sans', sans-serif" fontSize="9" opacity="0.4"
-          letterSpacing="1"
+        </span>
+
+        {/* "MINIMUM" label under left foot */}
+        <span
+          className="absolute font-body text-primary-foreground/40 uppercase tracking-wider"
+          style={{
+            left: `${toPctX(xMin)}%`,
+            top: `${toPctY(yBase + 12)}%`,
+            transform: 'translateX(-50%)',
+            fontSize: 'clamp(0.4rem, 1.3vw, 0.55rem)',
+            whiteSpace: 'nowrap',
+          }}
         >
           MINIMUM
-        </text>
-        <text
-          x={xMax} y={yBase + 20}
-          textAnchor="middle" fill="white"
-          fontFamily="'Rethink Sans', sans-serif" fontSize="9" opacity="0.4"
-          letterSpacing="1"
+        </span>
+
+        {/* "MAXIMUM" label under right foot */}
+        <span
+          className="absolute font-body text-primary-foreground/40 uppercase tracking-wider"
+          style={{
+            left: `${toPctX(xMax)}%`,
+            top: `${toPctY(yBase + 12)}%`,
+            transform: 'translateX(-50%)',
+            fontSize: 'clamp(0.4rem, 1.3vw, 0.55rem)',
+            whiteSpace: 'nowrap',
+          }}
         >
           MAXIMUM
-        </text>
-      </svg>
+        </span>
+      </div>
     </div>
   );
 }

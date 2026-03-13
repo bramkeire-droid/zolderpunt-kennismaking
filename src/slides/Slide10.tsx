@@ -116,13 +116,23 @@ export default function Slide10() {
 
       const reportData = mapLeadToReportData(lead);
 
-      console.log('[PDF] Starting PDF generation');
+      console.log('[PDF] Starting PDF generation with data:', JSON.stringify({
+        voornaam: reportData.voornaam,
+        achternaam: reportData.achternaam,
+        fotos: reportData.fotos?.length ?? 0,
+        prijs_min: reportData.prijs_min,
+        prijs_max: reportData.prijs_max,
+        hasSituatie: !!reportData.situatie,
+      }));
       let blob: Blob;
       try {
         blob = await pdf(<ReportDocument data={reportData} />).toBlob();
-      } catch (pdfErr) {
-        console.error('[PDF] toBlob() failed:', pdfErr);
-        toast.error('PDF render mislukt — controleer de console voor details.');
+      } catch (pdfErr: unknown) {
+        const errMsg = pdfErr instanceof Error ? pdfErr.message : String(pdfErr);
+        const errStack = pdfErr instanceof Error ? pdfErr.stack : '';
+        console.error('[PDF] toBlob() failed:', errMsg);
+        console.error('[PDF] Stack:', errStack);
+        toast.error(`PDF render mislukt: ${errMsg.slice(0, 120)}`);
         return;
       }
 

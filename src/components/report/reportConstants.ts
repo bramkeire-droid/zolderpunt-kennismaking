@@ -30,7 +30,7 @@ const MAANDEN = [
 ];
 
 export function formatDatum(datum: string): string {
-  if (!datum) return '—';
+  if (!datum) return '-';
   const d = new Date(datum);
   if (isNaN(d.getTime())) return datum;
   return `${d.getDate()} ${MAANDEN[d.getMonth()]} ${d.getFullYear()}`;
@@ -135,7 +135,7 @@ export const WERKWIJZE_STAPPEN = [
     nr: 7,
     title: 'Jouw nieuwe ruimte',
     status: 'upcoming' as const,
-    copy: 'Geniet van jouw volledig afgewerkte zolder — extra leefruimte die er altijd al was.',
+    copy: 'Geniet van jouw volledig afgewerkte zolder - extra leefruimte die er altijd al was.',
   },
 ];
 
@@ -147,6 +147,6 @@ export const OPTIES_LABELS: Record<string, string> = {
   velux: 'Velux dakraam',
   trap: 'Vaste trap',
   elektriciteit: 'Elektriciteit',
-  airco: 'Airco (optioneel — apart geoffreerd)',
+  airco: 'Airco (optioneel - apart geoffreerd)',
   schilderwerk: 'Schilderwerk (altijd exclusief)',
 };

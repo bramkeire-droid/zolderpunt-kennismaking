@@ -33,19 +33,35 @@ const REVIEW_PHOTOS: Record<string, string> = {
 const fmt = (n: number) =>
   new Intl.NumberFormat('nl-BE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
 
+// ─── Text sanitizer: replace Unicode chars that may be missing in fonts ──
+function safe(text: string): string {
+  return (text || '')
+    .replace(/[\u2713\u2714\u2705]/g, 'v')       // checkmarks
+    .replace(/[\u2190-\u2199]/g, '')               // arrows
+    .replace(/[\u2014]/g, '-')                     // em-dash
+    .replace(/[\u2013]/g, '-')                     // en-dash
+    .replace(/[\u2018\u2019]/g, "'")               // smart single quotes
+    .replace(/[\u201C\u201D]/g, '"')               // smart double quotes
+    .replace(/[\u2026]/g, '...')                   // ellipsis
+    .replace(/[\u2022\u2023\u25CF]/g, '-')         // bullets
+    .replace(/[\u00B1]/g, '+/-')                   // plus-minus
+    .replace(/[^\x20-\x7E\u00A0-\u00FF\u0100-\u024F\u20AC]/g, ''); // strip remaining non-Latin
+}
+
 // ─── Safe data wrapper ───────────────────────────────────────────────
 function makeSafe(data: ReportData) {
   return {
     ...data,
-    situatie: data.situatie ?? '',
-    verwachtingen: data.verwachtingen ?? '',
-    besproken: data.besproken ?? '',
-    aandachtspunten: data.aandachtspunten ?? '',
-    waarde_tekst_ai: data.waarde_tekst_ai ?? 'Extra leefruimte gecreëerd uit ruimte die er al was.',
+    situatie: safe(data.situatie ?? ''),
+    verwachtingen: safe(data.verwachtingen ?? ''),
+    besproken: safe(data.besproken ?? ''),
+    aandachtspunten: safe(data.aandachtspunten ?? ''),
+    waarde_tekst_ai: safe(data.waarde_tekst_ai ?? 'Extra leefruimte gecreeerd uit ruimte die er al was.'),
     fotos: data.fotos ?? [],
     fotos_met_path: data.fotos_met_path ?? [],
-    project_feiten: data.project_feiten ?? [],
-    inbegrepen_posten: data.inbegrepen_posten ?? [],
+    project_feiten: (data.project_feiten ?? []).map(f => ({ ...f, tekst: safe(f.tekst) })),
+    inbegrepen_posten: (data.inbegrepen_posten ?? []).map(p => ({ ...p, post: safe(p.post) })),
+    gewenst_resultaat: safe(data.gewenst_resultaat ?? ''),
   };
 }
 
@@ -216,10 +232,10 @@ function SamenvattingPage({ data }: { data: ReportData }) {
 // ═══════════════════════════════════════════════════════════════════════
 function KlantprofielPage({ data }: { data: ReportData }) {
   const profiel = [
-    { label: 'Naam', value: `${data.voornaam} ${data.achternaam}`.trim() || '—' },
-    { label: 'Adres', value: data.adres || '—' },
+    { label: 'Naam', value: `${data.voornaam} ${data.achternaam}`.trim() || '-' },
+    { label: 'Adres', value: data.adres || '-' },
     { label: 'Datum gesprek', value: formatDatum(data.datum_gesprek) },
-    { label: 'Oppervlakte', value: data.oppervlakte_m2 ? `${data.oppervlakte_m2} m² bruto` : '—' },
+    { label: 'Oppervlakte', value: data.oppervlakte_m2 ? `${data.oppervlakte_m2} m2 bruto` : '-' },
   ];
 
   // Build tech items from inbegrepen_posten
@@ -360,7 +376,7 @@ function FotosPage({ data }: { data: ReportData }) {
       <Text style={s.sectionLabel}>JOUW ZOLDER VANDAAG</Text>
       <Text style={s.pageTitle}>Jouw zolder vandaag</Text>
       <Text style={[s.bodyKlein, { marginBottom: 16 }]}>
-        Hieronder zie je de huidige staat van jouw zolder — het vertrekpunt voor jouw renovatie.
+        Hieronder zie je de huidige staat van jouw zolder - het vertrekpunt voor jouw renovatie.
       </Text>
 
       {hasPhotos ? (
@@ -407,7 +423,7 @@ function GaussCurveSvg({ min, max, likely }: { min: number; max: number; likely:
       <Path
         d={`M ${xMwMin} ${yBase} C ${xMwMin} ${yBase}, ${xMwMin} ${yPeak}, ${xCenter} ${yPeak} C ${xCenter} ${yPeak}, ${xMwMax} ${yPeak}, ${xMwMax} ${yBase} Z`}
         fill={COLORS.primary}
-        fillOpacity={0.15}
+        opacity={0.15}
       />
 
       {/* Bell curve line */}
@@ -431,7 +447,7 @@ function PrijsPage({ data }: { data: ReportData }) {
   return (
     <Page size="A4" style={s.page}>
       <Text style={s.sectionLabel}>PRIJSINDICATIE</Text>
-      <Text style={s.pageTitle}>Jouw investering — een eerste indicatie</Text>
+      <Text style={s.pageTitle}>Jouw investering - een eerste indicatie</Text>
 
       {/* Gausscurve SVG */}
       {data.prijs_min > 0 && data.prijs_max > 0 && (
@@ -478,7 +494,7 @@ function PrijsPage({ data }: { data: ReportData }) {
 
       {/* Disclaimer */}
       <Text style={[s.bodyItalic, { marginTop: 16 }]}>
-        Deze indicatie is gebaseerd op ons gesprek en de opgegeven oppervlakte. Na het plaatsbezoek ontvang je een gedetailleerde offerte met vaste prijzen — geen verrassingen achteraf.
+        Deze indicatie is gebaseerd op ons gesprek en de opgegeven oppervlakte. Na het plaatsbezoek ontvang je een gedetailleerde offerte met vaste prijzen - geen verrassingen achteraf.
       </Text>
 
       <PageFooter />
@@ -511,10 +527,10 @@ function WaardePage({ data }: { data: ReportData }) {
           <View style={s.waardeContent}>
             <PdfIcon name="Maximize2" size={18} color={COLORS.primary} />
             <Text style={[s.h3, { marginTop: 8, fontSize: 11 }]}>
-              {data.oppervlakte_m2 || '?'} m² nieuwe leefruimte
+              {data.oppervlakte_m2 || '?'} m2 nieuwe leefruimte
             </Text>
             <Text style={s.bodyKlein}>
-              Jouw zolder heeft {data.oppervlakte_m2 || '?'}m² bruikbare oppervlakte — vandaag nog onbenut.
+              Jouw zolder heeft {data.oppervlakte_m2 || '?'}m2 bruikbare oppervlakte - vandaag nog onbenut.
             </Text>
           </View>
         </View>
@@ -538,7 +554,7 @@ function WaardePage({ data }: { data: ReportData }) {
             <PdfIcon name="TrendingUp" size={18} color={COLORS.primary} />
             <Text style={[s.h3, { marginTop: 8, fontSize: 11 }]}>8 à 15% meer waard</Text>
             <Text style={s.bodyKlein}>
-              Een afgewerkte zolder verhoogt de verkoopwaarde van je woning gemiddeld met 8 à 15% — vastgesteld door vastgoedexperts.
+              Een afgewerkte zolder verhoogt de verkoopwaarde van je woning gemiddeld met 8 a 15% - vastgesteld door vastgoedexperts.
             </Text>
           </View>
         </View>
@@ -546,7 +562,7 @@ function WaardePage({ data }: { data: ReportData }) {
 
       {/* Closing statement */}
       <Text style={{
-        fontFamily: 'SpaceGrotesk',
+        fontFamily: 'RethinkSans',
         fontWeight: 600,
         fontSize: 12,
         color: COLORS.primary,
@@ -554,7 +570,7 @@ function WaardePage({ data }: { data: ReportData }) {
         marginTop: 20,
         lineHeight: 1.4,
       }}>
-        {data.oppervlakte_m2 || '?'}m² onbenutte ruimte omvormen tot {(data.gewenst_resultaat || 'extra leefruimte').toLowerCase()} — dat is de slimste investering die je vandaag in jouw woning kunt doen.
+        {data.oppervlakte_m2 || '?'}m2 onbenutte ruimte omvormen tot {(data.gewenst_resultaat || 'extra leefruimte').toLowerCase()} - dat is de slimste investering die je vandaag in jouw woning kunt doen.
       </Text>
 
       <PageFooter />
@@ -588,7 +604,7 @@ function WerkwijzePage() {
                 isUpcoming ? { borderWidth: 1.5, borderColor: circleBorder } : {},
               ]}>
                 {isDone ? (
-                  <Text style={[s.timelineNr, { fontSize: 11 }]}>✓</Text>
+                  <PdfIcon name="CheckCircle" size={12} color={COLORS.white} />
                 ) : isCurrent ? (
                   <Text style={[s.timelineNr, { fontSize: 8 }]}>{stap.nr}</Text>
                 ) : (
@@ -603,7 +619,7 @@ function WerkwijzePage() {
                   {isCurrent && (
                     <View style={{ backgroundColor: COLORS.primary, paddingHorizontal: 6, paddingVertical: 2 }}>
                       <Text style={{ fontFamily: 'RethinkSans', fontSize: 7, color: COLORS.white, fontWeight: 600 }}>
-                        ← Nu
+                        Nu
                       </Text>
                     </View>
                   )}
@@ -630,7 +646,7 @@ function GarantiesPage() {
       <Text style={s.sectionLabel}>GARANTIES</Text>
       <Text style={s.pageTitle}>Waarom klanten voor Zolderpunt kiezen</Text>
       <Text style={[s.bodyGrijs, { marginBottom: 20 }]}>
-        Een renovatie is een groot vertrouwen. Dit zijn de afspraken die wij met elke klant maken — zonder uitzondering.
+        Een renovatie is een groot vertrouwen. Dit zijn de afspraken die wij met elke klant maken - zonder uitzondering.
       </Text>
 
       {/* Rows of 2 */}
@@ -713,11 +729,11 @@ function CTAPage({ data }: { data: ReportData }) {
       </Text>
 
       <Text style={[s.bodyGrijs, { marginBottom: 12 }]}>
-        Tijdens het plaatsbezoek beantwoorden we al je vragen en maken we een gedetailleerde opmeting — zodat je daarna een offerte ontvangt zonder verrassingen.
+        Tijdens het plaatsbezoek beantwoorden we al je vragen en maken we een gedetailleerde opmeting - zodat je daarna een offerte ontvangt zonder verrassingen.
       </Text>
 
       <Text style={[s.bodyText, { color: COLORS.primary, marginBottom: 24 }]}>
-        De meeste klanten plannen het plaatsbezoek binnen de week — zo blijft alles wat we bespraken vers en kunnen we snel schakelen.
+        De meeste klanten plannen het plaatsbezoek binnen de week - zo blijft alles wat we bespraken vers en kunnen we snel schakelen.
       </Text>
 
       {/* Contact block */}
@@ -746,7 +762,7 @@ function CTAPage({ data }: { data: ReportData }) {
       {/* CTA Banner */}
       <View style={s.ctaBanner} wrap={false}>
         <Text style={s.ctaBannerText}>
-          Plan jouw gratis plaatsbezoek — en ontdek wat jouw zolder kan worden.
+          Plan jouw gratis plaatsbezoek - en ontdek wat jouw zolder kan worden.
         </Text>
       </View>
 

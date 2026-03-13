@@ -2,31 +2,35 @@ import { StyleSheet, Font } from '@react-pdf/renderer';
 import { COLORS } from './reportConstants';
 
 // ─── Font imports (bundled by Vite) ─────────────────────────────────
-import spaceGrotesk400 from '@/assets/fonts/space-grotesk-400.ttf';
-import spaceGrotesk600 from '@/assets/fonts/space-grotesk-600.ttf';
-import spaceGrotesk700 from '@/assets/fonts/space-grotesk-700.ttf';
-import rethinkSans400 from '@/assets/fonts/rethink-sans-400.ttf';
-import rethinkSans400i from '@/assets/fonts/rethink-sans-400-italic.ttf';
-import rethinkSans600 from '@/assets/fonts/rethink-sans-600.ttf';
-import rethinkSans700 from '@/assets/fonts/rethink-sans-700.ttf';
+import spaceGrotesk400Raw from '@/assets/fonts/space-grotesk-400.ttf';
+import spaceGrotesk600Raw from '@/assets/fonts/space-grotesk-600.ttf';
+import spaceGrotesk700Raw from '@/assets/fonts/space-grotesk-700.ttf';
+import rethinkSans400Raw from '@/assets/fonts/rethink-sans-400.ttf';
+import rethinkSans400iRaw from '@/assets/fonts/rethink-sans-400-italic.ttf';
+import rethinkSans600Raw from '@/assets/fonts/rethink-sans-600.ttf';
+import rethinkSans700Raw from '@/assets/fonts/rethink-sans-700.ttf';
+
+// Convert Vite relative asset paths to absolute URLs for react-pdf fetch
+const toAbs = (src: string) =>
+  src.startsWith('http') ? src : new URL(src, window.location.origin).href;
 
 // SpaceGrotesk as Brockmann fallback (no Brockmann .ttf available)
 Font.register({
   family: 'SpaceGrotesk',
   fonts: [
-    { src: spaceGrotesk400, fontWeight: 400 },
-    { src: spaceGrotesk600, fontWeight: 600 },
-    { src: spaceGrotesk700, fontWeight: 700 },
+    { src: toAbs(spaceGrotesk400Raw), fontWeight: 400 },
+    { src: toAbs(spaceGrotesk600Raw), fontWeight: 600 },
+    { src: toAbs(spaceGrotesk700Raw), fontWeight: 700 },
   ],
 });
 
 Font.register({
   family: 'RethinkSans',
   fonts: [
-    { src: rethinkSans400, fontWeight: 400 },
-    { src: rethinkSans400i, fontWeight: 400, fontStyle: 'italic' },
-    { src: rethinkSans600, fontWeight: 600 },
-    { src: rethinkSans700, fontWeight: 700 },
+    { src: toAbs(rethinkSans400Raw), fontWeight: 400 },
+    { src: toAbs(rethinkSans400iRaw), fontWeight: 400, fontStyle: 'italic' },
+    { src: toAbs(rethinkSans600Raw), fontWeight: 600 },
+    { src: toAbs(rethinkSans700Raw), fontWeight: 700 },
   ],
 });
 
