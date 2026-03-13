@@ -124,56 +124,59 @@ function PageFooter() {
 // ═══════════════════════════════════════════════════════════════════════
 function CoverPage({ data }: { data: ReportData }) {
   return (
-    <Page size="A4" style={{ padding: 0, backgroundColor: COLORS.primary }}>
-      {/* LAAG 1: coverbackground.jpg beslaat de VOLLEDIGE pagina
-          De diagonale 40-grens zit IN de foto zelf (niet in code) */}
+    <Page size="A4" style={{ backgroundColor: COLORS.primary }}>
+      {/* LAAG 1: Achtergrond foto — volledige pagina, position absolute
+          Hardcoded 595x842 pt (A4) — geen '%' om Yoga flow-problemen te vermijden */}
       <Image
         src={coverBackground}
         style={{
-          position: 'absolute' as const,
+          position: 'absolute',
           top: 0,
           left: 0,
-          width: '100%',
-          height: '100%',
+          width: 595,
+          height: 842,
         }}
       />
 
-      {/* LAAG 2: Logo + tekst-overlay — zweeft BOVENOP de foto */}
+      {/* LAAG 2: Tekst-overlay — position absolute, blijft in blauwe zone */}
       <View
         style={{
-          position: 'absolute' as const,
+          position: 'absolute',
           top: 0,
           left: 0,
-          width: '50%',
-          height: '100%',
-          padding: 44,
-          flexDirection: 'column' as const,
+          width: 270,
+          height: 842,
+          paddingTop: 44,
+          paddingLeft: 44,
+          paddingRight: 28,
+          paddingBottom: 36,
+          flexDirection: 'column',
         }}
       >
         {/* Logo */}
-        <LogoPdfWit width={110} />
+        <LogoPdfWit width={100} />
 
-        {/* Tagline — 30% groter, zelfde kleur als logo */}
+        {/* Tagline */}
         <Text style={{
           fontFamily: 'RethinkSans',
-          fontSize: 10,
+          fontSize: 7.5,
           color: COLORS.white,
-          marginTop: 6,
-          opacity: 0.85,
+          marginTop: 5,
+          opacity: 0.8,
         }}>
           {TAGLINE}
         </Text>
 
-        {/* Witruimte */}
-        <View style={{ flex: 1, minHeight: 40, maxHeight: 80 }} />
+        {/* Verticale spacer */}
+        <View style={{ height: 56 }} />
 
         {/* Label */}
         <Text style={{
           fontFamily: 'RethinkSans',
-          fontSize: 7,
+          fontSize: 6.5,
           color: COLORS.white,
           letterSpacing: 1.5,
-          opacity: 0.7,
+          opacity: 0.65,
           marginBottom: 8,
         }}>
           UW PERSOONLIJK DOSSIER
@@ -182,56 +185,54 @@ function CoverPage({ data }: { data: ReportData }) {
         {/* Naam */}
         <Text style={{
           fontFamily: 'SpaceGrotesk',
-          fontSize: 26,
+          fontSize: 24,
           fontWeight: 700,
           color: COLORS.white,
-          lineHeight: 1.15,
+          lineHeight: 1.2,
         }}>
-          {data.voornaam || 'Beste klant'}{'\n'}{data.achternaam || ''}
+          {data.voornaam}{'\n'}{data.achternaam}
         </Text>
 
         {/* Accentlijn */}
         <View style={{
-          width: 36,
+          width: 32,
           height: 3,
           backgroundColor: COLORS.white,
-          opacity: 0.6,
+          opacity: 0.55,
           marginTop: 14,
           marginBottom: 14,
         }} />
 
         {/* Adres */}
-        {data.adres ? (
-          <Text style={{
-            fontFamily: 'RethinkSans',
-            fontSize: 9.5,
-            color: COLORS.white,
-            opacity: 0.85,
-          }}>
-            {data.adres}
-          </Text>
-        ) : null}
-
-        {/* Datum */}
         <Text style={{
           fontFamily: 'RethinkSans',
           fontSize: 9,
           color: COLORS.white,
-          opacity: 0.65,
+          opacity: 0.85,
+        }}>
+          {data.adres}
+        </Text>
+
+        {/* Datum */}
+        <Text style={{
+          fontFamily: 'RethinkSans',
+          fontSize: 8.5,
+          color: COLORS.white,
+          opacity: 0.6,
           marginTop: 4,
         }}>
           Datum gesprek: {formatDatum(data.datum_gesprek)}
         </Text>
 
-        {/* Ruimte naar onderaan */}
-        <View style={{ flex: 1 }} />
-
-        {/* Footer */}
+        {/* Website onderaan — vaste positie */}
         <Text style={{
+          position: 'absolute',
+          bottom: 36,
+          left: 44,
           fontFamily: 'RethinkSans',
-          fontSize: 7.5,
+          fontSize: 7,
           color: COLORS.white,
-          opacity: 0.5,
+          opacity: 0.45,
         }}>
           {CONTACT_WEBSITE}
         </Text>
