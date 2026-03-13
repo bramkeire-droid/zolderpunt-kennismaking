@@ -1,9 +1,9 @@
 import { useRef, useState } from 'react';
-import { useSession } from '@/contexts/SessionContext';
+import { useSession, FeitjeItem } from '@/contexts/SessionContext';
 import SlideLayout from '@/components/SlideLayout';
 import SlideLabel from '@/components/SlideLabel';
 import { Button } from '@/components/ui/button';
-import { Upload, Loader2, X, Image } from 'lucide-react';
+import { Upload, Loader2, X, Image, ImageOff } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface PhotoItem {
@@ -24,6 +24,11 @@ export default function Slide4() {
     ...f,
     publicUrl: f.url || supabase.storage.from('lead-fotos').getPublicUrl(f.storage_path).data.publicUrl,
   }));
+
+  // Backwards compatible: filter out old string-based feitjes
+  const feitjes: FeitjeItem[] = (lead.project_feiten || []).filter(
+    (f): f is FeitjeItem => typeof f === 'object' && 'tekst' in f
+  );
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -53,21 +58,37 @@ export default function Slide4() {
     const noteId = Date.now() + idx;
     setAnimatingFeit({ id: noteId, text, rotation });
     setInputs(prev => prev.map((v, i) => i === idx ? '' : v));
+
+    // Get currently selected photo info
+    const selectedPhoto = activeIndex !== null && photos[activeIndex] ? photos[activeIndex] : null;
+
     setTimeout(() => {
-      updateLead({ project_feiten: [...(lead.project_feiten || []), text] });
+      const nieuwFeitje: FeitjeItem = {
+        id: Date.now().toString(),
+        tekst: text,
+        foto_path: selectedPhoto?.storage_path || null,
+        foto_index: activeIndex,
+        aangemaakt_op: new Date().toISOString(),
+      };
+      updateLead({ project_feiten: [...feitjes, nieuwFeitje] });
       setAnimatingFeit(null);
     }, 500);
   };
 
-  const removeFeit = (feitIdx: number) => {
-    updateLead({ project_feiten: (lead.project_feiten || []).filter((_, i) => i !== feitIdx) });
+  const removeFeit = (feitId: string) => {
+    updateLead({ project_feiten: feitjes.filter(f => f.id !== feitId) });
   };
 
   const updateInput = (idx: number, value: string) => {
     setInputs(prev => prev.map((v, i) => i === idx ? value : v));
   };
 
-  const feiten = lead.project_feiten || [];
+  // Helper: get photo thumbnail URL for a feitje
+  const getFeitjePhotoUrl = (feitje: FeitjeItem): string | null => {
+    if (!feitje.foto_path) return null;
+    const matchedPhoto = photos.find(p => p.storage_path === feitje.foto_path);
+    return matchedPhoto?.publicUrl || null;
+  };
 
   return (
     <SlideLayout showSave>
@@ -187,9 +208,14 @@ export default function Slide4() {
             <h3 className="text-lg font-headline font-bold text-foreground">
               Wat valt op?
             </h3>
+            {activeIndex !== null && photos[activeIndex] && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Feitjes worden gekoppeld aan foto {activeIndex + 1}
+              </p>
+            )}
           </div>
 
-          {/* 3 textarea fields — minstens 120px hoog, 500 tekens */}
+          {/* 3 textarea fields */}
           <div className="space-y-3 shrink-0">
             {inputs.map((val, idx) => (
               <div key={idx} className="flex gap-2">
@@ -215,20 +241,31 @@ export default function Slide4() {
 
           {/* Post-it kaartjes */}
           <div className="flex-1 overflow-y-auto space-y-2 min-h-0 pr-1">
-            {feiten.map((feit, i) => {
+            {feitjes.map((feitje, i) => {
               const rot = ((i * 7 + 3) % 7) - 3;
+              const thumbUrl = getFeitjePhotoUrl(feitje);
               return (
                 <div
-                  key={i}
-                  className="relative bg-[#008CFF]/10 border-2 border-[#008CFF]/30 p-4 shadow-sm group cursor-default"
+                  key={feitje.id}
+                  className="relative bg-[#008CFF]/10 border-2 border-[#008CFF]/30 p-3 shadow-sm group cursor-default"
                   style={{
                     animation: 'postit-scale-in 150ms ease-out forwards',
                     ['--postit-rot' as any]: `${rot}deg`,
                   }}
                 >
-                  <span className="text-sm font-body text-foreground leading-snug block pr-5">{feit}</span>
+                  <div className="flex gap-2.5 items-start">
+                    {/* Foto thumbnail of placeholder */}
+                    <div className="w-6 h-6 shrink-0 overflow-hidden border border-border bg-muted flex items-center justify-center">
+                      {thumbUrl ? (
+                        <img src={thumbUrl} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <ImageOff className="h-3 w-3 text-muted-foreground/40" />
+                      )}
+                    </div>
+                    <span className="text-sm font-body text-foreground leading-snug block pr-5 flex-1">{feitje.tekst}</span>
+                  </div>
                   <button
-                    onClick={() => removeFeit(i)}
+                    onClick={() => removeFeit(feitje.id)}
                     className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 hover:bg-red-50 border border-red-200 p-1"
                   >
                     <X className="h-3.5 w-3.5 text-red-400" />

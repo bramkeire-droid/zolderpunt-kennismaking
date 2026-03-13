@@ -20,6 +20,14 @@ export interface LeadTechnisch {
   chape: boolean;
 }
 
+export interface FeitjeItem {
+  id: string;
+  tekst: string;
+  foto_path: string | null;
+  foto_index: number | null;
+  aangemaakt_op: string;
+}
+
 export interface LeadData {
   id?: string;
   voornaam: string;
@@ -53,7 +61,7 @@ export interface LeadData {
   transcript: string;
   rapport_gegenereerd_op: string | null;
   rapport_versies: any[];
-  project_feiten: string[];
+  project_feiten: FeitjeItem[];
   status: string;
   fotos: { bestandsnaam: string; storage_path: string; url?: string }[];
   technisch: LeadTechnisch;
@@ -109,7 +117,7 @@ export const defaultLeadData: LeadData = {
   transcript: '',
   rapport_gegenereerd_op: null,
   rapport_versies: [],
-  project_feiten: [],
+  project_feiten: [] as FeitjeItem[],
   status: 'intake',
   fotos: [],
   technisch: { ...defaultTechnisch },

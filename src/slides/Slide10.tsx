@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { FileDown, Loader2 } from 'lucide-react';
 import { pdf } from '@react-pdf/renderer';
 import ReportDocument from '@/components/report/ReportDocument';
-import type { ReportData } from '@/components/report/reportTypes';
+import type { ReportData, FeitjeItem } from '@/components/report/reportTypes';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -32,8 +32,15 @@ function mapLeadToReportData(lead: ReturnType<typeof useSession>['lead']): Repor
     prijs_incl6: lead.budget_incl6 || 0,
     prijs_incl21: lead.budget_incl21 || 0,
     fotos: (lead.fotos || []).filter(f => f.url).map(f => f.url!),
+    fotos_met_path: (lead.fotos || []).filter(f => f.url).map(f => ({
+      url: f.url!,
+      storage_path: f.storage_path,
+    })),
     waarde_tekst_ai: lead.waarde_tekst_ai || 'Extra leefruimte gecreëerd uit ruimte die er al was.',
     inbegrepen_posten: posten,
+    project_feiten: (lead.project_feiten || []).filter(
+      (f): f is FeitjeItem => typeof f === 'object' && 'tekst' in f
+    ),
   };
 }
 
@@ -58,6 +65,7 @@ export default function Slide10() {
           inbegrepen_posten: lead.inbegrepen_posten,
           technisch: lead.technisch,
           gesprek_datum: lead.gesprek_datum,
+          project_feiten: lead.project_feiten,
         },
       });
 

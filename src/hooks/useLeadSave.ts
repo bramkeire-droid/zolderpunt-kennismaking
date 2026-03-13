@@ -37,6 +37,7 @@ function leadToRow(lead: LeadData) {
     rapport_aandachtspunten_ai: lead.rapport_aandachtspunten_ai,
     waarde_tekst_ai: lead.waarde_tekst_ai,
     status: lead.status,
+    project_feiten: lead.project_feiten as any,
     fotos: lead.fotos as any,
     technisch: lead.technisch as any,
   };
