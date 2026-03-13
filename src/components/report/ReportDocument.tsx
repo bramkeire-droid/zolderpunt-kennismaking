@@ -456,7 +456,7 @@ function InvesteringPage({ data }: { data: ReportData }) {
             {/* Rij 1: hoofdbedrag + excl. BTW */}
             <View style={{ flexDirection: 'row' as const, alignItems: 'flex-end' as const }}>
               <Text style={{
-                fontFamily: 'Brockmann',
+                fontFamily: 'SpaceGrotesk',
                 fontSize: 18,
                 fontWeight: 700,
                 color: COLORS.dark,
@@ -514,7 +514,7 @@ function InvesteringPage({ data }: { data: ReportData }) {
             <View style={{ alignItems: 'flex-start' as const }}>
               <View style={{ flexDirection: 'row' as const, alignItems: 'flex-end' as const }}>
                 <Text style={{
-                  fontFamily: 'Brockmann',
+                  fontFamily: 'SpaceGrotesk',
                   fontSize: 14,
                   fontWeight: 700,
                   color: COLORS.dark,
@@ -562,7 +562,7 @@ function InvesteringPage({ data }: { data: ReportData }) {
             <View style={{ alignItems: 'flex-end' as const }}>
               <View style={{ flexDirection: 'row' as const, alignItems: 'flex-end' as const }}>
                 <Text style={{
-                  fontFamily: 'Brockmann',
+                  fontFamily: 'SpaceGrotesk',
                   fontSize: 14,
                   fontWeight: 700,
                   color: COLORS.dark,
