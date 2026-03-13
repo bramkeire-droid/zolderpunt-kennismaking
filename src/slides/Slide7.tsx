@@ -150,8 +150,12 @@ export default function Slide7() {
               >
                 We komen bij jullie thuis, meten alles op en maken een gedetailleerd 3D-ontwerp en offerte. Geen verplichtingen, geen verrassingen.
               </p>
-              <p
-                className="mb-2"
+              <a
+                href="https://calendly.com/belhouse/plaatsbezoek-zolderpunt"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={e => e.stopPropagation()}
+                className="mb-2 inline-block underline"
                 style={{
                   fontFamily: "'Rethink Sans', 'DM Sans', system-ui, sans-serif",
                   fontWeight: 700,
@@ -159,8 +163,8 @@ export default function Slide7() {
                   color: selected === 'plaatsbezoek' ? '#FFFFFF' : '#008CFF',
                 }}
               >
-                → We nemen binnen 48u contact op
-              </p>
+                → Plan direct een plaatsbezoek in
+              </a>
               <p
                 style={{
                   fontFamily: "'Rethink Sans', 'DM Sans', system-ui, sans-serif",
