@@ -128,9 +128,9 @@ function CoverPage({ data }: { data: ReportData }) {
         <LogoPdfWit width={140} />
         <Text style={{
           fontFamily: 'RethinkSans',
-          fontSize: 8,
+          fontWeight: 600,
+          fontSize: 14,
           color: COLORS.white,
-          opacity: 0.55,
           marginTop: 6,
         }}>
           {TAGLINE}
@@ -141,7 +141,7 @@ function CoverPage({ data }: { data: ReportData }) {
         <Text style={s.coverLabel}>UW PERSOONLIJK DOSSIER</Text>
         <View style={{ height: 8 }} />
         <Text style={s.coverNaam}>
-          {data.voornaam || 'Beste klant'} {data.achternaam || ''}
+          {data.voornaam || 'Beste klant'}{'\n'}{data.achternaam || ''}
         </Text>
 
         <View style={s.coverSeparator} />
@@ -154,7 +154,7 @@ function CoverPage({ data }: { data: ReportData }) {
         <Text style={s.coverTagline}>{CONTACT_WEBSITE}</Text>
       </View>
 
-      {/* Rechterzone: hero foto met overlay */}
+      {/* Rechterzone: hero foto met diagonale blauwe overlay */}
       <View style={s.coverRight}>
         <Image
           src={coverSrc}
@@ -167,12 +167,12 @@ function CoverPage({ data }: { data: ReportData }) {
             objectFit: 'cover' as const,
           }}
         />
-        {/* Blue triangle overlay for diagonal */}
+        {/* Blue diagonal overlay — trapezoid from top-left to bottom-right */}
         <Svg
           viewBox="0 0 330 842"
           style={{ position: 'absolute' as const, top: 0, left: 0, width: '100%', height: '100%' }}
         >
-          <Polygon points="0,0 180,0 0,842" fill={COLORS.primary} />
+          <Polygon points="0,0 20,0 310,842 0,842" fill={COLORS.primary} />
         </Svg>
       </View>
     </Page>
@@ -427,19 +427,14 @@ function buildChecklist(inbegrepen: { post: string; bedrag: number }[]): string[
 }
 
 function InvesteringPage({ data }: { data: ReportData }) {
-  const likely = data.prijs_incl6 || (data.prijs_min + data.prijs_max) / 2;
-  const btwPct = data.btw_percentage ?? 6;
-
-  // Compute incl BTW from excl values (budget_excl or back-calc from incl6)
+  // Always compute from excl value — both BTW variants always shown
   const excl = data.budget_excl ?? (data.prijs_incl6 ? Math.round(data.prijs_incl6 / 1.06) : 0);
-  const btwMultiplier = 1 + btwPct / 100;
-  const minIncl = data.prijs_min_incl_btw || Math.round(excl * 0.85 * btwMultiplier);
-  const maxIncl = data.prijs_max_incl_btw || Math.round(excl * 1.15 * btwMultiplier);
-  const mwMinIncl = data.prijs_mw_min_incl_btw || Math.round(excl * btwMultiplier);
-  const mwMaxIncl = data.prijs_mw_max_incl_btw || Math.round(excl * btwMultiplier);
-  const mwInclLabel = mwMinIncl === mwMaxIncl
-    ? fmt(mwMinIncl)
-    : `${fmt(mwMinIncl)} - ${fmt(mwMaxIncl)}`;
+  const peakExcl = excl;
+  const minExcl = Math.round(excl * 0.85);
+  const maxExcl = Math.round(excl * 1.15);
+  const incl6Pdf = (e: number) => Math.round(e * 1.06);
+  const incl21Pdf = (e: number) => Math.round(e * 1.21);
+
   const checklist = buildChecklist(data.inbegrepen_posten || []);
 
   // Split checklist into rows of 3
@@ -454,35 +449,161 @@ function InvesteringPage({ data }: { data: ReportData }) {
       <Text style={s.pageTitle}>Jouw investering</Text>
 
       {/* Gausscurve + price labels */}
-      {data.prijs_min > 0 && data.prijs_max > 0 && (
+      {excl > 0 && (
         <View style={{ marginBottom: 16 }} wrap={false}>
           {/* Peak price ABOVE curve */}
           <View style={{ alignItems: 'center' as const, marginBottom: 6 }}>
-            <Text style={[s.prijsLabel, { fontSize: 26, color: COLORS.primary }]}>
-              {fmt(likely)}
-            </Text>
-            <Text style={[s.prijsLabelKlein, { color: COLORS.primary, fontWeight: 600, marginTop: 2 }]}>
-              Meest waarschijnlijk - incl. {btwPct}% BTW: {mwInclLabel}
+            {/* Rij 1: hoofdbedrag + excl. BTW */}
+            <View style={{ flexDirection: 'row' as const, alignItems: 'flex-end' as const }}>
+              <Text style={{
+                fontFamily: 'Brockmann',
+                fontSize: 18,
+                fontWeight: 700,
+                color: COLORS.dark,
+              }}>
+                {fmt(peakExcl)}
+              </Text>
+              <Text style={{
+                fontFamily: 'RethinkSans',
+                fontSize: 7,
+                color: '#AAAAAA',
+                marginBottom: 3,
+                marginLeft: 4,
+              }}>
+                excl. BTW
+              </Text>
+            </View>
+
+            {/* incl. 6% — blauw, prominent */}
+            <View style={{ flexDirection: 'row' as const, marginTop: 3 }}>
+              <Text style={{ fontFamily: 'RethinkSans', fontSize: 8.5, color: COLORS.primary }}>
+                {'incl. 6% BTW: '}
+              </Text>
+              <Text style={{ fontFamily: 'RethinkSans', fontSize: 8.5, fontWeight: 700, color: COLORS.primary }}>
+                {fmt(incl6Pdf(peakExcl))}
+              </Text>
+            </View>
+
+            {/* incl. 21% */}
+            <View style={{ flexDirection: 'row' as const, marginTop: 2 }}>
+              <Text style={{ fontFamily: 'RethinkSans', fontSize: 8.5, color: '#888888' }}>
+                {'incl. 21% BTW: '}
+              </Text>
+              <Text style={{ fontFamily: 'RethinkSans', fontSize: 8.5, fontWeight: 700, color: '#555555' }}>
+                {fmt(incl21Pdf(peakExcl))}
+              </Text>
+            </View>
+
+            {/* Sublabel */}
+            <Text style={{
+              fontFamily: 'RethinkSans',
+              fontSize: 7,
+              color: '#AAAAAA',
+              letterSpacing: 1,
+              marginTop: 4,
+            }}>
+              MEEST WAARSCHIJNLIJK
             </Text>
           </View>
 
-          <GaussCurveSvg min={data.prijs_min} max={data.prijs_max} peak={likely} />
+          <GaussCurveSvg min={minExcl} max={maxExcl} peak={peakExcl} />
 
           {/* Min & max BELOW curve */}
           <View style={{ flexDirection: 'row' as const, justifyContent: 'space-between' as const, paddingHorizontal: 30, marginTop: 6 }}>
-            <View>
-              <Text style={[s.prijsLabel, { fontSize: 14, color: COLORS.dark }]}>{fmt(data.prijs_min)}</Text>
-              <Text style={[s.prijsLabelKlein, { color: COLORS.primary, fontWeight: 600, marginTop: 1 }]}>
-                incl. {btwPct}% BTW: {fmt(minIncl)}
+            {/* Minimum — links */}
+            <View style={{ alignItems: 'flex-start' as const }}>
+              <View style={{ flexDirection: 'row' as const, alignItems: 'flex-end' as const }}>
+                <Text style={{
+                  fontFamily: 'Brockmann',
+                  fontSize: 14,
+                  fontWeight: 700,
+                  color: COLORS.dark,
+                }}>
+                  {fmt(minExcl)}
+                </Text>
+                <Text style={{
+                  fontFamily: 'RethinkSans',
+                  fontSize: 7,
+                  color: '#AAAAAA',
+                  marginBottom: 2,
+                  marginLeft: 4,
+                }}>
+                  excl. BTW
+                </Text>
+              </View>
+              <View style={{ flexDirection: 'row' as const, marginTop: 3 }}>
+                <Text style={{ fontFamily: 'RethinkSans', fontSize: 8, color: '#888888' }}>
+                  {'incl. 6% BTW: '}
+                </Text>
+                <Text style={{ fontFamily: 'RethinkSans', fontSize: 8, fontWeight: 700, color: COLORS.primary }}>
+                  {fmt(incl6Pdf(minExcl))}
+                </Text>
+              </View>
+              <View style={{ flexDirection: 'row' as const, marginTop: 2 }}>
+                <Text style={{ fontFamily: 'RethinkSans', fontSize: 8, color: '#888888' }}>
+                  {'incl. 21% BTW: '}
+                </Text>
+                <Text style={{ fontFamily: 'RethinkSans', fontSize: 8, fontWeight: 700, color: '#555555' }}>
+                  {fmt(incl21Pdf(minExcl))}
+                </Text>
+              </View>
+              <Text style={{
+                fontFamily: 'RethinkSans',
+                fontSize: 7,
+                color: '#AAAAAA',
+                letterSpacing: 1,
+                marginTop: 4,
+              }}>
+                MINIMUM
               </Text>
-              <Text style={s.prijsLabelKlein}>minimum</Text>
             </View>
+
+            {/* Maximum — rechts */}
             <View style={{ alignItems: 'flex-end' as const }}>
-              <Text style={[s.prijsLabel, { fontSize: 14, color: COLORS.dark }]}>{fmt(data.prijs_max)}</Text>
-              <Text style={[s.prijsLabelKlein, { color: COLORS.primary, fontWeight: 600, marginTop: 1 }]}>
-                incl. {btwPct}% BTW: {fmt(maxIncl)}
+              <View style={{ flexDirection: 'row' as const, alignItems: 'flex-end' as const }}>
+                <Text style={{
+                  fontFamily: 'Brockmann',
+                  fontSize: 14,
+                  fontWeight: 700,
+                  color: COLORS.dark,
+                }}>
+                  {fmt(maxExcl)}
+                </Text>
+                <Text style={{
+                  fontFamily: 'RethinkSans',
+                  fontSize: 7,
+                  color: '#AAAAAA',
+                  marginBottom: 2,
+                  marginLeft: 4,
+                }}>
+                  excl. BTW
+                </Text>
+              </View>
+              <View style={{ flexDirection: 'row' as const, marginTop: 3 }}>
+                <Text style={{ fontFamily: 'RethinkSans', fontSize: 8, color: '#888888' }}>
+                  {'incl. 6% BTW: '}
+                </Text>
+                <Text style={{ fontFamily: 'RethinkSans', fontSize: 8, fontWeight: 700, color: COLORS.primary }}>
+                  {fmt(incl6Pdf(maxExcl))}
+                </Text>
+              </View>
+              <View style={{ flexDirection: 'row' as const, marginTop: 2 }}>
+                <Text style={{ fontFamily: 'RethinkSans', fontSize: 8, color: '#888888' }}>
+                  {'incl. 21% BTW: '}
+                </Text>
+                <Text style={{ fontFamily: 'RethinkSans', fontSize: 8, fontWeight: 700, color: '#555555' }}>
+                  {fmt(incl21Pdf(maxExcl))}
+                </Text>
+              </View>
+              <Text style={{
+                fontFamily: 'RethinkSans',
+                fontSize: 7,
+                color: '#AAAAAA',
+                letterSpacing: 1,
+                marginTop: 4,
+              }}>
+                MAXIMUM
               </Text>
-              <Text style={s.prijsLabelKlein}>maximum</Text>
             </View>
           </View>
         </View>

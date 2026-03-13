@@ -3,7 +3,10 @@ import SlideLayout from '@/components/SlideLayout';
 import SlideLabel from '@/components/SlideLabel';
 
 const fmt = (n: number) =>
-  new Intl.NumberFormat('nl-BE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
+  '€ ' + Math.round(n).toLocaleString('nl-BE', { minimumFractionDigits: 0 });
+
+const incl6 = (excl: number) => Math.round(excl * 1.06);
+const incl21 = (excl: number) => Math.round(excl * 1.21);
 
 /**
  * Pure SVG curve — NO text, NO overlays.
@@ -65,13 +68,11 @@ export default function Slide6() {
   const { lead } = useSession();
   const hasData = lead.budget_min && lead.budget_max && lead.budget_incl6;
 
-  // Compute incl BTW from excl values
-  const btwPct = lead.btw_percentage ?? 6;
+  // Always compute from excl value — both BTW variants always shown
   const excl = lead.budget_excl ?? (lead.budget_incl6 ? Math.round(lead.budget_incl6 / 1.06) : 0);
-  const multiplier = 1 + btwPct / 100;
-  const minIncl = lead.prijs_min_incl_btw || Math.round(excl * 0.85 * multiplier);
-  const maxIncl = lead.prijs_max_incl_btw || Math.round(excl * 1.15 * multiplier);
-  const mwIncl = lead.prijs_mw_min_incl_btw || Math.round(excl * multiplier);
+  const peakExcl = excl;
+  const minExcl = Math.round(excl * 0.85);
+  const maxExcl = Math.round(excl * 1.15);
 
   return (
     <SlideLayout variant="blue">
@@ -83,54 +84,191 @@ export default function Slide6() {
 
         {hasData ? (
           <div className="w-full max-w-2xl flex flex-col items-center">
-            {/* ── PEAK PRICE — above curve ── */}
-            <div className="text-center mb-2">
-              <div className="text-3xl lg:text-4xl font-headline font-bold text-primary-foreground">
-                {fmt(lead.budget_incl6!)}
+            {/* ── MEEST WAARSCHIJNLIJK — above curve ── */}
+            <div style={{ textAlign: 'center', marginBottom: '8px' }}>
+              {/* Rij 1: hoofdbedrag + excl. BTW label */}
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', justifyContent: 'center' }}>
+                <span style={{
+                  fontSize: '1.75rem',
+                  fontWeight: 800,
+                  color: 'white',
+                  fontFamily: "'Brockmann', 'Space Grotesk', sans-serif",
+                  lineHeight: 1.1,
+                }}>
+                  {fmt(peakExcl)}
+                </span>
+                <span style={{
+                  fontSize: '0.65rem',
+                  color: 'rgba(255,255,255,0.5)',
+                  letterSpacing: '0.05em',
+                  textTransform: 'uppercase',
+                }}>
+                  excl. BTW
+                </span>
               </div>
-              <div className="text-xs text-primary-foreground/55 mt-1">
-                incl. {btwPct}% BTW:{' '}
-                <span className="text-primary-foreground/85 font-semibold">{fmt(mwIncl)}</span>
+
+              {/* Rij 2: incl. 6% */}
+              <div style={{
+                fontSize: '0.78rem',
+                marginTop: '4px',
+                fontFamily: "'Rethink Sans', 'DM Sans', sans-serif",
+              }}>
+                <span style={{ color: 'rgba(255,255,255,0.5)' }}>incl. 6% BTW: </span>
+                <span style={{ fontWeight: 700, color: 'white' }}>
+                  {fmt(incl6(peakExcl))}
+                </span>
               </div>
-              <div className="text-[0.65rem] text-primary-foreground/40 uppercase tracking-widest mt-1">
-                Meest waarschijnlijk
+
+              {/* Rij 3: incl. 21% */}
+              <div style={{
+                fontSize: '0.78rem',
+                marginTop: '2px',
+                fontFamily: "'Rethink Sans', 'DM Sans', sans-serif",
+              }}>
+                <span style={{ color: 'rgba(255,255,255,0.5)' }}>incl. 21% BTW: </span>
+                <span style={{ fontWeight: 700, color: 'white' }}>
+                  {fmt(incl21(peakExcl))}
+                </span>
+              </div>
+
+              {/* Sublabel */}
+              <div style={{
+                fontSize: '0.6rem',
+                color: 'rgba(255,255,255,0.4)',
+                letterSpacing: '0.1em',
+                textTransform: 'uppercase',
+                marginTop: '5px',
+              }}>
+                MEEST WAARSCHIJNLIJK
               </div>
             </div>
 
             {/* ── CURVE — pure visual, no text ── */}
             <CurveSvg
-              min={lead.budget_min!}
-              max={lead.budget_max!}
-              peak={lead.budget_incl6!}
+              min={minExcl}
+              max={maxExcl}
+              peak={peakExcl}
             />
 
             {/* ── MIN / MAX — below curve, side by side ── */}
             <div className="w-full flex justify-between items-start mt-2 px-2">
               {/* Minimum */}
-              <div className="text-left">
-                <div className="text-lg lg:text-xl font-headline font-semibold text-primary-foreground/70">
-                  {fmt(lead.budget_min!)}
+              <div style={{ textAlign: 'left', minWidth: '140px' }}>
+                {/* Rij 1: hoofdbedrag + excl. BTW label */}
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                  <span style={{
+                    fontSize: '1.25rem',
+                    fontWeight: 700,
+                    color: 'white',
+                    fontFamily: "'Brockmann', 'Space Grotesk', sans-serif",
+                  }}>
+                    {fmt(minExcl)}
+                  </span>
+                  <span style={{
+                    fontSize: '0.65rem',
+                    color: 'rgba(255,255,255,0.5)',
+                    letterSpacing: '0.05em',
+                    textTransform: 'uppercase',
+                  }}>
+                    excl. BTW
+                  </span>
                 </div>
-                <div className="text-[0.65rem] text-primary-foreground/55 mt-0.5">
-                  incl. {btwPct}%:{' '}
-                  <span className="text-primary-foreground/85 font-semibold">{fmt(minIncl)}</span>
+
+                {/* Rij 2: incl. 6% */}
+                <div style={{
+                  fontSize: '0.75rem',
+                  color: 'rgba(255,255,255,0.75)',
+                  marginTop: '4px',
+                  fontFamily: "'Rethink Sans', 'DM Sans', sans-serif",
+                }}>
+                  <span style={{ color: 'rgba(255,255,255,0.5)' }}>incl. 6% BTW: </span>
+                  <span style={{ fontWeight: 600, color: 'white' }}>
+                    {fmt(incl6(minExcl))}
+                  </span>
                 </div>
-                <div className="text-[0.6rem] text-primary-foreground/40 uppercase tracking-wider mt-0.5">
-                  Minimum
+
+                {/* Rij 3: incl. 21% */}
+                <div style={{
+                  fontSize: '0.75rem',
+                  color: 'rgba(255,255,255,0.75)',
+                  marginTop: '2px',
+                  fontFamily: "'Rethink Sans', 'DM Sans', sans-serif",
+                }}>
+                  <span style={{ color: 'rgba(255,255,255,0.5)' }}>incl. 21% BTW: </span>
+                  <span style={{ fontWeight: 600, color: 'white' }}>
+                    {fmt(incl21(minExcl))}
+                  </span>
+                </div>
+
+                {/* Sublabel */}
+                <div style={{
+                  fontSize: '0.6rem',
+                  color: 'rgba(255,255,255,0.4)',
+                  letterSpacing: '0.1em',
+                  textTransform: 'uppercase',
+                  marginTop: '5px',
+                }}>
+                  MINIMUM
                 </div>
               </div>
 
               {/* Maximum */}
-              <div className="text-right">
-                <div className="text-lg lg:text-xl font-headline font-semibold text-primary-foreground/70">
-                  {fmt(lead.budget_max!)}
+              <div style={{ textAlign: 'right', minWidth: '140px' }}>
+                {/* Rij 1: hoofdbedrag + excl. BTW label */}
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', justifyContent: 'flex-end' }}>
+                  <span style={{
+                    fontSize: '1.25rem',
+                    fontWeight: 700,
+                    color: 'white',
+                    fontFamily: "'Brockmann', 'Space Grotesk', sans-serif",
+                  }}>
+                    {fmt(maxExcl)}
+                  </span>
+                  <span style={{
+                    fontSize: '0.65rem',
+                    color: 'rgba(255,255,255,0.5)',
+                    letterSpacing: '0.05em',
+                    textTransform: 'uppercase',
+                  }}>
+                    excl. BTW
+                  </span>
                 </div>
-                <div className="text-[0.65rem] text-primary-foreground/55 mt-0.5">
-                  incl. {btwPct}%:{' '}
-                  <span className="text-primary-foreground/85 font-semibold">{fmt(maxIncl)}</span>
+
+                {/* Rij 2: incl. 6% */}
+                <div style={{
+                  fontSize: '0.75rem',
+                  color: 'rgba(255,255,255,0.75)',
+                  marginTop: '4px',
+                  fontFamily: "'Rethink Sans', 'DM Sans', sans-serif",
+                }}>
+                  <span style={{ color: 'rgba(255,255,255,0.5)' }}>incl. 6% BTW: </span>
+                  <span style={{ fontWeight: 600, color: 'white' }}>
+                    {fmt(incl6(maxExcl))}
+                  </span>
                 </div>
-                <div className="text-[0.6rem] text-primary-foreground/40 uppercase tracking-wider mt-0.5">
-                  Maximum
+
+                {/* Rij 3: incl. 21% */}
+                <div style={{
+                  fontSize: '0.75rem',
+                  color: 'rgba(255,255,255,0.75)',
+                  marginTop: '2px',
+                  fontFamily: "'Rethink Sans', 'DM Sans', sans-serif",
+                }}>
+                  <span style={{ color: 'rgba(255,255,255,0.5)' }}>incl. 21% BTW: </span>
+                  <span style={{ fontWeight: 600, color: 'white' }}>
+                    {fmt(incl21(maxExcl))}
+                  </span>
+                </div>
+
+                {/* Sublabel */}
+                <div style={{
+                  fontSize: '0.6rem',
+                  color: 'rgba(255,255,255,0.4)',
+                  letterSpacing: '0.1em',
+                  textTransform: 'uppercase',
+                  marginTop: '5px',
+                }}>
+                  MAXIMUM
                 </div>
               </div>
             </div>
