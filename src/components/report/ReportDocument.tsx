@@ -124,14 +124,12 @@ function PageFooter() {
 // ═══════════════════════════════════════════════════════════════════════
 function CoverPage({ data }: { data: ReportData }) {
   return (
-    <Page size="A4" wrap={false} style={{
-      position: 'relative' as const,
-      width: 595.28,
-      height: 841.89,
-      backgroundColor: COLORS.primary,
-    }}>
-      {/* LAAG 1: Achtergrond foto — wrap={false} op Page voorkomt
-          dat Yoga de Image over meerdere pagina's verdeelt */}
+    <Page size="A4" wrap={false} style={{ backgroundColor: COLORS.primary }}>
+      {/* Spacer: enig flow-element, geeft Yoga een paginahoogte.
+          Zonder dit is de Page 0px hoog en zijn absolute kinderen onzichtbaar. */}
+      <View style={{ width: 595.28, height: 841.89 }} />
+
+      {/* LAAG 1: Achtergrond foto */}
       <Image
         src={coverBackground}
         style={{
