@@ -23,6 +23,11 @@ export interface ReportData {
   prijs_max: number;
   prijs_incl6: number;
   prijs_incl21: number;
+  btw_percentage: 6 | 21;
+  prijs_min_incl_btw: number;
+  prijs_max_incl_btw: number;
+  prijs_mw_min_incl_btw: number;
+  prijs_mw_max_incl_btw: number;
   fotos: string[]; // storage URLs
   fotos_met_path: { url: string; storage_path: string }[];
   waarde_tekst_ai: string; // AI-generated or fallback

@@ -428,6 +428,18 @@ function buildChecklist(inbegrepen: { post: string; bedrag: number }[]): string[
 
 function InvesteringPage({ data }: { data: ReportData }) {
   const likely = data.prijs_incl6 || (data.prijs_min + data.prijs_max) / 2;
+  const btwPct = data.btw_percentage ?? 6;
+
+  // Fallback: compute incl BTW on-the-fly if not stored
+  const inclBtw = (excl: number) =>
+    excl > 0 ? Math.round(excl * (1 + btwPct / 100)) : 0;
+  const minIncl = data.prijs_min_incl_btw || inclBtw(data.prijs_min);
+  const maxIncl = data.prijs_max_incl_btw || inclBtw(data.prijs_max);
+  const mwMinIncl = data.prijs_mw_min_incl_btw || inclBtw(likely);
+  const mwMaxIncl = data.prijs_mw_max_incl_btw || inclBtw(likely);
+  const mwInclLabel = mwMinIncl === mwMaxIncl
+    ? fmt(mwMinIncl)
+    : `${fmt(mwMinIncl)} - ${fmt(mwMaxIncl)}`;
   const checklist = buildChecklist(data.inbegrepen_posten || []);
 
   // Split checklist into rows of 3
@@ -450,7 +462,7 @@ function InvesteringPage({ data }: { data: ReportData }) {
               {fmt(likely)}
             </Text>
             <Text style={[s.prijsLabelKlein, { color: COLORS.primary, fontWeight: 600, marginTop: 2 }]}>
-              Meest waarschijnlijk - incl. 6% BTW
+              Meest waarschijnlijk - incl. {btwPct}% BTW: {mwInclLabel}
             </Text>
           </View>
 
@@ -460,10 +472,16 @@ function InvesteringPage({ data }: { data: ReportData }) {
           <View style={{ flexDirection: 'row' as const, justifyContent: 'space-between' as const, paddingHorizontal: 30, marginTop: 6 }}>
             <View>
               <Text style={[s.prijsLabel, { fontSize: 14, color: COLORS.dark }]}>{fmt(data.prijs_min)}</Text>
+              <Text style={[s.prijsLabelKlein, { color: COLORS.primary, fontWeight: 600, marginTop: 1 }]}>
+                incl. {btwPct}% BTW: {fmt(minIncl)}
+              </Text>
               <Text style={s.prijsLabelKlein}>minimum</Text>
             </View>
             <View style={{ alignItems: 'flex-end' as const }}>
               <Text style={[s.prijsLabel, { fontSize: 14, color: COLORS.dark }]}>{fmt(data.prijs_max)}</Text>
+              <Text style={[s.prijsLabelKlein, { color: COLORS.primary, fontWeight: 600, marginTop: 1 }]}>
+                incl. {btwPct}% BTW: {fmt(maxIncl)}
+              </Text>
               <Text style={s.prijsLabelKlein}>maximum</Text>
             </View>
           </View>

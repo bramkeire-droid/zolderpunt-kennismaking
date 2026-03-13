@@ -100,22 +100,48 @@ export default function Slide5B() {
 
   const result = calc();
 
+  const btwPercentage = lead.btw_percentage ?? 6;
+
+  const setBtwPercentage = (nieuwTarief: 6 | 21) => {
+    const multiplier = 1 + nieuwTarief / 100;
+    const minExcl = result ? Math.round(result.excl * 0.85) : (lead.budget_min || 0);
+    const maxExcl = result ? Math.round(result.excl * 1.15) : (lead.budget_max || 0);
+    const mwMin = result ? Math.round(result.excl) : 0;
+    const mwMax = mwMin; // single-point for now
+    updateLead({
+      btw_percentage: nieuwTarief,
+      prijs_min_incl_btw: Math.round(minExcl * multiplier),
+      prijs_max_incl_btw: Math.round(maxExcl * multiplier),
+      prijs_mw_min_incl_btw: Math.round(mwMin * multiplier),
+      prijs_mw_max_incl_btw: Math.round(mwMax * multiplier),
+    });
+  };
+
   const prevResultRef = useRef<string>('');
 
   useEffect(() => {
     if (result) {
-      const key = `${result.min}-${result.max}-${result.incl6}-${result.incl21}-${result.items.length}`;
+      const key = `${result.min}-${result.max}-${result.incl6}-${result.incl21}-${result.items.length}-${btwPercentage}`;
       if (key === prevResultRef.current) return;
       prevResultRef.current = key;
+      const multiplier = 1 + (btwPercentage) / 100;
+      const berekendeMin = Math.round(result.min);
+      const berekendeMax = Math.round(result.max);
+      const mwMin = Math.round(result.excl);
+      const mwMax = mwMin;
       updateLead({
-        budget_min: Math.round(result.min),
-        budget_max: Math.round(result.max),
+        budget_min: berekendeMin,
+        budget_max: berekendeMax,
         budget_incl6: Math.round(result.incl6),
         budget_incl21: Math.round(result.incl21),
         inbegrepen_posten: result.items.map(i => ({ post: i.label, bedrag: Math.round(i.amount) })),
+        prijs_min_incl_btw: Math.round(berekendeMin * multiplier),
+        prijs_max_incl_btw: Math.round(berekendeMax * multiplier),
+        prijs_mw_min_incl_btw: Math.round(mwMin * multiplier),
+        prijs_mw_max_incl_btw: Math.round(mwMax * multiplier),
       });
     }
-  }, [result, updateLead]);
+  }, [result, updateLead, btwPercentage]);
 
   return (
     <SlideLayout variant="internal">
@@ -329,6 +355,67 @@ export default function Slide5B() {
 
               {result ? (
                 <>
+                  {/* BTW-toggle */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    marginBottom: '16px',
+                    fontFamily: "'Rethink Sans', 'DM Sans', sans-serif",
+                  }}>
+                    <span style={{
+                      fontSize: '0.75rem',
+                      color: 'rgba(255,255,255,0.7)',
+                      letterSpacing: '0.08em',
+                      textTransform: 'uppercase',
+                    }}>
+                      BTW-tarief:
+                    </span>
+                    <button
+                      onClick={() => setBtwPercentage(6)}
+                      style={{
+                        padding: '4px 14px',
+                        fontSize: '0.8rem',
+                        fontWeight: btwPercentage === 6 ? '700' : '400',
+                        fontFamily: "'Rethink Sans', 'DM Sans', sans-serif",
+                        backgroundColor: btwPercentage === 6 ? 'white' : 'transparent',
+                        color: btwPercentage === 6 ? '#008CFF' : 'rgba(255,255,255,0.7)',
+                        border: btwPercentage === 6 ? 'none' : '1px solid rgba(255,255,255,0.3)',
+                        borderRadius: '0',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      6%
+                    </button>
+                    <button
+                      onClick={() => setBtwPercentage(21)}
+                      style={{
+                        padding: '4px 14px',
+                        fontSize: '0.8rem',
+                        fontWeight: btwPercentage === 21 ? '700' : '400',
+                        fontFamily: "'Rethink Sans', 'DM Sans', sans-serif",
+                        backgroundColor: btwPercentage === 21 ? 'white' : 'transparent',
+                        color: btwPercentage === 21 ? '#008CFF' : 'rgba(255,255,255,0.7)',
+                        border: btwPercentage === 21 ? 'none' : '1px solid rgba(255,255,255,0.3)',
+                        borderRadius: '0',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      21%
+                    </button>
+                    <span style={{
+                      fontSize: '0.7rem',
+                      color: 'rgba(255,255,255,0.5)',
+                      marginLeft: '4px',
+                    }}>
+                      {btwPercentage === 6
+                        ? '(woning ouder dan 10 jaar)'
+                        : '(woning jonger dan 10 jaar)'}
+                    </span>
+                  </div>
+
                   {/* Price range */}
                   <div className="mb-5">
                     <div className="h-1.5 rounded-full bg-primary-foreground/10 mb-3.5 overflow-hidden">

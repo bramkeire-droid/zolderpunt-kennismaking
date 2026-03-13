@@ -5,6 +5,9 @@ import SlideLabel from '@/components/SlideLabel';
 const fmt = (n: number) =>
   new Intl.NumberFormat('nl-BE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
 
+const formatPrijs = (p: number) =>
+  '\u20AC ' + p.toLocaleString('nl-BE', { minimumFractionDigits: 0 });
+
 /**
  * Data-driven Gauss curve — pure HTML/CSS text labels over SVG curve.
  *
@@ -17,7 +20,17 @@ const fmt = (n: number) =>
  * - Usable x-range = 60–540 (480px drawing space)
  * - Positions are converted to percentages for the HTML overlay
  */
-function GaussCurve({ min, max, peak }: { min: number; max: number; peak: number }) {
+interface GaussCurveProps {
+  min: number;
+  max: number;
+  peak: number;
+  btwPct: number;
+  minIncl: number;
+  maxIncl: number;
+  mwInclLabel: string;
+}
+
+function GaussCurve({ min, max, peak, btwPct, minIncl, maxIncl, mwInclLabel }: GaussCurveProps) {
   const svgW = 600;
   const svgH = 240;
   const padX = 60;
@@ -102,12 +115,30 @@ function GaussCurve({ min, max, peak }: { min: number; max: number; peak: number
           {fmt(peak)}
         </span>
 
+        {/* Peak incl. BTW */}
+        <span
+          className="absolute font-body"
+          style={{
+            left: `${toPctX(peakX)}%`,
+            top: `${toPctY(yPeak + 8)}%`,
+            transform: 'translateX(-50%)',
+            fontSize: 'clamp(0.5rem, 1.6vw, 0.72rem)',
+            color: 'rgba(255,255,255,0.55)',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          incl. {btwPct}% BTW:{' '}
+          <span style={{ color: 'rgba(255,255,255,0.85)', fontWeight: '600' }}>
+            {mwInclLabel}
+          </span>
+        </span>
+
         {/* Min price (smaller, at left foot) */}
         <span
           className="absolute font-headline font-semibold text-primary-foreground/70"
           style={{
             left: `${toPctX(xMin)}%`,
-            top: `${toPctY(yBase - 24)}%`,
+            top: `${toPctY(yBase - 28)}%`,
             transform: 'translateX(-50%)',
             fontSize: 'clamp(0.7rem, 2.5vw, 1rem)',
           }}
@@ -115,17 +146,53 @@ function GaussCurve({ min, max, peak }: { min: number; max: number; peak: number
           {fmt(min)}
         </span>
 
+        {/* Min incl. BTW */}
+        <span
+          className="absolute font-body"
+          style={{
+            left: `${toPctX(xMin)}%`,
+            top: `${toPctY(yBase - 10)}%`,
+            transform: 'translateX(-50%)',
+            fontSize: 'clamp(0.4rem, 1.3vw, 0.58rem)',
+            color: 'rgba(255,255,255,0.55)',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          incl. {btwPct}%:{' '}
+          <span style={{ color: 'rgba(255,255,255,0.85)', fontWeight: '600' }}>
+            {formatPrijs(minIncl)}
+          </span>
+        </span>
+
         {/* Max price (smaller, at right foot) */}
         <span
           className="absolute font-headline font-semibold text-primary-foreground/70"
           style={{
             left: `${toPctX(xMax)}%`,
-            top: `${toPctY(yBase - 24)}%`,
+            top: `${toPctY(yBase - 28)}%`,
             transform: 'translateX(-50%)',
             fontSize: 'clamp(0.7rem, 2.5vw, 1rem)',
           }}
         >
           {fmt(max)}
+        </span>
+
+        {/* Max incl. BTW */}
+        <span
+          className="absolute font-body"
+          style={{
+            left: `${toPctX(xMax)}%`,
+            top: `${toPctY(yBase - 10)}%`,
+            transform: 'translateX(-50%)',
+            fontSize: 'clamp(0.4rem, 1.3vw, 0.58rem)',
+            color: 'rgba(255,255,255,0.55)',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          incl. {btwPct}%:{' '}
+          <span style={{ color: 'rgba(255,255,255,0.85)', fontWeight: '600' }}>
+            {formatPrijs(maxIncl)}
+          </span>
         </span>
 
         {/* "MEEST WAARSCHIJNLIJK" label under peak */}
@@ -178,6 +245,18 @@ export default function Slide6() {
   const { lead } = useSession();
   const hasData = lead.budget_min && lead.budget_max && lead.budget_incl6;
 
+  // Fallback: compute incl BTW on-the-fly if not yet stored
+  const btwPct = lead.btw_percentage ?? 6;
+  const inclBtw = (excl: number) =>
+    excl > 0 ? Math.round(excl * (1 + btwPct / 100)) : 0;
+  const minIncl = lead.prijs_min_incl_btw || inclBtw(lead.budget_min || 0);
+  const maxIncl = lead.prijs_max_incl_btw || inclBtw(lead.budget_max || 0);
+  const mwMinIncl = lead.prijs_mw_min_incl_btw || inclBtw(lead.budget_incl6 || 0);
+  const mwMaxIncl = lead.prijs_mw_max_incl_btw || inclBtw(lead.budget_incl6 || 0);
+  const mwInclLabel = mwMinIncl === mwMaxIncl
+    ? formatPrijs(mwMinIncl)
+    : `${formatPrijs(mwMinIncl)} - ${formatPrijs(mwMaxIncl)}`;
+
   return (
     <SlideLayout variant="blue">
       <div className="flex flex-col items-center w-full max-w-4xl px-4">
@@ -192,6 +271,10 @@ export default function Slide6() {
               min={lead.budget_min!}
               max={lead.budget_max!}
               peak={lead.budget_incl6!}
+              btwPct={btwPct}
+              minIncl={minIncl}
+              maxIncl={maxIncl}
+              mwInclLabel={mwInclLabel}
             />
 
             {/* Inbegrepen chips — responsive grid */}

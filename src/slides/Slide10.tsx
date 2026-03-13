@@ -31,6 +31,11 @@ function mapLeadToReportData(lead: ReturnType<typeof useSession>['lead']): Repor
     prijs_max: lead.budget_max || 0,
     prijs_incl6: lead.budget_incl6 || 0,
     prijs_incl21: lead.budget_incl21 || 0,
+    btw_percentage: lead.btw_percentage ?? 6,
+    prijs_min_incl_btw: lead.prijs_min_incl_btw ?? 0,
+    prijs_max_incl_btw: lead.prijs_max_incl_btw ?? 0,
+    prijs_mw_min_incl_btw: lead.prijs_mw_min_incl_btw ?? 0,
+    prijs_mw_max_incl_btw: lead.prijs_mw_max_incl_btw ?? 0,
     fotos: (lead.fotos || []).filter(f => f.url).map(f => f.url!),
     fotos_met_path: (lead.fotos || []).filter(f => f.url).map(f => ({
       url: f.url!,
