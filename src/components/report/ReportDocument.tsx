@@ -13,6 +13,7 @@ import PdfIcon from './PdfIcon';
 import LogoPdf from './LogoPdf';
 
 // ─── Static asset imports ────────────────────────────────────────────
+import coverBackgroundRaw from '@/assets/coverbackground.jpg';
 import coverSrcRaw from '@/assets/cover-pdf-clean.png';
 import bramSrcRaw from '@/assets/foto-bram.png';
 import brandonSrcRaw from '@/assets/review-foto-brandon.jpg';
@@ -22,6 +23,7 @@ import ceciliaSrcRaw from '@/assets/review-foto-cecilia.png';
 const toAbsoluteUrl = (src: string) =>
   src.startsWith('http') ? src : new URL(src, window.location.origin).href;
 
+const coverBackground = toAbsoluteUrl(coverBackgroundRaw);
 const coverSrc = toAbsoluteUrl(coverSrcRaw);
 const bramSrc = toAbsoluteUrl(bramSrcRaw);
 const REVIEW_PHOTOS: Record<string, string> = {
@@ -122,58 +124,117 @@ function PageFooter() {
 // ═══════════════════════════════════════════════════════════════════════
 function CoverPage({ data }: { data: ReportData }) {
   return (
-    <Page size="A4" style={[s.pageCover, { flexDirection: 'row' as const, backgroundColor: COLORS.primary }]}>
-      {/* Linkerzone: logo + tekst */}
-      <View style={s.coverLeft}>
-        <LogoPdfWit width={140} />
+    <Page size="A4" style={{ padding: 0, backgroundColor: COLORS.primary }}>
+      {/* LAAG 1: coverbackground.jpg beslaat de VOLLEDIGE pagina
+          De diagonale 40-grens zit IN de foto zelf (niet in code) */}
+      <Image
+        src={coverBackground}
+        style={{
+          position: 'absolute' as const,
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+        }}
+      />
+
+      {/* LAAG 2: Logo + tekst-overlay — zweeft BOVENOP de foto */}
+      <View
+        style={{
+          position: 'absolute' as const,
+          top: 0,
+          left: 0,
+          width: '50%',
+          height: '100%',
+          padding: 44,
+          flexDirection: 'column' as const,
+        }}
+      >
+        {/* Logo */}
+        <LogoPdfWit width={110} />
+
+        {/* Tagline — 30% groter, zelfde kleur als logo */}
         <Text style={{
           fontFamily: 'RethinkSans',
-          fontWeight: 600,
-          fontSize: 14,
+          fontSize: 10,
           color: COLORS.white,
           marginTop: 6,
+          opacity: 0.85,
         }}>
           {TAGLINE}
         </Text>
 
-        <View style={{ height: 48 }} />
+        {/* Witruimte */}
+        <View style={{ flex: 1, minHeight: 40, maxHeight: 80 }} />
 
-        <Text style={s.coverLabel}>UW PERSOONLIJK DOSSIER</Text>
-        <View style={{ height: 8 }} />
-        <Text style={s.coverNaam}>
+        {/* Label */}
+        <Text style={{
+          fontFamily: 'RethinkSans',
+          fontSize: 7,
+          color: COLORS.white,
+          letterSpacing: 1.5,
+          opacity: 0.7,
+          marginBottom: 8,
+        }}>
+          UW PERSOONLIJK DOSSIER
+        </Text>
+
+        {/* Naam */}
+        <Text style={{
+          fontFamily: 'SpaceGrotesk',
+          fontSize: 26,
+          fontWeight: 700,
+          color: COLORS.white,
+          lineHeight: 1.15,
+        }}>
           {data.voornaam || 'Beste klant'}{'\n'}{data.achternaam || ''}
         </Text>
 
-        <View style={s.coverSeparator} />
+        {/* Accentlijn */}
+        <View style={{
+          width: 36,
+          height: 3,
+          backgroundColor: COLORS.white,
+          opacity: 0.6,
+          marginTop: 14,
+          marginBottom: 14,
+        }} />
 
-        {data.adres ? <Text style={s.coverAdres}>{data.adres}</Text> : null}
-        <Text style={s.coverDatum}>Datum gesprek: {formatDatum(data.datum_gesprek)}</Text>
+        {/* Adres */}
+        {data.adres ? (
+          <Text style={{
+            fontFamily: 'RethinkSans',
+            fontSize: 9.5,
+            color: COLORS.white,
+            opacity: 0.85,
+          }}>
+            {data.adres}
+          </Text>
+        ) : null}
 
+        {/* Datum */}
+        <Text style={{
+          fontFamily: 'RethinkSans',
+          fontSize: 9,
+          color: COLORS.white,
+          opacity: 0.65,
+          marginTop: 4,
+        }}>
+          Datum gesprek: {formatDatum(data.datum_gesprek)}
+        </Text>
+
+        {/* Ruimte naar onderaan */}
         <View style={{ flex: 1 }} />
 
-        <Text style={s.coverTagline}>{CONTACT_WEBSITE}</Text>
-      </View>
-
-      {/* Rechterzone: hero foto met diagonale blauwe overlay */}
-      <View style={s.coverRight}>
-        <Image
-          src={coverSrc}
-          style={{
-            position: 'absolute' as const,
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover' as const,
-          }}
-        />
-        {/* Blue diagonal overlay — trapezoid from top-left to bottom-right */}
-        <Svg
-          viewBox="0 0 330 842"
-          style={{ position: 'absolute' as const, top: 0, left: 0, width: '100%', height: '100%' }}
-        >
-          <Polygon points="0,0 20,0 310,842 0,842" fill={COLORS.primary} />
-        </Svg>
+        {/* Footer */}
+        <Text style={{
+          fontFamily: 'RethinkSans',
+          fontSize: 7.5,
+          color: COLORS.white,
+          opacity: 0.5,
+        }}>
+          {CONTACT_WEBSITE}
+        </Text>
       </View>
     </Page>
   );
