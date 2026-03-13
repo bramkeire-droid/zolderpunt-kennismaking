@@ -86,7 +86,7 @@ export default function Slide7() {
                 opacity: 0.85,
               }}
             >
-              Kies hoe jullie verder willen gaan — Bram volgt op.
+              Kies hoe jullie verder willen gaan.
             </p>
           </div>
         </div>
@@ -148,7 +148,7 @@ export default function Slide7() {
                   color: selected === 'plaatsbezoek' ? 'rgba(255,255,255,0.85)' : '#444',
                 }}
               >
-                Bram komt bij jullie thuis, meet alles op en maakt een gedetailleerd 3D-ontwerp en offerte. Geen verplichtingen, geen verrassingen.
+                We komen bij jullie thuis, meten alles op en maken een gedetailleerd 3D-ontwerp en offerte. Geen verplichtingen, geen verrassingen.
               </p>
               <p
                 className="mb-2"
@@ -159,7 +159,7 @@ export default function Slide7() {
                   color: selected === 'plaatsbezoek' ? '#FFFFFF' : '#008CFF',
                 }}
               >
-                → Bram neemt binnen 48u contact op
+                → We nemen binnen 48u contact op
               </p>
               <p
                 style={{
@@ -291,7 +291,7 @@ export default function Slide7() {
                   color: '#FFFFFF',
                 }}
               >
-                BK
+                Z
               </span>
             </div>
 
@@ -306,7 +306,7 @@ export default function Slide7() {
                   color: '#1A1A1A',
                 }}
               >
-                "Wat jullie ook kiezen — het rapport van dit gesprek is onderweg. Geen druk, geen haast. Wij zijn er wanneer jullie klaar zijn."
+                "Wat jullie ook kiezen — het rapport van dit gesprek is onderweg. Geen druk, geen haast."
               </p>
               <p
                 className="mt-2"
@@ -316,7 +316,7 @@ export default function Slide7() {
                   color: '#888',
                 }}
               >
-                — Bram Keirsschieter, Zolderpunt
+                — Bram, Zolderpunt
               </p>
             </div>
           </div>
