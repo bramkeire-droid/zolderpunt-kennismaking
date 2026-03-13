@@ -3,19 +3,20 @@ import { useSession } from '@/contexts/SessionContext';
 import SlideLayout from '@/components/SlideLayout';
 import SlideLabel from '@/components/SlideLabel';
 
-// ─── TARIEVEN (exact from ZolderpuntCalculator.jsx) ─────────────────
+// ─── TARIEVEN ─────────────────────────────────────────────────────
 const INDEX = 1.05;
 const RATES = {
   binnenplaatafwerking: 230 * INDEX,
   binnenplaatAfgedekt: 115 * INDEX,
-  dakisolatie: 75 * INDEX,
+  dakisolatieSpantendak: 85 * INDEX,
+  dakisolatieGordingendak: 100 * INDEX,
   vloer: 70 * INDEX,
   velux: 2250 * INDEX,
   trap: 6000 * INDEX,
   trapgatHout: 1750 * INDEX,
   trapgatBeton: 5500 * INDEX,
   algemeenAfwerking: 230 * INDEX,
-  airco: { 1: 4000 * INDEX, 2: 6000 * INDEX, 3: 7500 * INDEX, 4: 9000 * INDEX } as Record<number, number>,
+  airco: { 1: 4000 * INDEX, 2: 6000 * INDEX, 3: 7500 * INDEX, 4: 10000 * INDEX, 5: 11000 * INDEX } as Record<number, number>,
   plamuur: (netto: number) => {
     if (netto < 40) return Math.round(3250 * INDEX);
     if (netto < 65) return Math.round(4500 * INDEX);
@@ -31,16 +32,16 @@ const RATES = {
 const fmt = (n: number) =>
   new Intl.NumberFormat('nl-BE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
 
-type SplitType = 'vol' | 'gesplitst';
+type DakisolatieType = 'geen' | 'spantendak' | 'gordingendak';
 
 export default function Slide5B() {
   const { lead, updateLead } = useSession();
 
-  // Standalone calculator state — no sync from Slide5 technisch
   const [bruto, setBruto] = useState(String(lead.oppervlakte_m2 || ''));
-  const [split, setSplit] = useState<SplitType>('vol');
+  const [nettoStr, setNettoStr] = useState(String(lead.oppervlakte_m2 || ''));
+  const [nettoManuallySet, setNettoManuallySet] = useState(false);
   const [dakBekleed, setDakBekleed] = useState(false);
-  const [dakisolatie, setDakisolatie] = useState(false);
+  const [dakisolatieType, setDakisolatieType] = useState<DakisolatieType>('geen');
   const [vloer, setVloer] = useState(false);
   const [velux, setVelux] = useState(0);
   const [trap, setTrap] = useState(false);
@@ -48,23 +49,42 @@ export default function Slide5B() {
   const [airco, setAirco] = useState(0);
   const [schilderwerken, setSchilderwerken] = useState(false);
 
-  // Only sync oppervlakte from lead (not technisch)
+  // Sync bruto from lead.oppervlakte_m2
   useEffect(() => {
-    if (lead.oppervlakte_m2) setBruto(String(lead.oppervlakte_m2));
-  }, [lead.oppervlakte_m2]);
+    if (lead.oppervlakte_m2) {
+      setBruto(String(lead.oppervlakte_m2));
+      if (!nettoManuallySet) {
+        setNettoStr(String(lead.oppervlakte_m2));
+      }
+    }
+  }, [lead.oppervlakte_m2, nettoManuallySet]);
+
+  // When bruto changes and netto hasn't been manually set, sync netto to bruto
+  const handleBrutoChange = (value: string) => {
+    setBruto(value);
+    if (!nettoManuallySet) {
+      setNettoStr(value);
+    }
+  };
+
+  const handleNettoChange = (value: string) => {
+    setNettoStr(value);
+    setNettoManuallySet(true);
+  };
 
   const brutoNum = parseFloat(bruto) || 0;
-  const netto = split === 'vol' ? brutoNum : Math.round(brutoNum * 0.73);
+  const nettoNum = parseFloat(nettoStr) || 0;
 
   const calc = useCallback(() => {
     if (brutoNum <= 0) return null;
     const items: { key: string; label: string; amount: number; fixed?: boolean }[] = [];
     const bpa = dakBekleed ? RATES.binnenplaatAfgedekt : RATES.binnenplaatafwerking;
     items.push({ key: 'bpa', label: 'Binnenplaatafwerking', amount: brutoNum * bpa, fixed: true });
-    items.push({ key: 'alg', label: 'Algemene afwerking', amount: netto * RATES.algemeenAfwerking, fixed: true });
-    items.push({ key: 'pla', label: 'Plamuur & wandafwerking', amount: RATES.plamuur(netto), fixed: true });
-    if (dakisolatie) items.push({ key: 'iso', label: 'Dakisolatie', amount: brutoNum * RATES.dakisolatie });
-    if (vloer) items.push({ key: 'vl', label: 'Vloer (chape/uitpassen)', amount: netto * RATES.vloer });
+    items.push({ key: 'alg', label: 'Algemene afwerking', amount: nettoNum * RATES.algemeenAfwerking, fixed: true });
+    items.push({ key: 'pla', label: 'Plamuur & wandafwerking', amount: RATES.plamuur(nettoNum), fixed: true });
+    if (dakisolatieType === 'spantendak') items.push({ key: 'iso', label: 'Dakisolatie spantendak', amount: brutoNum * RATES.dakisolatieSpantendak });
+    if (dakisolatieType === 'gordingendak') items.push({ key: 'iso', label: 'Dakisolatie gordingendak', amount: brutoNum * RATES.dakisolatieGordingendak });
+    if (vloer) items.push({ key: 'vl', label: 'Vloer (chape/uitpassen)', amount: nettoNum * RATES.vloer });
     if (velux > 0) items.push({ key: 'vx', label: `Velux dakramen (${velux}×)`, amount: velux * RATES.velux });
     if (trap) {
       items.push({ key: 'tr', label: 'Trap', amount: RATES.trap });
@@ -72,17 +92,16 @@ export default function Slide5B() {
         items.push({ key: 'tg', label: `Trapgat (${trapgat})`, amount: trapgat === 'beton' ? RATES.trapgatBeton : RATES.trapgatHout });
       }
     }
-    if (airco > 0) items.push({ key: 'ac', label: `Airco (${airco} toestel${airco > 1 ? 'len' : ''})`, amount: RATES.airco[Math.min(airco, 4)] });
-    if (schilderwerken) items.push({ key: 'sw', label: 'Schilderwerken', amount: RATES.schilderwerken(netto) });
+    if (airco > 0) items.push({ key: 'ac', label: `Airco (${airco} toestel${airco > 1 ? 'len' : ''})`, amount: RATES.airco[Math.min(airco, 5)] });
+    if (schilderwerken) items.push({ key: 'sw', label: 'Schilderwerken', amount: RATES.schilderwerken(nettoNum) });
     const excl = items.reduce((s, i) => s + i.amount, 0);
     return { items, excl, incl6: excl * 1.06, incl21: excl * 1.21, min: excl * 1.06 * 0.85, max: excl * 1.06 * 1.15 };
-  }, [brutoNum, netto, dakBekleed, dakisolatie, vloer, velux, trap, trapgat, airco, schilderwerken]);
+  }, [brutoNum, nettoNum, dakBekleed, dakisolatieType, vloer, velux, trap, trapgat, airco, schilderwerken]);
 
   const result = calc();
 
   const prevResultRef = useRef<string>('');
 
-  // Auto-save to lead on every change
   useEffect(() => {
     if (result) {
       const key = `${result.min}-${result.max}-${result.incl6}-${result.incl21}-${result.items.length}`;
@@ -124,32 +143,27 @@ export default function Slide5B() {
                       min="0"
                       placeholder="0"
                       value={bruto}
-                      onChange={e => setBruto(e.target.value)}
+                      onChange={e => handleBrutoChange(e.target.value)}
                       className="flex-1 border-none bg-transparent px-3.5 py-3 text-2xl font-bold text-foreground outline-none w-full min-w-0 font-headline"
                     />
                     <span className="px-3.5 text-xs font-semibold text-muted-foreground">m²</span>
                   </div>
+                  <div className="mt-1.5 text-[11px] text-muted-foreground/70">Gebruikt voor: binnenplaat, isolatie</div>
                 </div>
                 <div>
                   <label className="text-sm font-semibold text-muted-foreground mb-1.5 block">Netto leefoppervlakte</label>
-                  <div className="flex items-center border-2 border-border rounded-xl bg-muted/50 overflow-hidden opacity-60">
-                    <input type="number" readOnly value={brutoNum > 0 ? netto : ''} placeholder="—" className="flex-1 border-none bg-transparent px-3.5 py-3 text-2xl font-bold text-foreground outline-none w-full min-w-0 font-headline" />
+                  <div className="flex items-center border-2 border-border rounded-xl bg-background overflow-hidden focus-within:border-primary transition-colors">
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="0"
+                      value={nettoStr}
+                      onChange={e => handleNettoChange(e.target.value)}
+                      className="flex-1 border-none bg-transparent px-3.5 py-3 text-2xl font-bold text-foreground outline-none w-full min-w-0 font-headline"
+                    />
                     <span className="px-3.5 text-xs font-semibold text-muted-foreground">m²</span>
                   </div>
-                  {brutoNum > 0 && <div className="mt-1.5 text-xs text-primary font-medium">{split === 'vol' ? `= ${netto} m² (volledig benut)` : `≈ 73% van bruto = ${netto} m²`}</div>}
-                </div>
-              </div>
-
-              {/* Split pills */}
-              <div className="mt-4">
-                <div className="text-sm font-semibold text-muted-foreground mb-2">Hoe wordt de zolder benut?</div>
-                <div className="flex gap-1.5">
-                  {(['vol', 'gesplitst'] as SplitType[]).map(s => (
-                    <button key={s} onClick={() => setSplit(s)} className={`flex-1 px-3 py-2.5 rounded-lg border-2 text-sm font-semibold transition-all font-body ${split === s ? 'bg-primary border-primary text-primary-foreground' : 'border-border text-muted-foreground hover:border-primary hover:text-primary'}`}>
-                      {s === 'vol' ? 'Volledig' : 'Gesplitst'}
-                      <span className="block text-xs font-medium opacity-70 mt-0.5">{s === 'vol' ? 'Netto = bruto' : 'Netto ≈ 73% van bruto'}</span>
-                    </button>
-                  ))}
+                  <div className="mt-1.5 text-[11px] text-muted-foreground/70">Gebruikt voor: afwerking, vloer, plamuur</div>
                 </div>
               </div>
 
@@ -174,8 +188,45 @@ export default function Slide5B() {
                 <div className="flex-1 h-px bg-border" />
               </div>
               <div className="space-y-2">
-                <ToggleOption label="Dakisolatie" desc={brutoNum > 0 ? `${brutoNum} m² × €75` : '€75 per m² bruto'} active={dakisolatie} onToggle={() => setDakisolatie(v => !v)} amount={dakisolatie && brutoNum > 0 ? fmt(brutoNum * 75) : undefined} />
-                <ToggleOption label="Vloer — chape of uitpassen" desc={netto > 0 ? `${netto} m² netto × €70` : '€70 per m² netto'} active={vloer} onToggle={() => setVloer(v => !v)} amount={vloer && netto > 0 ? fmt(netto * 70) : undefined} />
+                {/* Dakisolatie — twee aparte opties, radio-gedrag */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div
+                    className={`rounded-xl border-2 transition-all cursor-pointer ${dakisolatieType === 'spantendak' ? 'border-primary bg-accent' : 'border-border bg-card hover:border-primary/30'}`}
+                    onClick={() => setDakisolatieType(dakisolatieType === 'spantendak' ? 'geen' : 'spantendak')}
+                  >
+                    <div className="flex items-center gap-3 p-3.5">
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${dakisolatieType === 'spantendak' ? 'bg-primary border-primary' : 'border-border bg-card'}`}>
+                        {dakisolatieType === 'spantendak' && <div className="w-2 h-2 rounded-full bg-primary-foreground" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-semibold text-foreground">Dakisolatie Spantendak</div>
+                        <div className="text-xs text-muted-foreground">{brutoNum > 0 ? `${brutoNum} m² × €85` : '€85 per m² bruto'}</div>
+                      </div>
+                    </div>
+                    {dakisolatieType === 'spantendak' && brutoNum > 0 && (
+                      <div className="px-3.5 pb-3 text-sm font-bold text-primary text-right">{fmt(brutoNum * RATES.dakisolatieSpantendak)}</div>
+                    )}
+                  </div>
+                  <div
+                    className={`rounded-xl border-2 transition-all cursor-pointer ${dakisolatieType === 'gordingendak' ? 'border-primary bg-accent' : 'border-border bg-card hover:border-primary/30'}`}
+                    onClick={() => setDakisolatieType(dakisolatieType === 'gordingendak' ? 'geen' : 'gordingendak')}
+                  >
+                    <div className="flex items-center gap-3 p-3.5">
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${dakisolatieType === 'gordingendak' ? 'bg-primary border-primary' : 'border-border bg-card'}`}>
+                        {dakisolatieType === 'gordingendak' && <div className="w-2 h-2 rounded-full bg-primary-foreground" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-semibold text-foreground">Dakisolatie Gordingendak</div>
+                        <div className="text-xs text-muted-foreground">{brutoNum > 0 ? `${brutoNum} m² × €100` : '€100 per m² bruto'}</div>
+                      </div>
+                    </div>
+                    {dakisolatieType === 'gordingendak' && brutoNum > 0 && (
+                      <div className="px-3.5 pb-3 text-sm font-bold text-primary text-right">{fmt(brutoNum * RATES.dakisolatieGordingendak)}</div>
+                    )}
+                  </div>
+                </div>
+
+                <ToggleOption label="Vloer — chape of uitpassen" desc={nettoNum > 0 ? `${nettoNum} m² netto × €70` : '€70 per m² netto'} active={vloer} onToggle={() => setVloer(v => !v)} amount={vloer && nettoNum > 0 ? fmt(nettoNum * 70) : undefined} />
 
                 {/* Velux */}
                 <div className={`rounded-xl border-2 transition-all cursor-pointer ${velux > 0 ? 'border-primary bg-accent' : 'border-border bg-card hover:border-primary/30'}`}>
@@ -243,9 +294,9 @@ export default function Slide5B() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-semibold text-foreground">Airco</div>
-                      <div className="text-xs text-muted-foreground">{airco > 0 ? `${airco} toestel${airco > 1 ? 'len' : ''} — staffelprijs` : '1→€4K · 2→€6K · 3→€7,5K · 4→€9K'}</div>
+                      <div className="text-xs text-muted-foreground">{airco > 0 ? `${airco} toestel${airco > 1 ? 'len' : ''} — staffelprijs` : '1→€4K · 2→€6K · 3→€7,5K · 4→€10K · 5→€11K'}</div>
                     </div>
-                    {airco > 0 && <div className="text-sm font-bold text-primary">{fmt(RATES.airco[Math.min(airco, 4)])}</div>}
+                    {airco > 0 && <div className="text-sm font-bold text-primary">{fmt(RATES.airco[Math.min(airco, 5)])}</div>}
                   </div>
                   {airco > 0 && (
                     <div className="px-3.5 pb-3.5 pt-2 border-t border-primary/20" onClick={e => e.stopPropagation()}>
@@ -253,7 +304,7 @@ export default function Slide5B() {
                       <div className="inline-flex items-center border-2 border-primary/30 rounded-lg overflow-hidden bg-card">
                         <button onClick={() => setAirco(Math.max(0, airco - 1))} className="w-9 h-9 flex items-center justify-center text-lg font-bold text-primary hover:bg-accent">−</button>
                         <span className="w-11 text-center text-lg font-bold">{airco}</span>
-                        <button onClick={() => setAirco(Math.min(4, airco + 1))} className="w-9 h-9 flex items-center justify-center text-lg font-bold text-primary hover:bg-accent">+</button>
+                        <button onClick={() => setAirco(Math.min(5, airco + 1))} className="w-9 h-9 flex items-center justify-center text-lg font-bold text-primary hover:bg-accent">+</button>
                       </div>
                     </div>
                   )}
@@ -262,10 +313,10 @@ export default function Slide5B() {
                 {/* Schilderwerken */}
                 <ToggleOption
                   label="Schilderwerken"
-                  desc={netto > 0 ? `Forfait: ${netto < 40 ? '€2.500 (< 40m²)' : '€4.000 (≥ 40m²)'}` : '€2.500 (< 40m²) of €4.000 (≥ 40m²)'}
+                  desc={nettoNum > 0 ? `Forfait: ${nettoNum < 40 ? '€2.500 (< 40m²)' : '€4.000 (≥ 40m²)'}` : '€2.500 (< 40m²) of €4.000 (≥ 40m²)'}
                   active={schilderwerken}
                   onToggle={() => setSchilderwerken(v => !v)}
-                  amount={schilderwerken && netto > 0 ? fmt(RATES.schilderwerken(netto)) : undefined}
+                  amount={schilderwerken && nettoNum > 0 ? fmt(RATES.schilderwerken(nettoNum)) : undefined}
                 />
               </div>
             </div>
