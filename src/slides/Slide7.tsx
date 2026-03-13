@@ -151,7 +151,15 @@ export default function Slide7() {
                 We komen bij jullie thuis, meten alles op en maken een gedetailleerd 3D-ontwerp en offerte. Geen verplichtingen, geen verrassingen.
               </p>
               <a
-                href={`https://calendly.com/belhouse/plaatsbezoek-zolderpunt${lead.email ? `?email=${encodeURIComponent(lead.email)}` : ''}`}
+                href={(() => {
+                  const params = new URLSearchParams();
+                  if (lead.email) params.set('email', lead.email);
+                  const naam = [lead.voornaam, lead.achternaam].filter(Boolean).join(' ').trim();
+                  if (naam) params.set('name', naam);
+                  if (lead.adres) params.set('a1', lead.adres);
+                  const qs = params.toString();
+                  return `https://calendly.com/belhouse/plaatsbezoek-zolderpunt${qs ? `?${qs}` : ''}`;
+                })()}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={e => e.stopPropagation()}
