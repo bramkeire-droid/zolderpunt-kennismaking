@@ -6,18 +6,22 @@ export const CONTACT_EMAIL = "hello@zolderpunt.be";
 export const CONTACT_WEBSITE = "www.zolderpunt.be";
 export const TAGLINE = "Zoveel zolder, Zoveel ruimte";
 
-// ─── Colors ─────────────────────────────────────────────────────────
+// ─── Colors (huisstijl-conform) ──────────────────────────────────────
 export const COLORS = {
   primary: '#008CFF',
   darkBlue: '#2B6CA0',
   warmWhite: '#F8F3EB',
   dark: '#1A1A1A',
+  subtekst: '#555555',
+  grijs: '#888888',
   white: '#FFFFFF',
-  lightGray: '#E5E5E5',
+  lightGray: '#E2E8F0',
   midGray: '#999999',
   red: '#E53E3E',
   gold: '#F6AD55',
-};
+  checkGreen: '#22C55E',
+  crossRed: '#EF4444',
+} as const;
 
 // ─── Date formatting ────────────────────────────────────────────────
 const MAANDEN = [
@@ -55,7 +59,7 @@ export const REVIEWS = [
   {
     name: 'Mathieu Ackerman',
     quote: 'Heel goede opvolging. Ideaal voor personen die ontzorgd wensen te worden. Een voorbeeld qua klantenservice!',
-    hasPhoto: true,
+    hasPhoto: false,
     photoKey: 'mathieu',
   },
 ];
@@ -144,5 +148,5 @@ export const OPTIES_LABELS: Record<string, string> = {
   trap: 'Vaste trap',
   elektriciteit: 'Elektriciteit',
   airco: 'Airco (optioneel — apart geoffreerd)',
-  schilderwerk: 'Schilderwerk',
+  schilderwerk: 'Schilderwerk (altijd exclusief)',
 };

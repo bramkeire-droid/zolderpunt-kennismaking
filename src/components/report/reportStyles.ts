@@ -1,7 +1,7 @@
 import { StyleSheet, Font } from '@react-pdf/renderer';
 import { COLORS } from './reportConstants';
 
-// Local font imports (bundled by Vite — no CDN fetch at runtime)
+// ─── Font imports (bundled by Vite) ─────────────────────────────────
 import spaceGrotesk400 from '@/assets/fonts/space-grotesk-400.ttf';
 import spaceGrotesk600 from '@/assets/fonts/space-grotesk-600.ttf';
 import spaceGrotesk700 from '@/assets/fonts/space-grotesk-700.ttf';
@@ -10,7 +10,7 @@ import rethinkSans400i from '@/assets/fonts/rethink-sans-400-italic.ttf';
 import rethinkSans600 from '@/assets/fonts/rethink-sans-600.ttf';
 import rethinkSans700 from '@/assets/fonts/rethink-sans-700.ttf';
 
-// Register fonts from local assets
+// SpaceGrotesk as Brockmann fallback (no Brockmann .ttf available)
 Font.register({
   family: 'SpaceGrotesk',
   fonts: [
@@ -30,264 +30,303 @@ Font.register({
   ],
 });
 
-// Disable automatic hyphenation globally
+// Disable automatic hyphenation
 Font.registerHyphenationCallback(word => [word]);
 
 export const s = StyleSheet.create({
-  // ─── Page ─────────────────────────────────────────────
+  // ─── Page defaults ──────────────────────────────────────────────
   page: {
-    fontFamily: 'RethinkSans',
-    fontSize: 11,
-    color: COLORS.dark,
     backgroundColor: COLORS.warmWhite,
-    paddingTop: 50,
-    paddingBottom: 50,
-    paddingHorizontal: 50,
+    paddingTop: 48,
+    paddingBottom: 48,
+    paddingHorizontal: 48,
+    fontFamily: 'RethinkSans',
+    fontSize: 10,
+    color: COLORS.dark,
   },
   pageCover: {
     fontFamily: 'RethinkSans',
-    fontSize: 11,
+    fontSize: 10,
     color: COLORS.dark,
-    backgroundColor: 'white',
     padding: 0,
     overflow: 'hidden' as const,
   },
 
-  // ─── Typography ───────────────────────────────────────
-  h1: {
-    fontFamily: 'SpaceGrotesk',
-    fontWeight: 700,
-    fontSize: 28,
-    color: COLORS.dark,
-    marginBottom: 8,
+  // ─── Section labels ─────────────────────────────────────────────
+  sectionLabel: {
+    fontFamily: 'RethinkSans',
+    fontSize: 7,
+    color: COLORS.primary,
+    letterSpacing: 2,
+    textTransform: 'uppercase' as const,
+    marginBottom: 6,
   },
-  h2: {
+
+  // ─── Headings ───────────────────────────────────────────────────
+  pageTitle: {
     fontFamily: 'SpaceGrotesk',
+    fontSize: 24,
     fontWeight: 700,
-    fontSize: 22,
     color: COLORS.dark,
     marginBottom: 16,
+    lineHeight: 1.2,
+  },
+  pageTitleSmall: {
+    fontFamily: 'SpaceGrotesk',
+    fontSize: 20,
+    fontWeight: 700,
+    color: COLORS.dark,
+    marginBottom: 14,
+    lineHeight: 1.2,
   },
   h3: {
     fontFamily: 'SpaceGrotesk',
     fontWeight: 600,
-    fontSize: 16,
+    fontSize: 13,
     color: COLORS.dark,
     marginBottom: 6,
   },
-  body: {
+
+  // ─── Body text ──────────────────────────────────────────────────
+  bodyText: {
     fontFamily: 'RethinkSans',
-    fontSize: 11,
-    lineHeight: 1.6,
+    fontSize: 10,
     color: COLORS.dark,
+    lineHeight: 1.5,
   },
-  bodySmall: {
+  bodyGrijs: {
+    fontFamily: 'RethinkSans',
+    fontSize: 10,
+    color: COLORS.subtekst,
+    lineHeight: 1.5,
+  },
+  bodyKlein: {
     fontFamily: 'RethinkSans',
     fontSize: 9,
-    lineHeight: 1.5,
-    color: COLORS.midGray,
+    color: COLORS.subtekst,
+    lineHeight: 1.4,
   },
-  label: {
-    fontFamily: 'SpaceGrotesk',
-    fontWeight: 600,
+  bodyItalic: {
+    fontFamily: 'RethinkSans',
+    fontStyle: 'italic' as const,
     fontSize: 9,
-    letterSpacing: 1.6,
-    color: COLORS.primary,
-    textTransform: 'uppercase' as const,
-    marginBottom: 12,
-  },
-  italic: {
-    fontStyle: 'italic',
-    fontSize: 9,
-    color: COLORS.midGray,
+    color: COLORS.grijs,
+    lineHeight: 1.4,
   },
 
-  // ─── Layout ───────────────────────────────────────────
+  // ─── Layout helpers ─────────────────────────────────────────────
   row: {
     flexDirection: 'row' as const,
-    alignItems: 'center' as const,
+    gap: 12,
   },
-  spaceBetween: {
-    flexDirection: 'row' as const,
-    justifyContent: 'space-between' as const,
-    alignItems: 'center' as const,
+  col: {
+    flex: 1,
   },
+
+  // ─── Card ───────────────────────────────────────────────────────
   card: {
     backgroundColor: COLORS.white,
-    padding: 20,
-    marginBottom: 12,
-    border: '1px solid #E2E8F0',
-  },
-  cardRow: {
-    flexDirection: 'row' as const,
-    gap: 12,
-    marginBottom: 12,
-  },
-  cardThird: {
-    backgroundColor: COLORS.white,
-    padding: 16,
-    flex: 1,
-    border: '1px solid #E2E8F0',
+    borderWidth: 1,
+    borderColor: COLORS.lightGray,
+    padding: 14,
+    marginBottom: 10,
   },
 
-  // ─── Decorative ───────────────────────────────────────
-  angleDecor: {
-    position: 'absolute' as const,
-    width: 200,
-    height: 200,
+  // ─── Accent balk (left border for AI sections) ─────────────────
+  accentBalk: {
+    width: 3,
     backgroundColor: COLORS.primary,
-    transform: 'rotate(-40deg)',
-    opacity: 0.08,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: COLORS.lightGray,
-    marginVertical: 16,
-  },
-  badge: {
-    backgroundColor: COLORS.primary,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  badgeText: {
-    fontFamily: 'SpaceGrotesk',
-    fontWeight: 600,
-    fontSize: 9,
-    color: COLORS.white,
+    marginRight: 12,
+    alignSelf: 'stretch' as const,
   },
 
-  // ─── Cover specific ──────────────────────────────────
-  coverHero: {
-    width: '100%',
-    height: 460,
-    objectFit: 'cover' as const,
+  // ─── Cover ──────────────────────────────────────────────────────
+  coverLeft: {
+    width: '45%',
+    padding: 48,
+    flexDirection: 'column' as const,
+    position: 'relative' as const,
   },
-  coverAngle: {
-    width: '140%',
-    height: 60,
-    backgroundColor: COLORS.primary,
-    transform: 'rotate(-4deg)',
-    marginTop: -30,
-    marginLeft: -40,
-    opacity: 0.9,
-  },
-  coverContent: {
-    padding: 50,
-    paddingTop: 20,
-    flex: 1,
-  },
-  coverTitle: {
-    fontFamily: 'SpaceGrotesk',
-    fontWeight: 700,
-    fontSize: 28,
-    color: COLORS.dark,
-    marginTop: 20,
-    marginBottom: 12,
-    lineHeight: 1.2,
-  },
-  coverTagline: {
-    fontFamily: 'SpaceGrotesk',
-    fontWeight: 600,
-    fontSize: 14,
-    color: COLORS.primary,
-    letterSpacing: 1,
-    marginTop: 16,
-  },
-  coverDate: {
-    fontFamily: 'RethinkSans',
-    fontSize: 12,
-    color: COLORS.midGray,
-  },
-  coverLogo: {
-    width: 160,
-    marginBottom: 24,
-  },
-
-  // ─── Price bar ────────────────────────────────────────
-  priceBar: {
-    height: 12,
-    backgroundColor: COLORS.lightGray,
-    marginVertical: 12,
+  coverRight: {
+    width: '55%',
     position: 'relative' as const,
     overflow: 'hidden' as const,
   },
-  priceBarFill: {
-    position: 'absolute' as const,
-    top: 0,
-    height: '100%',
-    backgroundColor: COLORS.primary,
-    opacity: 0.7,
+  coverLabel: {
+    fontFamily: 'RethinkSans',
+    fontSize: 7,
+    color: COLORS.white,
+    letterSpacing: 2,
+    textTransform: 'uppercase' as const,
+    opacity: 0.75,
   },
-  priceLabel: {
+  coverNaam: {
+    fontFamily: 'SpaceGrotesk',
+    fontWeight: 700,
+    fontSize: 28,
+    color: COLORS.white,
+    lineHeight: 1.15,
+    flexShrink: 1,
+  },
+  coverAdres: {
+    fontFamily: 'RethinkSans',
+    fontSize: 10,
+    color: COLORS.white,
+    opacity: 0.85,
+  },
+  coverDatum: {
+    fontFamily: 'RethinkSans',
+    fontSize: 9,
+    color: COLORS.white,
+    opacity: 0.65,
+    marginTop: 4,
+  },
+  coverTagline: {
+    fontFamily: 'RethinkSans',
+    fontWeight: 600,
+    fontSize: 9,
+    color: COLORS.white,
+    opacity: 0.5,
+  },
+  coverSeparator: {
+    width: 40,
+    height: 2,
+    backgroundColor: COLORS.white,
+    opacity: 0.4,
+    marginVertical: 16,
+  },
+
+  // ─── Klantprofiel rij ───────────────────────────────────────────
+  profielRij: {
+    flexDirection: 'row' as const,
+    paddingVertical: 5,
+    borderBottomWidth: 0.5,
+    borderBottomColor: COLORS.lightGray,
+  },
+  profielLabel: {
+    fontFamily: 'RethinkSans',
+    fontSize: 8,
+    color: COLORS.grijs,
+    width: 90,
+  },
+  profielWaarde: {
+    fontFamily: 'RethinkSans',
+    fontSize: 9,
+    color: COLORS.dark,
+    flex: 1,
+  },
+
+  // ─── Technisch kader ────────────────────────────────────────────
+  techCard: {
+    backgroundColor: COLORS.white,
+    borderWidth: 1,
+    borderColor: COLORS.lightGray,
+    padding: 10,
+    width: '48%',
+    marginBottom: 8,
+  },
+
+  // ─── Foto's ─────────────────────────────────────────────────────
+  photoFull: {
+    width: '100%',
+    maxHeight: 200,
+    objectFit: 'cover' as const,
+    marginBottom: 8,
+  },
+  photoPlaceholder: {
+    width: '100%',
+    height: 120,
+    backgroundColor: COLORS.warmWhite,
+    borderWidth: 1,
+    borderColor: COLORS.lightGray,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+  },
+  feitjeBullet: {
+    width: 5,
+    height: 5,
+    backgroundColor: COLORS.primary,
+    marginTop: 3,
+    flexShrink: 0,
+    marginRight: 8,
+  },
+
+  // ─── Prijs / Gauss ─────────────────────────────────────────────
+  prijsLabel: {
     fontFamily: 'SpaceGrotesk',
     fontWeight: 700,
     fontSize: 18,
     color: COLORS.dark,
   },
-  priceLabelSmall: {
+  prijsLabelKlein: {
     fontFamily: 'RethinkSans',
-    fontSize: 9,
-    color: COLORS.midGray,
+    fontSize: 8,
+    color: COLORS.grijs,
   },
 
-  // ─── Checklist ────────────────────────────────────────
+  // ─── Checklist ──────────────────────────────────────────────────
   checkRow: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    marginBottom: 6,
+    marginBottom: 5,
     gap: 8,
   },
-  checkIcon: {
-    fontFamily: 'RethinkSans',
-    fontSize: 12,
-  },
 
-  // ─── Timeline ─────────────────────────────────────────
+  // ─── Timeline ───────────────────────────────────────────────────
   timelineRow: {
     flexDirection: 'row' as const,
-    marginBottom: 14,
+    marginBottom: 4,
     gap: 12,
   },
   timelineCircle: {
-    width: 28,
-    height: 28,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
   },
   timelineNr: {
     fontFamily: 'SpaceGrotesk',
     fontWeight: 700,
-    fontSize: 12,
+    fontSize: 9,
     color: COLORS.white,
   },
   timelineLine: {
     width: 2,
-    flex: 1,
+    height: 10,
     backgroundColor: COLORS.lightGray,
-    marginLeft: 13,
-    marginTop: -4,
-    marginBottom: -4,
+    marginLeft: 9,
   },
 
-  // ─── Reviews ──────────────────────────────────────────
+  // ─── Garantie kaders ────────────────────────────────────────────
+  garantieCard: {
+    backgroundColor: COLORS.white,
+    padding: 14,
+    width: '48%',
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: COLORS.lightGray,
+  },
+
+  // ─── Reviews ────────────────────────────────────────────────────
   reviewCard: {
     backgroundColor: COLORS.white,
-    padding: 20,
-    marginBottom: 14,
+    padding: 14,
+    marginBottom: 10,
     flexDirection: 'row' as const,
-    gap: 16,
-    border: '1px solid #E2E8F0',
-    maxHeight: 120,
-    overflow: 'hidden' as const,
+    gap: 14,
+    borderWidth: 1,
+    borderColor: COLORS.lightGray,
   },
   reviewPhoto: {
-    width: 80,
-    height: 80,
+    width: 48,
+    height: 48,
     objectFit: 'cover' as const,
   },
   reviewAvatar: {
-    width: 80,
-    height: 80,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: COLORS.primary,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
@@ -295,62 +334,51 @@ export const s = StyleSheet.create({
   reviewInitials: {
     fontFamily: 'SpaceGrotesk',
     fontWeight: 700,
-    fontSize: 28,
+    fontSize: 14,
     color: COLORS.white,
-  },
-  reviewQuote: {
-    fontFamily: 'RethinkSans',
-    fontSize: 10,
-    lineHeight: 1.6,
-    color: COLORS.dark,
-    fontStyle: 'italic',
-    flex: 1,
   },
   reviewName: {
     fontFamily: 'SpaceGrotesk',
     fontWeight: 600,
-    fontSize: 11,
-    color: COLORS.dark,
-    marginBottom: 4,
-  },
-  stars: {
-    fontFamily: 'RethinkSans',
     fontSize: 10,
-    color: '#F59E0B',
-    marginBottom: 6,
+    color: COLORS.dark,
+    marginBottom: 3,
   },
-
-  // ─── CTA ──────────────────────────────────────────────
-  ctaRow: {
-    flexDirection: 'row' as const,
-    gap: 20,
-    marginTop: 20,
-    alignItems: 'center' as const,
+  reviewQuote: {
+    fontFamily: 'RethinkSans',
+    fontSize: 9,
+    lineHeight: 1.5,
+    color: COLORS.dark,
+    fontStyle: 'italic' as const,
   },
-  ctaPhoto: {
-    width: 80,
-    height: 80,
-    objectFit: 'cover' as const,
-  },
-  ctaContact: {
-    flex: 1,
-    justifyContent: 'center' as const,
-  },
-  ctaContactLine: {
+  googleBadge: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    gap: 10,
-    marginBottom: 8,
+    gap: 8,
+    marginBottom: 16,
+    backgroundColor: COLORS.white,
+    padding: 10,
+    paddingHorizontal: 16,
+    alignSelf: 'flex-start' as const,
+    borderWidth: 1,
+    borderColor: COLORS.lightGray,
   },
-  ctaLine: {
+  googleScore: {
     fontFamily: 'SpaceGrotesk',
-    fontWeight: 600,
+    fontWeight: 700,
     fontSize: 14,
     color: COLORS.dark,
   },
+  googleCount: {
+    fontFamily: 'RethinkSans',
+    fontSize: 9,
+    color: COLORS.grijs,
+  },
+
+  // ─── CTA ────────────────────────────────────────────────────────
   ctaBanner: {
     backgroundColor: COLORS.primary,
-    padding: 24,
+    padding: 20,
     marginTop: 24,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
@@ -358,134 +386,44 @@ export const s = StyleSheet.create({
   ctaBannerText: {
     fontFamily: 'SpaceGrotesk',
     fontWeight: 700,
-    fontSize: 18,
+    fontSize: 14,
     color: COLORS.white,
     textAlign: 'center' as const,
   },
-  ctaPersonInfo: {
-    flex: 1,
-    justifyContent: 'center' as const,
-  },
 
-  // ─── Footer ───────────────────────────────────────────
+  // ─── Footer ─────────────────────────────────────────────────────
   footer: {
-    position: 'absolute' as const,
-    bottom: 20,
-    left: 50,
-    right: 50,
+    marginTop: 'auto' as unknown as number,
+    paddingTop: 10,
+  },
+  footerLine: {
+    height: 0.5,
+    backgroundColor: COLORS.lightGray,
+    marginBottom: 8,
+  },
+  footerContent: {
     flexDirection: 'row' as const,
     justifyContent: 'space-between' as const,
     alignItems: 'center' as const,
   },
-  footerLogo: {
-    width: 80,
-  },
   footerText: {
     fontFamily: 'RethinkSans',
-    fontSize: 8,
-    color: COLORS.midGray,
+    fontSize: 7.5,
+    color: COLORS.grijs,
   },
 
-  // ─── Photos grid ──────────────────────────────────────
-  photoHero: {
-    width: '100%',
-    height: 260,
-    objectFit: 'cover' as const,
-    marginBottom: 12,
-  },
-  photoGrid: {
-    flexDirection: 'row' as const,
-    flexWrap: 'wrap' as const,
-    gap: 10,
-  },
-  photoGridItem: {
-    width: '48%',
-    height: 160,
-    objectFit: 'cover' as const,
-  },
-  photoPlaceholder: {
-    width: '100%',
-    height: 300,
-    backgroundColor: COLORS.lightGray,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
-  },
-
-  // ─── Guarantee cards ──────────────────────────────────
-  garantieCard: {
+  // ─── Waarde kaders ──────────────────────────────────────────────
+  waardeCard: {
     backgroundColor: COLORS.white,
-    padding: 16,
-    width: '48%',
-    marginBottom: 12,
-    border: '1px solid #E2E8F0',
+    borderWidth: 1,
+    borderColor: COLORS.lightGray,
+    flex: 1,
   },
-  garantieIcon: {
-    fontSize: 20,
-    marginBottom: 8,
-  },
-  garantieTitle: {
-    fontFamily: 'SpaceGrotesk',
-    fontWeight: 600,
-    fontSize: 11,
-    color: COLORS.dark,
-    marginBottom: 6,
-  },
-  garantieText: {
-    fontFamily: 'RethinkSans',
-    fontSize: 9,
-    lineHeight: 1.5,
-    color: COLORS.midGray,
-  },
-
-  // ─── Google badge ─────────────────────────────────────
-  googleBadge: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    gap: 8,
-    marginBottom: 20,
-    backgroundColor: COLORS.white,
-    padding: 12,
-    alignSelf: 'flex-start' as const,
-    border: '1px solid #E2E8F0',
-  },
-  googleScore: {
-    fontFamily: 'SpaceGrotesk',
-    fontWeight: 700,
-    fontSize: 16,
-    color: COLORS.dark,
-  },
-  googleCount: {
-    fontFamily: 'RethinkSans',
-    fontSize: 9,
-    color: COLORS.midGray,
-  },
-
-  // ─── Foto-feitjes ───────────────────────────────────────
-  photoGridItemGroter: {
-    width: '100%',
-    height: 200,
-    objectFit: 'cover' as const,
-    marginBottom: 8,
-  },
-  feitjeInPdf: {
-    flexDirection: 'row' as const,
-    alignItems: 'flex-start' as const,
-    gap: 8,
-    backgroundColor: COLORS.white,
-    padding: 10,
-    marginBottom: 6,
-    border: '1px solid #E2E8F0',
-  },
-  feitjeBullet: {
-    width: 6,
+  waardeAccent: {
     height: 6,
     backgroundColor: COLORS.primary,
-    marginTop: 4,
-    flexShrink: 0,
   },
-  feitjesGrid: {
-    flexDirection: 'row' as const,
-    flexWrap: 'wrap' as const,
-    gap: 6,
+  waardeContent: {
+    padding: 14,
   },
 });
