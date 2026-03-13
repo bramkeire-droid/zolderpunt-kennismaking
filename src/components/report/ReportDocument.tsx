@@ -347,11 +347,13 @@ function FotoGroepBlock({
   }
 
   return (
-    <View style={{ marginBottom: 20 }} wrap={false}>
-      <Image
-        src={groep.foto.url}
-        style={isFirst ? s.photoHero : s.photoGridItemGroter}
-      />
+    <View style={{ marginBottom: 20 }}>
+      <View wrap={false}>
+        <Image
+          src={groep.foto.url}
+          style={isFirst ? s.photoHero : s.photoGridItemGroter}
+        />
+      </View>
       {hasFeitjes && (
         <View style={{ marginTop: 8 }}>
           {veelFeitjes ? (

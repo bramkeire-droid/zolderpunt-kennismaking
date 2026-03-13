@@ -3,7 +3,7 @@ import SlideNavButtons from './SlideNavButtons';
 
 interface SlideLayoutProps {
   children: React.ReactNode;
-  variant?: 'default' | 'blue' | 'internal';
+  variant?: 'default' | 'blue' | 'internal' | 'raw';
   hideNav?: boolean;
   showSave?: boolean;
   className?: string;
@@ -22,6 +22,21 @@ export default function SlideLayout({ children, variant = 'default', hideNav = f
         </div>
         {!hideNav && (
           <div className="relative z-10 px-12 pb-8">
+            <SlideNavButtons showSave={showSave} />
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (variant === 'raw') {
+    return (
+      <div className="flex-1 flex flex-col relative overflow-hidden">
+        <div className={`flex-1 overflow-y-auto ${className}`}>
+          {children}
+        </div>
+        {!hideNav && (
+          <div className="absolute bottom-0 left-0 right-0 z-20 px-10 lg:px-16 pb-6">
             <SlideNavButtons showSave={showSave} />
           </div>
         )}

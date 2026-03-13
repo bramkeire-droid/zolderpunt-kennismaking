@@ -1,100 +1,325 @@
 import { useSession } from '@/contexts/SessionContext';
 import SlideLayout from '@/components/SlideLayout';
-import { Calendar, Users, MessageSquare } from 'lucide-react';
-
-const OPTIONS = [
-  {
-    key: 'plaatsbezoek',
-    title: 'Plaatsbezoek inplannen',
-    text: 'We komen langs, meten alles op en maken een gedetailleerd 3D-ontwerp en offerte.',
-    subtext: '→ Bram neemt binnen 48u contact op',
-    icon: Calendar,
-    prominent: true,
-  },
-  {
-    key: 'overleggen',
-    title: 'Eerst intern overleggen',
-    text: 'Jullie bespreken dit samen. Wanneer jullie klaar zijn, plannen we het bezoek.',
-    subtext: '→ Jullie nemen contact op wanneer het past',
-    icon: Users,
-    prominent: false,
-  },
-  {
-    key: 'nadenken',
-    title: 'Nog even nadenken',
-    text: 'Geen probleem. Ik vraag graag feedback over je beslissing om onze dienstverlening te verbeteren.',
-    subtext: '',
-    icon: MessageSquare,
-    prominent: false,
-  },
-];
+import { Calendar, Users, MessageCircle } from 'lucide-react';
 
 export default function Slide7() {
   const { lead, updateLead } = useSession();
+  const selected = lead.volgende_stap;
+
+  const voornaam = lead.voornaam?.trim();
+  const headline = voornaam
+    ? `${voornaam}, jullie zolder verdient de volgende stap.`
+    : 'Jullie zolder verdient de volgende stap.';
 
   return (
-    <SlideLayout>
-      <div className="max-w-4xl mx-auto w-full flex flex-col items-center">
+    <SlideLayout variant="raw">
+      <style>{`
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translateY(12px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
 
-        {/* Vandaag kader */}
-        <div className="w-full max-w-[480px] bg-[#008CFF] text-white p-8 text-center">
-          <div className="text-[11px] font-bold tracking-[2px] uppercase opacity-60 mb-2 font-body">VANDAAG</div>
-          <p className="text-lg font-headline font-bold leading-relaxed">
-            Jullie zolder heeft potentieel. We hebben het samen verkend.
-          </p>
+      <div className="flex flex-col h-full min-h-0" style={{ backgroundColor: '#F8F3EB' }}>
+
+        {/* ═══ ZONE 1 — Hero header ═══ */}
+        <div
+          className="relative overflow-hidden"
+          style={{
+            backgroundColor: '#008CFF',
+            clipPath: 'polygon(0 0, 100% 0, 100% calc(100% - 48px), 0 100%)',
+            minHeight: '32%',
+          }}
+        >
+          {/* Decoratief punt-element (grafisch systeem) */}
+          <div
+            className="absolute pointer-events-none"
+            style={{
+              right: '-40px',
+              top: '-20px',
+              width: '280px',
+              height: '280px',
+              borderRadius: '50%',
+              backgroundColor: 'rgba(255,255,255,0.12)',
+            }}
+          />
+          <div
+            className="absolute pointer-events-none"
+            style={{
+              right: '80px',
+              top: '60px',
+              width: '120px',
+              height: '120px',
+              borderRadius: '50%',
+              backgroundColor: 'rgba(255,255,255,0.08)',
+            }}
+          />
+
+          <div className="relative z-10 flex flex-col items-center justify-center text-center px-8 py-12">
+            <span
+              className="block mb-3 text-white uppercase"
+              style={{
+                fontFamily: "'Rethink Sans', 'DM Sans', system-ui, sans-serif",
+                fontSize: '0.7rem',
+                letterSpacing: '0.1em',
+                opacity: 0.7,
+              }}
+            >
+              WAT GEBEURT ER NU?
+            </span>
+            <h2
+              className="text-white mb-3"
+              style={{
+                fontFamily: "'Brockmann', 'Space Grotesk', system-ui, sans-serif",
+                fontWeight: 700,
+                fontSize: '2rem',
+                lineHeight: 1.2,
+              }}
+            >
+              {headline}
+            </h2>
+            <p
+              className="text-white"
+              style={{
+                fontFamily: "'Rethink Sans', 'DM Sans', system-ui, sans-serif",
+                fontSize: '0.9rem',
+                opacity: 0.85,
+              }}
+            >
+              Kies hoe jullie verder willen gaan — Bram volgt op.
+            </p>
+          </div>
         </div>
 
-        {/* Verticale lijn + horizontale split */}
-        <svg width="100%" height="50" viewBox="0 0 800 50" preserveAspectRatio="xMidYMid meet" className="max-w-3xl">
-          {/* Verticale lijn naar beneden */}
-          <line x1="400" y1="0" x2="400" y2="30" stroke="#008CFF" strokeWidth="2" />
-          {/* Horizontale lijn */}
-          <line x1="133" y1="30" x2="667" y2="30" stroke="#008CFF" strokeWidth="2" />
-          {/* Drie verticale aftakkingen */}
-          <line x1="133" y1="30" x2="133" y2="50" stroke="#008CFF" strokeWidth="2" />
-          <line x1="400" y1="30" x2="400" y2="50" stroke="#008CFF" strokeWidth="2" />
-          <line x1="667" y1="30" x2="667" y2="50" stroke="#008CFF" strokeWidth="2" />
-        </svg>
+        {/* ═══ ZONE 2 — Drie opties ═══ */}
+        <div className="flex-1 px-8 py-8" style={{ backgroundColor: '#F8F3EB' }}>
+          <div className="flex gap-6 max-w-5xl mx-auto items-stretch">
 
-        {/* Drie opties */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 w-full">
-          {OPTIONS.map(opt => {
-            const isSelected = lead.volgende_stap === opt.key;
-            const Icon = opt.icon;
-            return (
-              <button
-                key={opt.key}
-                onClick={() => updateLead({ volgende_stap: opt.key })}
-                className={`text-left p-6 border-2 transition-all flex flex-col ${
-                  isSelected
-                    ? 'bg-[#008CFF] border-[#008CFF] text-white'
-                    : opt.prominent
-                      ? 'bg-white border-[#008CFF] hover:bg-[#008CFF]/5'
-                      : 'bg-white border-[#E2E8F0] hover:border-[#008CFF]/30'
-                }`}
+            {/* Optie 1 — Plaatsbezoek (dominant, 45%) */}
+            <button
+              onClick={() => updateLead({ volgende_stap: 'plaatsbezoek' })}
+              className="text-left flex flex-col transition-all"
+              style={{
+                width: '45%',
+                flexShrink: 0,
+                padding: '28px',
+                backgroundColor: selected === 'plaatsbezoek' ? '#008CFF' : '#FFFFFF',
+                border: selected === 'plaatsbezoek' ? '2px solid #008CFF' : '2px solid #008CFF',
+                animation: 'fadeInUp 0.35s ease 0.05s both',
+              }}
+            >
+              {/* Badge */}
+              <span
+                className="inline-block mb-4 self-start"
+                style={{
+                  backgroundColor: selected === 'plaatsbezoek' ? 'rgba(255,255,255,0.2)' : '#008CFF',
+                  color: '#FFFFFF',
+                  fontFamily: "'Rethink Sans', 'DM Sans', system-ui, sans-serif",
+                  fontSize: '0.65rem',
+                  letterSpacing: '0.1em',
+                  textTransform: 'uppercase',
+                  padding: '3px 8px',
+                }}
               >
-                <Icon className={`h-7 w-7 mb-4 ${isSelected ? 'text-white' : opt.prominent ? 'text-[#008CFF]' : 'text-[#2B6CA0]'}`} />
-                <h3 className={`text-lg font-headline font-bold mb-3 ${isSelected ? 'text-white' : 'text-foreground'}`}>
-                  {opt.title}
-                </h3>
-                <p className={`text-sm font-body mb-4 leading-relaxed flex-1 ${isSelected ? 'text-white/80' : 'text-muted-foreground'}`}>
-                  {opt.text}
-                </p>
-                {opt.subtext && (
-                  <p className={`text-xs font-medium ${isSelected ? 'text-white/60' : 'text-muted-foreground/70'}`}>
-                    {opt.subtext}
-                  </p>
-                )}
-              </button>
-            );
-          })}
-        </div>
+                MEEST GEKOZEN
+              </span>
+              <Calendar
+                className="mb-4"
+                size={32}
+                color={selected === 'plaatsbezoek' ? '#FFFFFF' : '#008CFF'}
+              />
+              <h3
+                className="mb-3"
+                style={{
+                  fontFamily: "'Brockmann', 'Space Grotesk', system-ui, sans-serif",
+                  fontWeight: 600,
+                  fontSize: '1.1rem',
+                  color: selected === 'plaatsbezoek' ? '#FFFFFF' : '#1A1A1A',
+                }}
+              >
+                Plaatsbezoek inplannen
+              </h3>
+              <p
+                className="mb-4 flex-1"
+                style={{
+                  fontFamily: "'Rethink Sans', 'DM Sans', system-ui, sans-serif",
+                  fontSize: '0.875rem',
+                  lineHeight: 1.6,
+                  color: selected === 'plaatsbezoek' ? 'rgba(255,255,255,0.85)' : '#444',
+                }}
+              >
+                Bram komt bij jullie thuis, meet alles op en maakt een gedetailleerd 3D-ontwerp en offerte. Geen verplichtingen, geen verrassingen.
+              </p>
+              <p
+                className="mb-2"
+                style={{
+                  fontFamily: "'Rethink Sans', 'DM Sans', system-ui, sans-serif",
+                  fontWeight: 700,
+                  fontSize: '0.875rem',
+                  color: selected === 'plaatsbezoek' ? '#FFFFFF' : '#008CFF',
+                }}
+              >
+                → Bram neemt binnen 48u contact op
+              </p>
+              <p
+                style={{
+                  fontFamily: "'Rethink Sans', 'DM Sans', system-ui, sans-serif",
+                  fontSize: '0.75rem',
+                  fontStyle: 'italic',
+                  color: selected === 'plaatsbezoek' ? 'rgba(255,255,255,0.6)' : '#888',
+                }}
+              >
+                De meeste klanten plannen het bezoek binnen de week.
+              </p>
+            </button>
 
-        {/* Callout quote */}
-        <div className="mt-10 w-full bg-white border-l-4 border-l-[#008CFF] border border-[#E2E8F0] p-8">
-          <p className="text-base font-body italic text-muted-foreground leading-relaxed">
-            "Wat jullie ook kiezen — het rapport van dit gesprek is onderweg. Geen druk, geen haast. Wij zijn er wanneer jullie klaar zijn."
-          </p>
+            {/* Optie 2 — Overleggen (27.5%) */}
+            <button
+              onClick={() => updateLead({ volgende_stap: 'overleggen' })}
+              className="text-left flex flex-col transition-all"
+              style={{
+                width: '27.5%',
+                flexShrink: 0,
+                padding: '20px',
+                backgroundColor: selected === 'overleggen' ? '#008CFF' : '#FFFFFF',
+                border: selected === 'overleggen' ? '2px solid #008CFF' : '1px solid #E2E8F0',
+                animation: 'fadeInUp 0.35s ease 0.15s both',
+              }}
+            >
+              <Users
+                className="mb-4"
+                size={24}
+                color={selected === 'overleggen' ? '#FFFFFF' : '#1A1A1A'}
+              />
+              <h3
+                className="mb-3"
+                style={{
+                  fontFamily: "'Brockmann', 'Space Grotesk', system-ui, sans-serif",
+                  fontWeight: 600,
+                  fontSize: '1rem',
+                  color: selected === 'overleggen' ? '#FFFFFF' : '#1A1A1A',
+                }}
+              >
+                Eerst intern overleggen
+              </h3>
+              <p
+                className="mb-4 flex-1"
+                style={{
+                  fontFamily: "'Rethink Sans', 'DM Sans', system-ui, sans-serif",
+                  fontSize: '0.85rem',
+                  lineHeight: 1.6,
+                  color: selected === 'overleggen' ? 'rgba(255,255,255,0.85)' : '#555',
+                }}
+              >
+                Jullie bespreken dit samen. Wanneer jullie klaar zijn, plannen we het bezoek.
+              </p>
+              <p
+                style={{
+                  fontFamily: "'Rethink Sans', 'DM Sans', system-ui, sans-serif",
+                  fontSize: '0.8rem',
+                  color: selected === 'overleggen' ? '#FFFFFF' : '#008CFF',
+                }}
+              >
+                → Jullie nemen contact op wanneer het past
+              </p>
+            </button>
+
+            {/* Optie 3 — Nadenken (27.5%, muted) */}
+            <button
+              onClick={() => updateLead({ volgende_stap: 'nadenken' })}
+              className="text-left flex flex-col transition-all"
+              style={{
+                width: '27.5%',
+                flexShrink: 0,
+                padding: '20px',
+                backgroundColor: selected === 'nadenken' ? '#008CFF' : '#FFFFFF',
+                border: selected === 'nadenken' ? '2px solid #008CFF' : '1px solid #E2E8F0',
+                opacity: selected === 'nadenken' ? 1 : 0.7,
+                animation: 'fadeInUp 0.35s ease 0.25s both',
+              }}
+            >
+              <MessageCircle
+                className="mb-4"
+                size={24}
+                color={selected === 'nadenken' ? '#FFFFFF' : '#888'}
+              />
+              <h3
+                className="mb-3"
+                style={{
+                  fontFamily: "'Brockmann', 'Space Grotesk', system-ui, sans-serif",
+                  fontWeight: 600,
+                  fontSize: '1rem',
+                  color: selected === 'nadenken' ? '#FFFFFF' : '#555',
+                }}
+              >
+                Nog even nadenken
+              </h3>
+              <p
+                className="flex-1"
+                style={{
+                  fontFamily: "'Rethink Sans', 'DM Sans', system-ui, sans-serif",
+                  fontSize: '0.85rem',
+                  lineHeight: 1.6,
+                  color: selected === 'nadenken' ? 'rgba(255,255,255,0.85)' : '#666',
+                }}
+              >
+                Geen probleem. Het rapport van dit gesprek staat klaar in jullie mailbox.
+              </p>
+            </button>
+          </div>
+
+          {/* ═══ ZONE 3 — Quote blok ═══ */}
+          <div
+            className="flex items-start gap-4 max-w-5xl mx-auto mt-10"
+            style={{ borderLeft: '4px solid #008CFF', paddingLeft: '20px' }}
+          >
+            {/* Avatar */}
+            <div
+              className="shrink-0 flex items-center justify-center"
+              style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: '50%',
+                backgroundColor: '#008CFF',
+              }}
+            >
+              <span
+                style={{
+                  fontFamily: "'Brockmann', 'Space Grotesk', system-ui, sans-serif",
+                  fontWeight: 700,
+                  fontSize: '1rem',
+                  color: '#FFFFFF',
+                }}
+              >
+                BK
+              </span>
+            </div>
+
+            {/* Quote text */}
+            <div>
+              <p
+                style={{
+                  fontFamily: "'Rethink Sans', 'DM Sans', system-ui, sans-serif",
+                  fontSize: '0.95rem',
+                  fontStyle: 'italic',
+                  lineHeight: 1.6,
+                  color: '#1A1A1A',
+                }}
+              >
+                "Wat jullie ook kiezen — het rapport van dit gesprek is onderweg. Geen druk, geen haast. Wij zijn er wanneer jullie klaar zijn."
+              </p>
+              <p
+                className="mt-2"
+                style={{
+                  fontFamily: "'Rethink Sans', 'DM Sans', system-ui, sans-serif",
+                  fontSize: '0.8rem',
+                  color: '#888',
+                }}
+              >
+                — Bram Keirsschieter, Zolderpunt
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </SlideLayout>
