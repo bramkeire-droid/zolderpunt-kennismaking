@@ -93,8 +93,27 @@ export default function CoachingSuggestions() {
 
   useEffect(() => { fetchTips(); }, []);
 
-  // Don't render anything if error and no data
-  if (error && !data) return null;
+  // Show error state so user knows the feature exists
+  if (error && !data) {
+    return (
+      <div className="w-full max-w-md mt-8">
+        <h3 className="font-headline text-sm text-foreground/50 uppercase tracking-wider mb-3">
+          AI Coaching
+        </h3>
+        <div className="bg-white border-l-4 border-foreground/10 p-3">
+          <p className="font-body text-sm text-foreground/40">
+            Suggesties konden niet geladen worden. De edge function is mogelijk nog niet gedeployed.
+          </p>
+          <button
+            onClick={() => fetchTips(true)}
+            className="font-body text-sm text-primary mt-2 hover:underline"
+          >
+            Opnieuw proberen
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // Loading skeleton
   if (loading && !data) {
