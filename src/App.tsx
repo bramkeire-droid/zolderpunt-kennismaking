@@ -27,6 +27,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowRight, FolderOpen } from 'lucide-react';
 import logoBlauw from '@/assets/logo-blauw.svg';
 import DecorativeAngle from '@/components/DecorativeAngle';
+import CoachingSuggestions from '@/components/CoachingSuggestions';
 import type { SlideId } from '@/contexts/SessionContext';
 import type { LeadData } from '@/contexts/SessionContext';
 
@@ -70,6 +71,7 @@ function AppContent() {
               Dossiers bekijken
             </Button>
           </div>
+          <CoachingSuggestions />
         </div>
       </div>
     );
