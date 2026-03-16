@@ -114,7 +114,7 @@ export default function CoachingSuggestions() {
     try {
       const { data: leads, error: dbErr } = await supabase
         .from('leads')
-        .select('voornaam, achternaam, adres, oppervlakte_m2, gezocht_naar, gesprek_notities, gesprek_datum, volgende_stap, budget_incl6, rapport_situatie_ai, email, telefoon, technisch')
+        .select('voornaam, achternaam, adres, oppervlakte_m2, gezocht_naar, gesprek_notities, gesprek_datum, volgende_stap, budget_incl6, rapport_situatie_ai, rapport_verwachtingen_ai, rapport_besproken_ai, rapport_aandachtspunten_ai, email, telefoon, technisch, project_feiten')
         .order('updated_at', { ascending: false })
         .limit(10);
 

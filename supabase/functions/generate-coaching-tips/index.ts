@@ -18,14 +18,14 @@ serve(async (req) => {
       return new Response(JSON.stringify({
         dossier_tips: [],
         patroon_analyse: [],
-        algemene_tips: [{ tip: "Start je eerste intakegesprek om gepersonaliseerde tips te ontvangen." }],
+        algemene_tips: [{ tip: "Start je eerste intakegesprek om gepersonaliseerde coaching te ontvangen." }],
         fallback: false,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Build summary of each lead for the AI
+    // Build rich conversation summaries for the AI
     const leadSummaries = leads.map((l: any, i: number) => {
       const techItems: string[] = [];
       const tech = l.technisch;
@@ -37,39 +37,85 @@ serve(async (req) => {
         if (tech.maatwerk_kasten) techItems.push('maatwerk kasten');
       }
 
+      // Project feiten (observaties ter plaatse)
+      const feiten = l.project_feiten;
+      const feitenText = Array.isArray(feiten) && feiten.length > 0
+        ? feiten.map((f: any) => f.tekst).filter(Boolean).join('; ')
+        : '(geen observaties vastgelegd)';
+
       return `
-DOSSIER ${i + 1}:
-- Naam: ${l.voornaam || '?'} ${l.achternaam || '?'}
-- Datum: ${l.gesprek_datum || '(geen datum)'}
-- Adres: ${l.adres || '(niet ingevuld)'}
-- Oppervlakte: ${l.oppervlakte_m2 || '?'} m2
-- Gewenst: ${l.gezocht_naar || '(niet ingevuld)'}
-- Technisch: ${techItems.join(', ') || '(niets aangevinkt)'}
-- Notities: ${l.gesprek_notities ? l.gesprek_notities.substring(0, 300) : '(geen)'}
-- Volgende stap: ${l.volgende_stap || '(niet gekozen)'}
-- Budget besproken: ${l.budget_incl6 ? 'ja' : 'nee'}
-- AI samenvatting: ${l.rapport_situatie_ai ? 'ja' : 'nee'}
-- E-mail: ${l.email || '(niet ingevuld)'}
-- Telefoon: ${l.telefoon || '(niet ingevuld)'}
+═══════════════════════════════
+DOSSIER ${i + 1}: ${l.voornaam || '?'} ${l.achternaam || '?'}
+Datum: ${l.gesprek_datum || '(geen datum)'} | Adres: ${l.adres || '(niet ingevuld)'} | Oppervlakte: ${l.oppervlakte_m2 || '?'} m2
+Technisch: ${techItems.join(', ') || '(niets aangevinkt)'}
+Volgende stap: ${l.volgende_stap || '(niet gekozen)'} | Budget besproken: ${l.budget_incl6 ? 'ja' : 'nee'}
+Contact: email ${l.email ? 'ja' : 'ONTBREEKT'} | telefoon ${l.telefoon ? 'ja' : 'ONTBREEKT'}
+
+── WAT DE KLANT ZOEKT ──
+${l.gezocht_naar || '(niet ingevuld — Bram heeft de klantwens niet genoteerd)'}
+
+── BRAMS EIGEN NOTITIES ──
+${l.gesprek_notities || '(geen notities — Bram heeft niets opgeschreven tijdens/na het gesprek)'}
+
+── AI-SAMENVATTING: SITUATIE ──
+${l.rapport_situatie_ai || '(niet gegenereerd — er was te weinig input om een situatieschets te maken)'}
+
+── AI-SAMENVATTING: VERWACHTINGEN KLANT ──
+${l.rapport_verwachtingen_ai || '(niet gegenereerd — klantverwachtingen zijn niet uitgevraagd of vastgelegd)'}
+
+── AI-SAMENVATTING: WAT ER BESPROKEN WERD ──
+${l.rapport_besproken_ai || '(niet gegenereerd — gespreksinhoud is onvoldoende vastgelegd)'}
+
+── AI-SAMENVATTING: AANDACHTSPUNTEN ──
+${l.rapport_aandachtspunten_ai || '(niet gegenereerd — er zijn geen aandachtspunten geidentificeerd)'}
+
+── OBSERVATIES TER PLAATSE ──
+${feitenText}
 `.trim();
     }).join('\n\n');
 
-    const systemPrompt = `Je bent een coach voor Bram Keirsschieter, eigenaar van Zolderpunt (zolderrenovaties in Belgie).
+    const systemPrompt = `Je bent een senior salescoach gespecialiseerd in B2C huisrenovatie-intakes. Je coacht Bram Keirsschieter, eigenaar van Zolderpunt (zolderrenovaties in Belgie).
 
-Je analyseert zijn recente intakegesprekken en geeft concrete, actionable feedback om zijn gesprekskwaliteit te verbeteren.
+Je krijgt de VOLLEDIGE inhoud van zijn recente klantgesprekken: zijn eigen notities, de AI-samenvattingen van elk gesprek (situatie, verwachtingen, wat er besproken werd, aandachtspunten), en observaties ter plaatse.
+
+JE ANALYSEERT NIET OF VELDEN INGEVULD ZIJN. Je analyseert de INHOUD en KWALITEIT van de gesprekken.
+
+ANALYSEER DEZE DIMENSIES:
+
+1. BEHOEFTEANALYSE
+- Heeft Bram de echte motivatie achter de renovatie achterhaald? (Waarom NU? Wat triggerde het?)
+- Zijn de verwachtingen concreet genoeg uitgevraagd? (Niet "een mooie zolder" maar "een master bedroom met badkamer voor dagelijks gebruik")
+- Heeft hij doorgevraagd op vage antwoorden?
+
+2. GESPREKSSTRUCTUUR
+- Is er een logische lijn van situatie → wens → voorstel → volgende stap?
+- Zijn alle gezinsleden/beslissers betrokken geweest?
+- Is er een duidelijk tijdsframe besproken?
+
+3. TECHNISCHE DIEPGANG
+- Zijn de aandachtspunten scherp genoeg? (Niet "we moeten het dak bekijken" maar "de gordingen aan de westzijde tonen vochtschade, noodzaak tot vervanging voor isolatie")
+- Heeft Bram de klant geholpen prioriteiten te stellen?
+- Zijn er technische risico's benoemd EN uitgelegd aan de klant?
+
+4. VERTROUWEN & RELATIE
+- Komt Bram over als expert of als orderopnemer?
+- Heeft hij proactief oplossingen aangedragen of enkel gevraagd wat de klant wil?
+- Is er een persoonlijke connectie gemaakt?
+
+5. OPVOLGING & CLOSING
+- Is de volgende stap concreet en tijdgebonden?
+- Zijn verwachtingen gemanaged? (budget-realisme, planning)
+- Is er urgentie gecreeerd zonder opdringerig te zijn?
 
 STIJL:
-- Direct en concreet, geen vage algemeenheden
-- Verwijs naar specifieke klanten bij naam
-- Kort en krachtig (max 2 zinnen per tip)
+- Direct en concreet, verwijs naar specifieke klanten bij naam
+- Citeer of parafraseer passages uit de gespreksdata als bewijs
+- Kort en krachtig (max 2-3 zinnen per tip)
 - Nederlands (Belgisch), informeel "je/jij"
-- Geen overdreven lof, geen negatieve toon — gewoon eerlijke coaching
+- Geen overdreven lof, geen negatieve toon — eerlijke coaching van een collega
+- Geef GEEN tips over het invullen van app-velden — focus op gesprekskwaliteit
 
-FOCUS:
-- Welke informatie werd NIET gevraagd of ingevuld? (email, telefoon, oppervlakte, notities, technische details)
-- Zijn er patronen? (bv. altijd vergeten notities te maken, nooit budget besproken)
-- Welke opvolgacties ontbreken? (geen volgende stap gekozen, geen rapport gegenereerd)
-- Algemene tips voor betere intakegesprekken`;
+BELANGRIJK: Als een AI-samenvatting ontbreekt, betekent dit dat Bram te weinig input gaf tijdens het gesprek om een samenvatting te genereren. Dat is op zich al een signaal.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -81,48 +127,48 @@ FOCUS:
         model: "google/gemini-3-flash-preview",
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: `Hier zijn mijn ${leads.length} meest recente intakegesprekken:\n\n${leadSummaries}\n\nAnalyseer deze dossiers en geef me concrete coaching-tips.` },
+          { role: "user", content: `Hier zijn mijn ${leads.length} meest recente klantgesprekken met alle beschikbare gespreksinhoud:\n\n${leadSummaries}\n\nAnalyseer mijn gesprekskwaliteit en geef me concrete coaching.` },
         ],
         tools: [
           {
             type: "function",
             function: {
               name: "coaching_tips",
-              description: "Gestructureerde coaching-tips op basis van recente intakegesprekken",
+              description: "Gestructureerde coaching op basis van gespreksanalyse",
               parameters: {
                 type: "object",
                 properties: {
                   dossier_tips: {
                     type: "array",
-                    description: "Tips gekoppeld aan een specifiek dossier. Max 3 tips.",
+                    description: "Coaching per specifiek klantgesprek — wat ging goed, wat kon beter. Max 3.",
                     items: {
                       type: "object",
                       properties: {
                         naam: { type: "string", description: "Volledige naam van de klant" },
-                        tip: { type: "string", description: "Concrete tip of observatie, max 2 zinnen" },
+                        tip: { type: "string", description: "Concrete coaching over het gesprek met deze klant. Verwijs naar inhoud. Max 3 zinnen." },
                       },
                       required: ["naam", "tip"],
                     },
                   },
                   patroon_analyse: {
                     type: "array",
-                    description: "Patronen die je ziet over meerdere gesprekken heen. Max 2 items.",
+                    description: "Patronen over MEERDERE gesprekken heen — terugkerende sterktes of verbeterpunten in Brams gespreksstijl. Max 2.",
                     items: {
                       type: "object",
                       properties: {
-                        observatie: { type: "string", description: "Wat je opvalt, max 1 zin" },
-                        aanbeveling: { type: "string", description: "Wat Bram anders kan doen, max 1 zin" },
+                        observatie: { type: "string", description: "Wat je opvalt als patroon over meerdere gesprekken. Max 2 zinnen." },
+                        aanbeveling: { type: "string", description: "Concrete actie die Bram kan nemen om dit te verbeteren. Max 1 zin." },
                       },
                       required: ["observatie", "aanbeveling"],
                     },
                   },
                   algemene_tips: {
                     type: "array",
-                    description: "Algemene coaching-tips voor betere gesprekken. Max 2 tips.",
+                    description: "Overkoepelende coaching-inzichten voor betere intakegesprekken. Max 2.",
                     items: {
                       type: "object",
                       properties: {
-                        tip: { type: "string", description: "Concrete, actionable tip, max 2 zinnen" },
+                        tip: { type: "string", description: "Strategische tip voor betere gesprekskwaliteit. Max 2 zinnen." },
                       },
                       required: ["tip"],
                     },
