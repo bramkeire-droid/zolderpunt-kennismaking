@@ -201,6 +201,11 @@ export default function Dossiers({ onOpenLead }: DossiersProps) {
                             <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); handleOpen(lead); }}>
                               <FolderOpen className="h-4 w-4" />
                             </Button>
+                            {lead.status !== 'afgesloten' && (
+                              <Button size="sm" variant="ghost" className="text-green-600 hover:text-green-700" onClick={(e) => handleConvert(e, lead)}>
+                                <CheckCircle className="h-4 w-4" />
+                              </Button>
+                            )}
                             <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={(e) => handleDelete(e, lead)}>
                               <Trash2 className="h-4 w-4" />
                             </Button>
