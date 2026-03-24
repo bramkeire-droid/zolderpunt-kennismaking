@@ -4,10 +4,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useState, useEffect, useMemo } from 'react';
-import { Search, FolderOpen, Users, TrendingUp, DollarSign, Eye, RefreshCw } from 'lucide-react';
+import { Search, FolderOpen, Users, TrendingUp, DollarSign, Eye, RefreshCw, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { defaultTechnisch } from '@/contexts/SessionContext';
 import type { LeadData } from '@/contexts/SessionContext';
+import { toast } from 'sonner';
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('nl-BE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
@@ -120,6 +121,19 @@ export default function Dossiers({ onOpenLead }: DossiersProps) {
     onOpenLead?.(leadData);
   };
 
+  const handleDelete = async (e: React.MouseEvent, lead: any) => {
+    e.stopPropagation();
+    const naam = `${lead.voornaam} ${lead.achternaam}`.trim() || 'dit dossier';
+    if (!window.confirm(`Weet je zeker dat je "${naam}" wilt verwijderen?`)) return;
+    const { error } = await supabase.from('leads').delete().eq('id', lead.id);
+    if (error) {
+      toast.error('Verwijderen mislukt');
+    } else {
+      toast.success('Dossier verwijderd');
+      setLeads(prev => prev.filter(l => l.id !== lead.id));
+    }
+  };
+
   return (
     <div className="flex-1 overflow-y-auto p-8 lg:p-12 bg-background">
       <div className="max-w-6xl mx-auto">
@@ -183,9 +197,14 @@ export default function Dossiers({ onOpenLead }: DossiersProps) {
                         </TableCell>
                         <TableCell className="font-body">{lead.volgende_stap || '—'}</TableCell>
                         <TableCell>
-                          <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); handleOpen(lead); }}>
-                            <FolderOpen className="h-4 w-4" />
-                          </Button>
+                          <div className="flex gap-1">
+                            <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); handleOpen(lead); }}>
+                              <FolderOpen className="h-4 w-4" />
+                            </Button>
+                            <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={(e) => handleDelete(e, lead)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
