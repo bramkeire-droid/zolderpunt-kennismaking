@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { defaultTechnisch } from '@/contexts/SessionContext';
 import type { LeadData } from '@/contexts/SessionContext';
 import { toast } from 'sonner';
+import SalesAnalysis from '@/components/SalesAnalysis';
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('nl-BE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
@@ -162,6 +163,7 @@ export default function Dossiers({ onOpenLead }: DossiersProps) {
           <TabsList className="mb-6">
             <TabsTrigger value="overzicht" className="font-headline">Overzicht</TabsTrigger>
             <TabsTrigger value="statistieken" className="font-headline">Statistieken</TabsTrigger>
+            <TabsTrigger value="sales-analyse" className="font-headline">Sales Analyse</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overzicht">
@@ -246,6 +248,10 @@ export default function Dossiers({ onOpenLead }: DossiersProps) {
               <StatCard icon={DollarSign} label="Gem. budget" value={stats.avgBudget} />
               <StatCard icon={Eye} label="Top kanaal" value={stats.topChannel} />
             </div>
+          </TabsContent>
+
+          <TabsContent value="sales-analyse">
+            <SalesAnalysis />
           </TabsContent>
         </Tabs>
       </div>
