@@ -134,7 +134,19 @@ export default function Dossiers({ onOpenLead }: DossiersProps) {
     }
   };
 
-  return (
+  const handleConvert = async (e: React.MouseEvent, lead: any) => {
+    e.stopPropagation();
+    const naam = `${lead.voornaam} ${lead.achternaam}`.trim() || 'dit dossier';
+    if (!window.confirm(`"${naam}" markeren als uitgevoerd (afgesloten)?`)) return;
+    const { error } = await supabase.from('leads').update({ status: 'afgesloten' }).eq('id', lead.id);
+    if (error) {
+      toast.error('Status wijzigen mislukt');
+    } else {
+      toast.success('Dossier gemarkeerd als afgesloten');
+      setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, status: 'afgesloten' } : l));
+    }
+  };
+
     <div className="flex-1 overflow-y-auto p-8 lg:p-12 bg-background">
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-8">
