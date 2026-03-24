@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useState, useEffect, useMemo } from 'react';
-import { Search, FolderOpen, Users, TrendingUp, DollarSign, Eye, RefreshCw, Trash2 } from 'lucide-react';
+import { Search, FolderOpen, Users, TrendingUp, DollarSign, Eye, RefreshCw, Trash2, CheckCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { defaultTechnisch } from '@/contexts/SessionContext';
 import type { LeadData } from '@/contexts/SessionContext';
@@ -134,6 +134,19 @@ export default function Dossiers({ onOpenLead }: DossiersProps) {
     }
   };
 
+  const handleConvert = async (e: React.MouseEvent, lead: any) => {
+    e.stopPropagation();
+    const naam = `${lead.voornaam} ${lead.achternaam}`.trim() || 'dit dossier';
+    if (!window.confirm(`"${naam}" markeren als uitgevoerd (afgesloten)?`)) return;
+    const { error } = await supabase.from('leads').update({ status: 'afgesloten' }).eq('id', lead.id);
+    if (error) {
+      toast.error('Status wijzigen mislukt');
+    } else {
+      toast.success('Dossier gemarkeerd als afgesloten');
+      setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, status: 'afgesloten' } : l));
+    }
+  };
+
   return (
     <div className="flex-1 overflow-y-auto p-8 lg:p-12 bg-background">
       <div className="max-w-6xl mx-auto">
@@ -201,6 +214,11 @@ export default function Dossiers({ onOpenLead }: DossiersProps) {
                             <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); handleOpen(lead); }}>
                               <FolderOpen className="h-4 w-4" />
                             </Button>
+                            {lead.status !== 'afgesloten' && (
+                              <Button size="sm" variant="ghost" className="text-green-600 hover:text-green-700" onClick={(e) => handleConvert(e, lead)}>
+                                <CheckCircle className="h-4 w-4" />
+                              </Button>
+                            )}
                             <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={(e) => handleDelete(e, lead)}>
                               <Trash2 className="h-4 w-4" />
                             </Button>
