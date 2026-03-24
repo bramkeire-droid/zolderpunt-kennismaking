@@ -147,6 +147,7 @@ export default function Dossiers({ onOpenLead }: DossiersProps) {
     }
   };
 
+  return (
     <div className="flex-1 overflow-y-auto p-8 lg:p-12 bg-background">
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-8">
