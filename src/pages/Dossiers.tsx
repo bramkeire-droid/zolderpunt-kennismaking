@@ -121,6 +121,19 @@ export default function Dossiers({ onOpenLead }: DossiersProps) {
     onOpenLead?.(leadData);
   };
 
+  const handleDelete = async (e: React.MouseEvent, lead: any) => {
+    e.stopPropagation();
+    const naam = `${lead.voornaam} ${lead.achternaam}`.trim() || 'dit dossier';
+    if (!window.confirm(`Weet je zeker dat je "${naam}" wilt verwijderen?`)) return;
+    const { error } = await supabase.from('leads').delete().eq('id', lead.id);
+    if (error) {
+      toast.error('Verwijderen mislukt');
+    } else {
+      toast.success('Dossier verwijderd');
+      setLeads(prev => prev.filter(l => l.id !== lead.id));
+    }
+  };
+
   return (
     <div className="flex-1 overflow-y-auto p-8 lg:p-12 bg-background">
       <div className="max-w-6xl mx-auto">
