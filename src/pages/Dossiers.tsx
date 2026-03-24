@@ -163,6 +163,7 @@ export default function Dossiers({ onOpenLead }: DossiersProps) {
           <TabsList className="mb-6">
             <TabsTrigger value="overzicht" className="font-headline">Overzicht</TabsTrigger>
             <TabsTrigger value="statistieken" className="font-headline">Statistieken</TabsTrigger>
+            <TabsTrigger value="sales-analyse" className="font-headline">Sales Analyse</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overzicht">
