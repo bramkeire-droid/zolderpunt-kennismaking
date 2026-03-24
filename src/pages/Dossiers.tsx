@@ -197,9 +197,14 @@ export default function Dossiers({ onOpenLead }: DossiersProps) {
                         </TableCell>
                         <TableCell className="font-body">{lead.volgende_stap || '—'}</TableCell>
                         <TableCell>
-                          <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); handleOpen(lead); }}>
-                            <FolderOpen className="h-4 w-4" />
-                          </Button>
+                          <div className="flex gap-1">
+                            <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); handleOpen(lead); }}>
+                              <FolderOpen className="h-4 w-4" />
+                            </Button>
+                            <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={(e) => handleDelete(e, lead)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
