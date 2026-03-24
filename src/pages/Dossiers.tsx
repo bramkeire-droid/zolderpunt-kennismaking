@@ -249,6 +249,10 @@ export default function Dossiers({ onOpenLead }: DossiersProps) {
               <StatCard icon={Eye} label="Top kanaal" value={stats.topChannel} />
             </div>
           </TabsContent>
+
+          <TabsContent value="sales-analyse">
+            <SalesAnalysis />
+          </TabsContent>
         </Tabs>
       </div>
     </div>
