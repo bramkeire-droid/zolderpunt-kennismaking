@@ -192,7 +192,8 @@ export default function Slide4() {
               <img
                 src={photos[activeIndex].publicUrl}
                 alt={photos[activeIndex].bestandsnaam}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain cursor-pointer"
+                onClick={() => setLightboxSrc(photos[activeIndex].publicUrl)}
               />
             ) : (
               <div className="text-muted-foreground/50 flex flex-col items-center gap-3 text-center px-8">
