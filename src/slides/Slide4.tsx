@@ -5,6 +5,7 @@ import SlideLabel from '@/components/SlideLabel';
 import { Button } from '@/components/ui/button';
 import { Upload, Loader2, X, Image, ImageOff } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import ImageLightbox from '@/components/ImageLightbox';
 
 interface PhotoItem {
   bestandsnaam: string;
@@ -19,6 +20,7 @@ export default function Slide4() {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [inputs, setInputs] = useState(['', '', '']);
   const [animatingFeit, setAnimatingFeit] = useState<{ id: number; text: string; rotation: number } | null>(null);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
 
   const photos: (PhotoItem & { publicUrl: string })[] = (lead.fotos || []).map((f: PhotoItem) => ({
     ...f,
@@ -190,7 +192,8 @@ export default function Slide4() {
               <img
                 src={photos[activeIndex].publicUrl}
                 alt={photos[activeIndex].bestandsnaam}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain cursor-pointer"
+                onClick={() => setLightboxSrc(photos[activeIndex].publicUrl)}
               />
             ) : (
               <div className="text-muted-foreground/50 flex flex-col items-center gap-3 text-center px-8">
@@ -276,6 +279,10 @@ export default function Slide4() {
           </div>
         </div>
       </div>
+
+      {lightboxSrc && (
+        <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
+      )}
     </SlideLayout>
   );
 }

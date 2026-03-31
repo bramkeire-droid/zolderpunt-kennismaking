@@ -6,8 +6,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { MapPin, Upload, X, Loader2 } from 'lucide-react';
 import AddressAutocomplete from '@/components/AddressAutocomplete';
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import ImageLightbox from '@/components/ImageLightbox';
 
 interface PhotoItem {
   bestandsnaam: string;
@@ -19,6 +20,7 @@ export default function Slide0B() {
   const { lead, updateLead } = useSession();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
 
   // Build public URLs for existing photos
   const photos: (PhotoItem & { publicUrl: string })[] = (lead.fotos || []).map((f: PhotoItem) => ({
@@ -152,8 +154,8 @@ export default function Slide0B() {
             {photos.length > 0 && (
               <div className="grid grid-cols-4 gap-3">
                 {photos.map((photo, i) => (
-                  <div key={i} className="relative group overflow-hidden border border-border aspect-square">
-                    <img src={photo.publicUrl} alt={photo.bestandsnaam} className="w-full h-full object-cover" />
+                  <div key={i} className="relative group overflow-hidden border border-border cursor-pointer" onClick={() => setLightboxSrc(photo.publicUrl)}>
+                    <img src={photo.publicUrl} alt={photo.bestandsnaam} className="w-full h-auto object-contain" />
                     <button
                       onClick={() => removePhoto(i)}
                       className="absolute top-1 right-1 bg-destructive text-destructive-foreground p-1 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -170,6 +172,10 @@ export default function Slide0B() {
           </div>
         </div>
       </div>
+
+      {lightboxSrc && (
+        <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
+      )}
     </SlideLayout>
   );
 }
