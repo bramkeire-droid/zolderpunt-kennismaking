@@ -279,6 +279,10 @@ export default function Slide4() {
           </div>
         </div>
       </div>
+
+      {lightboxSrc && (
+        <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
+      )}
     </SlideLayout>
   );
 }
