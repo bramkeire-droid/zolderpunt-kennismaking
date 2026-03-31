@@ -1,14 +1,16 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSession } from '@/contexts/SessionContext';
 import SlideLayout from '@/components/SlideLayout';
 import SlideLabel from '@/components/SlideLabel';
 import AddressAutocomplete from '@/components/AddressAutocomplete';
 import { Input } from '@/components/ui/input';
 import { MapPin, Image } from 'lucide-react';
+import ImageLightbox from '@/components/ImageLightbox';
 
 export default function Slide3() {
   const { lead, updateLead } = useSession();
   const geocodedRef = useRef(false);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
 
   // Geocode fallback: fetch coordinates for existing addresses missing lat/lng
   useEffect(() => {
