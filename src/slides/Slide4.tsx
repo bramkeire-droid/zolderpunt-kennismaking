@@ -20,6 +20,7 @@ export default function Slide4() {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [inputs, setInputs] = useState(['', '', '']);
   const [animatingFeit, setAnimatingFeit] = useState<{ id: number; text: string; rotation: number } | null>(null);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
 
   const photos: (PhotoItem & { publicUrl: string })[] = (lead.fotos || []).map((f: PhotoItem) => ({
     ...f,
