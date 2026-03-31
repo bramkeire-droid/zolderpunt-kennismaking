@@ -5,6 +5,7 @@ import SlideLabel from '@/components/SlideLabel';
 import { Button } from '@/components/ui/button';
 import { Upload, Loader2, X, Image, ImageOff } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import ImageLightbox from '@/components/ImageLightbox';
 
 interface PhotoItem {
   bestandsnaam: string;
