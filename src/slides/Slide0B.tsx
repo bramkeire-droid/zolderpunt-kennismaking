@@ -6,8 +6,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { MapPin, Upload, X, Loader2 } from 'lucide-react';
 import AddressAutocomplete from '@/components/AddressAutocomplete';
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import ImageLightbox from '@/components/ImageLightbox';
 
 interface PhotoItem {
   bestandsnaam: string;
