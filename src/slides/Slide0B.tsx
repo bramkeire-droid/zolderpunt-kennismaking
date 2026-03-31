@@ -20,6 +20,7 @@ export default function Slide0B() {
   const { lead, updateLead } = useSession();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
 
   // Build public URLs for existing photos
   const photos: (PhotoItem & { publicUrl: string })[] = (lead.fotos || []).map((f: PhotoItem) => ({
