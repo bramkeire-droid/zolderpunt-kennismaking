@@ -304,6 +304,7 @@ export default function Slide4() {
                   <Button
                     size="sm"
                     disabled={!label.tekst.trim()}
+                    onClick={() => saveLead()}
                     className="h-auto px-3 text-xs font-headline self-stretch"
                   >
                     Opslaan
