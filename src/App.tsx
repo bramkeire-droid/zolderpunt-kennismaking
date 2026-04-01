@@ -42,14 +42,22 @@ const SLIDE_COMPONENTS: Record<SlideId, React.ComponentType> = {
 function AppContent() {
   const [view, setView] = useState<'start' | 'slides' | 'dossiers'>('start');
   const { currentMode, currentSlide, resetSession, setCurrentMode, loadLead } = useSession();
-  const { flushSave } = useLeadSave(); // autosave always active at top level
+  const { flushSave } = useLeadSave();
+
+  // Flush save whenever leaving slides (must be before any early return)
+  const prevModeRef = useRef(currentMode);
+  useEffect(() => {
+    if (prevModeRef.current !== 'dossiers' && currentMode === 'dossiers') {
+      flushSave();
+    }
+    prevModeRef.current = currentMode;
+  }, [currentMode, flushSave]);
 
   const handleOpenLead = (lead: LeadData) => {
     loadLead(lead);
     setView('slides');
   };
 
-  // Flush save before navigating away from slides
   const handleGoHome = async () => {
     if (view === 'slides') await flushSave();
     setView('start');
@@ -96,15 +104,6 @@ function AppContent() {
       </div>
     );
   }
-
-  // Flush save whenever leaving slides (mode changes to dossiers, or via NavigationBar tabs)
-  const prevModeRef = useRef(currentMode);
-  useEffect(() => {
-    if (prevModeRef.current !== 'dossiers' && currentMode === 'dossiers') {
-      flushSave();
-    }
-    prevModeRef.current = currentMode;
-  }, [currentMode, flushSave]);
 
   const actualMode = view === 'dossiers' ? 'dossiers' : currentMode;
 
