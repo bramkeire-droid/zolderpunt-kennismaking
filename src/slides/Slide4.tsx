@@ -299,6 +299,13 @@ export default function Slide4() {
                     className="bg-transparent text-sm flex-1 min-h-[60px] resize-vertical border-none outline-none font-body"
                     maxLength={500}
                   />
+                  <Button
+                    size="sm"
+                    disabled={!label.tekst.trim()}
+                    className="h-auto px-3 text-xs font-headline self-stretch"
+                  >
+                    Opslaan
+                  </Button>
                   <button
                     onClick={() => removeFeit(label.id)}
                     className="opacity-50 hover:opacity-100 transition-opacity p-1 hover:bg-destructive/10 rounded"
