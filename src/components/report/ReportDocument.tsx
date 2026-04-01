@@ -317,14 +317,27 @@ function groepeerFeitjesPerFoto(
   return groepen;
 }
 
-function FeitjeInPdf({ tekst, half = false }: { tekst: string; half?: boolean }) {
+function FeitjeInPdf({ tekst, half = false, labelNummer }: { tekst: string; half?: boolean; labelNummer?: number | null }) {
   return (
     <View style={[{
       flexDirection: 'row' as const,
       alignItems: 'flex-start' as const,
       marginBottom: 4,
     }, half ? { width: '48%' } : {}]} wrap={false}>
-      <View style={s.feitjeBullet} />
+      {labelNummer ? (
+        <View style={{
+          width: 14, height: 14, borderRadius: 7,
+          backgroundColor: COLORS.primary,
+          alignItems: 'center' as const, justifyContent: 'center' as const,
+          marginRight: 6, marginTop: 1,
+        }}>
+          <Text style={{ fontFamily: 'SpaceGrotesk', fontSize: 7, color: COLORS.white, fontWeight: 700 }}>
+            {labelNummer}
+          </Text>
+        </View>
+      ) : (
+        <View style={s.feitjeBullet} />
+      )}
       <Text style={s.bodyKlein}>{tekst}</Text>
     </View>
   );
@@ -335,6 +348,8 @@ function FotoGroepBlock({ groep }: {
 }) {
   const hasFeitjes = groep.feitjes.length > 0;
   const veelFeitjes = groep.feitjes.length > 3;
+  const labelFeitjes = groep.feitjes.filter(f => f.label_nummer !== null && f.label_nummer !== undefined);
+  const regularFeitjes = groep.feitjes.filter(f => f.label_nummer === null || f.label_nummer === undefined);
 
   if (!groep.foto) {
     return (
@@ -342,10 +357,10 @@ function FotoGroepBlock({ groep }: {
         <Text style={[s.sectionLabel, { marginBottom: 8 }]}>ALGEMENE VASTSTELLINGEN</Text>
         {veelFeitjes ? (
           <View style={{ flexDirection: 'row' as const, flexWrap: 'wrap' as const }}>
-            {groep.feitjes.map((f, i) => <FeitjeInPdf key={i} tekst={f.tekst} half />)}
+            {groep.feitjes.map((f, i) => <FeitjeInPdf key={i} tekst={f.tekst} half labelNummer={f.label_nummer} />)}
           </View>
         ) : (
-          groep.feitjes.map((f, i) => <FeitjeInPdf key={i} tekst={f.tekst} />)
+          groep.feitjes.map((f, i) => <FeitjeInPdf key={i} tekst={f.tekst} labelNummer={f.label_nummer} />)
         )}
       </View>
     );
@@ -353,17 +368,41 @@ function FotoGroepBlock({ groep }: {
 
   return (
     <View style={{ marginBottom: 16 }}>
-      <View wrap={false}>
+      <View wrap={false} style={{ position: 'relative' as const }}>
         <Image src={groep.foto.url} style={s.photoFull} />
+        {/* Label markers on photo */}
+        {labelFeitjes.map(label => (
+          <View
+            key={label.id}
+            style={{
+              position: 'absolute' as const,
+              left: `${(label.label_positie?.x ?? 0)}%`,
+              top: `${(label.label_positie?.y ?? 0)}%`,
+              width: 16, height: 16, borderRadius: 8,
+              backgroundColor: COLORS.primary,
+              alignItems: 'center' as const, justifyContent: 'center' as const,
+              marginLeft: -8, marginTop: -8,
+            }}
+          >
+            <Text style={{ fontFamily: 'SpaceGrotesk', fontSize: 7, color: COLORS.white, fontWeight: 700 }}>
+              {label.label_nummer}
+            </Text>
+          </View>
+        ))}
       </View>
       {hasFeitjes && (
         <View style={{ marginTop: 4 }}>
-          {veelFeitjes ? (
+          {/* Labeled feitjes first */}
+          {labelFeitjes.length > 0 && labelFeitjes.map((f, i) => (
+            <FeitjeInPdf key={`l-${i}`} tekst={f.tekst} labelNummer={f.label_nummer} />
+          ))}
+          {/* Regular feitjes */}
+          {regularFeitjes.length > 3 ? (
             <View style={{ flexDirection: 'row' as const, flexWrap: 'wrap' as const }}>
-              {groep.feitjes.map((f, i) => <FeitjeInPdf key={i} tekst={f.tekst} half />)}
+              {regularFeitjes.map((f, i) => <FeitjeInPdf key={i} tekst={f.tekst} half />)}
             </View>
           ) : (
-            groep.feitjes.map((f, i) => <FeitjeInPdf key={i} tekst={f.tekst} />)
+            regularFeitjes.map((f, i) => <FeitjeInPdf key={i} tekst={f.tekst} />)
           )}
         </View>
       )}

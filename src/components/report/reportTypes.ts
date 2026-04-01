@@ -4,6 +4,8 @@ export interface FeitjeItem {
   foto_path: string | null;
   foto_index: number | null;
   aangemaakt_op: string;
+  label_nummer: number | null;
+  label_positie: { x: number; y: number } | null;
 }
 
 export interface ReportData {
