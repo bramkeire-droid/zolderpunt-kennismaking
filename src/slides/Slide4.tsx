@@ -24,6 +24,7 @@ export default function Slide4() {
   const [animatingFeit, setAnimatingFeit] = useState<{ id: number; text: string; rotation: number } | null>(null);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const [labelMode, setLabelMode] = useState(false);
+  const { saveLead } = useLeadSave();
 
   const photos: (PhotoItem & { publicUrl: string })[] = (lead.fotos || []).map((f: PhotoItem) => ({
     ...f,
