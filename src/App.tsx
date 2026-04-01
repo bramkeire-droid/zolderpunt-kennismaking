@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { SessionProvider, useSession } from '@/contexts/SessionContext';
 import { useLeadSave } from '@/hooks/useLeadSave';
@@ -96,6 +96,15 @@ function AppContent() {
       </div>
     );
   }
+
+  // Flush save whenever leaving slides (mode changes to dossiers, or via NavigationBar tabs)
+  const prevModeRef = useRef(currentMode);
+  useEffect(() => {
+    if (prevModeRef.current !== 'dossiers' && currentMode === 'dossiers') {
+      flushSave();
+    }
+    prevModeRef.current = currentMode;
+  }, [currentMode, flushSave]);
 
   const actualMode = view === 'dossiers' ? 'dossiers' : currentMode;
 
