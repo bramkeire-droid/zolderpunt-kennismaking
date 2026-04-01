@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { SessionProvider, useSession } from '@/contexts/SessionContext';
+import { useLeadSave } from '@/hooks/useLeadSave';
 import NavigationBar from '@/components/NavigationBar';
 import Dossiers from '@/pages/Dossiers';
 import LoginPage from '@/pages/LoginPage';
@@ -41,10 +42,29 @@ const SLIDE_COMPONENTS: Record<SlideId, React.ComponentType> = {
 function AppContent() {
   const [view, setView] = useState<'start' | 'slides' | 'dossiers'>('start');
   const { currentMode, currentSlide, resetSession, setCurrentMode, loadLead } = useSession();
+  const { flushSave } = useLeadSave(); // autosave always active at top level
 
   const handleOpenLead = (lead: LeadData) => {
     loadLead(lead);
     setView('slides');
+  };
+
+  // Flush save before navigating away from slides
+  const handleGoHome = async () => {
+    if (view === 'slides') await flushSave();
+    setView('start');
+  };
+
+  const handleNewIntake = async () => {
+    if (view === 'slides') await flushSave();
+    resetSession();
+    setView('slides');
+  };
+
+  const handleGoDossiers = async () => {
+    if (view === 'slides') await flushSave();
+    setCurrentMode('dossiers');
+    setView('dossiers');
   };
 
   if (view === 'start') {
@@ -56,7 +76,7 @@ function AppContent() {
           <img src={logoBlauw} alt="Zolderpunt" className="h-14 mb-12" />
           <div className="space-y-4 flex flex-col items-center">
             <Button
-              onClick={() => { resetSession(); setView('slides'); }}
+              onClick={handleNewIntake}
               className="bg-primary text-primary-foreground hover:bg-secondary font-headline text-lg px-8 py-6 gap-3"
             >
               Nieuw intakegesprek starten
@@ -64,7 +84,7 @@ function AppContent() {
             </Button>
             <Button
               variant="outline"
-              onClick={() => { setCurrentMode('dossiers'); setView('dossiers'); }}
+              onClick={handleGoDossiers}
               className="font-headline text-base px-8 py-5 gap-3"
             >
               <FolderOpen className="h-5 w-5" />

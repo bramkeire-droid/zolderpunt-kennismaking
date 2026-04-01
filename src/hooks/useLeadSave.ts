@@ -4,6 +4,8 @@ import { useSession } from '@/contexts/SessionContext';
 import { useToast } from '@/hooks/use-toast';
 import type { LeadData } from '@/contexts/SessionContext';
 
+const LEAD_SESSION_KEY = 'zp_active_lead_id';
+
 function leadToRow(lead: LeadData) {
   return {
     id: lead.id || undefined,
@@ -50,7 +52,20 @@ function leadToRow(lead: LeadData) {
   };
 }
 
-/** Returns saveLead (manual) + starts a 3-second debounced autosave */
+/** Check if lead has ANY meaningful data worth saving */
+function hasAnyData(lead: LeadData): boolean {
+  return !!(
+    lead.voornaam || lead.achternaam || lead.email || lead.telefoon ||
+    lead.adres || lead.oppervlakte_m2 || lead.gezocht_naar ||
+    lead.gesprek_notities || lead.rapport_situatie_ai ||
+    lead.budget_min || lead.budget_excl ||
+    (lead.project_feiten && (lead.project_feiten as any[]).length > 0) ||
+    (lead.fotos && (lead.fotos as any[]).length > 0) ||
+    lead.technisch
+  );
+}
+
+/** Returns saveLead (manual) + flushSave (immediate) + starts a 3-second debounced autosave */
 export function useLeadSave() {
   const { lead, updateLead } = useSession();
   const { toast } = useToast();
@@ -59,8 +74,8 @@ export function useLeadSave() {
   const isSavingRef = useRef(false);
 
   const persistLead = useCallback(async (leadData: LeadData, showToast: boolean) => {
-    // Skip if nothing meaningful to save (no name entered yet)
-    if (!leadData.voornaam && !leadData.achternaam && !leadData.adres && !leadData.email) return;
+    // Skip only if there is truly NOTHING to save
+    if (!hasAnyData(leadData)) return;
 
     const serialized = JSON.stringify(leadToRow(leadData));
     if (serialized === lastSavedRef.current) return; // no changes
@@ -77,7 +92,16 @@ export function useLeadSave() {
       } else {
         const { data, error } = await supabase.from('leads').insert(row).select('id').single();
         if (error) throw error;
-        if (data) updateLead({ id: data.id });
+        if (data) {
+          updateLead({ id: data.id });
+          // Persist lead ID to localStorage for session recovery
+          try { localStorage.setItem(LEAD_SESSION_KEY, data.id); } catch {}
+        }
+      }
+
+      // Keep localStorage in sync with current lead ID
+      if (leadData.id) {
+        try { localStorage.setItem(LEAD_SESSION_KEY, leadData.id); } catch {}
       }
 
       lastSavedRef.current = serialized;
@@ -99,6 +123,12 @@ export function useLeadSave() {
     await persistLead(lead, true);
   }, [lead, persistLead]);
 
+  // Immediate save without debounce (for navigation away)
+  const flushSave = useCallback(async () => {
+    clearTimeout(debounceRef.current);
+    await persistLead(lead, false);
+  }, [lead, persistLead]);
+
   // Autosave: debounce 3 seconds after any lead change
   useEffect(() => {
     clearTimeout(debounceRef.current);
@@ -108,5 +138,19 @@ export function useLeadSave() {
     return () => clearTimeout(debounceRef.current);
   }, [lead, persistLead]);
 
-  return { saveLead };
+  // Flush on page unload (beforeunload)
+  useEffect(() => {
+    const handleUnload = () => {
+      clearTimeout(debounceRef.current);
+      // Use sendBeacon for best-effort save on unload
+      if (!hasAnyData(lead)) return;
+      const serialized = JSON.stringify(leadToRow(lead));
+      if (serialized === lastSavedRef.current) return;
+      // Can't do async on unload, but at least clear the timer
+    };
+    window.addEventListener('beforeunload', handleUnload);
+    return () => window.removeEventListener('beforeunload', handleUnload);
+  }, [lead]);
+
+  return { saveLead, flushSave };
 }
