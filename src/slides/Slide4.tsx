@@ -1,5 +1,4 @@
 import { useRef, useState } from 'react';
-import { useLeadSave } from '@/hooks/useLeadSave';
 import { useSession, FeitjeItem } from '@/contexts/SessionContext';
 import SlideLayout from '@/components/SlideLayout';
 import SlideLabel from '@/components/SlideLabel';
@@ -14,6 +13,14 @@ interface PhotoItem {
   url?: string;
 }
 
+interface PendingLabel {
+  nummer: number;
+  positie: { x: number; y: number };
+  foto_path: string;
+  foto_index: number | null;
+  tekst: string;
+}
+
 export default function Slide4() {
   const { lead, updateLead } = useSession();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -24,7 +31,7 @@ export default function Slide4() {
   const [animatingFeit, setAnimatingFeit] = useState<{ id: number; text: string; rotation: number } | null>(null);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const [labelMode, setLabelMode] = useState(false);
-  const { saveLead } = useLeadSave();
+  const [pendingLabels, setPendingLabels] = useState<PendingLabel[]>([]);
 
   const photos: (PhotoItem & { publicUrl: string })[] = (lead.fotos || []).map((f: PhotoItem) => ({
     ...f,
@@ -35,11 +42,23 @@ export default function Slide4() {
     (f): f is FeitjeItem => typeof f === 'object' && 'tekst' in f
   );
 
-  // Labels for the active photo
   const activePhoto = activeIndex !== null && photos[activeIndex] ? photos[activeIndex] : null;
-  const activeLabels = feitjes.filter(
+
+  // Saved labels for the active photo
+  const savedLabelsForPhoto = feitjes.filter(
     f => f.label_nummer !== null && f.label_nummer !== undefined && f.foto_path === activePhoto?.storage_path
   );
+
+  // Pending labels for the active photo
+  const pendingLabelsForPhoto = pendingLabels.filter(
+    p => p.foto_path === activePhoto?.storage_path
+  );
+
+  // All label markers to show on photo (saved + pending)
+  const allLabelsOnPhoto = [
+    ...savedLabelsForPhoto.map(l => ({ nummer: l.label_nummer!, positie: l.label_positie!, id: l.id, saved: true })),
+    ...pendingLabelsForPhoto.map(p => ({ nummer: p.nummer, positie: p.positie, id: `pending-${p.nummer}`, saved: false })),
+  ];
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -63,10 +82,12 @@ export default function Slide4() {
   };
 
   const getNextLabelNumber = () => {
-    const allLabelNummers = feitjes
+    const savedNummers = feitjes
       .filter(f => f.label_nummer !== null && f.label_nummer !== undefined)
       .map(f => f.label_nummer!);
-    return allLabelNummers.length > 0 ? Math.max(...allLabelNummers) + 1 : 1;
+    const pendingNummers = pendingLabels.map(p => p.nummer);
+    const all = [...savedNummers, ...pendingNummers];
+    return all.length > 0 ? Math.max(...all) + 1 : 1;
   };
 
   const handleImageClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -76,22 +97,44 @@ export default function Slide4() {
     const y = ((e.clientY - rect.top) / rect.height) * 100;
 
     const nummer = getNextLabelNumber();
-    const nieuwLabel: FeitjeItem = {
-      id: Date.now().toString(),
-      tekst: '',
+    setPendingLabels(prev => [...prev, {
+      nummer,
+      positie: { x, y },
       foto_path: activePhoto.storage_path,
       foto_index: activeIndex,
-      aangemaakt_op: new Date().toISOString(),
-      label_nummer: nummer,
-      label_positie: { x, y },
-    };
-    updateLead({ project_feiten: [...feitjes, nieuwLabel] });
+      tekst: '',
+    }]);
   };
 
-  const updateLabelText = (feitId: string, text: string) => {
-    updateLead({
-      project_feiten: feitjes.map(f => f.id === feitId ? { ...f, tekst: text } : f),
-    });
+  const updatePendingText = (nummer: number, text: string) => {
+    setPendingLabels(prev => prev.map(p => p.nummer === nummer ? { ...p, tekst: text } : p));
+  };
+
+  const saveLabel = (pending: PendingLabel) => {
+    const text = pending.tekst.trim();
+    if (!text || animatingFeit) return;
+
+    const rotation = Math.random() * 6 - 3;
+    setAnimatingFeit({ id: pending.nummer, text, rotation });
+
+    setTimeout(() => {
+      const nieuwFeitje: FeitjeItem = {
+        id: Date.now().toString(),
+        tekst: text,
+        foto_path: pending.foto_path,
+        foto_index: pending.foto_index,
+        aangemaakt_op: new Date().toISOString(),
+        label_nummer: pending.nummer,
+        label_positie: pending.positie,
+      };
+      updateLead({ project_feiten: [...feitjes, nieuwFeitje] });
+      setPendingLabels(prev => prev.filter(p => p.nummer !== pending.nummer));
+      setAnimatingFeit(null);
+    }, 500);
+  };
+
+  const removePendingLabel = (nummer: number) => {
+    setPendingLabels(prev => prev.filter(p => p.nummer !== nummer));
   };
 
   const saveFeit = (idx: number) => {
@@ -243,19 +286,23 @@ export default function Slide4() {
                     }
                   }}
                 />
-                {/* Label overlays */}
-                {activeLabels.map(label => (
+                {/* Label overlays (saved + pending) */}
+                {allLabelsOnPhoto.map(label => (
                   <div
                     key={label.id}
-                    className="absolute z-10 flex items-center justify-center w-7 h-7 rounded-full bg-background border-2 border-primary text-primary font-headline text-xs font-bold shadow-md pointer-events-auto hover:scale-110 transition-transform"
+                    className={`absolute z-10 flex items-center justify-center w-7 h-7 rounded-full border-2 font-headline text-xs font-bold shadow-md pointer-events-auto hover:scale-110 transition-transform ${
+                      label.saved
+                        ? 'bg-background border-primary text-primary'
+                        : 'bg-accent border-primary/50 text-primary/70 animate-pulse'
+                    }`}
                     style={{
-                      left: `${label.label_positie?.x ?? 0}%`,
-                      top: `${label.label_positie?.y ?? 0}%`,
+                      left: `${label.positie?.x ?? 0}%`,
+                      top: `${label.positie?.y ?? 0}%`,
                       transform: 'translate(-50%, -50%)',
                     }}
-                    title={label.tekst || `Label ${label.label_nummer}`}
+                    title={`Label ${label.nummer}`}
                   >
-                    {label.label_nummer}
+                    {label.nummer}
                   </div>
                 ))}
               </>
@@ -282,35 +329,37 @@ export default function Slide4() {
             )}
           </div>
 
-          {/* Label post-its for active photo */}
-          {activeLabels.length > 0 && (
+          {/* Pending label inputs (draft state, not yet saved) */}
+          {pendingLabelsForPhoto.length > 0 && (
             <div className="space-y-2 shrink-0">
-              <p className="text-xs font-headline font-semibold text-primary uppercase tracking-wide">Labels op deze foto</p>
-              {activeLabels.map(label => (
+              <p className="text-xs font-headline font-semibold text-primary uppercase tracking-wide">Nieuwe labels</p>
+              {pendingLabelsForPhoto.map(pending => (
                 <div
-                  key={label.id}
-                  className="flex gap-2 items-start bg-primary/5 border border-primary/20 p-2 rounded-sm"
+                  key={`pending-${pending.nummer}`}
+                  className="flex gap-2 items-start bg-accent/50 border border-primary/30 p-2 rounded-sm"
                 >
-                  <div className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
-                    {label.label_nummer}
+                  <div className="w-6 h-6 rounded-full bg-primary/70 text-primary-foreground flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
+                    {pending.nummer}
                   </div>
                   <textarea
-                    value={label.tekst}
-                    onChange={e => updateLabelText(label.id, e.target.value)}
-                    placeholder={`Beschrijf label ${label.label_nummer}...`}
+                    value={pending.tekst}
+                    onChange={e => updatePendingText(pending.nummer, e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); saveLabel(pending); } }}
+                    placeholder={`Beschrijf label ${pending.nummer}...`}
                     className="bg-transparent text-sm flex-1 min-h-[60px] resize-vertical border-none outline-none font-body"
                     maxLength={500}
+                    autoFocus
                   />
                   <Button
                     size="sm"
-                    disabled={!label.tekst.trim()}
-                    onClick={() => saveLead()}
+                    disabled={!pending.tekst.trim() || !!animatingFeit}
+                    onClick={() => saveLabel(pending)}
                     className="h-auto px-3 text-xs font-headline self-stretch"
                   >
                     Opslaan
                   </Button>
                   <button
-                    onClick={() => removeFeit(label.id)}
+                    onClick={() => removePendingLabel(pending.nummer)}
                     className="opacity-50 hover:opacity-100 transition-opacity p-1 hover:bg-destructive/10 rounded"
                   >
                     <X className="h-3.5 w-3.5 text-destructive" />
@@ -320,8 +369,39 @@ export default function Slide4() {
             </div>
           )}
 
+          {/* Saved labels for active photo */}
+          {savedLabelsForPhoto.length > 0 && (
+            <div className="space-y-2 shrink-0">
+              <p className="text-xs font-headline font-semibold text-primary uppercase tracking-wide">Labels op deze foto</p>
+              {savedLabelsForPhoto.map((label, i) => {
+                const rot = ((i * 5 + 1) % 5) - 2;
+                return (
+                  <div
+                    key={label.id}
+                    className="relative flex gap-2 items-start bg-primary/10 border-2 border-primary/30 p-2 shadow-sm group"
+                    style={{
+                      animation: 'postit-scale-in 150ms ease-out forwards',
+                      ['--postit-rot' as any]: `${rot}deg`,
+                    }}
+                  >
+                    <div className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
+                      {label.label_nummer}
+                    </div>
+                    <span className="text-sm font-body text-foreground leading-snug flex-1 pr-5">{label.tekst}</span>
+                    <button
+                      onClick={() => removeFeit(label.id)}
+                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 hover:bg-destructive/10 border border-destructive/20 p-1"
+                    >
+                      <X className="h-3.5 w-3.5 text-destructive" />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
           {/* Labelmode hint */}
-          {labelMode && activePhoto && activeLabels.length === 0 && (
+          {labelMode && activePhoto && pendingLabelsForPhoto.length === 0 && savedLabelsForPhoto.length === 0 && (
             <div className="text-xs text-primary bg-primary/5 border border-primary/20 p-3 rounded-sm">
               <MapPin className="h-3.5 w-3.5 inline mr-1" />
               Klik op de foto om een genummerd label te plaatsen
@@ -378,9 +458,9 @@ export default function Slide4() {
                   </div>
                   <button
                     onClick={() => removeFeit(feitje.id)}
-                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 hover:bg-red-50 border border-red-200 p-1"
+                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 hover:bg-destructive/10 border border-destructive/20 p-1"
                   >
-                    <X className="h-3.5 w-3.5 text-red-400" />
+                    <X className="h-3.5 w-3.5 text-destructive" />
                   </button>
                 </div>
               );
