@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { useLeadSave } from '@/hooks/useLeadSave';
 import { useSession, FeitjeItem } from '@/contexts/SessionContext';
 import SlideLayout from '@/components/SlideLayout';
 import SlideLabel from '@/components/SlideLabel';
