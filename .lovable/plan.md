@@ -1,18 +1,26 @@
 
 
-# Opslaan-knop toevoegen aan label invoervelden
+# Fix: Opslaan-knop bij labels mist onClick handler
 
-## Wat verandert
+## Probleem
 
-In `src/slides/Slide4.tsx`, regel ~301: na de `<textarea>` en vóór de verwijder-knop (`<X>`) wordt een "Opslaan"-knop toegevoegd, vergelijkbaar met de bestaande opslaan-knoppen bij de 3 reguliere feitje-velden.
+De "Opslaan"-knop bij de label invoervelden heeft geen `onClick` handler — het is een lege `<Button>` zonder actie. De tekst wordt wel live opgeslagen via `onChange` in het geheugen, maar niet naar de database gepersisteerd bij klikken.
 
-De label tekst wordt al live opgeslagen via `updateLabelText` bij elke `onChange`. De opslaan-knop geeft visuele bevestiging en kan optioneel een toast/feedback tonen. De knop is disabled wanneer het tekstveld leeg is.
+## Oplossing
 
-### Technische aanpak
+In `src/slides/Slide4.tsx`:
 
-- Voeg een `<Button size="sm">` toe tussen de textarea en de X-knop in de `activeLabels.map()` loop (regel ~301)
-- Stijl consistent met de bestaande "Opslaan" knoppen bij de reguliere feitjes (zelfde `self-stretch`, `px-3`, `text-xs`)
-- Knop tekst: "Opslaan", disabled als `label.tekst.trim()` leeg is
+1. Importeer en gebruik de `useLeadSave` hook (die al in het project zit) om de `saveLead` functie beschikbaar te maken
+2. Voeg `onClick={() => saveLead()}` toe aan de Opslaan-knop bij labels (regel 302-308)
+3. Doe hetzelfde voor de 3 reguliere feitje-opslaan-knoppen als die het ook nog niet hebben — consistentie
 
-**1 bestand wijzigt:** `src/slides/Slide4.tsx`
+De `saveLead()` functie persist de hele lead (inclusief `project_feiten` met labels) naar de database en toont een toast "Opgeslagen".
+
+### Wijziging
+
+**`src/slides/Slide4.tsx`:**
+- Bovenaan: `const { saveLead } = useLeadSave();`
+- Label opslaan-knop: `onClick={() => saveLead()}`
+
+**1 bestand wijzigt.**
 
