@@ -378,13 +378,13 @@ function FotoGroepBlock({ groep }: {
               position: 'absolute' as const,
               left: `${(label.label_positie?.x ?? 0)}%`,
               top: `${(label.label_positie?.y ?? 0)}%`,
-              width: 16, height: 16, borderRadius: 8,
+              width: 32, height: 32, borderRadius: 16,
               backgroundColor: COLORS.primary,
               alignItems: 'center' as const, justifyContent: 'center' as const,
-              marginLeft: -8, marginTop: -8,
+              marginLeft: -16, marginTop: -16,
             }}
           >
-            <Text style={{ fontFamily: 'SpaceGrotesk', fontSize: 7, color: COLORS.white, fontWeight: 700 }}>
+            <Text style={{ fontFamily: 'SpaceGrotesk', fontSize: 14, color: COLORS.white, fontWeight: 700 }}>
               {label.label_nummer}
             </Text>
           </View>

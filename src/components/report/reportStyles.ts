@@ -232,8 +232,8 @@ export const s = StyleSheet.create({
   // ─── Foto's ─────────────────────────────────────────────────────
   photoFull: {
     width: '100%',
-    maxHeight: 200,
-    objectFit: 'cover' as const,
+    maxHeight: 280,
+    objectFit: 'contain' as const,
     marginBottom: 8,
   },
   photoPlaceholder: {

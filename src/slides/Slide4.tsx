@@ -290,7 +290,7 @@ export default function Slide4() {
                 {allLabelsOnPhoto.map(label => (
                   <div
                     key={label.id}
-                    className={`absolute z-10 flex items-center justify-center w-7 h-7 rounded-full border-2 font-headline text-xs font-bold shadow-md pointer-events-auto hover:scale-110 transition-transform ${
+                    className={`absolute z-10 flex items-center justify-center w-12 h-12 rounded-full border-2 font-headline text-base font-bold shadow-md pointer-events-auto hover:scale-110 transition-transform ${
                       label.saved
                         ? 'bg-background border-primary text-primary'
                         : 'bg-accent border-primary/50 text-primary/70 animate-pulse'
