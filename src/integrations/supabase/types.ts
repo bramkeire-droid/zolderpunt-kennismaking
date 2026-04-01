@@ -20,10 +20,13 @@ export type Database = {
           adres: string
           adres_lat: number | null
           adres_lng: number | null
+          btw_percentage: number | null
+          budget_excl: number | null
           budget_incl21: number | null
           budget_incl6: number | null
           budget_max: number | null
           budget_min: number | null
+          calculator_state: Json | null
           created_at: string
           email: string
           fotos: Json
@@ -35,6 +38,10 @@ export type Database = {
           inbegrepen_posten: Json
           notities_vooraf: string
           oppervlakte_m2: number | null
+          prijs_max_incl_btw: number | null
+          prijs_min_incl_btw: number | null
+          prijs_mw_max_incl_btw: number | null
+          prijs_mw_min_incl_btw: number | null
           project_feiten: Json | null
           project_timing: string
           project_type: string
@@ -58,10 +65,13 @@ export type Database = {
           adres?: string
           adres_lat?: number | null
           adres_lng?: number | null
+          btw_percentage?: number | null
+          budget_excl?: number | null
           budget_incl21?: number | null
           budget_incl6?: number | null
           budget_max?: number | null
           budget_min?: number | null
+          calculator_state?: Json | null
           created_at?: string
           email?: string
           fotos?: Json
@@ -73,6 +83,10 @@ export type Database = {
           inbegrepen_posten?: Json
           notities_vooraf?: string
           oppervlakte_m2?: number | null
+          prijs_max_incl_btw?: number | null
+          prijs_min_incl_btw?: number | null
+          prijs_mw_max_incl_btw?: number | null
+          prijs_mw_min_incl_btw?: number | null
           project_feiten?: Json | null
           project_timing?: string
           project_type?: string
@@ -96,10 +110,13 @@ export type Database = {
           adres?: string
           adres_lat?: number | null
           adres_lng?: number | null
+          btw_percentage?: number | null
+          budget_excl?: number | null
           budget_incl21?: number | null
           budget_incl6?: number | null
           budget_max?: number | null
           budget_min?: number | null
+          calculator_state?: Json | null
           created_at?: string
           email?: string
           fotos?: Json
@@ -111,6 +128,10 @@ export type Database = {
           inbegrepen_posten?: Json
           notities_vooraf?: string
           oppervlakte_m2?: number | null
+          prijs_max_incl_btw?: number | null
+          prijs_min_incl_btw?: number | null
+          prijs_mw_max_incl_btw?: number | null
+          prijs_mw_min_incl_btw?: number | null
           project_feiten?: Json | null
           project_timing?: string
           project_type?: string
