@@ -155,7 +155,7 @@ export default function PortalManageDialog({ open, onClose, lead, onUpdate }: Pr
           <Button
             variant="outline"
             className="w-full justify-start gap-3 font-headline"
-            onClick={() => window.open(portalUrl, '_blank')}
+            onClick={() => window.open(`${portalUrl}?preview=1`, '_blank')}
           >
             <ExternalLink className="h-4 w-4" />
             Preview portaal bekijken

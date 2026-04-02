@@ -19,6 +19,8 @@ interface Props {
 }
 
 export default function Portal({ token }: Props) {
+  const isPreview = new URLSearchParams(window.location.search).has('preview');
+
   const {
     data,
     loading,
@@ -27,7 +29,7 @@ export default function Portal({ token }: Props) {
     verifyEmail,
     fetchData,
     logEvent,
-  } = usePortal(token);
+  } = usePortal(token, isPreview);
 
   const hasLoggedOpen = useRef(false);
   const startTime = useRef(Date.now());

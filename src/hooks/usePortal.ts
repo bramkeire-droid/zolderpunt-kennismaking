@@ -26,25 +26,18 @@ export interface PortalData {
   technisch: any;
 }
 
-/** Check if there's an active Supabase auth session (= Bram is logged in) */
-async function isAuthenticated(): Promise<boolean> {
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    return !!session;
-  } catch {
-    return false;
-  }
-}
-
-/** Owner preview: fetch lead directly from Supabase using authenticated client */
-async function fetchAsOwner(portalToken: string): Promise<PortalData | null> {
+/** Owner preview: fetch lead directly from Supabase (requires auth session via RLS) */
+async function fetchDirectFromSupabase(portalToken: string): Promise<PortalData | null> {
   const { data: lead, error } = await supabase
     .from('leads')
     .select('*')
     .eq('portal_token', portalToken)
     .single();
 
-  if (error || !lead) return null;
+  if (error || !lead) {
+    console.log('[Portal] Direct fetch failed:', error?.message);
+    return null;
+  }
 
   return {
     voornaam: lead.voornaam ?? '',
@@ -70,7 +63,7 @@ async function fetchAsOwner(portalToken: string): Promise<PortalData | null> {
   };
 }
 
-export function usePortal(portalToken: string) {
+export function usePortal(portalToken: string, isPreview = false) {
   const [data, setData] = useState<PortalData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -78,8 +71,7 @@ export function usePortal(portalToken: string) {
 
   const getStoredSession = () => {
     try {
-      const stored = localStorage.getItem(`${SESSION_KEY}_${portalToken}`);
-      return stored || null;
+      return localStorage.getItem(`${SESSION_KEY}_${portalToken}`) || null;
     } catch {
       return null;
     }
@@ -122,21 +114,20 @@ export function usePortal(portalToken: string) {
     setError(null);
 
     try {
-      // If Bram is logged in, fetch directly from Supabase (skip edge function)
-      const authed = await isAuthenticated();
-      console.log('[Portal] isAuthenticated:', authed);
-      if (authed) {
-        const ownerData = await fetchAsOwner(portalToken);
-        console.log('[Portal] fetchAsOwner result:', ownerData ? 'data found' : 'null');
-        if (ownerData) {
-          setData(ownerData);
+      // Preview mode: Bram opened this via the management dialog
+      // Fetch directly from Supabase — RLS ensures only authenticated users can read
+      if (isPreview) {
+        const directData = await fetchDirectFromSupabase(portalToken);
+        if (directData) {
+          setData(directData);
           return;
         }
-        setError('Portaal niet gevonden');
+        // If direct fetch fails, it means not logged in — show error
+        setError('Preview niet beschikbaar. Ben je ingelogd?');
         return;
       }
 
-      // Anonymous visitor: use edge function with email verification
+      // Normal visitor flow: use edge function with email verification
       const sessionToken = getStoredSession();
       const { data: result, error: fnError } = await supabase.functions.invoke(
         'get-portal-data',
@@ -165,7 +156,7 @@ export function usePortal(portalToken: string) {
     } finally {
       setLoading(false);
     }
-  }, [portalToken]);
+  }, [portalToken, isPreview]);
 
   const logEvent = useCallback(async (eventType: string, metadata?: Record<string, any>) => {
     const sessionToken = getStoredSession();
