@@ -105,13 +105,8 @@ export default function MeerwaardeCalculator({
         <div className="text-xs text-primary uppercase tracking-wider font-headline font-semibold mb-2">
           Meerwaarde berekening
         </div>
-        <div className="flex items-baseline gap-2">
-          <span className="text-lg font-headline font-bold text-foreground">
-            {gemeenteData.gemeente}
-          </span>
-          <span className="text-sm text-foreground/50">
-            ({gemeenteData.jaar})
-          </span>
+        <div className="text-lg font-headline font-bold text-foreground">
+          {gemeenteData.gemeente}
         </div>
         <div className="text-sm text-foreground/60 mt-1">
           Gemiddelde woningprijs: <span className="font-semibold text-foreground">{fmt(gemeenteData.mediaan_woning)}</span>
@@ -178,7 +173,7 @@ export default function MeerwaardeCalculator({
 
       {/* Bronvermelding */}
       <div className="text-[0.6rem] text-foreground/30 mt-2 px-1">
-        Bron: Statbel {gemeenteData.jaar}, CC BY 4.0. Indicatieve berekening op basis van mediaanprijzen.
+        Bron: Statbel · Indicatieve berekening op basis van mediaanprijzen per gemeente.
       </div>
     </div>
   );
