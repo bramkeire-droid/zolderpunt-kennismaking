@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react';
 import type { PortalData } from '@/hooks/usePortal';
 import ImageLightbox from '@/components/ImageLightbox';
-import { Camera } from 'lucide-react';
 
 interface Props {
   data: PortalData;
@@ -20,7 +19,6 @@ export default function PortalFotos({ data, onView }: Props) {
   const urls = fotos.map((f) => f.url || '').filter(Boolean);
   if (fotos.length === 0) return null;
 
-  // Group feiten by photo
   const feitenByPath = new Map<string, any[]>();
   for (const f of data.project_feiten || []) {
     if (f.foto_path) {
@@ -34,15 +32,15 @@ export default function PortalFotos({ data, onView }: Props) {
   const fotosWithoutFeiten = fotos.filter(f => (feitenByPath.get(f.storage_path) || []).length === 0);
 
   return (
-    <section className="bg-[#2B6CA0] py-12">
-      <div className="max-w-4xl mx-auto px-6">
-        <h2 className="font-headline text-xl text-white font-bold uppercase tracking-wider mb-8">
+    <section className="bg-[#F8F3EB] py-12">
+      <div className="max-w-3xl mx-auto px-6">
+        <h2 className="font-headline text-xl text-[#008CFF] font-bold uppercase tracking-wider mb-8">
           Jouw zolder vandaag
         </h2>
 
-        {/* Photos with observations: large cards, text next to photo */}
+        {/* Photos with observations */}
         {fotosWithFeiten.length > 0 && (
-          <div className="space-y-4 mb-6">
+          <div className="space-y-5 mb-6">
             {fotosWithFeiten.map((foto) => {
               const url = foto.url || '';
               if (!url) return null;
@@ -50,10 +48,10 @@ export default function PortalFotos({ data, onView }: Props) {
               const feiten = feitenByPath.get(foto.storage_path) || [];
 
               return (
-                <div key={globalIdx} className="flex flex-col md:flex-row overflow-hidden">
+                <div key={globalIdx} className="flex flex-col md:flex-row overflow-hidden border border-[#008CFF]/10">
                   <button
                     onClick={() => handleOpen(globalIdx)}
-                    className="md:w-1/2 aspect-[4/3] md:aspect-auto overflow-hidden bg-[#2B6CA0] focus:outline-none focus:ring-2 focus:ring-[#008CFF] flex-shrink-0"
+                    className="md:w-1/2 aspect-[4/3] md:aspect-auto overflow-hidden bg-[#F8F3EB] focus:outline-none focus:ring-2 focus:ring-[#008CFF] flex-shrink-0"
                   >
                     <img
                       src={url}
@@ -61,7 +59,7 @@ export default function PortalFotos({ data, onView }: Props) {
                       className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
                     />
                   </button>
-                  <div className="bg-[#F8F3EB] p-6 md:p-8 flex flex-col justify-center flex-1">
+                  <div className="bg-[#008CFF]/5 p-6 md:p-8 flex flex-col justify-center flex-1">
                     <ul className="space-y-4">
                       {feiten.map((f) => (
                         <li key={f.id} className="flex items-start gap-3">
@@ -70,7 +68,7 @@ export default function PortalFotos({ data, onView }: Props) {
                               {f.label_nummer}
                             </span>
                           )}
-                          <span className="font-body text-base text-[#1A1A1A] leading-relaxed">
+                          <span className="font-body text-base text-[#2B6CA0] leading-relaxed">
                             {f.tekst}
                           </span>
                         </li>
@@ -83,19 +81,18 @@ export default function PortalFotos({ data, onView }: Props) {
           </div>
         )}
 
-        {/* Remaining photos without observations: compact grid */}
+        {/* Remaining photos */}
         {fotosWithoutFeiten.length > 0 && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {fotosWithoutFeiten.map((foto) => {
               const url = foto.url || '';
               if (!url) return null;
               const globalIdx = fotos.indexOf(foto);
-
               return (
                 <button
                   key={globalIdx}
                   onClick={() => handleOpen(globalIdx)}
-                  className="aspect-square overflow-hidden bg-white/10 focus:outline-none focus:ring-2 focus:ring-[#008CFF]"
+                  className="aspect-square overflow-hidden bg-[#008CFF]/5 focus:outline-none focus:ring-2 focus:ring-[#008CFF]"
                 >
                   <img
                     src={url}
