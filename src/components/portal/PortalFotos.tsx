@@ -18,10 +18,6 @@ export default function PortalFotos({ data, onView }: Props) {
   const fotos = data.fotos || [];
   if (fotos.length === 0) return null;
 
-  const urls = fotos.map((f) => f.url || '').filter(Boolean);
-    setLightboxIndex(idx);
-    onView?.();
-  }, [onView]);
 
   // Group feiten by photo
   const feitenByPath = new Map<string, any[]>();
