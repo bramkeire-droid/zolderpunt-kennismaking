@@ -16,6 +16,7 @@ export default function PortalFotos({ data, onView }: Props) {
   }, [onView]);
 
   const fotos = data.fotos || [];
+  const urls = fotos.map((f) => f.url || '').filter(Boolean);
   if (fotos.length === 0) return null;
 
 
