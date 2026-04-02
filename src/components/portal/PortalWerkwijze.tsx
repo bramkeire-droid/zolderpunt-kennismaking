@@ -19,7 +19,7 @@ export default function PortalWerkwijze() {
   return (
     <section className="bg-[#F8F3EB] py-12">
       <div className="max-w-4xl mx-auto px-6">
-        <h2 className="font-headline text-lg text-[#2B6CA0] font-bold uppercase tracking-wider mb-10">
+        <h2 className="font-headline text-xl text-[#2B6CA0] font-bold uppercase tracking-wider mb-10">
           Onze werkwijze
         </h2>
 

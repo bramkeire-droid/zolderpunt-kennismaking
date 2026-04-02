@@ -14,7 +14,7 @@ export default function PortalReviews() {
   return (
     <section className="bg-[#F8F3EB] py-10">
       <div className="max-w-4xl mx-auto px-6">
-        <h2 className="font-headline text-xs text-[#008CFF] uppercase tracking-wider font-semibold mb-2">
+        <h2 className="font-headline text-xl text-[#008CFF] uppercase tracking-wider font-bold mb-2">
           Wat klanten zeggen
         </h2>
         <div className="flex items-center gap-2 mb-8">

@@ -47,7 +47,7 @@ export default function PortalSamenvatting({ data }: Props) {
   return (
     <section className="bg-[#F8F3EB] py-10">
       <div className="max-w-4xl mx-auto px-6">
-        <h2 className="font-headline text-xs text-[#008CFF] uppercase tracking-wider font-semibold mb-8">
+        <h2 className="font-headline text-xl text-[#008CFF] uppercase tracking-wider font-bold mb-8">
           Samenvatting gesprek
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -60,7 +60,7 @@ export default function PortalSamenvatting({ data }: Props) {
             return (
               <div
                 key={s.key}
-                className="p-6 border-l-4 flex flex-col"
+                className="bg-[#2B6CA0]/5 p-6 border-l-4 flex flex-col"
                 style={{ borderLeftColor: s.accent }}
               >
                 <div className="flex items-center gap-3 mb-4">

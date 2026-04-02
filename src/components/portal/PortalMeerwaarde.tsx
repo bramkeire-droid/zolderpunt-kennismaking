@@ -121,19 +121,19 @@ export default function PortalMeerwaarde({ data, onCalculate }: Props) {
           </div>
         ) : result ? (
           <div className="py-14">
-            <h2 className="font-headline text-lg font-bold text-[#2B6CA0] uppercase tracking-wider mb-10">
+            <h2 className="font-headline text-xl font-bold text-[#2B6CA0] uppercase tracking-wider mb-10">
               Geschatte meerwaarde
             </h2>
 
-            {/* Big result */}
-            <div className="text-center mb-10">
+            {/* Big result in kader */}
+            <div className="bg-[#2B6CA0]/5 p-10 text-center mb-10">
               <p className="font-body text-sm text-[#2B6CA0]/50 uppercase tracking-wider mb-3">
                 Geschatte meerwaarde van uw woning
               </p>
               <p className="font-headline text-6xl md:text-7xl font-bold text-[#008CFF]">
                 +{fmt(result.meerwaarde)}
               </p>
-              {investering && investering > 0 && (
+              {investering != null && investering > 0 && (
                 <div className="flex items-center justify-center gap-6 mt-4">
                   <span className="font-body text-base text-[#2B6CA0]/50">
                     Investering: {fmt(investering)}

@@ -36,7 +36,7 @@ export default function PortalFotos({ data, onView }: Props) {
   return (
     <section className="bg-[#2B6CA0] py-12">
       <div className="max-w-4xl mx-auto px-6">
-        <h2 className="font-headline text-lg text-white font-bold uppercase tracking-wider mb-8">
+        <h2 className="font-headline text-xl text-white font-bold uppercase tracking-wider mb-8">
           Jouw zolder vandaag
         </h2>
 

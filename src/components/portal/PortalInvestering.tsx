@@ -32,7 +32,7 @@ export default function PortalInvestering({ data, onView }: Props) {
           <div className="w-9 h-9 flex items-center justify-center bg-[#008CFF]/10 flex-shrink-0">
             <DollarSign className="h-4.5 w-4.5 text-[#008CFF]" />
           </div>
-          <h2 className="font-headline text-xs text-[#008CFF] uppercase tracking-wider font-semibold">
+          <h2 className="font-headline text-xl text-[#008CFF] uppercase tracking-wider font-bold">
             Uw investering
           </h2>
         </div>
