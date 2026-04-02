@@ -8,6 +8,12 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+const json = (body: Record<string, unknown>) =>
+  new Response(JSON.stringify(body), {
+    status: 200,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -17,10 +23,7 @@ serve(async (req) => {
     const { portal_token, email } = await req.json();
 
     if (!portal_token || !email) {
-      return new Response(
-        JSON.stringify({ error: "portal_token en email zijn verplicht" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return json({ error: "portal_token en email zijn verplicht" });
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -38,10 +41,7 @@ serve(async (req) => {
       .gte("attempted_at", oneHourAgo);
 
     if ((count ?? 0) >= 5) {
-      return new Response(
-        JSON.stringify({ error: "Te veel pogingen. Probeer het over een uur opnieuw." }),
-        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return json({ error: "Te veel pogingen. Probeer het over een uur opnieuw." });
     }
 
     // Log this attempt
@@ -58,25 +58,16 @@ serve(async (req) => {
       .single();
 
     if (leadError || !lead) {
-      return new Response(
-        JSON.stringify({ error: "Portaal niet gevonden" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return json({ error: "Portaal niet gevonden" });
     }
 
     if (lead.portal_status !== "active") {
-      return new Response(
-        JSON.stringify({ error: "Dit portaal is nog niet beschikbaar" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return json({ error: "Dit portaal is nog niet beschikbaar" });
     }
 
     // Check email match (case-insensitive)
     if (email.toLowerCase().trim() !== (lead.email || "").toLowerCase().trim()) {
-      return new Response(
-        JSON.stringify({ error: "Dit e-mailadres komt niet overeen met het dossier." }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return json({ error: "Dit e-mailadres komt niet overeen met het dossier." });
     }
 
     // Create session (7 days)
@@ -91,10 +82,7 @@ serve(async (req) => {
 
     if (sessionError || !session) {
       console.error("Session creation error:", sessionError);
-      return new Response(
-        JSON.stringify({ error: "Kan sessie niet aanmaken" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return json({ error: "Kan sessie niet aanmaken" });
     }
 
     // Log portal opened event
@@ -106,15 +94,9 @@ serve(async (req) => {
       user_agent: req.headers.get("user-agent") || "",
     });
 
-    return new Response(
-      JSON.stringify({ session_token: session.session_token }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return json({ session_token: session.session_token });
   } catch (err) {
     console.error("verify-portal-email error:", err);
-    return new Response(
-      JSON.stringify({ error: "Server error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return json({ error: "Server error" });
   }
 });

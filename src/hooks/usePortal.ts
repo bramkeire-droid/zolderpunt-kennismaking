@@ -51,11 +51,10 @@ export function usePortal(portalToken: string) {
     setLoading(true);
     setError(null);
     try {
-      const { data: result, error: fnError } = await supabase.functions.invoke(
+      const { data: result } = await supabase.functions.invoke(
         'verify-portal-email',
         { body: { portal_token: portalToken, email } }
       );
-      if (fnError) throw new Error(fnError.message);
       if (result?.error) {
         setError(result.error);
         return false;
@@ -80,53 +79,27 @@ export function usePortal(portalToken: string) {
     const sessionToken = getStoredSession();
 
     try {
-      // supabase.functions.invoke returns { data, error } where data contains
-      // the parsed JSON body even for non-2xx responses
+      // Edge functions always return 200 with status info in body
       const { data: result, error: fnError } = await supabase.functions.invoke(
         'get-portal-data',
         { body: { portal_token: portalToken, session_token: sessionToken } }
       );
 
-      // For non-2xx, Supabase wraps the response in fnError but result may still have our JSON
-      const body = result || (fnError as any)?.context?.json;
-
-      // Try to parse error response body if fnError has no structured data
-      if (fnError && !body) {
-        // Check if the error message itself is parseable JSON
-        try {
-          const parsed = JSON.parse(fnError.message);
-          if (parsed?.needs_verification) {
-            setNeedsVerification(true);
-            return;
-          }
-          if (parsed?.error) {
-            if (parsed.portal_status === 'draft' || parsed.portal_status === 'review') {
-              setError('Dit portaal wordt nog voorbereid. U ontvangt een bericht zodra het klaar is.');
-            } else {
-              setError(parsed.error);
-            }
-            return;
-          }
-        } catch {
-          setError(fnError.message || 'Kan portaal niet laden');
-          return;
-        }
+      if (fnError) {
+        setError('Kan portaal niet laden');
+        return;
       }
 
-      if (body?.needs_verification) {
+      if (result?.needs_verification) {
         setNeedsVerification(true);
         return;
       }
-      if (body?.error) {
-        if (body.portal_status === 'draft' || body.portal_status === 'review') {
-          setError('Dit portaal wordt nog voorbereid. U ontvangt een bericht zodra het klaar is.');
-        } else {
-          setError(body.error);
-        }
+      if (result?.error) {
+        setError(result.error);
         return;
       }
-      if (body?.data) {
-        setData(body.data);
+      if (result?.data) {
+        setData(result.data);
         setNeedsVerification(false);
       }
     } catch (err: any) {

@@ -8,6 +8,12 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+const json = (body: Record<string, unknown>) =>
+  new Response(JSON.stringify(body), {
+    status: 200, // Always 200 — error info in body
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -17,10 +23,7 @@ serve(async (req) => {
     const { portal_token, session_token } = await req.json();
 
     if (!portal_token) {
-      return new Response(
-        JSON.stringify({ error: "portal_token is required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return json({ error: "portal_token is required" });
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -31,11 +34,16 @@ serve(async (req) => {
     let isOwner = false;
     const authHeader = req.headers.get("authorization");
     if (authHeader) {
-      const userClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY") || supabaseServiceKey, {
-        global: { headers: { Authorization: authHeader } },
-      });
-      const { data: { user } } = await userClient.auth.getUser();
-      if (user) isOwner = true;
+      try {
+        const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || supabaseServiceKey;
+        const userClient = createClient(supabaseUrl, anonKey, {
+          global: { headers: { Authorization: authHeader } },
+        });
+        const { data: { user } } = await userClient.auth.getUser();
+        if (user) isOwner = true;
+      } catch {
+        // Not authenticated — continue as anonymous
+      }
     }
 
     // 1. Find lead by portal token
@@ -46,30 +54,21 @@ serve(async (req) => {
       .single();
 
     if (leadError || !lead) {
-      return new Response(
-        JSON.stringify({ error: "Portaal niet gevonden" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return json({ error: "Portaal niet gevonden" });
     }
 
     // 2. Check portal is active (owners can always preview)
     if (!isOwner && lead.portal_status !== "active") {
-      return new Response(
-        JSON.stringify({
-          error: "Dit portaal is nog niet beschikbaar",
-          portal_status: lead.portal_status,
-        }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      const msg = lead.portal_status === "draft" || lead.portal_status === "review"
+        ? "Dit portaal wordt nog voorbereid. U ontvangt een bericht zodra het klaar is."
+        : "Dit portaal is niet meer beschikbaar.";
+      return json({ error: msg, portal_status: lead.portal_status });
     }
 
     // 3. Verify session token (owners skip email verification)
     if (!isOwner) {
       if (!session_token) {
-        return new Response(
-          JSON.stringify({ error: "Verificatie vereist", needs_verification: true }),
-          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return json({ needs_verification: true });
       }
 
       const { data: session, error: sessionError } = await supabase
@@ -81,10 +80,7 @@ serve(async (req) => {
         .single();
 
       if (sessionError || !session) {
-        return new Response(
-          JSON.stringify({ error: "Sessie verlopen", needs_verification: true }),
-          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return json({ needs_verification: true, error: "Sessie verlopen" });
       }
     }
 
@@ -95,37 +91,26 @@ serve(async (req) => {
       adres: lead.adres,
       gesprek_datum: lead.gesprek_datum,
       oppervlakte_m2: lead.oppervlakte_m2,
-      // AI narrative sections
       rapport_situatie_ai: lead.rapport_situatie_ai,
       rapport_verwachtingen_ai: lead.rapport_verwachtingen_ai,
       rapport_besproken_ai: lead.rapport_besproken_ai,
       rapport_aandachtspunten_ai: lead.rapport_aandachtspunten_ai,
       waarde_tekst_ai: lead.waarde_tekst_ai,
-      // Pricing
       budget_excl: lead.budget_excl,
       btw_percentage: lead.btw_percentage,
       prijs_min_incl_btw: lead.prijs_min_incl_btw,
       prijs_max_incl_btw: lead.prijs_max_incl_btw,
       prijs_mw_min_incl_btw: lead.prijs_mw_min_incl_btw,
       prijs_mw_max_incl_btw: lead.prijs_mw_max_incl_btw,
-      // Photos
       fotos: lead.fotos,
       project_feiten: lead.project_feiten,
-      // Included items
       inbegrepen_posten: lead.inbegrepen_posten,
-      // Technical
       technisch: lead.technisch,
     };
 
-    return new Response(
-      JSON.stringify({ data: portalData }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return json({ data: portalData });
   } catch (err) {
     console.error("get-portal-data error:", err);
-    return new Response(
-      JSON.stringify({ error: "Server error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return json({ error: "Server error" });
   }
 });
