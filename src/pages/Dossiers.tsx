@@ -11,6 +11,7 @@ import type { LeadData } from '@/contexts/SessionContext';
 import { toast } from 'sonner';
 import SalesAnalysis from '@/components/SalesAnalysis';
 import PortalManageDialog from '@/components/portal/PortalManageDialog';
+import PortalPreview from '@/components/portal/PortalPreview';
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('nl-BE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
@@ -81,6 +82,7 @@ export default function Dossiers({ onOpenLead }: DossiersProps) {
   const [leads, setLeads] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [portalLead, setPortalLead] = useState<any>(null);
+  const [previewLead, setPreviewLead] = useState<any>(null);
 
   const handlePortalUpdate = (leadId: string, updates: Record<string, any>) => {
     setLeads(prev => prev.map(l => l.id === leadId ? { ...l, ...updates } : l));
@@ -275,7 +277,12 @@ export default function Dossiers({ onOpenLead }: DossiersProps) {
           onClose={() => setPortalLead(null)}
           lead={portalLead}
           onUpdate={handlePortalUpdate}
+          onPreview={(lead) => { setPortalLead(null); setPreviewLead(lead); }}
         />
+      )}
+
+      {previewLead && (
+        <PortalPreview lead={previewLead} onClose={() => setPreviewLead(null)} />
       )}
     </div>
   );

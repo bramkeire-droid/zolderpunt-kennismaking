@@ -14,6 +14,7 @@ interface Props {
   onClose: () => void;
   lead: any;
   onUpdate: (leadId: string, updates: Record<string, any>) => void;
+  onPreview?: (lead: any) => void;
 }
 
 const STATUS_CONFIG = {
@@ -23,7 +24,7 @@ const STATUS_CONFIG = {
   closed: { label: 'Gesloten', icon: EyeOff, color: 'text-[#888888]', bg: 'bg-[#E2E8F0]' },
 };
 
-export default function PortalManageDialog({ open, onClose, lead, onUpdate }: Props) {
+export default function PortalManageDialog({ open, onClose, lead, onUpdate, onPreview }: Props) {
   const [status, setStatus] = useState<string>(lead?.portal_status || 'draft');
   const [loading, setLoading] = useState(false);
   const [events, setEvents] = useState<any[]>([]);
@@ -156,11 +157,9 @@ export default function PortalManageDialog({ open, onClose, lead, onUpdate }: Pr
             variant="outline"
             className="w-full justify-start gap-3 font-headline"
             onClick={() => {
-              // Store lead data for preview (bypasses auth/edge function)
-              try {
-                localStorage.setItem(`zp_portal_preview_${portalToken}`, JSON.stringify(lead));
-              } catch {}
-              window.open(`${portalUrl}?preview=1`, '_blank');
+              if (onPreview) {
+                onPreview(lead);
+              }
             }}
           >
             <ExternalLink className="h-4 w-4" />
