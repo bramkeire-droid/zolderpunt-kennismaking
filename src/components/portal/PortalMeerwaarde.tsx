@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Calculator } from 'lucide-react';
+import { Calculator, TrendingUp, Info } from 'lucide-react';
 import type { PortalData } from '@/hooks/usePortal';
 import vastgoedData from '@/data/vastgoedprijzen.json';
 
@@ -20,9 +20,17 @@ for (const g of vastgoedData as GemeenteData[]) {
 function findGemeente(adres: string): GemeenteData | null {
   if (!adres) return null;
   const upper = adres.toUpperCase();
+  // Try matching gemeente name anywhere in address
   for (const [key, val] of gemeenteLookup) {
     if (upper.includes(key)) return val;
   }
+  // Try postal code extraction: "8750 Wingene" pattern
+  const postalMatch = adres.match(/\b(\d{4})\s+([A-Za-zÀ-ÿ-]+)/);
+  if (postalMatch) {
+    const city = postalMatch[2].toUpperCase();
+    if (gemeenteLookup.has(city)) return gemeenteLookup.get(city)!;
+  }
+  // Last word
   const parts = adres.trim().split(/\s+/);
   const last = parts[parts.length - 1]?.toUpperCase();
   if (last && gemeenteLookup.has(last)) return gemeenteLookup.get(last)!;
@@ -56,6 +64,7 @@ export default function PortalMeerwaarde({ data, onCalculate }: Props) {
     gemeente: string;
     m2Prijs: number;
     coeff: number;
+    jaar: number;
   } | null>(null);
 
   const gemeenteData = findGemeente(data.adres);
@@ -71,31 +80,44 @@ export default function PortalMeerwaarde({ data, onCalculate }: Props) {
     const meerwaarde = Math.round(oppervlakte! * m2Prijs * coeff);
     const nettoWinst = investering ? meerwaarde - investering : meerwaarde;
 
-    setResult({ meerwaarde, nettoWinst, gemeente: gemeenteData!.gemeente, m2Prijs, coeff });
+    setResult({
+      meerwaarde,
+      nettoWinst,
+      gemeente: gemeenteData!.gemeente,
+      m2Prijs,
+      coeff,
+      jaar: gemeenteData!.jaar,
+    });
     setCalculated(true);
     onCalculate?.(meerwaarde);
   }, [gemeenteData, oppervlakte, investering, onCalculate]);
 
   return (
-    <section className="max-w-4xl mx-auto px-6 py-10">
-      <h2 className="font-headline text-xs text-[#008CFF] uppercase tracking-wider font-semibold mb-6">
-        Geschatte meerwaarde
-      </h2>
+    <section className="bg-[#003366] text-white py-12">
+      <div className="max-w-4xl mx-auto px-6">
+        <div className="flex items-center gap-3 mb-8">
+          <div className="w-9 h-9 flex items-center justify-center bg-white/10 flex-shrink-0">
+            <TrendingUp className="h-4.5 w-4.5 text-white" />
+          </div>
+          <h2 className="font-headline text-xs text-white/70 uppercase tracking-wider font-semibold">
+            Geschatte meerwaarde
+          </h2>
+        </div>
 
-      <div className="bg-white p-6 border-l-4 border-[#008CFF]">
         {!calculated ? (
-          /* Pre-calculation state — klant moet klikken */
-          <div className="text-center py-4">
-            <Calculator className="h-10 w-10 text-[#008CFF] mx-auto mb-4" />
-            <h3 className="font-headline text-lg font-bold text-[#1A1A1A] mb-2">
+          /* Pre-calculation state */
+          <div className="text-center py-8">
+            <Calculator className="h-12 w-12 text-[#008CFF] mx-auto mb-5" />
+            <h3 className="font-headline text-2xl font-bold text-white mb-3">
               Wat levert deze renovatie u op?
             </h3>
-            <p className="font-body text-sm text-[#555555] mb-6 max-w-sm mx-auto">
-              Ontdek hoeveel uw woning waard stijgt door de zolderrenovatie, op basis van vastgoedprijzen in uw gemeente.
+            <p className="font-body text-sm text-white/70 mb-8 max-w-md mx-auto leading-relaxed">
+              Op basis van de vastgoedprijzen in {gemeenteData.gemeente} berekenen we
+              hoeveel uw woning waard stijgt door de zolderrenovatie.
             </p>
             <Button
               onClick={handleCalculate}
-              className="bg-[#008CFF] text-white hover:bg-[#0070CC] font-headline text-base px-8 py-5 gap-2"
+              className="bg-[#008CFF] text-white hover:bg-[#0070CC] font-headline text-base px-10 py-6 gap-2"
             >
               <Calculator className="h-5 w-5" />
               Bereken mijn meerwaarde
@@ -103,51 +125,66 @@ export default function PortalMeerwaarde({ data, onCalculate }: Props) {
           </div>
         ) : result ? (
           /* Resultaat */
-          <div>
-            <div className="mb-4">
-              <p className="font-headline text-sm font-semibold text-[#1A1A1A]">
-                {result.gemeente}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Left: big meerwaarde number */}
+            <div className="bg-white/10 p-8 flex flex-col items-center justify-center text-center">
+              <p className="font-body text-xs text-white/50 uppercase tracking-wider mb-2">
+                Geschatte meerwaarde woning
               </p>
-              <p className="font-body text-xs text-[#888888] mt-0.5">
-                Gemiddelde m²-prijs: {fmt(result.m2Prijs)} per m² woonoppervlakte
+              <p className="font-headline text-5xl font-bold text-white mb-2">
+                +{fmt(result.meerwaarde)}
               </p>
-            </div>
-
-            <div className="space-y-3">
-              <div className="flex justify-between text-sm">
-                <span className="font-body text-[#555555]">Uw zolderoppervlakte</span>
-                <span className="font-headline font-semibold">{oppervlakte} m²</span>
-              </div>
-
-              <div className="h-px bg-[#E2E8F0]" />
-
-              <div className="flex justify-between items-baseline">
-                <span className="font-body text-sm text-[#555555]">Geschatte meerwaarde woning</span>
-                <span className="font-headline text-2xl font-bold text-[#008CFF]">
-                  +{fmt(result.meerwaarde)}
-                </span>
-              </div>
-
               {investering && investering > 0 && (
-                <>
-                  <div className="flex justify-between text-sm">
-                    <span className="font-body text-[#555555]">Uw investering</span>
-                    <span className="font-headline font-semibold">{fmt(investering)}</span>
+                <div className="mt-4 pt-4 border-t border-white/20 w-full">
+                  <div className="flex justify-between text-sm mb-2">
+                    <span className="font-body text-white/60">Uw investering</span>
+                    <span className="font-headline font-semibold text-white/80">{fmt(investering)}</span>
                   </div>
-                  <div className="h-px bg-[#008CFF]/20" />
                   <div className="flex justify-between items-baseline">
-                    <span className="font-body text-sm font-semibold text-[#1A1A1A]">Netto meerwaarde</span>
-                    <span className="font-headline text-xl font-bold text-green-600">
+                    <span className="font-body text-sm font-semibold text-white/80">Netto meerwaarde</span>
+                    <span className="font-headline text-2xl font-bold text-[#22C55E]">
                       +{fmt(result.nettoWinst)}
                     </span>
                   </div>
-                </>
+                </div>
               )}
             </div>
 
-            <p className="font-body text-[0.6rem] text-[#999999] mt-4">
-              Bron: Statbel · Indicatieve berekening op basis van mediaanprijzen per gemeente.
-            </p>
+            {/* Right: explanation */}
+            <div className="flex flex-col justify-center space-y-5">
+              <h3 className="font-headline text-lg font-bold text-white">
+                Hoe berekenen we dit?
+              </h3>
+
+              <div className="space-y-3">
+                <div className="flex justify-between items-center py-2 border-b border-white/10">
+                  <span className="font-body text-sm text-white/70">Gemeente</span>
+                  <span className="font-headline text-sm font-semibold text-white">{result.gemeente}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-white/10">
+                  <span className="font-body text-sm text-white/70">Gem. m²-prijs ({result.jaar})</span>
+                  <span className="font-headline text-sm font-semibold text-white">{fmt(result.m2Prijs)}/m²</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-white/10">
+                  <span className="font-body text-sm text-white/70">Uw zolderoppervlakte</span>
+                  <span className="font-headline text-sm font-semibold text-white">{oppervlakte} m²</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-white/10">
+                  <span className="font-body text-sm text-white/70">Waardecoëfficiënt</span>
+                  <span className="font-headline text-sm font-semibold text-white">{Math.round(result.coeff * 100)}%</span>
+                </div>
+              </div>
+
+              <div className="bg-white/5 p-4 flex items-start gap-3">
+                <Info className="h-4 w-4 text-[#008CFF] flex-shrink-0 mt-0.5" />
+                <p className="font-body text-xs text-white/60 leading-relaxed">
+                  De meerwaarde wordt berekend op basis van de gemiddelde m²-prijs
+                  voor woningen in {result.gemeente} (bron: Statbel {result.jaar}).
+                  Een gerenoveerde zolder telt mee als extra woonoppervlakte,
+                  waardoor de totale woningwaarde stijgt.
+                </p>
+              </div>
+            </div>
           </div>
         ) : null}
       </div>

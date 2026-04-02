@@ -1,8 +1,10 @@
-import { Phone, Mail, Globe } from 'lucide-react';
+import { Phone, Mail, Globe, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CONTACT_TELEFOON, CONTACT_EMAIL, CONTACT_WEBSITE } from '@/components/report/reportConstants';
 import fotoBram from '@/assets/foto-bram.png';
 import logoBlauw from '@/assets/logo-blauw.svg';
+
+const WHATSAPP_NR = CONTACT_TELEFOON.replace(/\s/g, '').replace('+', '');
 
 export default function PortalContact() {
   return (
@@ -53,14 +55,30 @@ export default function PortalContact() {
               </a>
             </div>
 
-            <Button
-              asChild
-              className="bg-white text-[#008CFF] hover:bg-white/90 font-headline text-base px-6 py-5 mt-4"
-            >
-              <a href={`tel:${CONTACT_TELEFOON.replace(/\s/g, '')}`}>
-                Plan een gesprek
-              </a>
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-3 mt-4">
+              <Button
+                asChild
+                className="bg-[#25D366] hover:bg-[#25D366]/90 text-white font-headline text-base px-6 py-5 gap-2"
+              >
+                <a
+                  href={`https://wa.me/${WHATSAPP_NR}?text=${encodeURIComponent('Dag Bram, ik heb een vraag over mijn dossier bij Zolderpunt.')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <MessageCircle className="h-5 w-5" />
+                  Stuur een bericht
+                </a>
+              </Button>
+              <Button
+                asChild
+                className="bg-white text-[#008CFF] hover:bg-white/90 font-headline text-base px-6 py-5 gap-2"
+              >
+                <a href={`tel:${CONTACT_TELEFOON.replace(/\s/g, '')}`}>
+                  <Phone className="h-5 w-5" />
+                  Bel direct
+                </a>
+              </Button>
+            </div>
           </div>
         </div>
 
