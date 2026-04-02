@@ -28,7 +28,7 @@ export interface PortalData {
 
 export function usePortal(portalToken: string) {
   const [data, setData] = useState<PortalData | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [needsVerification, setNeedsVerification] = useState(false);
 
