@@ -124,8 +124,10 @@ export function usePortal(portalToken: string) {
     try {
       // If Bram is logged in, fetch directly from Supabase (skip edge function)
       const authed = await isAuthenticated();
+      console.log('[Portal] isAuthenticated:', authed);
       if (authed) {
         const ownerData = await fetchAsOwner(portalToken);
+        console.log('[Portal] fetchAsOwner result:', ownerData ? 'data found' : 'null');
         if (ownerData) {
           setData(ownerData);
           return;
