@@ -27,6 +27,17 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Check if caller is an authenticated user (Bram) via Authorization header
+    let isOwner = false;
+    const authHeader = req.headers.get("authorization");
+    if (authHeader) {
+      const userClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY") || supabaseServiceKey, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: { user } } = await userClient.auth.getUser();
+      if (user) isOwner = true;
+    }
+
     // 1. Find lead by portal token
     const { data: lead, error: leadError } = await supabase
       .from("leads")
@@ -41,38 +52,40 @@ serve(async (req) => {
       );
     }
 
-    // 2. Check portal is active
-    if (lead.portal_status !== "active") {
+    // 2. Check portal is active (owners can always preview)
+    if (!isOwner && lead.portal_status !== "active") {
       return new Response(
         JSON.stringify({
           error: "Dit portaal is nog niet beschikbaar",
-          status: lead.portal_status,
+          portal_status: lead.portal_status,
         }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // 3. Verify session token
-    if (!session_token) {
-      return new Response(
-        JSON.stringify({ error: "Verificatie vereist", needs_verification: true }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    // 3. Verify session token (owners skip email verification)
+    if (!isOwner) {
+      if (!session_token) {
+        return new Response(
+          JSON.stringify({ error: "Verificatie vereist", needs_verification: true }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
 
-    const { data: session, error: sessionError } = await supabase
-      .from("portal_sessions")
-      .select("*")
-      .eq("session_token", session_token)
-      .eq("lead_id", lead.id)
-      .gte("expires_at", new Date().toISOString())
-      .single();
+      const { data: session, error: sessionError } = await supabase
+        .from("portal_sessions")
+        .select("*")
+        .eq("session_token", session_token)
+        .eq("lead_id", lead.id)
+        .gte("expires_at", new Date().toISOString())
+        .single();
 
-    if (sessionError || !session) {
-      return new Response(
-        JSON.stringify({ error: "Sessie verlopen", needs_verification: true }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      if (sessionError || !session) {
+        return new Response(
+          JSON.stringify({ error: "Sessie verlopen", needs_verification: true }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
     // 4. Build public-safe data (strip internal fields)
