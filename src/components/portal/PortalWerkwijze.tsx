@@ -1,112 +1,79 @@
-import { WERKWIJZE_STAPPEN } from '@/components/report/reportConstants';
 import { CONTACT_TELEFOON } from '@/components/report/reportConstants';
 import { Check, MessageCircle, Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const WHATSAPP_NR = CONTACT_TELEFOON.replace(/\s/g, '').replace('+', '');
 
+/** Portal-specific steps (simplified from the 8-step PDF version) */
+const PORTAL_STAPPEN = [
+  { nr: 1, title: 'Kennismakingsgesprek', status: 'done' as const },
+  { nr: 2, title: 'Plaatsbezoek', status: 'current' as const },
+  { nr: 3, title: 'Ontwerp & offerte', status: 'upcoming' as const },
+  { nr: 4, title: 'Uitvoering', status: 'upcoming' as const },
+  { nr: 5, title: 'Jouw nieuwe ruimte', status: 'upcoming' as const },
+];
+
 export default function PortalWerkwijze() {
-  const currentIdx = WERKWIJZE_STAPPEN.findIndex(s => s.status === 'current');
+  const currentIdx = PORTAL_STAPPEN.findIndex(s => s.status === 'current');
 
   return (
-    <section className="bg-[#F8F3EB] py-10">
+    <section className="bg-[#F8F3EB] py-12">
       <div className="max-w-4xl mx-auto px-6">
-        <h2 className="font-headline text-xs text-[#008CFF] uppercase tracking-wider font-semibold mb-8">
+        <h2 className="font-headline text-lg text-[#2B6CA0] font-bold uppercase tracking-wider mb-10">
           Onze werkwijze
         </h2>
 
-        {/* Timeline — horizontal on desktop, vertical on mobile */}
-        <div className="relative">
-          {/* Desktop: horizontal */}
-          <div className="hidden md:block">
-            {/* Connecting line */}
-            <div className="absolute top-4 left-0 right-0 h-0.5 bg-[#2B6CA0]/20" />
-            <div
-              className="absolute top-4 left-0 h-0.5 bg-[#008CFF]"
-              style={{ width: `${((currentIdx + 0.5) / WERKWIJZE_STAPPEN.length) * 100}%` }}
-            />
+        {/* Timeline */}
+        <div className="relative mb-10">
+          {/* Connecting line */}
+          <div className="absolute top-5 left-0 right-0 h-1 bg-[#2B6CA0]/15" />
+          <div
+            className="absolute top-5 left-0 h-1 bg-[#008CFF] transition-all"
+            style={{ width: `${((currentIdx + 0.5) / PORTAL_STAPPEN.length) * 100}%` }}
+          />
 
-            <div className="grid grid-cols-8 gap-2 relative">
-              {WERKWIJZE_STAPPEN.map((stap) => {
-                const isDone = stap.status === 'done';
-                const isCurrent = stap.status === 'current';
-
-                return (
-                  <div key={stap.nr} className="flex flex-col items-center text-center">
-                    {/* Circle */}
-                    <div
-                      className={`w-8 h-8 flex items-center justify-center text-xs font-headline font-bold relative z-10 ${
-                        isDone
-                          ? 'bg-[#008CFF] text-white'
-                          : isCurrent
-                          ? 'bg-[#008CFF] text-white ring-4 ring-[#008CFF]/20'
-                          : 'bg-[#2B6CA0]/20 text-[#2B6CA0]/50'
-                      }`}
-                    >
-                      {isDone ? <Check className="h-3.5 w-3.5" /> : stap.nr}
-                    </div>
-                    {/* Label */}
-                    <p className={`font-headline text-[0.65rem] mt-2 leading-tight ${
-                      isCurrent
-                        ? 'text-[#008CFF] font-bold'
-                        : isDone
-                        ? 'text-[#2B6CA0] font-semibold'
-                        : 'text-[#2B6CA0]/50 font-medium'
-                    }`}>
-                      {stap.title}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Mobile: vertical compact */}
-          <div className="md:hidden flex flex-col gap-1">
-            {WERKWIJZE_STAPPEN.map((stap, idx) => {
+          <div className="grid grid-cols-5 relative">
+            {PORTAL_STAPPEN.map((stap) => {
               const isDone = stap.status === 'done';
               const isCurrent = stap.status === 'current';
 
               return (
-                <div key={stap.nr} className="flex items-center gap-3">
-                  <div className="flex flex-col items-center">
-                    <div
-                      className={`w-7 h-7 flex items-center justify-center text-xs font-headline font-bold ${
-                        isDone
-                          ? 'bg-[#008CFF] text-white'
-                          : isCurrent
-                          ? 'bg-[#008CFF] text-white ring-3 ring-[#008CFF]/20'
-                          : 'bg-[#2B6CA0]/20 text-[#2B6CA0]/50'
-                      }`}
-                    >
-                      {isDone ? <Check className="h-3 w-3" /> : stap.nr}
-                    </div>
-                    {idx < WERKWIJZE_STAPPEN.length - 1 && (
-                      <div className={`w-0.5 h-3 ${isDone ? 'bg-[#008CFF]' : 'bg-[#2B6CA0]/20'}`} />
-                    )}
+                <div key={stap.nr} className="flex flex-col items-center text-center">
+                  {/* Circle */}
+                  <div
+                    className={`w-10 h-10 flex items-center justify-center text-sm font-headline font-bold relative z-10 ${
+                      isDone
+                        ? 'bg-[#008CFF] text-white'
+                        : isCurrent
+                        ? 'bg-[#008CFF] text-white ring-4 ring-[#008CFF]/20'
+                        : 'bg-[#2B6CA0]/15 text-[#2B6CA0]/40'
+                    }`}
+                  >
+                    {isDone ? <Check className="h-4 w-4" /> : stap.nr}
                   </div>
-                  <p className={`font-headline text-sm ${
+                  {/* Label */}
+                  <p className={`font-headline text-sm mt-3 leading-tight px-1 ${
                     isCurrent
                       ? 'text-[#008CFF] font-bold'
                       : isDone
                       ? 'text-[#2B6CA0] font-semibold'
-                      : 'text-[#2B6CA0]/50'
+                      : 'text-[#2B6CA0]/40 font-medium'
                   }`}>
                     {stap.title}
-                    {isCurrent && (
-                      <span className="ml-2 text-[0.6rem] bg-[#008CFF]/10 text-[#008CFF] px-2 py-0.5 uppercase tracking-wider font-bold">
-                        U bent hier
-                      </span>
-                    )}
                   </p>
+                  {isCurrent && (
+                    <span className="mt-1 text-[0.65rem] bg-[#008CFF]/10 text-[#008CFF] px-2 py-0.5 uppercase tracking-wider font-bold">
+                      U bent hier
+                    </span>
+                  )}
                 </div>
               );
             })}
           </div>
         </div>
 
-        {/* CTA below timeline */}
-        <div className="mt-10 bg-[#008CFF] p-8 text-center">
+        {/* CTA */}
+        <div className="bg-[#008CFF] p-8 text-center">
           <h3 className="font-headline text-xl font-bold text-white mb-2">
             Klaar voor de volgende stap?
           </h3>

@@ -34,16 +34,11 @@ export default function PortalFotos({ data, onView }: Props) {
   const fotosWithoutFeiten = fotos.filter(f => (feitenByPath.get(f.storage_path) || []).length === 0);
 
   return (
-    <section className="bg-[#2B6CA0] py-10">
+    <section className="bg-[#2B6CA0] py-12">
       <div className="max-w-4xl mx-auto px-6">
-        <div className="flex items-center gap-3 mb-8">
-          <div className="w-9 h-9 flex items-center justify-center bg-white/10 flex-shrink-0">
-            <Camera className="h-4.5 w-4.5 text-white" />
-          </div>
-          <h2 className="font-headline text-xs text-white/70 uppercase tracking-wider font-semibold">
-            Jouw zolder vandaag
-          </h2>
-        </div>
+        <h2 className="font-headline text-lg text-white font-bold uppercase tracking-wider mb-8">
+          Jouw zolder vandaag
+        </h2>
 
         {/* Photos with observations: large cards, text next to photo */}
         {fotosWithFeiten.length > 0 && (
@@ -55,7 +50,7 @@ export default function PortalFotos({ data, onView }: Props) {
               const feiten = feitenByPath.get(foto.storage_path) || [];
 
               return (
-                <div key={globalIdx} className="bg-white/10 flex flex-col md:flex-row overflow-hidden">
+                <div key={globalIdx} className="flex flex-col md:flex-row overflow-hidden">
                   <button
                     onClick={() => handleOpen(globalIdx)}
                     className="md:w-1/2 aspect-[4/3] md:aspect-auto overflow-hidden bg-[#2B6CA0] focus:outline-none focus:ring-2 focus:ring-[#008CFF] flex-shrink-0"
@@ -66,16 +61,16 @@ export default function PortalFotos({ data, onView }: Props) {
                       className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
                     />
                   </button>
-                  <div className="p-5 md:p-6 flex flex-col justify-center flex-1">
-                    <ul className="space-y-3">
+                  <div className="bg-[#F8F3EB] p-6 md:p-8 flex flex-col justify-center flex-1">
+                    <ul className="space-y-4">
                       {feiten.map((f) => (
                         <li key={f.id} className="flex items-start gap-3">
                           {f.label_nummer && (
-                            <span className="inline-flex items-center justify-center w-6 h-6 bg-[#008CFF] text-white text-xs font-bold flex-shrink-0 mt-0.5">
+                            <span className="inline-flex items-center justify-center w-7 h-7 bg-[#008CFF] text-white text-sm font-bold flex-shrink-0 mt-0.5">
                               {f.label_nummer}
                             </span>
                           )}
-                          <span className="font-body text-sm text-white/90 leading-relaxed">
+                          <span className="font-body text-base text-[#1A1A1A] leading-relaxed">
                             {f.tekst}
                           </span>
                         </li>
