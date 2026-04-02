@@ -1,103 +1,123 @@
-import { Home, Target, Clipboard, AlertTriangle } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import type { PortalData } from '@/hooks/usePortal';
 
 interface Props {
   data: PortalData;
 }
 
-const sections = [
-  {
-    key: 'rapport_situatie_ai' as const,
-    label: 'Jullie verhaal',
-    icon: Home,
-    accent: '#008CFF',
-  },
-  {
-    key: 'rapport_verwachtingen_ai' as const,
-    label: 'Wat jullie voor ogen hebben',
-    icon: Target,
-    accent: '#2B6CA0',
-  },
-  {
-    key: 'rapport_besproken_ai' as const,
-    label: 'Wat we samen vaststelden',
-    icon: Clipboard,
-    accent: '#008CFF',
-  },
-  {
-    key: 'rapport_aandachtspunten_ai' as const,
-    label: 'Aandachtspunten',
-    icon: AlertTriangle,
-    accent: '#2B6CA0',
-  },
-];
-
-function splitIntoBullets(text: string): string[] {
-  const byNewline = text.split(/\n+/).map(s => s.trim()).filter(Boolean);
-  if (byNewline.length > 1) return byNewline;
-  const bySentence = text.split(/(?<=\.)\s+(?=[A-Z])/).map(s => s.trim()).filter(Boolean);
-  if (bySentence.length > 1) return bySentence;
-  return [text];
+/** Extract first name from voornaam, fallback to "jullie" */
+function greeting(data: PortalData): string {
+  const vn = data.voornaam?.trim();
+  if (vn) return vn;
+  return 'jullie';
 }
 
 export default function PortalSamenvatting({ data }: Props) {
-  const hasSections = sections.some((s) => data[s.key]);
-  if (!hasSections) return null;
+  const verwachtingen = data.rapport_verwachtingen_ai;
+  const situatie = data.rapport_situatie_ai;
+  const besproken = data.rapport_besproken_ai;
+  const aandachtspunten = data.rapport_aandachtspunten_ai;
+
+  if (!verwachtingen && !situatie && !besproken && !aandachtspunten) return null;
+
+  const name = greeting(data);
 
   return (
-    <section className="bg-[#F8F3EB] py-10">
-      <div className="max-w-4xl mx-auto px-6">
-        <h2 className="font-headline text-xl text-[#008CFF] uppercase tracking-wider font-bold mb-8">
-          Samenvatting gesprek
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {sections.map((s) => {
-            const text = data[s.key];
-            if (!text) return null;
-            const Icon = s.icon;
-            const bullets = splitIntoBullets(text);
+    <section className="bg-[#F8F3EB] py-14">
+      <div className="max-w-3xl mx-auto px-6">
 
-            return (
-              <div
-                key={s.key}
-                className="bg-[#2B6CA0]/5 p-6 border-l-4 flex flex-col"
-                style={{ borderLeftColor: s.accent }}
-              >
-                <div className="flex items-center gap-3 mb-4">
-                  <div
-                    className="w-9 h-9 flex items-center justify-center flex-shrink-0"
-                    style={{ backgroundColor: `${s.accent}15` }}
-                  >
-                    <Icon className="h-4.5 w-4.5" style={{ color: s.accent }} />
-                  </div>
-                  <h3 className="font-headline text-sm font-semibold text-[#2B6CA0] uppercase tracking-wider">
-                    {s.label}
-                  </h3>
-                </div>
-                {bullets.length === 1 ? (
-                  <p className="font-body text-[#2B6CA0]/70 text-sm leading-relaxed">
-                    {bullets[0]}
-                  </p>
-                ) : (
-                  <ul className="space-y-2">
-                    {bullets.map((b, i) => (
-                      <li key={i} className="flex items-start gap-2">
-                        <span
-                          className="w-1.5 h-1.5 mt-2 flex-shrink-0"
-                          style={{ backgroundColor: s.accent }}
-                        />
-                        <span className="font-body text-[#2B6CA0]/70 text-sm leading-relaxed">
-                          {b}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            );
-          })}
-        </div>
+        {/* Personal intro */}
+        <p className="font-body text-sm text-[#2B6CA0]/50 uppercase tracking-wider mb-6">
+          Na ons gesprek
+        </p>
+
+        {/* Their dream — the hook */}
+        {verwachtingen && (
+          <div className="mb-12">
+            <h2 className="font-headline text-2xl md:text-3xl font-bold text-[#2B6CA0] leading-snug mb-6">
+              {name}, dit is wat jullie voor ogen hebben
+            </h2>
+            <div className="border-l-4 border-[#008CFF] pl-6">
+              <SplitText text={verwachtingen} className="font-body text-lg text-[#2B6CA0]/80 leading-relaxed" />
+            </div>
+          </div>
+        )}
+
+        {/* Their situation — context */}
+        {situatie && (
+          <div className="mb-10">
+            <h3 className="font-headline text-base font-bold text-[#2B6CA0] uppercase tracking-wider mb-4">
+              De situatie vandaag
+            </h3>
+            <SplitText text={situatie} className="font-body text-base text-[#2B6CA0]/60 leading-relaxed" />
+          </div>
+        )}
+
+        {/* What we discussed — key takeaways */}
+        {besproken && (
+          <div className="mb-10">
+            <h3 className="font-headline text-base font-bold text-[#2B6CA0] uppercase tracking-wider mb-4">
+              Wat we samen vaststelden
+            </h3>
+            <BulletList text={besproken} />
+          </div>
+        )}
+
+        {/* Attention points — subtle accent */}
+        {aandachtspunten && (
+          <div className="bg-[#2B6CA0]/5 p-6 flex items-start gap-4">
+            <div className="w-10 h-10 flex items-center justify-center bg-[#008CFF]/10 flex-shrink-0">
+              <AlertTriangle className="h-5 w-5 text-[#008CFF]" />
+            </div>
+            <div>
+              <h4 className="font-headline text-sm font-bold text-[#2B6CA0] uppercase tracking-wider mb-2">
+                Aandachtspunt
+              </h4>
+              <p className="font-body text-base text-[#2B6CA0]/60 leading-relaxed">
+                {aandachtspunten}
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     </section>
+  );
+}
+
+/** Renders text as paragraphs if it has multiple sentences/lines */
+function SplitText({ text, className }: { text: string; className: string }) {
+  const parts = text.split(/\n+/).map(s => s.trim()).filter(Boolean);
+  if (parts.length <= 1) {
+    return <p className={className}>{text}</p>;
+  }
+  return (
+    <div className="space-y-3">
+      {parts.map((p, i) => (
+        <p key={i} className={className}>{p}</p>
+      ))}
+    </div>
+  );
+}
+
+/** Renders text as bullet points — splits on newlines or sentence boundaries */
+function BulletList({ text }: { text: string }) {
+  let bullets = text.split(/\n+/).map(s => s.trim()).filter(Boolean);
+  if (bullets.length <= 1) {
+    bullets = text.split(/(?<=\.)\s+(?=[A-Z])/).map(s => s.trim()).filter(Boolean);
+  }
+
+  if (bullets.length <= 1) {
+    return <p className="font-body text-base text-[#2B6CA0]/60 leading-relaxed">{text}</p>;
+  }
+
+  return (
+    <ul className="space-y-3">
+      {bullets.map((b, i) => (
+        <li key={i} className="flex items-start gap-3">
+          <span className="w-2 h-2 mt-2 bg-[#008CFF] flex-shrink-0" />
+          <span className="font-body text-base text-[#2B6CA0]/60 leading-relaxed">{b}</span>
+        </li>
+      ))}
+    </ul>
   );
 }
