@@ -38,6 +38,10 @@ export type Database = {
           inbegrepen_posten: Json
           notities_vooraf: string
           oppervlakte_m2: number | null
+          portal_activated_at: string | null
+          portal_sent_via: string | null
+          portal_status: string | null
+          portal_token: string | null
           prijs_max_incl_btw: number | null
           prijs_min_incl_btw: number | null
           prijs_mw_max_incl_btw: number | null
@@ -83,6 +87,10 @@ export type Database = {
           inbegrepen_posten?: Json
           notities_vooraf?: string
           oppervlakte_m2?: number | null
+          portal_activated_at?: string | null
+          portal_sent_via?: string | null
+          portal_status?: string | null
+          portal_token?: string | null
           prijs_max_incl_btw?: number | null
           prijs_min_incl_btw?: number | null
           prijs_mw_max_incl_btw?: number | null
@@ -128,6 +136,10 @@ export type Database = {
           inbegrepen_posten?: Json
           notities_vooraf?: string
           oppervlakte_m2?: number | null
+          portal_activated_at?: string | null
+          portal_sent_via?: string | null
+          portal_status?: string | null
+          portal_token?: string | null
           prijs_max_incl_btw?: number | null
           prijs_min_incl_btw?: number | null
           prijs_mw_max_incl_btw?: number | null
@@ -151,6 +163,100 @@ export type Database = {
           waarde_tekst_ai?: string
         }
         Relationships: []
+      }
+      portal_email_attempts: {
+        Row: {
+          attempted_at: string | null
+          id: string
+          ip_address: string | null
+          portal_token: string
+        }
+        Insert: {
+          attempted_at?: string | null
+          id?: string
+          ip_address?: string | null
+          portal_token: string
+        }
+        Update: {
+          attempted_at?: string | null
+          id?: string
+          ip_address?: string | null
+          portal_token?: string
+        }
+        Relationships: []
+      }
+      portal_events: {
+        Row: {
+          created_at: string | null
+          event_type: string
+          id: string
+          ip_address: string | null
+          lead_id: string
+          metadata: Json | null
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          event_type: string
+          id?: string
+          ip_address?: string | null
+          lead_id: string
+          metadata?: Json | null
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          event_type?: string
+          id?: string
+          ip_address?: string | null
+          lead_id?: string
+          metadata?: Json | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_events_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      portal_sessions: {
+        Row: {
+          created_at: string | null
+          email_verified: string
+          expires_at: string
+          id: string
+          lead_id: string
+          session_token: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email_verified: string
+          expires_at?: string
+          id?: string
+          lead_id: string
+          session_token?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email_verified?: string
+          expires_at?: string
+          id?: string
+          lead_id?: string
+          session_token?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_sessions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {

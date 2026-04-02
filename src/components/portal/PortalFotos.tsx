@@ -10,15 +10,15 @@ interface Props {
 export default function PortalFotos({ data, onView }: Props) {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
-  const fotos = data.fotos || [];
-  if (fotos.length === 0) return null;
-
-  const urls = fotos.map((f) => f.url || '').filter(Boolean);
-
   const handleOpen = useCallback((idx: number) => {
     setLightboxIndex(idx);
     onView?.();
   }, [onView]);
+
+  const fotos = data.fotos || [];
+  const urls = fotos.map((f) => f.url || '').filter(Boolean);
+  if (fotos.length === 0) return null;
+
 
   // Group feiten by photo
   const feitenByPath = new Map<string, any[]>();
@@ -76,10 +76,10 @@ export default function PortalFotos({ data, onView }: Props) {
         })}
       </div>
 
-      {lightboxIndex !== null && urls.length > 0 && (
+      {lightboxIndex !== null && urls[lightboxIndex] && (
         <ImageLightbox
-          images={urls}
-          startIndex={lightboxIndex}
+          src={urls[lightboxIndex]}
+          alt={`Foto ${lightboxIndex + 1}`}
           onClose={() => setLightboxIndex(null)}
         />
       )}
