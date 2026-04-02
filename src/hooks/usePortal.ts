@@ -114,16 +114,45 @@ export function usePortal(portalToken: string, isPreview = false) {
     setError(null);
 
     try {
-      // Preview mode: Bram opened this via the management dialog
-      // Fetch directly from Supabase — RLS ensures only authenticated users can read
+      // Preview mode: Bram opened this from the management dialog
+      // Lead data was stored in localStorage before opening the new tab
       if (isPreview) {
+        try {
+          const stored = localStorage.getItem(`zp_portal_preview_${portalToken}`);
+          if (stored) {
+            const lead = JSON.parse(stored);
+            setData({
+              voornaam: lead.voornaam ?? '',
+              achternaam: lead.achternaam ?? '',
+              adres: lead.adres ?? '',
+              gesprek_datum: lead.gesprek_datum ?? '',
+              oppervlakte_m2: lead.oppervlakte_m2 ?? null,
+              rapport_situatie_ai: lead.rapport_situatie_ai ?? '',
+              rapport_verwachtingen_ai: lead.rapport_verwachtingen_ai ?? '',
+              rapport_besproken_ai: lead.rapport_besproken_ai ?? '',
+              rapport_aandachtspunten_ai: lead.rapport_aandachtspunten_ai ?? '',
+              waarde_tekst_ai: lead.waarde_tekst_ai ?? '',
+              budget_excl: lead.budget_excl ?? null,
+              btw_percentage: lead.btw_percentage ?? 6,
+              prijs_min_incl_btw: lead.prijs_min_incl_btw ?? 0,
+              prijs_max_incl_btw: lead.prijs_max_incl_btw ?? 0,
+              prijs_mw_min_incl_btw: lead.prijs_mw_min_incl_btw ?? 0,
+              prijs_mw_max_incl_btw: lead.prijs_mw_max_incl_btw ?? 0,
+              fotos: Array.isArray(lead.fotos) ? lead.fotos : [],
+              project_feiten: Array.isArray(lead.project_feiten) ? lead.project_feiten : [],
+              inbegrepen_posten: Array.isArray(lead.inbegrepen_posten) ? lead.inbegrepen_posten : [],
+              technisch: lead.technisch ?? {},
+            });
+            return;
+          }
+        } catch {}
+        // Fallback: try direct Supabase fetch
         const directData = await fetchDirectFromSupabase(portalToken);
         if (directData) {
           setData(directData);
           return;
         }
-        // If direct fetch fails, it means not logged in — show error
-        setError('Preview niet beschikbaar. Ben je ingelogd?');
+        setError('Preview niet beschikbaar. Open via het management dialog.');
         return;
       }
 
