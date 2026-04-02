@@ -8,3 +8,12 @@ verify_jwt = false
 
 [functions.generate-sales-analysis]
 verify_jwt = false
+
+[functions.get-portal-data]
+verify_jwt = false
+
+[functions.verify-portal-email]
+verify_jwt = false
+
+[functions.log-portal-event]
+verify_jwt = false
