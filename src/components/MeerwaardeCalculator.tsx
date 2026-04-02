@@ -27,14 +27,16 @@ for (const g of data) {
 function calcCoefficient(oppervlakte: number, m2Prijs: number, investering: number): number {
   const BASE = 0.50;
   const MAX = 0.75;
+  const STEP = 0.05; // altijd ronde stappen: 50%, 55%, 60%...
 
   const meerwaardeAtBase = oppervlakte * m2Prijs * BASE;
   if (meerwaardeAtBase > investering) return BASE;
 
-  // Need: oppervlakte × m2Prijs × coeff > investering
-  // coeff > investering / (oppervlakte × m2Prijs)
+  // Schuif omhoog in stappen van 5% tot meerwaarde > investering
   const minCoeff = investering / (oppervlakte * m2Prijs) + 0.05;
-  return Math.min(minCoeff, MAX);
+  // Rond af naar boven in stappen van 5% (0.55, 0.60, 0.65...)
+  const rounded = Math.ceil(minCoeff / STEP) * STEP;
+  return Math.min(rounded, MAX);
 }
 
 interface Props {
@@ -127,8 +129,23 @@ export default function MeerwaardeCalculator({
             <span className="font-semibold">{oppervlakte} m²</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-foreground/60">Waarde per m² in {gemeenteData.gemeente}</span>
+            <span className="text-foreground/60">Gemiddelde m²-prijs in {gemeenteData.gemeente}</span>
             <span className="font-semibold">{fmt(m2Prijs)}</span>
+          </div>
+
+          {/* Zolder-correctie — eerlijkheid */}
+          <div className="flex justify-between text-sm">
+            <span className="text-foreground/60">
+              Zolderruimte-correctie
+              <span className="block text-[0.65rem] text-foreground/35 mt-0.5">
+                Zolderruimte is minder waard dan gelijkvloerse woonruimte
+              </span>
+            </span>
+            <span className="font-semibold">{Math.round(coeff * 100)}%</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-foreground/60">Effectieve m²-waarde zolder</span>
+            <span className="font-semibold">{fmt(Math.round(m2Prijs * coeff))}</span>
           </div>
 
           <div className="h-px bg-foreground/10 my-2" />
