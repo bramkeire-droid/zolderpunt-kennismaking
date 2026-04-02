@@ -76,10 +76,10 @@ export default function PortalFotos({ data, onView }: Props) {
         })}
       </div>
 
-      {lightboxIndex !== null && urls.length > 0 && (
+      {lightboxIndex !== null && urls[lightboxIndex] && (
         <ImageLightbox
-          images={urls}
-          startIndex={lightboxIndex}
+          src={urls[lightboxIndex]}
+          alt={`Foto ${lightboxIndex + 1}`}
           onClose={() => setLightboxIndex(null)}
         />
       )}
