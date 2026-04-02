@@ -4,12 +4,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useState, useEffect, useMemo } from 'react';
-import { Search, FolderOpen, Users, TrendingUp, DollarSign, Eye, RefreshCw, Trash2, CheckCircle } from 'lucide-react';
+import { Search, FolderOpen, Users, TrendingUp, DollarSign, Eye, RefreshCw, Trash2, CheckCircle, Globe } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { defaultTechnisch } from '@/contexts/SessionContext';
 import type { LeadData } from '@/contexts/SessionContext';
 import { toast } from 'sonner';
 import SalesAnalysis from '@/components/SalesAnalysis';
+import PortalManageDialog from '@/components/portal/PortalManageDialog';
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('nl-BE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
@@ -79,6 +80,11 @@ export default function Dossiers({ onOpenLead }: DossiersProps) {
   const [search, setSearch] = useState('');
   const [leads, setLeads] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [portalLead, setPortalLead] = useState<any>(null);
+
+  const handlePortalUpdate = (leadId: string, updates: Record<string, any>) => {
+    setLeads(prev => prev.map(l => l.id === leadId ? { ...l, ...updates } : l));
+  };
 
   const fetchLeads = async () => {
     setLoading(true);
@@ -188,6 +194,7 @@ export default function Dossiers({ onOpenLead }: DossiersProps) {
                       <TableHead>Datum</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Budget</TableHead>
+                      <TableHead>Portaal</TableHead>
                       <TableHead>Volgende stap</TableHead>
                       <TableHead>Acties</TableHead>
                     </TableRow>
@@ -210,11 +217,17 @@ export default function Dossiers({ onOpenLead }: DossiersProps) {
                         <TableCell className="font-body">
                           {lead.budget_min ? `${fmt(lead.budget_min)} — ${fmt(lead.budget_max)}` : '—'}
                         </TableCell>
+                        <TableCell>
+                          <PortalStatusBadge status={lead.portal_status || 'draft'} />
+                        </TableCell>
                         <TableCell className="font-body">{lead.volgende_stap || '—'}</TableCell>
                         <TableCell>
                           <div className="flex gap-1">
                             <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); handleOpen(lead); }}>
                               <FolderOpen className="h-4 w-4" />
+                            </Button>
+                            <Button size="sm" variant="ghost" className="text-[#008CFF] hover:text-[#0070CC]" onClick={(e) => { e.stopPropagation(); setPortalLead(lead); }}>
+                              <Globe className="h-4 w-4" />
                             </Button>
                             {lead.status !== 'afgesloten' && (
                               <Button size="sm" variant="ghost" className="text-green-600 hover:text-green-700" onClick={(e) => handleConvert(e, lead)}>
@@ -255,6 +268,15 @@ export default function Dossiers({ onOpenLead }: DossiersProps) {
           </TabsContent>
         </Tabs>
       </div>
+
+      {portalLead && (
+        <PortalManageDialog
+          open={!!portalLead}
+          onClose={() => setPortalLead(null)}
+          lead={portalLead}
+          onUpdate={handlePortalUpdate}
+        />
+      )}
     </div>
   );
 }
@@ -268,5 +290,21 @@ function StatCard({ icon: Icon, label, value }: { icon: any; label: string; valu
       </div>
       <div className="text-2xl font-headline font-bold text-foreground">{value}</div>
     </div>
+  );
+}
+
+const PORTAL_STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
+  draft: { label: 'Concept', color: 'text-[#888888]', bg: 'bg-[#E2E8F0]' },
+  review: { label: 'Review', color: 'text-[#F6AD55]', bg: 'bg-[#F6AD55]/10' },
+  active: { label: 'Actief', color: 'text-[#22C55E]', bg: 'bg-[#22C55E]/10' },
+  closed: { label: 'Gesloten', color: 'text-[#888888]', bg: 'bg-[#E2E8F0]' },
+};
+
+function PortalStatusBadge({ status }: { status: string }) {
+  const config = PORTAL_STATUS_CONFIG[status] || PORTAL_STATUS_CONFIG.draft;
+  return (
+    <span className={`inline-block text-[0.65rem] font-bold tracking-wider uppercase px-2 py-0.5 ${config.bg} ${config.color}`}>
+      {config.label}
+    </span>
   );
 }

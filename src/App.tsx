@@ -29,6 +29,7 @@ import { ArrowRight, FolderOpen } from 'lucide-react';
 import logoBlauw from '@/assets/logo-blauw.svg';
 import DecorativeAngle from '@/components/DecorativeAngle';
 import CoachingSuggestions from '@/components/CoachingSuggestions';
+import Portal from '@/pages/Portal';
 import type { SlideId } from '@/contexts/SessionContext';
 import type { LeadData } from '@/contexts/SessionContext';
 
@@ -149,12 +150,26 @@ function AuthGate() {
   );
 }
 
-const App = () => (
-  <AuthProvider>
-    <Toaster />
-    <Sonner />
-    <AuthGate />
-  </AuthProvider>
-);
+function PortalRoute() {
+  const match = window.location.pathname.match(/^\/portal\/([0-9a-f-]{36})$/i);
+  if (match) {
+    return <Portal token={match[1]} />;
+  }
+  return null;
+}
+
+const App = () => {
+  // Portal routes are public — no auth required
+  const portalPage = PortalRoute();
+  if (portalPage) return portalPage;
+
+  return (
+    <AuthProvider>
+      <Toaster />
+      <Sonner />
+      <AuthGate />
+    </AuthProvider>
+  );
+};
 
 export default App;
