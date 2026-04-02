@@ -47,7 +47,7 @@ export default function PortalPreview({ lead, onClose }: Props) {
   return (
     <div className="fixed inset-0 z-50 bg-[#F8F3EB] overflow-y-auto">
       {/* Close bar */}
-      <div className="sticky top-0 z-50 bg-white border-b border-[#E2E8F0] px-4 py-2 flex items-center justify-between">
+      <div className="sticky top-0 z-50 bg-[#F8F3EB] border-b border-[#2B6CA0]/10 px-4 py-2 flex items-center justify-between">
         <span className="font-headline text-sm font-semibold text-[#008CFF]">
           Preview modus — zo ziet de klant het portaal
         </span>

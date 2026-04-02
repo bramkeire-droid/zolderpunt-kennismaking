@@ -11,26 +11,26 @@ const ICON_MAP: Record<string, any> = {
 
 export default function PortalGaranties() {
   return (
-    <section className="bg-[#F8F3EB] py-10">
+    <section className="bg-[#2B6CA0] py-10">
       <div className="max-w-4xl mx-auto px-6">
-        <h2 className="font-headline text-xs text-[#008CFF] uppercase tracking-wider font-semibold mb-6">
+        <h2 className="font-headline text-xs text-white/50 uppercase tracking-wider font-semibold mb-8">
           Onze garanties
         </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {GARANTIES.map((g, idx) => {
             const Icon = ICON_MAP[g.iconName] || CheckCircle;
 
             return (
-              <div key={idx} className="bg-white p-4 flex items-start gap-3">
-                <div className="w-8 h-8 flex items-center justify-center bg-[#008CFF]/10 flex-shrink-0">
-                  <Icon className="h-4 w-4 text-[#008CFF]" />
+              <div key={idx} className="bg-white/10 p-5 flex items-start gap-4">
+                <div className="w-10 h-10 flex items-center justify-center bg-white/10 flex-shrink-0">
+                  <Icon className="h-5 w-5 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-headline text-xs font-semibold text-[#1A1A1A] mb-0.5">
+                  <h3 className="font-headline text-sm font-semibold text-white mb-1">
                     {g.title}
                   </h3>
-                  <p className="font-body text-xs text-[#888888] leading-relaxed line-clamp-2">
+                  <p className="font-body text-sm text-white/60 leading-relaxed">
                     {g.text}
                   </p>
                 </div>

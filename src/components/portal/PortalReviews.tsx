@@ -12,7 +12,7 @@ const PHOTO_MAP: Record<string, string> = {
 
 export default function PortalReviews() {
   return (
-    <section className="bg-white py-10">
+    <section className="bg-[#F8F3EB] py-10">
       <div className="max-w-4xl mx-auto px-6">
         <h2 className="font-headline text-xs text-[#008CFF] uppercase tracking-wider font-semibold mb-2">
           Wat klanten zeggen
@@ -20,10 +20,10 @@ export default function PortalReviews() {
         <div className="flex items-center gap-2 mb-8">
           <div className="flex">
             {[1, 2, 3, 4, 5].map((i) => (
-              <Star key={i} className="h-4 w-4 fill-[#F6AD55] text-[#F6AD55]" />
+              <Star key={i} className="h-4 w-4 fill-[#008CFF] text-[#008CFF]" />
             ))}
           </div>
-          <span className="font-body text-xs text-[#888888]">
+          <span className="font-body text-xs text-[#2B6CA0]/50">
             {GOOGLE_REVIEW_SCORE}/5 op Google ({GOOGLE_REVIEW_COUNT} reviews)
           </span>
         </div>
@@ -38,7 +38,7 @@ export default function PortalReviews() {
               .slice(0, 2);
 
             return (
-              <div key={idx} className="bg-[#F8F3EB] p-5">
+              <div key={idx} className="bg-[#2B6CA0]/5 p-5">
                 <div className="flex items-center gap-3 mb-3">
                   {photo ? (
                     <img
@@ -52,17 +52,17 @@ export default function PortalReviews() {
                     </div>
                   )}
                   <div>
-                    <p className="font-headline text-sm font-semibold text-[#1A1A1A]">
+                    <p className="font-headline text-sm font-semibold text-[#2B6CA0]">
                       {review.name}
                     </p>
                     <div className="flex">
                       {[1, 2, 3, 4, 5].map((i) => (
-                        <Star key={i} className="h-3 w-3 fill-[#F6AD55] text-[#F6AD55]" />
+                        <Star key={i} className="h-3 w-3 fill-[#008CFF] text-[#008CFF]" />
                       ))}
                     </div>
                   </div>
                 </div>
-                <p className="font-body text-sm text-[#555555] leading-relaxed italic">
+                <p className="font-body text-sm text-[#2B6CA0]/70 leading-relaxed italic">
                   "{review.quote}"
                 </p>
               </div>
