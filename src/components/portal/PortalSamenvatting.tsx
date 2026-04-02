@@ -5,7 +5,6 @@ interface Props {
   data: PortalData;
 }
 
-/** Extract first name from voornaam, fallback to "jullie" */
 function greeting(data: PortalData): string {
   const vn = data.voornaam?.trim();
   if (vn) return vn;
@@ -23,68 +22,78 @@ export default function PortalSamenvatting({ data }: Props) {
   const name = greeting(data);
 
   return (
-    <section className="bg-[#F8F3EB] py-14">
-      <div className="max-w-3xl mx-auto px-6">
-
-        {/* Personal intro */}
-        <p className="font-body text-sm text-[#2B6CA0]/50 uppercase tracking-wider mb-6">
-          Na ons gesprek
-        </p>
-
-        {/* Their dream — the hook */}
-        {verwachtingen && (
-          <div className="mb-12">
-            <h2 className="font-headline text-2xl md:text-3xl font-bold text-[#2B6CA0] leading-snug mb-6">
+    <>
+      {/* ── Their dream: full-bleed dark blue band ── */}
+      {verwachtingen && (
+        <section className="bg-[#2B6CA0] py-14">
+          <div className="max-w-3xl mx-auto px-6">
+            <p className="font-body text-sm text-white/40 uppercase tracking-wider mb-4">
+              Na ons gesprek
+            </p>
+            <h2 className="font-headline text-3xl md:text-4xl font-bold text-white leading-snug mb-8">
               {name}, dit is wat jullie voor ogen hebben
             </h2>
             <div className="border-l-4 border-[#008CFF] pl-6">
-              <SplitText text={verwachtingen} className="font-body text-lg text-[#2B6CA0]/80 leading-relaxed" />
+              <SplitText
+                text={verwachtingen}
+                className="font-body text-lg md:text-xl text-white/90 leading-relaxed"
+              />
             </div>
           </div>
-        )}
+        </section>
+      )}
 
-        {/* Their situation — context */}
-        {situatie && (
-          <div className="mb-10">
-            <h3 className="font-headline text-base font-bold text-[#2B6CA0] uppercase tracking-wider mb-4">
-              De situatie vandaag
-            </h3>
-            <SplitText text={situatie} className="font-body text-base text-[#2B6CA0]/60 leading-relaxed" />
-          </div>
-        )}
+      {/* ── Context + details: warm background ── */}
+      {(situatie || besproken || aandachtspunten) && (
+        <section className="bg-[#F8F3EB] py-12">
+          <div className="max-w-3xl mx-auto px-6">
 
-        {/* What we discussed — key takeaways */}
-        {besproken && (
-          <div className="mb-10">
-            <h3 className="font-headline text-base font-bold text-[#2B6CA0] uppercase tracking-wider mb-4">
-              Wat we samen vaststelden
-            </h3>
-            <BulletList text={besproken} />
-          </div>
-        )}
+            {/* Situation */}
+            {situatie && (
+              <div className="mb-10">
+                <h3 className="font-headline text-lg font-bold text-[#2B6CA0] uppercase tracking-wider mb-4">
+                  De situatie vandaag
+                </h3>
+                <SplitText
+                  text={situatie}
+                  className="font-body text-base text-[#1A1A1A] leading-relaxed"
+                />
+              </div>
+            )}
 
-        {/* Attention points — subtle accent */}
-        {aandachtspunten && (
-          <div className="bg-[#2B6CA0]/5 p-6 flex items-start gap-4">
-            <div className="w-10 h-10 flex items-center justify-center bg-[#008CFF]/10 flex-shrink-0">
-              <AlertTriangle className="h-5 w-5 text-[#008CFF]" />
-            </div>
-            <div>
-              <h4 className="font-headline text-sm font-bold text-[#2B6CA0] uppercase tracking-wider mb-2">
-                Aandachtspunt
-              </h4>
-              <p className="font-body text-base text-[#2B6CA0]/60 leading-relaxed">
-                {aandachtspunten}
-              </p>
-            </div>
+            {/* What we discussed */}
+            {besproken && (
+              <div className="mb-10">
+                <h3 className="font-headline text-lg font-bold text-[#2B6CA0] uppercase tracking-wider mb-4">
+                  Wat we samen vaststelden
+                </h3>
+                <BulletList text={besproken} />
+              </div>
+            )}
+
+            {/* Attention point */}
+            {aandachtspunten && (
+              <div className="bg-[#2B6CA0]/5 p-6 flex items-start gap-4">
+                <div className="w-10 h-10 flex items-center justify-center bg-[#008CFF]/10 flex-shrink-0">
+                  <AlertTriangle className="h-5 w-5 text-[#008CFF]" />
+                </div>
+                <div>
+                  <h4 className="font-headline text-sm font-bold text-[#2B6CA0] uppercase tracking-wider mb-2">
+                    Aandachtspunt
+                  </h4>
+                  <p className="font-body text-base text-[#1A1A1A] leading-relaxed">
+                    {aandachtspunten}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
-        )}
-      </div>
-    </section>
+        </section>
+      )}
+    </>
   );
 }
 
-/** Renders text as paragraphs if it has multiple sentences/lines */
 function SplitText({ text, className }: { text: string; className: string }) {
   const parts = text.split(/\n+/).map(s => s.trim()).filter(Boolean);
   if (parts.length <= 1) {
@@ -99,7 +108,6 @@ function SplitText({ text, className }: { text: string; className: string }) {
   );
 }
 
-/** Renders text as bullet points — splits on newlines or sentence boundaries */
 function BulletList({ text }: { text: string }) {
   let bullets = text.split(/\n+/).map(s => s.trim()).filter(Boolean);
   if (bullets.length <= 1) {
@@ -107,7 +115,7 @@ function BulletList({ text }: { text: string }) {
   }
 
   if (bullets.length <= 1) {
-    return <p className="font-body text-base text-[#2B6CA0]/60 leading-relaxed">{text}</p>;
+    return <p className="font-body text-base text-[#1A1A1A] leading-relaxed">{text}</p>;
   }
 
   return (
@@ -115,7 +123,7 @@ function BulletList({ text }: { text: string }) {
       {bullets.map((b, i) => (
         <li key={i} className="flex items-start gap-3">
           <span className="w-2 h-2 mt-2 bg-[#008CFF] flex-shrink-0" />
-          <span className="font-body text-base text-[#2B6CA0]/60 leading-relaxed">{b}</span>
+          <span className="font-body text-base text-[#1A1A1A] leading-relaxed">{b}</span>
         </li>
       ))}
     </ul>
