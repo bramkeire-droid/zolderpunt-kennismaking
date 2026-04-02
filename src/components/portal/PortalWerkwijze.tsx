@@ -26,7 +26,7 @@ export default function PortalWerkwijze() {
         {/* Timeline */}
         <div className="relative mb-10">
           {/* Connecting line */}
-          <div className="absolute top-5 left-0 right-0 h-1 bg-[#2B6CA0]/15" />
+          <div className="absolute top-5 left-0 right-0 h-1 bg-[#2B6CA0]/20" />
           <div
             className="absolute top-5 left-0 h-1 bg-[#008CFF] transition-all"
             style={{ width: `${((currentIdx + 0.5) / PORTAL_STAPPEN.length) * 100}%` }}
@@ -46,7 +46,7 @@ export default function PortalWerkwijze() {
                         ? 'bg-[#008CFF] text-white'
                         : isCurrent
                         ? 'bg-[#008CFF] text-white ring-4 ring-[#008CFF]/20'
-                        : 'bg-[#2B6CA0]/15 text-[#2B6CA0]/40'
+                        : 'bg-[#2B6CA0]/20 text-[#2B6CA0]/60'
                     }`}
                   >
                     {isDone ? <Check className="h-4 w-4" /> : stap.nr}
@@ -57,7 +57,7 @@ export default function PortalWerkwijze() {
                       ? 'text-[#008CFF] font-bold'
                       : isDone
                       ? 'text-[#2B6CA0] font-semibold'
-                      : 'text-[#2B6CA0]/40 font-medium'
+                      : 'text-[#2B6CA0]/60 font-medium'
                   }`}>
                     {stap.title}
                   </p>

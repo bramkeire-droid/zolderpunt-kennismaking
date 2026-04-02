@@ -48,7 +48,7 @@ export default function PortalFotos({ data, onView }: Props) {
               const feiten = feitenByPath.get(foto.storage_path) || [];
 
               return (
-                <div key={globalIdx} className="flex flex-col md:flex-row overflow-hidden border border-[#008CFF]/10">
+                <div key={globalIdx} className="flex flex-col md:flex-row overflow-hidden border border-[#008CFF]/15">
                   <button
                     onClick={() => handleOpen(globalIdx)}
                     className="md:w-1/2 aspect-[4/3] md:aspect-auto overflow-hidden bg-[#F8F3EB] focus:outline-none focus:ring-2 focus:ring-[#008CFF] flex-shrink-0"
@@ -59,7 +59,7 @@ export default function PortalFotos({ data, onView }: Props) {
                       className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
                     />
                   </button>
-                  <div className="bg-[#008CFF]/5 p-6 md:p-8 flex flex-col justify-center flex-1">
+                  <div className="bg-[#008CFF]/10 p-6 md:p-8 flex flex-col justify-center flex-1">
                     <ul className="space-y-4">
                       {feiten.map((f) => (
                         <li key={f.id} className="flex items-start gap-3">
@@ -68,7 +68,7 @@ export default function PortalFotos({ data, onView }: Props) {
                               {f.label_nummer}
                             </span>
                           )}
-                          <span className="font-body text-base text-[#2B6CA0] leading-relaxed">
+                          <span className="font-body text-base text-[#1A1A1A] leading-relaxed">
                             {f.tekst}
                           </span>
                         </li>
@@ -92,7 +92,7 @@ export default function PortalFotos({ data, onView }: Props) {
                 <button
                   key={globalIdx}
                   onClick={() => handleOpen(globalIdx)}
-                  className="aspect-square overflow-hidden bg-[#008CFF]/5 focus:outline-none focus:ring-2 focus:ring-[#008CFF]"
+                  className="aspect-square overflow-hidden bg-[#008CFF]/10 focus:outline-none focus:ring-2 focus:ring-[#008CFF]"
                 >
                   <img
                     src={url}

@@ -26,7 +26,7 @@ export default function PortalReviews() {
           <span className="font-headline text-base font-semibold text-[#2B6CA0]">
             {GOOGLE_REVIEW_SCORE}/5
           </span>
-          <span className="font-body text-sm text-[#2B6CA0]/50">
+          <span className="font-body text-sm text-[#2B6CA0]/70">
             op Google ({GOOGLE_REVIEW_COUNT} reviews)
           </span>
         </div>
@@ -41,7 +41,7 @@ export default function PortalReviews() {
               .slice(0, 2);
 
             return (
-              <div key={idx} className="bg-[#2B6CA0]/5 p-6">
+              <div key={idx} className="bg-[#008CFF]/10 p-6">
                 <div className="flex items-center gap-3 mb-4">
                   {photo ? (
                     <img

@@ -39,13 +39,13 @@ export default function PortalInvestering({ data, onView }: Props) {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           {/* Min */}
-          <div className="bg-[#2B6CA0]/5 p-6 text-center">
-            <p className="font-body text-xs text-[#2B6CA0]/50 uppercase tracking-wider mb-2">Minimum</p>
+          <div className="bg-[#008CFF]/10 p-6 text-center">
+            <p className="font-body text-xs text-[#2B6CA0]/70 uppercase tracking-wider mb-2">Minimum</p>
             <p className="font-headline text-2xl font-bold text-[#2B6CA0]">{fmt(min)}</p>
             <p className="font-body text-xs text-[#2B6CA0]/50 mt-1">excl. BTW</p>
             <div className="mt-2 space-y-0.5">
-              <p className="font-body text-xs text-[#2B6CA0]/40">incl. 6%: {fmt(incl6(min))}</p>
-              <p className="font-body text-xs text-[#2B6CA0]/40">incl. 21%: {fmt(incl21(min))}</p>
+              <p className="font-body text-xs text-[#2B6CA0]/60">incl. 6%: {fmt(incl6(min))}</p>
+              <p className="font-body text-xs text-[#2B6CA0]/60">incl. 21%: {fmt(incl21(min))}</p>
             </div>
           </div>
 
@@ -61,13 +61,13 @@ export default function PortalInvestering({ data, onView }: Props) {
           </div>
 
           {/* Max */}
-          <div className="bg-[#2B6CA0]/5 p-6 text-center">
-            <p className="font-body text-xs text-[#2B6CA0]/50 uppercase tracking-wider mb-2">Maximum</p>
+          <div className="bg-[#008CFF]/10 p-6 text-center">
+            <p className="font-body text-xs text-[#2B6CA0]/70 uppercase tracking-wider mb-2">Maximum</p>
             <p className="font-headline text-2xl font-bold text-[#2B6CA0]">{fmt(max)}</p>
             <p className="font-body text-xs text-[#2B6CA0]/50 mt-1">excl. BTW</p>
             <div className="mt-2 space-y-0.5">
-              <p className="font-body text-xs text-[#2B6CA0]/40">incl. 6%: {fmt(incl6(max))}</p>
-              <p className="font-body text-xs text-[#2B6CA0]/40">incl. 21%: {fmt(incl21(max))}</p>
+              <p className="font-body text-xs text-[#2B6CA0]/60">incl. 6%: {fmt(incl6(max))}</p>
+              <p className="font-body text-xs text-[#2B6CA0]/60">incl. 21%: {fmt(incl21(max))}</p>
             </div>
           </div>
         </div>
@@ -79,7 +79,7 @@ export default function PortalInvestering({ data, onView }: Props) {
 
         {/* Checklist */}
         {allItems.length > 0 && (
-          <div className="bg-[#008CFF]/5 p-6">
+          <div className="bg-[#008CFF]/10 p-6">
             <h3 className="font-headline text-sm font-semibold text-[#2B6CA0] mb-4 flex items-center gap-2">
               <CheckCircle className="h-4 w-4 text-[#008CFF]" />
               Wat is inbegrepen?
@@ -88,7 +88,7 @@ export default function PortalInvestering({ data, onView }: Props) {
               {allItems.map((item, i) => (
                 <div key={i} className="flex items-start gap-2">
                   <span className="text-[#008CFF] text-sm mt-0.5">&#10003;</span>
-                  <span className="font-body text-sm text-[#2B6CA0]/70">{item}</span>
+                  <span className="font-body text-sm text-[#1A1A1A]">{item}</span>
                 </div>
               ))}
             </div>

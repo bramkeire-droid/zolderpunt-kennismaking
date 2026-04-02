@@ -108,7 +108,7 @@ export default function PortalMeerwaarde({ data, onCalculate }: Props) {
             <h2 className="font-headline text-3xl md:text-4xl font-bold text-[#008CFF] mb-4">
               Wat levert deze renovatie u op?
             </h2>
-            <p className="font-body text-lg text-[#2B6CA0]/70 mb-10 max-w-lg mx-auto leading-relaxed">
+            <p className="font-body text-lg text-[#2B6CA0] mb-10 max-w-lg mx-auto leading-relaxed">
               Op basis van de vastgoedprijzen in {titleCase(gemeenteData.gemeente)} berekenen we
               hoeveel uw woning waard stijgt door de zolderrenovatie.
             </p>
@@ -147,35 +147,35 @@ export default function PortalMeerwaarde({ data, onCalculate }: Props) {
             </div>
 
             {/* Calculation breakdown on cream */}
-            <div className="bg-[#008CFF]/5 p-8">
+            <div className="bg-[#008CFF]/10 p-8">
               <h3 className="font-headline text-lg font-bold text-[#2B6CA0] mb-6">
                 Hoe berekenen we dit?
               </h3>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-4">
-                <div className="flex justify-between items-center py-3 border-b border-[#008CFF]/10">
-                  <span className="font-body text-base text-[#2B6CA0]/70">Gemeente</span>
+                <div className="flex justify-between items-center py-3 border-b border-[#008CFF]/15">
+                  <span className="font-body text-base text-[#2B6CA0]">Gemeente</span>
                   <span className="font-headline text-base font-semibold text-[#2B6CA0]">
                     {titleCase(result.gemeente)}
                   </span>
                 </div>
-                <div className="flex justify-between items-center py-3 border-b border-[#008CFF]/10">
-                  <span className="font-body text-base text-[#2B6CA0]/70">Gem. m²-prijs</span>
+                <div className="flex justify-between items-center py-3 border-b border-[#008CFF]/15">
+                  <span className="font-body text-base text-[#2B6CA0]">Gem. m²-prijs</span>
                   <span className="font-headline text-base font-semibold text-[#2B6CA0]">{fmt(result.m2Prijs)}/m²</span>
                 </div>
-                <div className="flex justify-between items-center py-3 border-b border-[#008CFF]/10">
-                  <span className="font-body text-base text-[#2B6CA0]/70">Uw zolderoppervlakte</span>
+                <div className="flex justify-between items-center py-3 border-b border-[#008CFF]/15">
+                  <span className="font-body text-base text-[#2B6CA0]">Uw zolderoppervlakte</span>
                   <span className="font-headline text-base font-semibold text-[#2B6CA0]">{oppervlakte} m²</span>
                 </div>
-                <div className="flex justify-between items-center py-3 border-b border-[#008CFF]/10">
-                  <span className="font-body text-base text-[#2B6CA0]/70">Waardecoëfficiënt</span>
+                <div className="flex justify-between items-center py-3 border-b border-[#008CFF]/15">
+                  <span className="font-body text-base text-[#2B6CA0]">Waardecoëfficiënt</span>
                   <span className="font-headline text-base font-semibold text-[#2B6CA0]">{Math.round(result.coeff * 100)}%</span>
                 </div>
               </div>
 
               <div className="mt-6 flex items-start gap-3">
                 <Info className="h-5 w-5 text-[#008CFF] flex-shrink-0 mt-0.5" />
-                <div className="font-body text-sm text-[#2B6CA0]/60 leading-relaxed">
+                <div className="font-body text-sm text-[#2B6CA0]/80 leading-relaxed">
                   <p className="mb-2">
                     <strong className="text-[#2B6CA0]">Berekening:</strong> {oppervlakte} m² × {fmt(result.m2Prijs)}/m² × {Math.round(result.coeff * 100)}% = {fmt(result.meerwaarde)}
                   </p>

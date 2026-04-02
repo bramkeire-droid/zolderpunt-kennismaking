@@ -16,7 +16,7 @@ export default function PortalGaranties() {
         <h2 className="font-headline text-xl text-[#008CFF] font-bold uppercase tracking-wider mb-3">
           Onze garanties
         </h2>
-        <p className="font-body text-base text-[#2B6CA0]/70 mb-10">
+        <p className="font-body text-base text-[#2B6CA0] mb-10">
           Wat u van ons mag verwachten — zwart op wit.
         </p>
 
@@ -25,7 +25,7 @@ export default function PortalGaranties() {
             const Icon = ICON_MAP[g.iconName] || CheckCircle;
 
             return (
-              <div key={idx} className="bg-[#008CFF]/5 p-5 flex items-start gap-4">
+              <div key={idx} className="bg-[#008CFF]/10 p-5 flex items-start gap-4">
                 <div className="w-10 h-10 flex items-center justify-center bg-[#008CFF]/10 flex-shrink-0 mt-0.5">
                   <Icon className="h-5 w-5 text-[#008CFF]" />
                 </div>
@@ -33,7 +33,7 @@ export default function PortalGaranties() {
                   <h3 className="font-headline text-base font-bold text-[#2B6CA0] mb-1">
                     {g.title}
                   </h3>
-                  <p className="font-body text-base text-[#2B6CA0]/80 leading-relaxed">
+                  <p className="font-body text-base text-[#1A1A1A] leading-relaxed">
                     {g.text}
                   </p>
                 </div>
