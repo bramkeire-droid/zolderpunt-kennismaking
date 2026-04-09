@@ -1,242 +1,116 @@
 # Transcript-Analyse Architectuur
 
-## Het probleem
+## Flow
 
-De huidige `generate-rapport-summary` doet alles in 1 prompt: extractie, synthese en formulering. Het resultaat is generieke tekst die ook zonder transcript gegenereerd had kunnen worden.
+```
+TRANSCRIPT (Leexi / .md upload)
+       │
+       ▼
+┌──────────────────────────────────────┐
+│  FASE 1: EXTRACTIE                   │
+│  12 vragen aan het transcript        │
+│                                      │
+│  Resultaat:                          │
+│  - Wensen (must-have / nice-to-have) │
+│  - Zorgen (blokkerend / belangrijk)  │
+│  - Budget-spanning                   │
+│  - Beslisdynamiek                    │
+│  - Citaten met emotie                │
+│  - Eigen keuzes van de klant         │
+└───────────────┬──────────────────────┘
+                │
+                ▼
+┌──────────────────────────────────────┐
+│  FASE 2: CONVERSIE + VLECHTEN       │
+│                                      │
+│  Elke wens/zorg → 4-stap formule:   │
+│  SPIEGEL → ERKEN → TOON HOE →      │
+│  BEVESTIG                            │
+│                                      │
+│  Verweven tot 4 lopende tekstvelden  │
+└───────────────┬──────────────────────┘
+                │
+                ▼
+         ┌──────────────┐
+         │  PDF RAPPORT  │
+         └──────────────┘
+```
 
-**Voorbeeld — Kurt Van Poucke:**
-
-| Wat het transcript zegt | Wat het rapport ervan maakt |
-|---|---|
-| "De droom om een gezamenlijke kamer te hebben" (emotionele kern) | "Jullie dromen van een plek die rust uitstraalt door een naadloze afwerking" (filler) |
-| Budget max 50k, raming 55-75k, bewust gefaseerd (slaapkamer first) | Niet vermeld |
-| Smalle draaitrap, materiaal door raam?, erfgoed-beschermd raam | 1 generiek aandachtspunt over vloer |
-| 3 offertes vergelijken, via ChatGPT gevonden | Niet vermeld |
-
-**Kernprobleem:** De AI krijgt geen instructie om EERST te luisteren en te extraheren. Het gaat direct naar schrijven, en vult gaten met template-achtige zinnen.
+Fallback: als er geen transcript is (< 200 tekens), single-pass op basis van notities en formulierdata.
 
 ---
 
-## De oplossing: Twee-fase architectuur
+## Fase 1: De 12 vragen
 
-### Fase 1: Deep Extraction
-
-Voordat er ook maar 1 zin geschreven wordt, extraheer je gestructureerde inzichten uit het transcript. Dit zijn niet zomaar feiten — het zijn psychologische signalen.
-
-**Extractie-categorien:**
-
-```typescript
-interface TranscriptExtractie {
-  // WAT DRIJFT DEZE KLANT?
-  emotionele_drijfveer: string;
-  // De echte reden achter het project. Niet "zolder renoveren" maar
-  // "eindelijk een eigen slaapkamer samen met Jessica"
-
-  specifieke_wensen: {
-    wens: string;
-    prioriteit: 'must-have' | 'nice-to-have';
-    eigen_woorden: string; // exacte formulering van de klant
-  }[];
-
-  zorgen_en_angsten: {
-    zorg: string;
-    ernst: 'blokkerend' | 'belangrijk' | 'achtergrond';
-    hoe_we_adresseren: string;
-  }[];
-
-  budget_realiteit: {
-    budget_klant: string;
-    raming_bram: string;
-    spanning: string; // hoe groot is het gat
-    oplossing_besproken: string;
-  };
-
-  beslisdynamiek: {
-    wie_beslist: string;
-    concurrentie: string; // andere offertes?
-    tijdsdruk: string;
-    hoe_gevonden: string;
-  };
-
-  technische_details: {
-    feit: string;
-    relevant_voor_klant: boolean; // sommige feiten zijn intern
-    klant_begrijpt: boolean;
-  }[];
-
-  krachtige_citaten: {
-    citaat: string;
-    context: string;
-    emotie: string;
-  }[];
-
-  onuitgesproken_behoeften: string[];
-  // Wat de klant impliceert maar niet hardop zegt
-  // bv. "ze willen zekerheid dat dit geen financial disaster wordt"
-}
-```
-
-### Fase 2: Psychologische Synthese
-
-Met de extractie als input, genereer je rapport-teksten die gebaseerd zijn op bewezen koopgedrag-principes:
-
-**Principe 1: Spiegelen = Vertrouwen**
-De klant moet hun eigen woorden terugzien. Niet "jullie dromen van rust" maar "jullie droom is helder: een gezamenlijke slaapkamer waar jullie eindelijk samen wakker worden."
-
-**Principe 2: Specificiteit = Geloofwaardigheid**
-Hoe specifieker het rapport, hoe meer de klant gelooft dat je geluisterd hebt. "128m2 onbenutte ruimte" is generiek. "De smalle draaitrap die nu het enige pad naar 128m2 onbenut potentieel is" is specifiek.
-
-**Principe 3: Zorg erkennen voor je oplost**
-Niet: "We maken een offerte." Maar: "Jullie gaven eerlijk aan dat het budget krap is. Daarom bespraken we samen een slimme aanpak: de slaapkamer 100% afwerken, de rest basisniveau."
-
-**Principe 4: Prioriteit valideren**
-De klant heeft al een keuze gemaakt (slaapkamer first). Bevestig die keuze als slim: "Jullie kiezen bewust en verstandig: eerst de slaapkamer perfect, de rest volgt later."
-
-**Principe 5: Toekomstprojectie**
-Help de klant het resultaat al voelen: "Over enkele maanden lopen jullie de trap op naar jullie eigen verdieping."
+| # | Vraag | Wat het oplevert |
+|---|-------|-----------------|
+| 1 | Wat is de ECHTE reden — niet het project maar het verlangen? | Emotionele drijfveer |
+| 2 | Wat moet absoluut (must-have) en wat is leuk (nice-to-have)? | Geprioriteerde wensen met eigen woorden |
+| 3 | Waar maakt de klant zich zorgen over — uitgesproken en impliciet? | Zorgen met ernst-niveau |
+| 4 | Hoe zit het budget? Spanning? Besproken oplossing? | Budget-realiteit |
+| 5 | Wie beslist? Concurrentie? Hoe gevonden? Tijdsdruk? | Beslisdynamiek |
+| 6 | Welke technische punten raken de klant direct? | Klant-relevante techniek |
+| 7 | Welke uitspraken tonen emotie of overtuiging? | Citaten met emotie-label |
+| 8 | Wat zegt de klant niet maar bedoelt wel? | Onuitgesproken behoeften |
+| 9 | Welke keuze heeft de klant zelf al gemaakt? | Te valideren prioriteit |
+| 10 | Wat is de concrete volgende stap? | Afgesproken actie |
+| 11 | Waarin onderscheiden wij ons al t.o.v. concurrentie? | Eigen sterkte |
+| 12 | Wat zou de klant doen twijfelen? | Risico-factoren |
 
 ---
 
-## Implementatie: Herschreven prompt-structuur
+## Fase 2: De conversieformule
 
-### System Prompt (Fase 1 — Extractie)
+### Per wens:
 
-```
-Je bent een gespreksanalist gespecialiseerd in klantpsychologie voor
-renovatieprojecten. Je analyseert transcripten van intakegesprekken
-en extraheert de diepere drijfveren, zorgen en dynamieken.
+| Stap | Wat | Psychologisch effect |
+|------|-----|---------------------|
+| SPIEGEL | Herhaal in hun eigen woorden | "Hij heeft geluisterd" |
+| ERKEN | Bevestig dat hun keuze logisch is | "Mijn gevoel klopt" |
+| TOON HOE | 1 concreet detail van de aanpak | "Er is al een plan" |
+| BEVESTIG | Kort: dit is haalbaar | "Ik hoef niet bang te zijn" |
 
-Je zoekt naar:
-1. De ECHTE reden achter het project (niet "renoveren" maar het
-   menselijke verlangen erachter)
-2. Specifieke wensen in de EIGEN WOORDEN van de klant
-3. Zorgen en angsten — expliciet EN impliciet
-4. Budgetspanning: wat wil de klant vs wat kan de klant
-5. Beslisdynamiek: wie beslist, concurrentie, tijdsdruk
-6. Krachtige citaten die emotie tonen
-7. Onuitgesproken behoeften
+### Per zorg:
 
-BELANGRIJK: Extraheer, interpreteer niet. Citeer waar mogelijk.
-```
+| Stap | Wat | Psychologisch effect |
+|------|-----|---------------------|
+| SPIEGEL | Benoem de zorg expliciet | "Hij verzwijgt niets" |
+| ERKEN | Zeg dat het logisch is | "Mijn zorgen zijn normaal" |
+| TOON HOE | Hoe we het aanpakken | "Er is een antwoord" |
+| BEVESTIG | Geef zekerheid | "Ik kan hierop vertrouwen" |
 
-### System Prompt (Fase 2 — Synthese)
+### Vlechten tot rapport-velden:
 
-```
-Je bent de persoonlijke rapportschrijver van Bram Keirsschieter
-(Zolderpunt). Je schrijft rapport-teksten die de klant het gevoel
-geven: "hij heeft ECHT geluisterd."
-
-PSYCHOLOGISCHE PRINCIPES:
-- SPIEGEL: Gebruik de eigen woorden/formuleringen van de klant
-- SPECIFICITEIT: Elk detail dat je noemt bewijst dat je geluisterd hebt
-- ERKEN VOOR JE OPLOST: Benoem zorgen expliciet voordat je de
-  aanpak beschrijft
-- VALIDEER KEUZES: Bevestig dat hun prioriteiten slim zijn
-- TOEKOMSTPROJECTIE: Help ze het resultaat al voelen
-
-ANTI-PATRONEN (NOOIT DOEN):
-- "Jullie dromen van rust/ruimte/comfort" → te generiek
-- "Een volledige transformatie" → betekenisloos
-- "Naadloze afwerking" → template-taal
-- Iets schrijven dat ook zonder transcript klopt → dan heb je niet
-  geluisterd
-
-TOETS: Lees elke zin die je schrijft en vraag: "Zou deze zin ook
-kloppen voor een willekeurige andere klant?" Als ja → herschrijf.
-
-SCHRIJFSTIJL:
-- Tweede persoon ("jullie", "je")
-- Warm maar concreet
-- Korte zinnen, geen opsommingen
-- Bram spreekt rechtstreeks tegen de klant
-```
+| Rapport-veld | Samengesteld uit |
+|-------------|-----------------|
+| Jullie verhaal (situatie) | Situatie-spiegels verweven |
+| Wat jullie voor ogen hebben (verwachtingen) | Wens: spiegel + erken + bevestig |
+| Wat we samen vaststelden (besproken) | Wens: toon hoe + Zorg: toon hoe |
+| Aandachtspunten | Zorg: spiegel + erken + toon hoe + bevestig |
 
 ---
 
-## Voorbeeld: Kurt Van Poucke (huidige vs nieuwe output)
+## Taalregister
 
-### HUIDIG — "Jullie verhaal"
-> Jullie woning in de Langestraat herbergt een indrukwekkende zolderruimte
-> van maar liefst 128 vierkante meter. Hoewel deze oppervlakte op dit
-> moment nog volledig onbenut is, vormt de royale omvang een fantastisch
-> canvas om iets unieks te creeren.
+**De toon:** een vakman die het snapt. Warm, direct, begripvol. Niet koud/technisch, niet wollig/salesy.
 
-**Probleem:** Generiek. "Fantastisch canvas" is marketing-filler. Geen enkel persoonlijk detail.
+| Niet (wollig) | Wel (begripvol) |
+|--------------|-----------------|
+| "Jullie dromen van een gezamenlijke slaapkamer" | "Jullie willen een eigen slaapkamer. Samen." |
+| "Een fantastisch canvas om iets unieks te creeren" | "128m2 die er al is — het moet alleen nog gebeuren." |
+| "Naadloze afwerking die rust uitstraalt" | "Strak afgewerkt, zoals de rest van jullie huis." |
+| "Een volledige transformatie" | "Van ruwbouw naar leefruimte." |
 
-### NIEUW — "Jullie verhaal"
-> Boven jullie appartement in de Langestraat ligt 128m2 die al jaren
-> wacht. De ruimte is ruw, de vloer ongelijk, en de enige manier om
-> er te komen is via een smalle draaitrap door de winkel beneden.
-> Maar jullie zien wat het kan worden — en daar begint dit verhaal.
+**Verboden woorden:** dromen, oase, canvas, transformatie, uniek, naadloos, uitstralen, ontdekken, beleven
 
-### HUIDIG — "Wat jullie voor ogen hebben"
-> Het doel is duidelijk: van deze grote, ruwe ruimte een volwaardig en
-> instapklaar deel van jullie huis maken. Jullie dromen van een plek
-> die rust uitstraalt door een naadloze afwerking.
-
-**Probleem:** "Naadloze afwerking" is nooit gezegd. De echte droom ontbreekt volledig.
-
-### NIEUW — "Wat jullie voor ogen hebben"
-> Kurt, je zei het zelf: de droom is een gezamenlijke slaapkamer.
-> Een eigen plek voor jullie twee, met een raam dat het beschermde
-> Brugse uitzicht behoudt maar eindelijk dubbel glas heeft. De rest
-> van de zolder mag functioneel blijven — stockage, wasruimte, diepvries —
-> en dat is een bewuste, slimme keuze.
-
-### HUIDIG — "Aandachtspunten"
-> We kijken tijdens het plaatsbezoek goed naar de draagkracht van de vloer,
-> zodat de nieuwe chape en afwerking een solide basis vormen voor de toekomst.
-
-**Probleem:** 1 generiek punt. De 5+ echte zorgen zijn verdwenen.
-
-### NIEUW — "Aandachtspunten"
-> Het trapgat door de betonvloer en het transport via de smalle draaitrap
-> zijn de grootste technische uitdagingen. De Velux-ramen zijn twijfelachtig
-> maar niet urgent — we werken de afwerking zo dat vervanging later
-> moeiteloos kan. En jullie gaven eerlijk aan: het budget is maximaal
-> vijftigduizend euro. De raming ligt daar net boven, maar met de
-> slaapkamer-eerst aanpak landen we binnen bereik.
+**Toets:** "Zou deze zin ook kloppen voor een willekeurige andere klant?" Als ja → herschrijf met specifiek detail.
 
 ---
 
 ## Technische implementatie
 
-### Optie A: Twee API-calls (aanbevolen)
-
-```
-Transcript → [Extractie-prompt] → GestructureerdeData
-GestructureerdeData → [Synthese-prompt] → RapportTeksten
-```
-
-Voordeel: Extractie is verifieerbaar, synthese is reproduceerbaar.
-Nadeel: 2x API-kost, iets langere wachttijd.
-
-### Optie B: Single call met chain-of-thought
-
-```
-Transcript → [Gecombineerde prompt met stap-instructies] →
-  Stap 1: Extractie (in <analysis> tags)
-  Stap 2: Synthese (in tool-call output)
-```
-
-Voordeel: 1 API-call, lagere kost.
-Nadeel: Minder controle over extractiekwaliteit.
-
-### Aanbeveling
-
-**Optie A** voor gesprekken met transcript (>500 woorden).
-**Optie B** voor gesprekken zonder transcript (alleen notities).
-
----
-
-## Velden herstructureren
-
-De huidige 4 velden blijven, maar de beschrijvingen en voorbeelden
-in de tool-schema worden volledig herschreven:
-
-| Veld | Huidig | Nieuw |
-|------|--------|-------|
-| `situatie_tekst` | Generieke beschrijving huis + zolder | Specifiek beeld: hoe voelt de ruimte nu, wat zijn de beperkingen, wat is het potentieel — met concrete details |
-| `verwachtingen_tekst` | "Jullie dromen van..." filler | De echte emotionele drijfveer + specifieke wensen in eigen woorden + bewuste prioriteiten valideren |
-| `besproken_tekst` | Vage samenvatting | Concrete afspraken, keuzes die gemaakt zijn, opties die besproken zijn — met de redenering erachter |
-| `aandachtspunten_tekst` | 1 generiek punt | Alle echte zorgen + hoe we ze aanpakken + budgetrealiteit eerlijk benoemen |
+- Edge function: `supabase/functions/generate-rapport-summary/index.ts`
+- Fase 1: Aparte API-call met extractie-tool (12 vragen)
+- Fase 2: Aparte API-call met synthese-tool (conversieformule)
+- Fallback: Single-pass met verbeterd taalregister als er geen transcript is
+- Model: Gemini 3 Flash Preview via Lovable Gateway

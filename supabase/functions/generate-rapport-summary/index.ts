@@ -5,7 +5,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-/* ─── helpers ─── */
+/* ═══════════════════════════════════════════════════════════════════
+   HELPERS
+   ═══════════════════════════════════════════════════════════════════ */
 
 function buildDossierContext(body: Record<string, any>): string {
   const {
@@ -82,163 +84,282 @@ async function callAI(apiKey: string, messages: any[], tools?: any[], toolChoice
   return { error: false, data: await response.json() };
 }
 
-/* ─── Fase 1: Deep Extraction ─── */
+function handleApiError(status: number) {
+  if (status === 429) {
+    return new Response(JSON.stringify({ error: "Rate limit bereikt, probeer later opnieuw.", fallback: true }), {
+      status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+  if (status === 402) {
+    return new Response(JSON.stringify({ error: "Credits op.", fallback: true }), {
+      status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+  return new Response(JSON.stringify({ fallback: true }), {
+    status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
 
-const EXTRACTION_SYSTEM = `Je bent een gespreksanalist gespecialiseerd in klantpsychologie voor renovatieprojecten. Je analyseert transcripten van intakegesprekken en extraheert de diepere drijfveren, zorgen en dynamieken.
+function fallbackResponse() {
+  return new Response(JSON.stringify({ fallback: true }), {
+    status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
 
-Je zoekt ALTIJD naar deze 7 lagen:
+function parseToolCallArgs(data: any): Record<string, any> | null {
+  const toolCall = data?.choices?.[0]?.message?.tool_calls?.[0];
+  if (!toolCall?.function?.arguments) return null;
+  return typeof toolCall.function.arguments === 'string'
+    ? JSON.parse(toolCall.function.arguments)
+    : toolCall.function.arguments;
+}
 
-1. EMOTIONELE DRIJFVEER — De ECHTE reden achter het project. Niet "zolder renoveren" maar het menselijke verlangen. Bijvoorbeeld: "eindelijk een eigen slaapkamer samen", "een veilige speelruimte voor de kinderen", "niet meer met z'n vieren in een te klein huis".
+/* ═══════════════════════════════════════════════════════════════════
+   FASE 1: EXTRACTIE — 12 vragen aan het transcript
+   ═══════════════════════════════════════════════════════════════════
 
-2. SPECIFIEKE WENSEN — Concrete dingen die de klant wil, in hun EIGEN WOORDEN. Citeer waar mogelijk. Geef aan wat must-have is en wat nice-to-have.
+   De AI ondervraagt het transcript systematisch met 12 vragen.
+   Het resultaat is gestructureerde data: wensen (met prioriteit),
+   zorgen (met ernst), budget-spanning, beslisdynamiek, citaten.
+   ═══════════════════════════════════════════════════════════════════ */
 
-3. ZORGEN EN ANGSTEN — Wat houdt de klant tegen of maakt ze onzeker? Budget, technische twijfels, slechte ervaringen met aannemers, tijdsdruk? Maak onderscheid tussen uitgesproken en impliciete zorgen.
+const EXTRACTION_SYSTEM = `Je bent een gespreksanalist. Je analyseert transcripten van intakegesprekken over zolderrenovaties en extraheert klantinzichten door 12 vragen te beantwoorden.
 
-4. BUDGETSPANNING — Wat is het budget van de klant? Wat is de raming? Hoe groot is het gat? Welke oplossing is besproken (fasering, prioriteiten, concessies)?
+Beantwoord elke vraag op basis van het transcript. Citeer letterlijk waar mogelijk. Als iets niet in het transcript staat, zeg dat eerlijk.
 
-5. BESLISDYNAMIEK — Wie beslist? Zijn er andere offertes? Hoe hebben ze ons gevonden? Is er tijdsdruk? Wat zou hen over de streep trekken?
+DE 12 VRAGEN:
 
-6. TECHNISCHE KERNPUNTEN — Alleen de punten die de klant zelf ook begrijpt of die hen direct raken. Geen interne aannemer-details.
+1. Wat is de ECHTE reden dat deze mensen bellen — niet het project, maar het menselijke verlangen erachter?
+   (Niet "zolder renoveren" maar bv. "eindelijk een eigen slaapkamer samen", "een veilige speelplek voor de kinderen")
 
-7. KRACHTIGE CITATEN — Zinnen die emotie, duidelijke voorkeur of bezorgdheid tonen. Geef context bij elk citaat.
+2. Wat wil de klant ABSOLUUT hebben (must-have) en wat zou leuk zijn maar niet essentieel (nice-to-have)?
+   Geef bij elke wens hoe de klant het zelf formuleerde.
+
+3. Waar maakt de klant zich zorgen over — zowel uitgesproken als impliciet?
+   Hoe ernstig is elke zorg? (blokkerend = kan het project stoppen, belangrijk = moet geadresseerd, achtergrond = goed om te weten)
+
+4. Hoe zit het budget? Wat wil de klant uitgeven, wat is de raming, waar zit de spanning? Welke oplossing is besproken?
+
+5. Wie beslist? Zijn er andere offertes? Hoe hebben ze ons gevonden? Is er tijdsdruk?
+
+6. Welke technische punten raken de klant DIRECT? (Alleen wat zij begrijpen of voelen, geen interne aannemersdetails)
+
+7. Welke uitspraken van de klant tonen emotie, overtuiging of bezorgdheid? Citeer letterlijk.
+
+8. Wat zegt de klant NIET maar bedoelt waarschijnlijk wel? Wat is opvallend afwezig?
+
+9. Welke keuze of prioriteit heeft de klant ZELF al gemaakt die we moeten bevestigen?
+
+10. Wat is de concrete volgende stap die is afgesproken?
+
+11. Waarin onderscheiden wij ons al ten opzichte van de concurrentie — op basis van wat in het gesprek naar voren kwam?
+
+12. Wat zou deze klant doen twijfelen om NIET met ons in zee te gaan?
 
 BELANGRIJK:
-- Extraheer, fantaseer niet. Als iets niet in het transcript staat, zeg dat.
+- Extraheer, fantaseer niet.
 - Citeer letterlijk waar mogelijk.
-- Noteer ook wat NIET gezegd werd maar opvallend afwezig is.`;
+- Als een vraag niet beantwoord kan worden uit het transcript, schrijf "Niet af te leiden uit transcript."`;
 
 const extractionTool = {
   type: "function" as const,
   function: {
     name: "transcript_extractie",
-    description: "Gestructureerde extractie van klantinzichten uit het gesprekstranscript",
+    description: "Beantwoording van de 12 extractie-vragen uit het gesprekstranscript",
     parameters: {
       type: "object",
       properties: {
-        emotionele_drijfveer: {
+        vraag_1_drijfveer: {
           type: "string",
-          description: "De echte menselijke reden achter dit project. 1-2 zinnen. Niet 'zolder renoveren' maar het verlangen erachter.",
+          description: "Het echte menselijke verlangen achter dit project. 1-2 zinnen.",
         },
-        wensen: {
+        vraag_2_wensen: {
           type: "array",
           items: {
             type: "object",
             properties: {
-              wens: { type: "string" },
+              wens: { type: "string", description: "Wat wil de klant?" },
               prioriteit: { type: "string", enum: ["must-have", "nice-to-have"] },
-              eigen_woorden: { type: "string", description: "Hoe de klant het zelf formuleerde (citaat of parafrase)" },
+              eigen_woorden: { type: "string", description: "Hoe de klant het zelf formuleerde — citaat of parafrase" },
             },
             required: ["wens", "prioriteit", "eigen_woorden"],
           },
-          description: "Concrete wensen met prioriteit en eigen woorden van de klant",
         },
-        zorgen: {
+        vraag_3_zorgen: {
           type: "array",
           items: {
             type: "object",
             properties: {
-              zorg: { type: "string" },
+              zorg: { type: "string", description: "Waar maakt de klant zich zorgen over?" },
               ernst: { type: "string", enum: ["blokkerend", "belangrijk", "achtergrond"] },
-              context: { type: "string", description: "Waarom is dit een zorg? Wat zei de klant?" },
+              eigen_woorden: { type: "string", description: "Wat zei de klant hierover?" },
             },
-            required: ["zorg", "ernst", "context"],
+            required: ["zorg", "ernst", "eigen_woorden"],
           },
-          description: "Zorgen, angsten en onzekerheden — expliciet EN impliciet",
         },
-        budget_situatie: {
+        vraag_4_budget: {
           type: "string",
-          description: "Samenvatting: budget klant, raming, spanning, besproken oplossing. 2-3 zinnen.",
+          description: "Budget klant, raming, spanning, besproken oplossing. 2-3 zinnen.",
         },
-        beslisdynamiek: {
+        vraag_5_beslisdynamiek: {
           type: "string",
-          description: "Wie beslist, concurrentie (andere offertes), hoe gevonden, tijdsdruk. 2-3 zinnen.",
+          description: "Wie beslist, concurrentie, hoe gevonden, tijdsdruk. 2-3 zinnen.",
         },
-        technische_kernpunten: {
+        vraag_6_technisch: {
           type: "array",
           items: { type: "string" },
-          description: "Alleen technische punten die de klant direct raken of begrijpt. Geen interne aannemer-details.",
+          description: "Technische punten die de klant direct raken of begrijpt. Kort per punt.",
         },
-        krachtige_citaten: {
+        vraag_7_citaten: {
           type: "array",
           items: {
             type: "object",
             properties: {
-              citaat: { type: "string" },
-              emotie: { type: "string", description: "Welke emotie toont dit? (droom, angst, frustratie, hoop, pragmatisme)" },
+              citaat: { type: "string", description: "Letterlijke of bijna-letterlijke uitspraak" },
+              emotie: { type: "string", description: "Welke emotie: verlangen, angst, frustratie, hoop, pragmatisme, wantrouwen, opluchting" },
             },
             required: ["citaat", "emotie"],
           },
-          description: "Letterlijke of bijna-letterlijke uitspraken die emotie of duidelijke voorkeur tonen",
         },
-        onuitgesproken: {
+        vraag_8_onuitgesproken: {
           type: "string",
-          description: "Wat impliceert de klant maar zegt niet hardop? Wat is opvallend afwezig? 1-2 zinnen.",
+          description: "Wat bedoelt de klant maar zegt niet hardop? Wat is afwezig? 1-2 zinnen.",
+        },
+        vraag_9_eigen_keuze: {
+          type: "string",
+          description: "Welke prioriteit of keuze heeft de klant ZELF al gemaakt? 1-2 zinnen.",
+        },
+        vraag_10_volgende_stap: {
+          type: "string",
+          description: "Concrete volgende stap die is afgesproken. 1 zin.",
+        },
+        vraag_11_onderscheidend: {
+          type: "string",
+          description: "Waarin onderscheiden wij ons al t.o.v. concurrentie op basis van het gesprek? 1-2 zinnen.",
+        },
+        vraag_12_twijfel: {
+          type: "string",
+          description: "Wat zou de klant doen twijfelen om NIET met ons te werken? 1-2 zinnen.",
         },
       },
       required: [
-        "emotionele_drijfveer", "wensen", "zorgen", "budget_situatie",
-        "beslisdynamiek", "technische_kernpunten", "krachtige_citaten", "onuitgesproken",
+        "vraag_1_drijfveer", "vraag_2_wensen", "vraag_3_zorgen",
+        "vraag_4_budget", "vraag_5_beslisdynamiek", "vraag_6_technisch",
+        "vraag_7_citaten", "vraag_8_onuitgesproken", "vraag_9_eigen_keuze",
+        "vraag_10_volgende_stap", "vraag_11_onderscheidend", "vraag_12_twijfel",
       ],
       additionalProperties: false,
     },
   },
 };
 
-/* ─── Fase 2: Psychologische Synthese ─── */
+/* ═══════════════════════════════════════════════════════════════════
+   FASE 2: CONVERSIE + VLECHTEN
+   ═══════════════════════════════════════════════════════════════════
 
-const SYNTHESIS_SYSTEM = `Je bent de persoonlijke rapportschrijver van Bram Keirsschieter (Zolderpunt). Je schrijft rapport-teksten die de klant het gevoel geven: "hij heeft ECHT geluisterd."
+   De AI krijgt de extractie en past de 4-stap conversieformule toe:
 
-Je krijgt een gestructureerde analyse van het gesprek. Gebruik deze om warme, persoonlijke en SPECIFIEKE rapportteksten te schrijven.
+   Elke WENS doorloopt:
+     SPIEGEL  → herhaal in hun eigen woorden ("Dit hoorden we")
+     ERKEN    → bevestig dat hun keuze logisch is ("Dit klopt")
+     TOON HOE → 1 concreet detail van de aanpak ("Zo pakken we het aan")
+     BEVESTIG → dit is haalbaar ("Jullie zitten goed")
 
-PSYCHOLOGISCHE PRINCIPES:
-1. SPIEGEL — Gebruik de eigen woorden en formuleringen van de klant. Als de klant zei "een gezamenlijke kamer", schrijf dan "een gezamenlijke kamer", niet "een rustruimte".
-2. SPECIFICITEIT — Elk concreet detail dat je noemt bewijst dat je geluisterd hebt. "128m2 boven de winkel, bereikbaar via een smalle draaitrap" is 10x sterker dan "een ruime zolderruimte".
-3. ERKEN VOOR JE OPLOST — Benoem zorgen en beperkingen eerlijk VOORDAT je de aanpak beschrijft. Dit bouwt vertrouwen.
-4. VALIDEER KEUZES — Als de klant een prioriteit heeft gekozen (bv. "slaapkamer eerst"), bevestig die keuze als verstandig.
-5. TOEKOMSTPROJECTIE — Help de klant het resultaat al voelen in 1 zin.
+   Elke ZORG doorloopt:
+     SPIEGEL  → benoem de zorg expliciet ("Dit speelt")
+     ERKEN    → zeg dat het logisch is hierover na te denken ("Terecht")
+     TOON HOE → leg uit hoe we het aanpakken ("Onze aanpak")
+     BEVESTIG → geef zekerheid ("Jullie kunnen hierop rekenen")
 
-ANTI-PATRONEN (schrijf dit NOOIT):
-- "Jullie dromen van rust/ruimte/comfort" → te generiek, template-taal
-- "Een volledige transformatie" → betekenisloos
-- "Naadloze afwerking" → niemand zegt dit
-- "Een fantastisch canvas" → marketing-filler
-- ALLES wat ook klopt zonder het transcript gelezen te hebben
+   VLECHTEN: De formule-outputs worden NIET als losse punten
+   opgelijst maar verweven tot lopende tekst:
+     situatie_tekst   = situatie-spiegels samengevat
+     verwachtingen    = wens(spiegel + erken + bevestig)
+     besproken        = wens(toon hoe) + zorg(toon hoe)
+     aandachtspunten  = zorg(spiegel + erken + toon hoe + bevestig)
+   ═══════════════════════════════════════════════════════════════════ */
 
-TOETS: Lees elke zin en vraag: "Zou deze zin ook kloppen voor een willekeurige andere klant?" Als ja → herschrijf met specifiek detail.
+const SYNTHESIS_SYSTEM = `Je bent de rapportschrijver van Bram Keirsschieter (Zolderpunt). Je schrijft teksten voor een klantrapport na een intakegesprek. Het doel: de klant leest dit en denkt "hij heeft echt geluisterd, hij snapt wat we willen."
+
+Je krijgt een gestructureerde gespreksanalyse met 12 beantwoorde vragen. Gebruik deze om de rapportteksten te schrijven.
+
+═══ CONVERSIEFORMULE ═══
+
+Pas op ELKE wens en ELKE zorg deze 4 stappen toe:
+
+STAP 1 — SPIEGEL: Herhaal wat de klant zei, in hun eigen woorden.
+  Effect: "Hij heeft geluisterd."
+
+STAP 2 — ERKEN: Bevestig dat hun keuze of zorg logisch is.
+  Effect: "Mijn gevoel klopt."
+
+STAP 3 — TOON HOE: Geef 1 concreet detail van hoe we het aanpakken.
+  Effect: "Er is al een plan."
+
+STAP 4 — BEVESTIG: Zeg kort dat het haalbaar is of dat we het oplossen.
+  Effect: "Ik hoef me geen zorgen te maken."
+
+═══ VLECHTEN ═══
+
+Schrijf GEEN losse opsommingen. Verweef de formule-outputs tot lopende tekst:
+- situatie_tekst: combineer de situatie-spiegels tot een schets van de huidige ruimte
+- verwachtingen_tekst: combineer wens-spiegels + erkenningen + bevestigingen
+- besproken_tekst: combineer alle toon-hoe stappen (wensen + zorgen)
+- aandachtspunten_tekst: combineer zorg-spiegels + erkenningen + toon-hoe + bevestigingen
+
+═══ TAALREGISTER ═══
+
+Schrijf zoals een vakman die het snapt — warm, direct, begripvol. Niet koud en technisch, niet wollig en verkoopachtig. Zoals Bram na een gesprek tegen een vriend zou vertellen wat hij gehoord heeft.
+
+GOEDE toon:
+- "Jullie willen een eigen slaapkamer. Samen. Dat is waar dit project om draait."
+- "128m2 die er al is — het moet alleen nog gebeuren."
+- "Jullie weten precies wat jullie willen. En het is haalbaar."
+- "Strak afgewerkt, zoals de rest van jullie huis."
+- "Dat is een bewuste keuze en een slimme."
+
+VERBODEN woorden en patronen:
+- dromen, droom (gebruik "willen", "voor ogen hebben", "het plan is")
+- oase, canvas, transformatie, uniek, naadloos, uitstralen
+- "jullie dromen van rust/ruimte/comfort" → template-filler
+- "een volledige transformatie" → betekenisloos
+- alles wat ook klopt zonder het transcript gelezen te hebben
+
+TOETS elke zin: "Zou dit ook kloppen voor een willekeurige andere klant?" Als ja → herschrijf met een specifiek detail uit de extractie.
 
 SCHRIJFSTIJL:
 - Tweede persoon ("jullie", "je") — Bram spreekt tegen de klant
-- Warm maar concreet, nooit wollig
 - Korte zinnen. Geen opsommingen of bullet points.
-- Professioneel maar menselijk — geen verkooptaal`;
+- Geen verkooptaal, geen overdreven beloftes
+- Benoem de voornaam van de klant maximaal 1x (in verwachtingen_tekst)`;
 
 const synthesisTool = {
   type: "function" as const,
   function: {
     name: "rapport_samenvatting",
-    description: "Verhalende samenvatting voor het klantrapport, gebaseerd op diepe gespreksanalyse",
+    description: "Rapportteksten geschreven via de conversieformule (spiegel-erken-toon hoe-bevestig) en verweven tot lopende tekst",
     parameters: {
       type: "object",
       properties: {
         situatie_tekst: {
           type: "string",
-          description: "2-3 zinnen. Schets de huidige situatie SPECIFIEK: hoe voelt de ruimte nu, wat zijn de beperkingen, wat maakt dit project bijzonder? Gebruik concrete details (afmetingen, toegang, staat van de ruimte). Dit moet voelen als: 'hij is er al geweest, hij snapt het.'",
+          description: `2-3 zinnen. Schets hoe de ruimte er NU bij ligt — concreet en specifiek. Gebruik details uit de extractie: afmetingen, staat van vloer/dak/isolatie, hoe je erbij komt, wat de beperkingen zijn. Eindig met het potentieel — maar zonder wollige woorden. Voorbeeld goede toon: "Boven jullie appartement in de Langestraat ligt 128m2 die er al is maar nog niets doet. De vloer is ongelijk, de isolatie verouderd, en alles moet omhoog via een smalle draaitrap. Maar de ruimte is er."`,
         },
         verwachtingen_tekst: {
           type: "string",
-          description: "2-3 zinnen. De emotionele drijfveer + concrete wensen in eigen woorden van de klant. Begin met de ECHTE droom (niet 'renoveren' maar het menselijke verlangen). Valideer hun prioriteiten als ze keuzes hebben gemaakt. Dit moet voelen als: 'hij begrijpt waarom we dit willen.'",
+          description: `2-3 zinnen. Begin met de emotionele drijfveer (vraag 1) in eigen woorden van de klant (vraag 7 citaten). Benoem de must-have wensen (vraag 2). Valideer hun eigen keuze/prioriteit (vraag 9) als verstandig. Voorbeeld goede toon: "[Naam], jullie willen een eigen slaapkamer. Samen. Met een vloer die makkelijk te onderhouden is en een raam dat het Brugse uitzicht behoudt. De rest mag functioneel blijven — en dat is een slimme keuze."`,
         },
         besproken_tekst: {
           type: "string",
-          description: "3-4 zinnen. Wat is er concreet afgesproken en waarom? Welke keuzes zijn gemaakt? Welke aanpak is besproken? Benoem de logica achter beslissingen (bv. 'omdat het budget krap is, kozen we samen voor...'). Dit moet voelen als: 'er is een plan, niet alleen een gesprek.'",
+          description: `3-4 zinnen. Hier komen alle TOON HOE stappen samen: welke aanpak is besproken voor de wensen EN de zorgen? Benoem concrete keuzes en de redenering erachter. Als er gefaseerd wordt, leg uit waarom. Voorbeeld goede toon: "We kwamen samen tot een heldere aanpak. De slaapkamer wordt volledig afgewerkt — geisoleerd dak, strakke wanden, vinyl vloer. De rest krijgt een basisafwerking in OSB met isolatie en elektriciteit. Zo houden we de investering binnen bereik zonder in te leveren op wat ertoe doet."`,
         },
         aandachtspunten_tekst: {
           type: "string",
-          description: "2-4 zinnen. ALLE echte zorgen en technische uitdagingen — niet 1 generiek punt maar de werkelijke aandachtspunten. Benoem ook hoe we ermee omgaan. Als er budgetspanning is, benoem die eerlijk. Dit moet voelen als: 'hij verzwijgt niets, hij is transparant.'",
+          description: `3-5 zinnen. Hier komen alle ZORG-formules samen. Benoem ELKE echte zorg (vraag 3, ernst blokkerend + belangrijk) met hoe we het aanpakken. Als er budgetspanning is (vraag 4), benoem die eerlijk. Eindig met zekerheid. NIET 1 generiek punt maar alle werkelijke aandachtspunten. Voorbeeld goede toon: "Het materiaal moet omhoog via een smalle draaitrap — we bekijken bij het plaatsbezoek of een verhuislift via het raam een optie is. De velux-ramen zijn op leeftijd maar niet urgent: de afwerking eromheen laat latere vervanging toe. Jullie waren eerlijk over het budget: maximaal vijftigduizend euro. Met de slaapkamer-eerst aanpak houden we dat haalbaar."`,
         },
         waarde_tekst: {
           type: "string",
-          description: "1 korte zin (max 15 woorden) die de concrete meerwaarde voor de bewoner beschrijft. Gebruik de emotionele drijfveer, niet een generieke belofte. Bijvoorbeeld: 'Een eigen slaapverdieping waar jullie elke ochtend samen wakker worden.'",
+          description: `1 zin, max 15 woorden. De concrete meerwaarde voor deze specifieke klant. Gebruik de drijfveer uit vraag 1, niet een generieke belofte. Voorbeeld: "Een eigen slaapkamer waar jullie elke ochtend samen wakker worden."`,
         },
       },
       required: ["situatie_tekst", "verwachtingen_tekst", "besproken_tekst", "aandachtspunten_tekst", "waarde_tekst"],
@@ -247,7 +368,27 @@ const synthesisTool = {
   },
 };
 
-/* ─── Main handler ─── */
+/* ═══════════════════════════════════════════════════════════════════
+   SINGLE-PASS FALLBACK (geen transcript beschikbaar)
+   ═══════════════════════════════════════════════════════════════════ */
+
+const SINGLE_PASS_SYSTEM = `Je bent de rapportschrijver van Bram Keirsschieter (Zolderpunt). Je schrijft teksten voor een klantrapport na een intakegesprek.
+
+Er is GEEN uitgebreid transcript beschikbaar. Baseer je op gespreksnotities en formulierdata. Wees zo specifiek mogelijk met de details die er WEL zijn. Schrijf liever kort en concreet dan lang en vaag.
+
+TAALREGISTER:
+- Schrijf zoals een vakman die het snapt — warm, direct, begripvol
+- Tweede persoon ("jullie", "je")
+- Korte zinnen, geen opsommingen
+- VERBODEN: dromen, oase, canvas, transformatie, uniek, naadloos, uitstralen
+- Geen verkooptaal, geen template-zinnen
+- TOETS: "Zou dit ook kloppen voor een andere klant?" Als ja → herschrijf of laat weg.
+
+FORMULE: spiegel wat je weet (eigen woorden klant), erken hun keuzes, toon hoe je het aanpakt, bevestig dat het haalbaar is.`;
+
+/* ═══════════════════════════════════════════════════════════════════
+   MAIN HANDLER
+   ═══════════════════════════════════════════════════════════════════ */
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -261,123 +402,128 @@ serve(async (req) => {
     const hasTranscript = !!(body.transcript && body.transcript.length > 200);
 
     if (hasTranscript) {
-      // ── TWO-PHASE: Extract → Synthesize ──
+      /* ── TWEE-FASE: Extractie → Conversie + Vlechten ── */
 
-      // Phase 1: Deep Extraction
+      // ▸ Fase 1: Extractie (12 vragen)
       const extractResult = await callAI(
         LOVABLE_API_KEY,
         [
           { role: "system", content: EXTRACTION_SYSTEM },
-          { role: "user", content: `Analyseer dit intakegesprek en extraheer alle klantinzichten.\n\n${dossierContext}` },
+          {
+            role: "user",
+            content: `Analyseer dit intakegesprek. Beantwoord alle 12 vragen op basis van het transcript en de beschikbare data.\n\n${dossierContext}`,
+          },
         ],
         [extractionTool],
         { type: "function", function: { name: "transcript_extractie" } },
       );
 
-      if (extractResult.error) {
-        if (extractResult.status === 429 || extractResult.status === 402) {
-          return new Response(JSON.stringify({
-            error: extractResult.status === 429 ? "Rate limit bereikt, probeer later opnieuw." : "Credits op.",
-            fallback: true,
-          }), {
-            status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-        return new Response(JSON.stringify({ fallback: true }), {
-          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+      if (extractResult.error) return handleApiError(extractResult.status!);
 
-      // Parse extraction result
-      const extractToolCall = extractResult.data?.choices?.[0]?.message?.tool_calls?.[0];
-      let extractie: Record<string, any> = {};
-      if (extractToolCall?.function?.arguments) {
-        extractie = typeof extractToolCall.function.arguments === 'string'
-          ? JSON.parse(extractToolCall.function.arguments)
-          : extractToolCall.function.arguments;
-      }
+      const extractie = parseToolCallArgs(extractResult.data);
+      if (!extractie) {
+        console.error("Fase 1 extractie mislukt — geen tool call. Fallback naar single-pass.");
+        // Fall through to single-pass below
+      } else {
+        // ▸ Fase 2: Conversie + Vlechten
+        const synthesisInput = `
+GESPREKSANALYSE — 12 VRAGEN BEANTWOORD:
 
-      // Phase 2: Psychologische Synthese
-      const synthesisContext = `
-GESPREKSANALYSE (uit fase 1):
-${JSON.stringify(extractie, null, 2)}
+1. DRIJFVEER: ${extractie.vraag_1_drijfveer}
+
+2. WENSEN:
+${(extractie.vraag_2_wensen || []).map((w: any, i: number) =>
+  `   ${i+1}. [${w.prioriteit}] ${w.wens} — eigen woorden: "${w.eigen_woorden}"`
+).join('\n')}
+
+3. ZORGEN:
+${(extractie.vraag_3_zorgen || []).map((z: any, i: number) =>
+  `   ${i+1}. [${z.ernst}] ${z.zorg} — eigen woorden: "${z.eigen_woorden}"`
+).join('\n')}
+
+4. BUDGET: ${extractie.vraag_4_budget}
+
+5. BESLISDYNAMIEK: ${extractie.vraag_5_beslisdynamiek}
+
+6. TECHNISCH: ${(extractie.vraag_6_technisch || []).join('; ')}
+
+7. CITATEN:
+${(extractie.vraag_7_citaten || []).map((c: any) =>
+  `   "${c.citaat}" (${c.emotie})`
+).join('\n')}
+
+8. ONUITGESPROKEN: ${extractie.vraag_8_onuitgesproken}
+
+9. EIGEN KEUZE KLANT: ${extractie.vraag_9_eigen_keuze}
+
+10. VOLGENDE STAP: ${extractie.vraag_10_volgende_stap}
+
+11. ONS ONDERSCHEIDEND VERMOGEN: ${extractie.vraag_11_onderscheidend}
+
+12. MOGELIJKE TWIJFEL: ${extractie.vraag_12_twijfel}
 
 BASISGEGEVENS:
 - Klant: ${body.voornaam || ''} ${body.achternaam || ''}
 - Adres: ${body.adres || '(niet opgegeven)'}
 - Oppervlakte: ${body.oppervlakte_m2 || '?'} m²
 - Datum gesprek: ${body.gesprek_datum || '(niet opgegeven)'}
+
+INSTRUCTIE:
+Pas de conversieformule toe op elke wens en zorg:
+  SPIEGEL → ERKEN → TOON HOE → BEVESTIG
+Verweef de resultaten tot lopende tekst per rapportveld.
+Gebruik de citaten (vraag 7) en eigen woorden (vraag 2, 3) letterlijk waar het past.
 `.trim();
 
-      const synthResult = await callAI(
-        LOVABLE_API_KEY,
-        [
-          { role: "system", content: SYNTHESIS_SYSTEM },
-          { role: "user", content: `Op basis van deze gespreksanalyse, schrijf de rapportteksten.\n\n${synthesisContext}` },
-        ],
-        [synthesisTool],
-        { type: "function", function: { name: "rapport_samenvatting" } },
-      );
+        const synthResult = await callAI(
+          LOVABLE_API_KEY,
+          [
+            { role: "system", content: SYNTHESIS_SYSTEM },
+            { role: "user", content: synthesisInput },
+          ],
+          [synthesisTool],
+          { type: "function", function: { name: "rapport_samenvatting" } },
+        );
 
-      if (!synthResult.error) {
-        const synthToolCall = synthResult.data?.choices?.[0]?.message?.tool_calls?.[0];
-        if (synthToolCall?.function?.arguments) {
-          const args = typeof synthToolCall.function.arguments === 'string'
-            ? JSON.parse(synthToolCall.function.arguments)
-            : synthToolCall.function.arguments;
-          return new Response(JSON.stringify({ ...args, fallback: false }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
+        if (!synthResult.error) {
+          const args = parseToolCallArgs(synthResult.data);
+          if (args) {
+            return new Response(JSON.stringify({ ...args, fallback: false }), {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
         }
+        console.error("Fase 2 synthese mislukt, fallback naar single-pass.");
       }
-
-      // Synthesis failed — fall through to single-pass
-      console.error("Phase 2 failed, falling back to single-pass");
     }
 
-    // ── SINGLE-PASS: for short/no transcripts or as fallback ──
+    /* ── SINGLE-PASS: geen transcript of fallback ── */
     const result = await callAI(
       LOVABLE_API_KEY,
       [
-        { role: "system", content: SYNTHESIS_SYSTEM },
-        { role: "user", content: `Hier is het volledige dossier van een klant. Er is geen uitgebreid transcript beschikbaar, dus baseer je op de notities en formulierdata. Wees zo specifiek mogelijk met de details die er WEL zijn.\n\n${dossierContext}` },
+        { role: "system", content: SINGLE_PASS_SYSTEM },
+        {
+          role: "user",
+          content: `Schrijf de rapportteksten voor deze klant. Er is geen uitgebreid transcript, dus baseer je op notities en formulierdata. Wees specifiek met wat je hebt.\n\n${dossierContext}`,
+        },
       ],
       [synthesisTool],
       { type: "function", function: { name: "rapport_samenvatting" } },
     );
 
-    if (result.error) {
-      if (result.status === 429 || result.status === 402) {
-        return new Response(JSON.stringify({
-          error: result.status === 429 ? "Rate limit bereikt, probeer later opnieuw." : "Credits op.",
-          fallback: true,
-        }), {
-          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      return new Response(JSON.stringify({ fallback: true }), {
-        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (result.error) return handleApiError(result.status!);
 
-    const toolCall = result.data?.choices?.[0]?.message?.tool_calls?.[0];
-    if (toolCall?.function?.arguments) {
-      const args = typeof toolCall.function.arguments === 'string'
-        ? JSON.parse(toolCall.function.arguments)
-        : toolCall.function.arguments;
+    const args = parseToolCallArgs(result.data);
+    if (args) {
       return new Response(JSON.stringify({ ...args, fallback: false }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     console.error("No tool call in response:", JSON.stringify(result.data));
-    return new Response(JSON.stringify({ fallback: true }), {
-      status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return fallbackResponse();
   } catch (e) {
     console.error("generate-rapport-summary error:", e);
-    return new Response(JSON.stringify({ fallback: true }), {
-      status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return fallbackResponse();
   }
 });
