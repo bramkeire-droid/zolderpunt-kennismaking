@@ -52,6 +52,18 @@ function leadToRow(lead: LeadData) {
   };
 }
 
+/** Check if technisch has any toggled-on values (not just defaults) */
+function hasTechnischData(tech: LeadData['technisch']): boolean {
+  if (!tech) return false;
+  // Any boolean flipped to true means user actively toggled something
+  return !!(
+    tech.trap || tech.dakraam || tech.airco || tech.badkamer ||
+    tech.maatwerk_kasten || tech.betonnen_trapgat || tech.houten_trapgat ||
+    tech.dak_isoleren || tech.dakkapel || tech.akoestiek ||
+    tech.vloer_uitpassen || tech.chape
+  );
+}
+
 /** Check if lead has ANY meaningful data worth saving */
 function hasAnyData(lead: LeadData): boolean {
   return !!(
@@ -59,9 +71,10 @@ function hasAnyData(lead: LeadData): boolean {
     lead.adres || lead.oppervlakte_m2 || lead.gezocht_naar ||
     lead.gesprek_notities || lead.rapport_situatie_ai ||
     lead.budget_min || lead.budget_excl ||
+    lead.notities_vooraf || lead.transcript ||
     (lead.project_feiten && (lead.project_feiten as any[]).length > 0) ||
     (lead.fotos && (lead.fotos as any[]).length > 0) ||
-    lead.technisch
+    hasTechnischData(lead.technisch)
   );
 }
 
