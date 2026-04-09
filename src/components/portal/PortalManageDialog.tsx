@@ -64,7 +64,7 @@ export default function PortalManageDialog({ open, onClose, lead, onUpdate, onPr
     }
     const { error } = await supabase
       .from('leads')
-      .update(updates)
+      .update(updates as any)
       .eq('id', lead.id);
 
     if (error) {
