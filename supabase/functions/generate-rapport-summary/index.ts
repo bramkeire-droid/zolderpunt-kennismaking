@@ -116,11 +116,6 @@ function parseToolCallArgs(data: any): Record<string, any> | null {
 
 /* ═══════════════════════════════════════════════════════════════════
    FASE 1: EXTRACTIE — 12 vragen aan het transcript
-   ═══════════════════════════════════════════════════════════════════
-
-   De AI ondervraagt het transcript systematisch met 12 vragen.
-   Het resultaat is gestructureerde data: wensen (met prioriteit),
-   zorgen (met ernst), budget-spanning, beslisdynamiek, citaten.
    ═══════════════════════════════════════════════════════════════════ */
 
 const EXTRACTION_SYSTEM = `Je bent een gespreksanalist. Je analyseert transcripten van intakegesprekken over zolderrenovaties en extraheert klantinzichten door 12 vragen te beantwoorden.
@@ -255,28 +250,6 @@ const extractionTool = {
 
 /* ═══════════════════════════════════════════════════════════════════
    FASE 2: CONVERSIE + VLECHTEN
-   ═══════════════════════════════════════════════════════════════════
-
-   De AI krijgt de extractie en past de 4-stap conversieformule toe:
-
-   Elke WENS doorloopt:
-     SPIEGEL  → herhaal in hun eigen woorden ("Dit hoorden we")
-     ERKEN    → bevestig dat hun keuze logisch is ("Dit klopt")
-     TOON HOE → 1 concreet detail van de aanpak ("Zo pakken we het aan")
-     BEVESTIG → dit is haalbaar ("Jullie zitten goed")
-
-   Elke ZORG doorloopt:
-     SPIEGEL  → benoem de zorg expliciet ("Dit speelt")
-     ERKEN    → zeg dat het logisch is hierover na te denken ("Terecht")
-     TOON HOE → leg uit hoe we het aanpakken ("Onze aanpak")
-     BEVESTIG → geef zekerheid ("Jullie kunnen hierop rekenen")
-
-   VLECHTEN: De formule-outputs worden NIET als losse punten
-   opgelijst maar verweven tot lopende tekst:
-     situatie_tekst   = situatie-spiegels samengevat
-     verwachtingen    = wens(spiegel + erken + bevestig)
-     besproken        = wens(toon hoe) + zorg(toon hoe)
-     aandachtspunten  = zorg(spiegel + erken + toon hoe + bevestig)
    ═══════════════════════════════════════════════════════════════════ */
 
 const SYNTHESIS_SYSTEM = `Je bent de rapportschrijver van Bram Keirsschieter (Zolderpunt). Je schrijft teksten voor een klantrapport na een intakegesprek. Het doel: de klant leest dit en denkt "hij heeft echt geluisterd, hij snapt wat we willen."
