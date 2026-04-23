@@ -9,6 +9,7 @@ import ReportDocument from '@/components/report/ReportDocument';
 import type { ReportData, FeitjeItem } from '@/components/report/reportTypes';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { fetchAndDownscaleToDataUrl } from '@/lib/imageCompression';
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('nl-BE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
@@ -121,6 +122,20 @@ export default function Slide10() {
       }
 
       const reportData = mapLeadToReportData(lead);
+
+      // Pre-fetch + downscale all photos to base64 data-URLs.
+      // Reden: @react-pdf/renderer faalt silent op grote remote JPEGs (4+ MB
+      // iPhone-foto's). Door ze vooraf te downscalen naar ~1600 px JPEG q=0.82
+      // krijgt react-pdf compacte base64 input die altijd inlined wordt.
+      toast.info("Foto's worden geoptimaliseerd voor PDF...");
+      const downscaledPairs = await Promise.all(
+        reportData.fotos_met_path.map(async f => {
+          const dataUrl = await fetchAndDownscaleToDataUrl(f.url);
+          return { url: dataUrl ?? f.url, storage_path: f.storage_path };
+        })
+      );
+      reportData.fotos_met_path = downscaledPairs;
+      reportData.fotos = downscaledPairs.map(p => p.url);
 
       console.log('[PDF] Starting PDF generation with data:', JSON.stringify({
         voornaam: reportData.voornaam,
