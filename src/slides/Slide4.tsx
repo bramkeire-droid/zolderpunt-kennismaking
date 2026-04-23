@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Upload, Loader2, X, Image, ImageOff, MapPin } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import ImageLightbox from '@/components/ImageLightbox';
+import { compressImageFile } from '@/lib/imageCompression';
 
 interface PhotoItem {
   bestandsnaam: string;
@@ -65,10 +66,11 @@ export default function Slide4() {
     if (!files || files.length === 0) return;
     setUploading(true);
     const newPhotos: PhotoItem[] = [];
-    for (const file of Array.from(files)) {
+    for (const rawFile of Array.from(files)) {
+      const file = await compressImageFile(rawFile);
       const leadId = lead.id || 'unsaved';
       const path = `${leadId}/${Date.now()}-${file.name}`;
-      const { error } = await supabase.storage.from('lead-fotos').upload(path, file, { upsert: false });
+      const { error } = await supabase.storage.from('lead-fotos').upload(path, file, { upsert: false, contentType: file.type });
       if (error) { console.error('Upload error:', error); continue; }
       const { data: urlData } = supabase.storage.from('lead-fotos').getPublicUrl(path);
       newPhotos.push({ bestandsnaam: file.name, storage_path: path, url: urlData.publicUrl });

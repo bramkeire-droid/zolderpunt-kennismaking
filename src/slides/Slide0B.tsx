@@ -9,6 +9,7 @@ import AddressAutocomplete from '@/components/AddressAutocomplete';
 import { useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import ImageLightbox from '@/components/ImageLightbox';
+import { compressImageFile } from '@/lib/imageCompression';
 
 interface PhotoItem {
   bestandsnaam: string;
@@ -35,13 +36,14 @@ export default function Slide0B() {
     setUploading(true);
     const newPhotos: PhotoItem[] = [];
 
-    for (const file of Array.from(files)) {
+    for (const rawFile of Array.from(files)) {
+      const file = await compressImageFile(rawFile);
       const leadId = lead.id || 'unsaved';
       const path = `${leadId}/${Date.now()}-${file.name}`;
 
       const { error } = await supabase.storage
         .from('lead-fotos')
-        .upload(path, file, { upsert: false });
+        .upload(path, file, { upsert: false, contentType: file.type });
 
       if (error) {
         console.error('Upload error:', error);
