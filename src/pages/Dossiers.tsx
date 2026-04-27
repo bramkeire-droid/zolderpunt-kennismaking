@@ -70,6 +70,12 @@ function rowToLead(row: any): LeadData {
     status: row.status ?? 'intake',
     fotos: Array.isArray(row.fotos) ? row.fotos : [],
     technisch: row.technisch ? { ...defaultTechnisch, ...(row.technisch as any) } : { ...defaultTechnisch },
+    gespreksvragen: (row as any).gespreksvragen && typeof (row as any).gespreksvragen === 'object'
+      ? {
+          selected: Array.isArray((row as any).gespreksvragen.selected) ? (row as any).gespreksvragen.selected : [],
+          beantwoord: Array.isArray((row as any).gespreksvragen.beantwoord) ? (row as any).gespreksvragen.beantwoord : [],
+        }
+      : { selected: [], beantwoord: [] },
   };
 }
 
