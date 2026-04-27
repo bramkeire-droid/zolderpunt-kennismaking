@@ -32,6 +32,7 @@ export type Database = {
           fotos: Json
           gesprek_datum: string | null
           gesprek_notities: string
+          gespreksvragen: Json
           gevonden_via: string
           gezocht_naar: string
           id: string
@@ -81,6 +82,7 @@ export type Database = {
           fotos?: Json
           gesprek_datum?: string | null
           gesprek_notities?: string
+          gespreksvragen?: Json
           gevonden_via?: string
           gezocht_naar?: string
           id?: string
@@ -130,6 +132,7 @@ export type Database = {
           fotos?: Json
           gesprek_datum?: string | null
           gesprek_notities?: string
+          gespreksvragen?: Json
           gevonden_via?: string
           gezocht_naar?: string
           id?: string
