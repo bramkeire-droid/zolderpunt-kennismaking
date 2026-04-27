@@ -49,6 +49,7 @@ function leadToRow(lead: LeadData) {
     project_feiten: lead.project_feiten as any,
     fotos: lead.fotos as any,
     technisch: lead.technisch as any,
+    gespreksvragen: lead.gespreksvragen as any,
   };
 }
 
