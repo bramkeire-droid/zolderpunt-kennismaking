@@ -34,6 +34,19 @@
     --input: 34 20% 85%;
     --ring: 209 100% 50%;
 
+    /* Cluster colors — gebruikt op de vragen-slides (2D, 2E, 5C) */
+    --cluster-blue: 209 100% 50%;
+    --cluster-blue-soft: 209 100% 96%;
+    --cluster-blue-foreground: 0 0% 100%;
+
+    --cluster-amber: 28 95% 55%;
+    --cluster-amber-soft: 35 100% 95%;
+    --cluster-amber-foreground: 0 0% 100%;
+
+    --cluster-teal: 165 65% 38%;
+    --cluster-teal-soft: 165 60% 94%;
+    --cluster-teal-foreground: 0 0% 100%;
+
     --radius: 0.75rem;
 
     --sidebar-background: 0 0% 98%;
@@ -74,6 +87,18 @@
     --border: 240 20% 20%;
     --input: 240 20% 20%;
     --ring: 209 100% 50%;
+
+    --cluster-blue: 209 100% 55%;
+    --cluster-blue-soft: 209 60% 18%;
+    --cluster-blue-foreground: 0 0% 100%;
+
+    --cluster-amber: 28 95% 60%;
+    --cluster-amber-soft: 28 50% 18%;
+    --cluster-amber-foreground: 0 0% 100%;
+
+    --cluster-teal: 165 65% 45%;
+    --cluster-teal-soft: 165 50% 16%;
+    --cluster-teal-foreground: 0 0% 100%;
 
     --sidebar-background: 240 33% 10%;
     --sidebar-foreground: 34 47% 95%;
