@@ -12,6 +12,7 @@ import Slide0B from '@/slides/Slide0B';
 import Slide1 from '@/slides/Slide1';
 import Slide2A from '@/slides/Slide2A';
 import Slide2B from '@/slides/Slide2B';
+import Slide2BX from '@/slides/Slide2BX';
 import Slide2C from '@/slides/Slide2C';
 import Slide2D from '@/slides/Slide2D';
 import Slide2E from '@/slides/Slide2E';
@@ -38,7 +39,7 @@ import type { LeadData } from '@/contexts/SessionContext';
 
 const SLIDE_COMPONENTS: Record<SlideId, React.ComponentType> = {
   '0A': Slide0A, '0A2': Slide0A2, '0B': Slide0B,
-  '1': Slide1, '2A': Slide2A, '2B': Slide2B, '2C': Slide2C,
+  '1': Slide1, '2A': Slide2A, '2B': Slide2B, '2BX': Slide2BX, '2C': Slide2C,
   '2D': Slide2D, '2E': Slide2E, '3': Slide3,
   '4': Slide4, '5': Slide5, '5B': Slide5B, '5C': Slide5C, '6': Slide6, '7': Slide7,
   '8': Slide8, '9': Slide9, '10': Slide10,

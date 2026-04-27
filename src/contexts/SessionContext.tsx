@@ -166,18 +166,18 @@ export const defaultLeadData: LeadData = {
 
 export type SlideId =
   | '0A' | '0A2' | '0B'
-  | '1' | '2A' | '2B' | '2C' | '2D' | '2E' | '3' | '4' | '5' | '5B' | '5C' | '6' | '7'
+  | '1' | '2A' | '2B' | '2BX' | '2C' | '2D' | '2E' | '3' | '4' | '5' | '5B' | '5C' | '6' | '7'
   | '8' | '9' | '10';
 
 export const SLIDE_ORDER: SlideId[] = [
   '0A', '0B',
-  '1', '2B', '2D', '2E', '0A2', '2C', '3', '4', '5', '5B', '6', '5C', '2A', '7',
+  '1', '2B', '2BX', '2D', '2E', '0A2', '2C', '3', '4', '5', '5B', '6', '5C', '2A', '7',
   '8', '9', '10',
 ];
 
 export const SLIDE_MODES: Record<SlideId, AppMode> = {
   '0A': 'voorbereiding', '0B': 'voorbereiding',
-  '1': 'gesprek', '2A': 'gesprek', '2B': 'gesprek', '2C': 'gesprek',
+  '1': 'gesprek', '2A': 'gesprek', '2B': 'gesprek', '2BX': 'gesprek', '2C': 'gesprek',
   '2D': 'gesprek', '2E': 'gesprek', '3': 'gesprek',
   '4': 'gesprek', '0A2': 'gesprek', '5': 'gesprek', '5B': 'gesprek',
   '5C': 'gesprek', '6': 'gesprek', '7': 'gesprek',
