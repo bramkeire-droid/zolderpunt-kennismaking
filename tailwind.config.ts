@@ -51,6 +51,23 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        cluster: {
+          blue: {
+            DEFAULT: "hsl(var(--cluster-blue))",
+            soft: "hsl(var(--cluster-blue-soft))",
+            foreground: "hsl(var(--cluster-blue-foreground))",
+          },
+          amber: {
+            DEFAULT: "hsl(var(--cluster-amber))",
+            soft: "hsl(var(--cluster-amber-soft))",
+            foreground: "hsl(var(--cluster-amber-foreground))",
+          },
+          teal: {
+            DEFAULT: "hsl(var(--cluster-teal))",
+            soft: "hsl(var(--cluster-teal-soft))",
+            foreground: "hsl(var(--cluster-teal-foreground))",
+          },
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",

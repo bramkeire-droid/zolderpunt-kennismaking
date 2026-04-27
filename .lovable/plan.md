@@ -1,88 +1,58 @@
 ## Doel
 
-Drie nieuwe slides toevoegen aan de gesprek-flow rond een centraal "vragencluster"-concept: de klant kiest aan het begin welke vragen relevant zijn, die selectie bepaalt wat verderop in het gesprek wordt herhaald.
+De vragenkiezer-slide (2D) en haar twee zusterslides (2E, 5C) visueel uitnodigender, kleurrijker en overzichtelijker maken — binnen het bestaande design-systeem (HSL semantic tokens).
 
-## Nieuwe slides
+## Visuele richting
 
-### Slide 2D — Vragenkiezer (interactief)
-Komt **tussen huidige slide 2 (`2B` De agenda) en huidige slide 3 (`0A2`)**.
+**Drie cluster-kleuren** geven elk thema een eigen identiteit, zonder dat het bont wordt:
+- Cluster 1 — *Wat kan er bij ons?* → **blauw** (primary)
+- Cluster 2 — *Wat gaat dit ons kosten?* → **warm amber** (sluit aan bij de warme `#F8F3EB` background)
+- Cluster 3 — *Hoe gaan jullie te werk?* → **teal/groen** (vertrouwen, nazorg)
 
-- Grote titel bovenaan: **"Wat willen wij vandaag te weten komen?"**
-- 3 kolommen naast elkaar, elk met een clustertitel en 3 of 4 klikbare vragen-kaarten:
-  - **Cluster 1 — Wat kan er bij ons?** (3 vragen: haalbaarheid, risico's, materialen)
-  - **Cluster 2 — Wat gaat dit ons kosten?** (3 vragen: budget, timing, betaling)
-  - **Cluster 3 — Hoe gaan jullie te werk?** (4 vragen: wie zijn jullie, verloop, garanties, aanspreekpunt)
-- Kaders zijn aan-/uitklikbaar (multi-select). Geselecteerde kaders krijgen een visuele "opgelicht" stijl: primary-blauwe rand, lichte achtergrond, subtiele schaduw.
-- Stijl: lichte achtergrond (default `SlideLayout`), grote leesbare typografie geschikt voor videogesprek, chip/badge per kaart met het vraagnummer.
+Per cluster:
+- Eigen icoon-cirkel naast de clustertitel
+- Hele kolom krijgt een heel zachte cluster-getinte achtergrond (afgeronde 3xl hoeken) zodat de drie zones visueel ademen
+- Cluster-label en accent in cluster-kleur i.p.v. allemaal blauw
 
-### Slide 2E — Onderzoeksagenda (read-only)
-Komt direct **na 2D**.
+Per vraagkaart:
+- **Lucide-icoon per vraag** (HelpCircle, AlertTriangle, Hammer, Wallet, CalendarClock, Receipt, Users, Map, ShieldCheck, Phone) — scanbaarder en menselijker dan een nummerblokje
+- Afgeronde hoeken `rounded-2xl`, witte kaart-achtergrond, geen harde border in rust
+- Compactere ondertekst (lichter en kleiner) zodat de titel domineert
+- Hover: lichte `-translate-y-0.5` + `shadow-md` → "uitnodiging om te klikken"
+- Selectie: cluster-gekleurde rand, zachte cluster-glow-shadow, kaart komt iets omhoog, klein checkbadge in cluster-kleur rechtsboven, icoon-tegel vult op met cluster-kleur
 
-- Titel bovenaan: **"Dit gaan we vandaag onderzoeken."**
-- Toont enkel de op 2D geselecteerde vragenkaders, in dezelfde visuele stijl maar zonder klik-interactie.
-- Layout schaalt automatisch:
-  - 1–2 selecties → grote kaders, gecentreerd
-  - 3–4 selecties → 2 kolommen
-  - 5+ selecties → 3 kolommen (zoals op 2D)
-- Als er niets geselecteerd is: toon vriendelijke leeg-staat ("Geen specifieke vragen geselecteerd — we doorlopen het standaard gesprek.").
+**Microcopy zachter:**
+- Subtitel: "Kies vrij wat voor jullie belangrijk is — geen verkeerd antwoord."
+- Lege staat: "Tik gerust de onderwerpen aan die jullie bezighouden — alles mag."
+- Bij selectie: "{n} onderwerpen gekozen — top, hierop focussen we vandaag."
 
-### Slide 5C — Vragenrecap "Is alles duidelijk?"
-Komt **na het calculator-resultaat (`5B`) en voor het stappenplan (`2A`)**.
+## Wat past op de andere twee slides
 
-- Titel bovenaan: **"Is alles duidelijk?"**
-- Toont opnieuw dezelfde geselecteerde kaders als op 2E.
-- Per kaart een klein toggle/checkbox-icoon waarmee de verkoper kan markeren of de vraag effectief beantwoord is tijdens het gesprek (visuele check, alleen voor de verkoper).
-- Korte ondertitel: "Vink aan wat we al besproken hebben. Niet aangevinkt? Dan pakken we het nu nog even op."
-
-## Statebeheer
-
-De selectie + beantwoord-status wordt opgeslagen op het lead-object zodat het over slides heen consistent blijft en bij heropenen van een dossier behouden blijft.
-
-Nieuw veld op `LeadData`:
-
-```ts
-gespreksvragen: {
-  selected: string[];          // ids van gekozen vragen, bv. ['c1-1','c2-3']
-  beantwoord: string[];        // ids die als beantwoord zijn aangevinkt op 5C
-}
-```
-
-Default: `{ selected: [], beantwoord: [] }`.
+- **Slide 2E** ("Dit gaan we vandaag onderzoeken") gebruikt dezelfde cluster-kleur + icoon per kaart, zodat de klant ze visueel herkent.
+- **Slide 5C** ("Is alles duidelijk?") idem; de "beantwoord"-toggle gebruikt de cluster-kleur als vink, zodat de associatie consistent blijft.
 
 ## Technische wijzigingen
 
-1. **`src/contexts/SessionContext.tsx`**
-   - `SlideId` uitbreiden met `'2D' | '2E' | '5C'`.
-   - `SLIDE_ORDER` wordt:
-     `['0A','0B','1','2B','2D','2E','0A2','2C','3','4','5','5B','5C','6','2A','7','8','9','10']`
-   - `SLIDE_MODES`: `2D`, `2E`, `5C` → `'gesprek'`.
-   - `LeadData` + `defaultLeadData` uitbreiden met `gespreksvragen`.
+1. **`src/index.css`** — zes nieuwe HSL-tokens toevoegen (light + dark):
+   - `--cluster-blue`, `--cluster-blue-soft`, `--cluster-blue-foreground`
+   - `--cluster-amber`, `--cluster-amber-soft`, `--cluster-amber-foreground`
+   - `--cluster-teal`, `--cluster-teal-soft`, `--cluster-teal-foreground`
 
-2. **Centrale data: `src/data/gespreksvragen.ts`** (nieuw)
-   - Eén array met de 3 clusters en 10 vragen (id, nummer, korte titel, sub-tekst, cluster-meta) zodat 2D/2E/5C dezelfde bron gebruiken.
+2. **`tailwind.config.ts`** — `cluster.{blue,amber,teal}.{DEFAULT,soft,foreground}` registreren naast `primary`/`secondary`.
 
-3. **Nieuwe slides**
-   - `src/slides/Slide2D.tsx` — interactieve kiezer.
-   - `src/slides/Slide2E.tsx` — read-only overzicht van selectie.
-   - `src/slides/Slide5C.tsx` — recap met "beantwoord" toggle.
+3. **`src/data/gespreksvragen.ts`**
+   - Per cluster: `color: 'blue'|'amber'|'teal'`, `ondertitel`, en een cluster-icoon.
+   - Per vraag: een lucide `icon` toevoegen.
+   - Helper `CLUSTER_COLORS` exporteren met de tailwind-classes per kleur, zodat 2D/2E/5C exact dezelfde stijl-mapping delen.
 
-4. **`src/App.tsx`**
-   - Imports + `SLIDE_COMPONENTS` mapping uitbreiden met `2D`, `2E`, `5C`.
+4. **`src/slides/Slide2D.tsx`** — nieuwe layout (zachte gekleurde kolommen, icon-cirkels, afgeronde kaarten met hover-lift en cluster-glow bij selectie, vink-badge rechtsboven).
 
-5. **`src/hooks/useLeadSave.ts`**
-   - `leadToRow` aanvullen met `gespreksvragen` zodat het wordt meegestuurd richting de database.
+5. **`src/slides/Slide2E.tsx`** — kaarten in cluster-kleur met icon-tegel, behoud responsieve grid (1/2/3 kolommen op basis van aantal selecties).
 
-6. **Database (Lovable Cloud)**
-   - Migratie: kolom `gespreksvragen jsonb default '{"selected":[],"beantwoord":[]}'::jsonb` toevoegen aan tabel `leads`.
+6. **`src/slides/Slide5C.tsx`** — kaarten met cluster-kleur als "beantwoord"-state, vink-badge rechtsboven, icon-tegel vult op bij beantwoord.
 
-## Visuele stijl
+## Niet-doelen
 
-- Default `SlideLayout` (witte achtergrond) — past bij de "werk"-slides 3/4/5.
-- Kaart-stijl: `bg-card`, `border border-border`, ruime padding, `text-2xl` titel + `text-lg` ondertekst (binnen de 1920×1080 schaal goed leesbaar in videogesprek).
-- Geselecteerde kaart: `border-primary border-2`, `bg-primary/5`, lichte schadow + nummerbadge in `bg-primary text-primary-foreground`.
-- Clustertitel: `text-xl font-bold` boven de kolom + dunne accentlijn in primary.
-- Hover-state op klikbare kaarten op 2D voor duidelijke feedback.
-
-## Verwacht eindresultaat
-
-De gesprek-modus toont 14 slides in de navigatiebalk in plaats van 11. De verkoper kan vooraan dynamisch sturen welke onderwerpen vandaag aandacht krijgen, en op het einde van het commerciële gedeelte controleren of elke gekozen vraag effectief beantwoord is.
+- Geen wijzigingen aan navigatievolgorde, datamodel of database (kolom `gespreksvragen` blijft ongewijzigd).
+- Geen nieuwe slides; enkel visuele upgrade van de drie bestaande.
+- Geen wijzigingen aan andere slides — de cluster-tokens zijn nieuw en interfereren nergens mee.
