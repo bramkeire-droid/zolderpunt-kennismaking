@@ -13,10 +13,13 @@ import Slide1 from '@/slides/Slide1';
 import Slide2A from '@/slides/Slide2A';
 import Slide2B from '@/slides/Slide2B';
 import Slide2C from '@/slides/Slide2C';
+import Slide2D from '@/slides/Slide2D';
+import Slide2E from '@/slides/Slide2E';
 import Slide3 from '@/slides/Slide3';
 import Slide4 from '@/slides/Slide4';
 import Slide5 from '@/slides/Slide5';
 import Slide5B from '@/slides/Slide5B';
+import Slide5C from '@/slides/Slide5C';
 import Slide6 from '@/slides/Slide6';
 import Slide7 from '@/slides/Slide7';
 import Slide8 from '@/slides/Slide8';
@@ -35,8 +38,9 @@ import type { LeadData } from '@/contexts/SessionContext';
 
 const SLIDE_COMPONENTS: Record<SlideId, React.ComponentType> = {
   '0A': Slide0A, '0A2': Slide0A2, '0B': Slide0B,
-  '1': Slide1, '2A': Slide2A, '2B': Slide2B, '2C': Slide2C, '3': Slide3,
-  '4': Slide4, '5': Slide5, '5B': Slide5B, '6': Slide6, '7': Slide7,
+  '1': Slide1, '2A': Slide2A, '2B': Slide2B, '2C': Slide2C,
+  '2D': Slide2D, '2E': Slide2E, '3': Slide3,
+  '4': Slide4, '5': Slide5, '5B': Slide5B, '5C': Slide5C, '6': Slide6, '7': Slide7,
   '8': Slide8, '9': Slide9, '10': Slide10,
 };
 
