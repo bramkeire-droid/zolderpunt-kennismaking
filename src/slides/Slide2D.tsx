@@ -51,7 +51,7 @@ export default function Slide2D() {
                     <div className={`text-[13px] font-bold tracking-[1.6px] uppercase ${c.text}`}>
                       {cluster.ondertitel}
                     </div>
-                    <h3 className="text-2xl font-headline font-bold text-foreground leading-tight">
+                    <h3 className="text-2xl font-headline font-bold text-foreground leading-tight [text-wrap:balance] hyphens-none">
                       {cluster.titel}
                     </h3>
                   </div>
@@ -92,10 +92,12 @@ export default function Slide2D() {
                             />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="text-xl font-headline font-bold text-foreground leading-tight mb-1">
+                            <div
+                              className="text-xl font-headline font-bold text-foreground leading-tight mb-1.5 [text-wrap:balance] hyphens-none"
+                            >
                               {vraag.titel}
                             </div>
-                            <div className="text-base text-muted-foreground font-body leading-snug">
+                            <div className="text-[15px] text-muted-foreground font-body leading-relaxed [text-wrap:pretty] hyphens-none">
                               {vraag.ondertekst}
                             </div>
                           </div>
