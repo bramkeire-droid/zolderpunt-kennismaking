@@ -39,7 +39,7 @@ import type { LeadData } from '@/contexts/SessionContext';
 
 const SLIDE_COMPONENTS: Record<SlideId, React.ComponentType> = {
   '0A': Slide0A, '0A2': Slide0A2, '0B': Slide0B,
-  '1': Slide1, '2A': Slide2A, '2B': Slide2B, '2C': Slide2C,
+  '1': Slide1, '2A': Slide2A, '2B': Slide2B, '2BX': Slide2BX, '2C': Slide2C,
   '2D': Slide2D, '2E': Slide2E, '3': Slide3,
   '4': Slide4, '5': Slide5, '5B': Slide5B, '5C': Slide5C, '6': Slide6, '7': Slide7,
   '8': Slide8, '9': Slide9, '10': Slide10,
