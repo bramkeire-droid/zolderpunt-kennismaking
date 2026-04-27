@@ -51,7 +51,7 @@ export default function Slide2D() {
                     <div className={`text-[13px] font-bold tracking-[1.6px] uppercase ${c.text}`}>
                       {cluster.ondertitel}
                     </div>
-                    <h3 className="text-2xl font-headline font-bold text-foreground leading-tight">
+                    <h3 className="text-2xl font-headline font-bold text-foreground leading-tight [text-wrap:balance] hyphens-none">
                       {cluster.titel}
                     </h3>
                   </div>
