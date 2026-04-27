@@ -12,6 +12,7 @@ import Slide0B from '@/slides/Slide0B';
 import Slide1 from '@/slides/Slide1';
 import Slide2A from '@/slides/Slide2A';
 import Slide2B from '@/slides/Slide2B';
+import Slide2BX from '@/slides/Slide2BX';
 import Slide2C from '@/slides/Slide2C';
 import Slide2D from '@/slides/Slide2D';
 import Slide2E from '@/slides/Slide2E';
