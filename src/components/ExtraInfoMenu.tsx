@@ -6,6 +6,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import FacturatieTimeline from './FacturatieTimeline';
 
 type ExtraInfoSlide = 'duur' | 'facturatie';
 
@@ -48,40 +49,9 @@ const SLIDES: Record<ExtraInfoSlide, {
     ),
   },
   facturatie: {
-    title: 'Facturatie & voorschotten',
+    title: 'Facturatie',
     icon: Receipt,
-    content: (
-      <div className="space-y-6 text-lg leading-relaxed">
-        <p className="text-foreground/80">
-          We werken met een transparant en gespreid betalingsschema. Geen verrassingen.
-        </p>
-        <div className="space-y-3">
-          {[
-            { pct: '30%', label: 'Voorschot bij ondertekening', desc: 'Voor materialen en planning.' },
-            { pct: '30%', label: 'Bij start van de werken', desc: 'Wanneer we op de werf staan.' },
-            { pct: '30%', label: 'Tijdens de werken', desc: 'Halverwege het project.' },
-            { pct: '10%', label: 'Opleveringsfactuur', desc: 'Bij definitieve oplevering en jouw goedkeuring.' },
-          ].map((s, i) => (
-            <div key={i} className="flex items-center gap-5 bg-muted p-5 rounded-2xl">
-              <div className="w-20 shrink-0 text-center">
-                <div className="font-headline text-2xl font-bold text-primary">{s.pct}</div>
-              </div>
-              <div className="flex-1">
-                <div className="font-headline font-semibold text-foreground">{s.label}</div>
-                <div className="text-base text-foreground/70">{s.desc}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="bg-primary/5 border-l-4 border-primary p-5 rounded-r-xl">
-          <div className="font-headline font-semibold text-foreground mb-1">Btw-tarief</div>
-          <p className="text-foreground/70 text-base">
-            Voor woningen ouder dan 10 jaar geldt het verlaagd tarief van 6% btw.
-            Anders rekenen we 21% btw.
-          </p>
-        </div>
-      </div>
-    ),
+    content: <FacturatieTimeline />,
   },
 };
 
