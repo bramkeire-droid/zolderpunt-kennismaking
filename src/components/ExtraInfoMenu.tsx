@@ -6,6 +6,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import FacturatieTimeline from './FacturatieTimeline';
 
 type ExtraInfoSlide = 'duur' | 'facturatie';
 
