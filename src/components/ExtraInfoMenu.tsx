@@ -95,7 +95,7 @@ export default function ExtraInfoMenu() {
           onClick={() => setOpenSlide(null)}
         >
           <div
-            className="relative bg-background rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+            className="relative bg-background rounded-3xl shadow-2xl max-w-6xl w-full max-h-[92vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <button
