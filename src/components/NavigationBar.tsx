@@ -2,6 +2,10 @@ import { useSession, AppMode, MODE_FIRST_SLIDE, SLIDE_ORDER, SLIDE_MODES, SlideI
 import { useAuth } from '@/contexts/AuthContext';
 import logoBlauw from '@/assets/logo-blauw.svg';
 import { LogOut } from 'lucide-react';
+import ExtraInfoMenu from './ExtraInfoMenu';
+
+// Slides waarop "Extra Info" NIET getoond wordt (vóór slide 2.0)
+const HIDE_EXTRA_INFO_ON: SlideId[] = ['0A', '0B', '1'];
 
 const MODE_LABELS: Record<AppMode, string> = {
   voorbereiding: 'Voorbereiding',
