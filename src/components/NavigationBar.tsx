@@ -54,10 +54,13 @@ export default function NavigationBar() {
         ))}
       </div>
 
-      {/* Slide indicator */}
+      {/* Slide indicator + Extra Info */}
       {currentMode !== 'dossiers' && (
-        <div className="ml-auto label-style flex items-center gap-2">
-          <span>Slide {slideIndex} / {modeSlides.length}</span>
+        <div className="ml-auto flex items-center gap-4">
+          {!HIDE_EXTRA_INFO_ON.includes(currentSlide) && <ExtraInfoMenu />}
+          <div className="label-style flex items-center gap-2">
+            <span>Slide {slideIndex} / {modeSlides.length}</span>
+          </div>
         </div>
       )}
 
