@@ -34,7 +34,7 @@ export default function FacturatieTimeline() {
           <div className="text-sm opacity-80 mb-4">
             Bevestiging offerte<br />en aankoop materialen
           </div>
-          <div className="mt-auto pt-4 border-t border-primary-foreground/20 w-full">
+          <div className="mt-auto pt-4 border-t border-primary-foreground/20 w-full min-h-[88px] flex flex-col justify-center">
             <div className="font-headline text-2xl font-bold">{fmtEur(voorschotBedrag)}</div>
           </div>
         </div>
@@ -65,9 +65,11 @@ export default function FacturatieTimeline() {
             {weken}× <span className="font-semibold text-primary">{perWeek}% per week</span>
           </div>
 
-          <div className="mt-auto pt-4 border-t border-primary/20 w-full">
-            <div className="font-headline text-2xl font-bold text-primary">{fmtEur(uitvoeringBedrag)}</div>
-            <div className="text-xs text-foreground/60 mt-1">
+          <div className="mt-auto pt-4 border-t border-primary/20 w-full min-h-[88px] flex flex-col justify-center">
+            <div className="font-headline text-2xl font-bold text-primary">
+              {fmtEur(uitvoeringBedrag)}
+            </div>
+            <div className="font-headline text-2xl font-bold text-primary/70 mt-1">
               ≈ {fmtEur(perWeekBedrag)} per week
             </div>
           </div>
@@ -84,7 +86,7 @@ export default function FacturatieTimeline() {
           <div className="text-sm opacity-80 mb-4">
             Project volledig<br />afgerond
           </div>
-          <div className="mt-auto pt-4 border-t border-secondary-foreground/20 w-full">
+          <div className="mt-auto pt-4 border-t border-secondary-foreground/20 w-full min-h-[88px] flex flex-col justify-center">
             <div className="font-headline text-2xl font-bold">{fmtEur(opleveringBedrag)}</div>
           </div>
         </div>
