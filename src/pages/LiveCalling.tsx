@@ -353,27 +353,27 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation }
     <div className="h-screen flex flex-col bg-[#F8F3EB] text-[13px] leading-[1.4] font-body text-[#0F1419] overflow-hidden">
 
       {/* ═══ TOPBAR ═══ */}
-      <div className="shrink-0 bg-white border-b border-[#DDD5C5] px-5 py-2 flex items-center justify-between">
+      <div className="shrink-0 bg-white border-b border-[#DDD5C5] px-5 py-3 flex items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <span className="font-dm font-extrabold text-[15px] text-[#008CFF] tracking-[-0.02em]">zolderpunt.</span>
-          <div className="flex gap-[6px]">
+          <div className="flex gap-2">
             <input type="text" value={leadVoornaam} onChange={e => setLeadVoornaam(e.target.value)} placeholder="Voornaam"
-              className="border border-[#DDD5C5] bg-[#F8F3EB] font-body text-[12px] text-[#0F1419] px-2 py-[5px] w-[100px] focus:outline-none focus:border-[#008CFF] focus:bg-white" />
+              className="h-10 border-2 border-[#DDD5C5] bg-white font-body text-[14px] font-medium text-[#0F1419] placeholder:text-[#B0A898] px-3 w-[140px] focus:outline-none focus:border-[#008CFF]" />
             <input type="text" value={leadAchternaam} onChange={e => setLeadAchternaam(e.target.value)} placeholder="Achternaam"
-              className="border border-[#DDD5C5] bg-[#F8F3EB] font-body text-[12px] text-[#0F1419] px-2 py-[5px] w-[100px] focus:outline-none focus:border-[#008CFF] focus:bg-white" />
+              className="h-10 border-2 border-[#DDD5C5] bg-white font-body text-[14px] font-medium text-[#0F1419] placeholder:text-[#B0A898] px-3 w-[140px] focus:outline-none focus:border-[#008CFF]" />
             <input type="text" value={leadTelefoon} onChange={e => setLeadTelefoon(e.target.value)} placeholder="Telefoon"
-              className="border border-[#DDD5C5] bg-[#F8F3EB] font-body text-[12px] text-[#0F1419] px-2 py-[5px] w-[110px] focus:outline-none focus:border-[#008CFF] focus:bg-white" />
+              className="h-10 border-2 border-[#DDD5C5] bg-white font-body text-[14px] font-medium text-[#0F1419] placeholder:text-[#B0A898] px-3 w-[140px] focus:outline-none focus:border-[#008CFF]" />
             <input type="text" value={leadAdres} onChange={e => setLeadAdres(e.target.value)} placeholder="Adres"
-              className="border border-[#DDD5C5] bg-[#F8F3EB] font-body text-[12px] text-[#0F1419] px-2 py-[5px] w-[180px] focus:outline-none focus:border-[#008CFF] focus:bg-white" />
+              className="h-10 border-2 border-[#DDD5C5] bg-white font-body text-[14px] font-medium text-[#0F1419] placeholder:text-[#B0A898] px-3 w-[260px] focus:outline-none focus:border-[#008CFF]" />
             <input type="text" value={leadPartnerNaam} onChange={e => setLeadPartnerNaam(e.target.value)} placeholder="Partner"
-              className="border border-[#DDD5C5] bg-[#F8F3EB] font-body text-[12px] text-[#0F1419] px-2 py-[5px] w-[100px] focus:outline-none focus:border-[#008CFF] focus:bg-white" />
+              className="h-10 border-2 border-[#DDD5C5] bg-white font-body text-[14px] font-medium text-[#0F1419] placeholder:text-[#B0A898] px-3 w-[140px] focus:outline-none focus:border-[#008CFF]" />
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <span className="font-dm text-[12px] text-[#5B6470] font-semibold tabular-nums">⏱ {timer.formatted}</span>
-          <span className="text-[10px] text-[#5B6470] font-dm">Opgeslagen ·</span>
+          <span className="font-dm text-[13px] text-[#5B6470] font-semibold tabular-nums">⏱ {timer.formatted}</span>
+          <span className="text-[11px] text-[#5B6470] font-dm">Opgeslagen ·</span>
           <button onClick={() => setShowCloseDialog(true)}
-            className="bg-[#008CFF] text-white border-none px-[14px] py-[7px] font-dm font-semibold text-[11px] tracking-[0.03em] cursor-pointer hover:bg-[#0070CC] transition-colors">
+            className="h-10 bg-[#008CFF] text-white border-none px-5 font-dm font-semibold text-[13px] tracking-[0.02em] cursor-pointer hover:bg-[#0070CC] transition-colors">
             Sluit gesprek af →
           </button>
         </div>
@@ -384,27 +384,27 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation }
 
         {/* ─────── LEFT: NOTITIEBLOK (hoofdwerkvlak) ─────── */}
         <div className="overflow-y-auto bg-[#FFFCF5] border-r-2 border-[#DDD5C5]">
-          <div className="p-6 max-w-3xl">
+          <div className="p-8 max-w-[1100px] mx-auto h-full flex flex-col">
 
             <div className="flex items-baseline gap-3 mb-1">
               <span className="text-[15px]">📝</span>
               <h2 className="font-dm text-[18px] font-bold text-[#0F1419] tracking-[-0.01em]">Notitieblok</h2>
               <span className="text-[12px] text-[#5B6470] italic">Wat onthou ik uit dit gesprek?</span>
             </div>
-            <p className="text-[11.5px] text-[#5B6470] mb-5">De essentie om straks naar Bram door te geven. <strong>Hier ligt je focus tijdens het gesprek.</strong></p>
+            <p className="text-[11.5px] text-[#5B6470] mb-6">De essentie om straks naar Bram door te geven. <strong>Hier ligt je focus tijdens het gesprek.</strong></p>
 
-            <div className="space-y-5">
+            <div className="flex flex-col gap-5 flex-1">
 
               {/* Trigger */}
               <FieldBlock label="De trigger" hint="Waarom belt de klant nu?">
                 <input type="text" value={data.trigger_text} onChange={e => update({ trigger_text: e.target.value })}
                   placeholder="bv. oudste naar middelbaar in september"
-                  className="w-full h-12 px-4 bg-white border-2 border-[#DDD5C5] text-[15px] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
+                  className="w-full h-14 px-4 bg-white border-2 border-[#DDD5C5] text-[16px] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
               </FieldBlock>
 
               {/* Citaten */}
               <FieldBlock label="Letterlijke citaten" hint="Exacte woorden — tussen aanhalingstekens">
-                <div className="bg-white border-2 border-[#DDD5C5] p-3 focus-within:border-[#008CFF]">
+                <div className="bg-white border-2 border-[#DDD5C5] p-4 min-h-[88px] focus-within:border-[#008CFF]">
                   <ChipInput chips={data.emotional_keywords} onAdd={addEmotionalKeyword} onRemove={removeEmotionalKeyword}
                     placeholder="typ een citaat en druk op +"
                     accentColor="bg-[#F8F3EB] text-[#0F1419] border-[#DDD5C5] italic text-[13px]" />
@@ -413,7 +413,7 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation }
 
               {/* Twijfels */}
               <FieldBlock label="Twijfels en zorgen" hint="Angsten, slechte ervaringen — ook letterlijk">
-                <div className="bg-white border-2 border-[#DDD5C5] p-3 focus-within:border-[#008CFF]">
+                <div className="bg-white border-2 border-[#DDD5C5] p-4 min-h-[88px] focus-within:border-[#008CFF]">
                   <ChipInput chips={data.fomu_concerns} onAdd={addFomuConcern} onRemove={removeFomuConcern}
                     placeholder="typ een zorg en druk op +"
                     accentColor="bg-[#FFF6E5] text-[#0F1419] border-[#E89F3D] italic text-[13px]" />
@@ -424,15 +424,17 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation }
               <FieldBlock label="Wie beslist mee?" hint="Partner, ouders, familie?">
                 <textarea value={data.buying_committee} onChange={e => update({ buying_committee: e.target.value })}
                   placeholder="bv. Joris belt — An moet 100% akkoord zijn over budget"
-                  className="w-full px-4 py-3 bg-white border-2 border-[#DDD5C5] text-[15px] font-body text-[#0F1419] placeholder:text-[#B0A898] resize-none min-h-[80px] focus:outline-none focus:border-[#008CFF]" />
+                  className="w-full px-4 py-3 bg-white border-2 border-[#DDD5C5] text-[16px] font-body text-[#0F1419] placeholder:text-[#B0A898] resize-none min-h-[120px] focus:outline-none focus:border-[#008CFF]" />
               </FieldBlock>
 
-              {/* Indruk */}
-              <FieldBlock label="Algemene indruk" hint="Gehaast, rustig, sceptisch, enthousiast?">
+              {/* Indruk — vult resterende ruimte */}
+              <div className="flex flex-col flex-1 min-h-[160px]">
+                <label className="font-dm text-[14px] font-semibold text-[#0F1419] block mb-[2px]">Algemene indruk</label>
+                <div className="text-[11.5px] text-[#5B6470] italic mb-[8px]">Gehaast, rustig, sceptisch, enthousiast?</div>
                 <textarea value={data.general_impression} onChange={e => update({ general_impression: e.target.value })}
                   placeholder="bv. klonk gehaast, lijkt veel op het bord te hebben"
-                  className="w-full px-4 py-3 bg-white border-2 border-[#DDD5C5] text-[15px] font-body text-[#0F1419] placeholder:text-[#B0A898] resize-none min-h-[80px] focus:outline-none focus:border-[#008CFF]" />
-              </FieldBlock>
+                  className="w-full flex-1 px-4 py-3 bg-white border-2 border-[#DDD5C5] text-[16px] font-body text-[#0F1419] placeholder:text-[#B0A898] resize-none min-h-[160px] focus:outline-none focus:border-[#008CFF]" />
+              </div>
 
             </div>
           </div>
@@ -537,7 +539,7 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation }
 function FieldBlock({ label, hint, children }: { label: string; hint: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="font-dm text-[13px] font-bold text-[#0F1419] block mb-[2px]">{label}</label>
+      <label className="font-dm text-[14px] font-semibold text-[#0F1419] block mb-[2px]">{label}</label>
       <div className="text-[11.5px] text-[#5B6470] italic mb-[8px]">{hint}</div>
       {children}
     </div>
