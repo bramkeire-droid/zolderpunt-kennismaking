@@ -1,0 +1,1 @@
+ALTER TABLE public.leads ALTER COLUMN status SET DEFAULT 'nieuw';
