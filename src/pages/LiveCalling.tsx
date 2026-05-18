@@ -348,12 +348,12 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation }
     );
   }
 
-  /* ─── LIVE CALLING — single scrollable pinboard ─── */
+  /* ─── LIVE CALLING — workspace-first layout ─── */
   return (
-    <div className="min-h-screen bg-[#F8F3EB] text-[13px] leading-[1.4] font-body text-[#0F1419]">
+    <div className="h-screen flex flex-col bg-[#F8F3EB] text-[13px] leading-[1.4] font-body text-[#0F1419] overflow-hidden">
 
       {/* ═══ TOPBAR ═══ */}
-      <div className="sticky top-0 z-10 bg-white border-b border-[#DDD5C5] px-5 py-2 flex items-center justify-between">
+      <div className="shrink-0 bg-white border-b border-[#DDD5C5] px-5 py-2 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <span className="font-dm font-extrabold text-[15px] text-[#008CFF] tracking-[-0.02em]">zolderpunt.</span>
           <div className="flex gap-[6px]">
@@ -362,9 +362,9 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation }
             <input type="text" value={leadAchternaam} onChange={e => setLeadAchternaam(e.target.value)} placeholder="Achternaam"
               className="border border-[#DDD5C5] bg-[#F8F3EB] font-body text-[12px] text-[#0F1419] px-2 py-[5px] w-[100px] focus:outline-none focus:border-[#008CFF] focus:bg-white" />
             <input type="text" value={leadTelefoon} onChange={e => setLeadTelefoon(e.target.value)} placeholder="Telefoon"
-              className="border border-[#DDD5C5] bg-[#F8F3EB] font-body text-[12px] text-[#0F1419] px-2 py-[5px] w-[100px] focus:outline-none focus:border-[#008CFF] focus:bg-white" />
+              className="border border-[#DDD5C5] bg-[#F8F3EB] font-body text-[12px] text-[#0F1419] px-2 py-[5px] w-[110px] focus:outline-none focus:border-[#008CFF] focus:bg-white" />
             <input type="text" value={leadAdres} onChange={e => setLeadAdres(e.target.value)} placeholder="Adres"
-              className="border border-[#DDD5C5] bg-[#F8F3EB] font-body text-[12px] text-[#0F1419] px-2 py-[5px] w-[160px] focus:outline-none focus:border-[#008CFF] focus:bg-white" />
+              className="border border-[#DDD5C5] bg-[#F8F3EB] font-body text-[12px] text-[#0F1419] px-2 py-[5px] w-[180px] focus:outline-none focus:border-[#008CFF] focus:bg-white" />
             <input type="text" value={leadPartnerNaam} onChange={e => setLeadPartnerNaam(e.target.value)} placeholder="Partner"
               className="border border-[#DDD5C5] bg-[#F8F3EB] font-body text-[12px] text-[#0F1419] px-2 py-[5px] w-[100px] focus:outline-none focus:border-[#008CFF] focus:bg-white" />
           </div>
@@ -379,25 +379,76 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation }
         </div>
       </div>
 
-      <div className="max-w-[1500px] mx-auto px-5 pt-[14px] pb-6">
+      {/* ═══ TWO-COLUMN WORKSPACE ═══ */}
+      <div className="flex-1 grid grid-cols-[1.85fr_1fr] min-h-0">
 
-        {/* ═══ SCRIPT GRID — 4 FASE COLUMNS ═══ */}
-        <div className="grid grid-cols-4 gap-[10px]">
+        {/* ─────── LEFT: NOTITIEBLOK (hoofdwerkvlak) ─────── */}
+        <div className="overflow-y-auto bg-[#FFFCF5] border-r-2 border-[#DDD5C5]">
+          <div className="p-6 max-w-3xl">
 
-          {/* ── FASE 1: Motivatie ── */}
-          <div className="bg-white border border-[#DDD5C5] flex flex-col">
-            <div className="bg-[#008CFF] text-white px-3 py-[10px]">
-              <div className="flex items-baseline justify-between mb-[3px]">
-                <span className="font-dm text-[9.5px] font-bold tracking-[0.16em] uppercase opacity-85">Fase 1</span>
-                <span className="font-dm text-[9.5px] font-medium opacity-85">1–2 min</span>
-              </div>
-              <div className="font-dm text-[15px] font-bold leading-[1.15] tracking-[-0.01em]">Motivatie blootleggen</div>
+            <div className="flex items-baseline gap-3 mb-1">
+              <span className="text-[15px]">📝</span>
+              <h2 className="font-dm text-[18px] font-bold text-[#0F1419] tracking-[-0.01em]">Notitieblok</h2>
+              <span className="text-[12px] text-[#5B6470] italic">Wat onthou ik uit dit gesprek?</span>
             </div>
-            <div className="bg-[#2B6CA0] text-white px-3 py-[7px] text-[11px] leading-[1.35]">
-              <div className="font-dm text-[8.5px] font-bold tracking-[0.16em] uppercase opacity-70 mb-[1px]">Doel</div>
-              Ontdek waarom de klant <em>vandaag</em> belt.
+            <p className="text-[11.5px] text-[#5B6470] mb-5">De essentie om straks naar Bram door te geven. <strong>Hier ligt je focus tijdens het gesprek.</strong></p>
+
+            <div className="space-y-5">
+
+              {/* Trigger */}
+              <FieldBlock label="De trigger" hint="Waarom belt de klant nu?">
+                <input type="text" value={data.trigger_text} onChange={e => update({ trigger_text: e.target.value })}
+                  placeholder="bv. oudste naar middelbaar in september"
+                  className="w-full h-12 px-4 bg-white border-2 border-[#DDD5C5] text-[15px] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
+              </FieldBlock>
+
+              {/* Citaten */}
+              <FieldBlock label="Letterlijke citaten" hint="Exacte woorden — tussen aanhalingstekens">
+                <div className="bg-white border-2 border-[#DDD5C5] p-3 focus-within:border-[#008CFF]">
+                  <ChipInput chips={data.emotional_keywords} onAdd={addEmotionalKeyword} onRemove={removeEmotionalKeyword}
+                    placeholder="typ een citaat en druk op +"
+                    accentColor="bg-[#F8F3EB] text-[#0F1419] border-[#DDD5C5] italic text-[13px]" />
+                </div>
+              </FieldBlock>
+
+              {/* Twijfels */}
+              <FieldBlock label="Twijfels en zorgen" hint="Angsten, slechte ervaringen — ook letterlijk">
+                <div className="bg-white border-2 border-[#DDD5C5] p-3 focus-within:border-[#008CFF]">
+                  <ChipInput chips={data.fomu_concerns} onAdd={addFomuConcern} onRemove={removeFomuConcern}
+                    placeholder="typ een zorg en druk op +"
+                    accentColor="bg-[#FFF6E5] text-[#0F1419] border-[#E89F3D] italic text-[13px]" />
+                </div>
+              </FieldBlock>
+
+              {/* Buying committee */}
+              <FieldBlock label="Wie beslist mee?" hint="Partner, ouders, familie?">
+                <textarea value={data.buying_committee} onChange={e => update({ buying_committee: e.target.value })}
+                  placeholder="bv. Joris belt — An moet 100% akkoord zijn over budget"
+                  className="w-full px-4 py-3 bg-white border-2 border-[#DDD5C5] text-[15px] font-body text-[#0F1419] placeholder:text-[#B0A898] resize-none min-h-[80px] focus:outline-none focus:border-[#008CFF]" />
+              </FieldBlock>
+
+              {/* Indruk */}
+              <FieldBlock label="Algemene indruk" hint="Gehaast, rustig, sceptisch, enthousiast?">
+                <textarea value={data.general_impression} onChange={e => update({ general_impression: e.target.value })}
+                  placeholder="bv. klonk gehaast, lijkt veel op het bord te hebben"
+                  className="w-full px-4 py-3 bg-white border-2 border-[#DDD5C5] text-[15px] font-body text-[#0F1419] placeholder:text-[#B0A898] resize-none min-h-[80px] focus:outline-none focus:border-[#008CFF]" />
+              </FieldBlock>
+
             </div>
-            <div className="p-[10px] flex-1">
+          </div>
+        </div>
+
+        {/* ─────── RIGHT: SCRIPT RAIL ─────── */}
+        <div className="overflow-y-auto bg-[#F8F3EB]">
+          <div className="p-4 space-y-2">
+
+            <div className="px-1 pb-2 flex items-center gap-2">
+              <span className="font-dm text-[10px] font-bold tracking-[0.14em] uppercase text-[#5B6470]">Gespreksgids</span>
+              <span className="text-[10.5px] text-[#B0A898] italic">— referentie, klik om te openen</span>
+            </div>
+
+            {/* FASE 1 */}
+            <ScriptPhase fase="Fase 1" tijd="1–2 min" titel="Motivatie blootleggen" doel="Ontdek waarom de klant vandaag belt." defaultOpen>
               <QCard
                 label="Openingsvraag"
                 question={`"Waar liep je in huis precies tegenaan waardoor je dacht: 'nu is het tijd om die zolder aan te pakken'?"`}
@@ -406,77 +457,37 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation }
                 variant={`"Mag ik vragen wat je precies hoopt te bereiken met die extra ruimte?"`}
               />
               <TipCard label="Tip · Mirroring" text={`Klant zegt <em>"frustrerend"</em>. Jij zacht: <em>"frustrerend...?"</em> en zwijg. De klant vertelt vanzelf meer.`} />
-              <TipCard label="Tip · 80/20-regel" text="Klant praat 90% van de tijd. Jij stelt vragen en luistert. Hoe minder jij praat, hoe meer vertrouwen." />
-            </div>
-          </div>
+              <TipCard label="Tip · 80/20-regel" text="Klant praat 90% van de tijd. Jij stelt vragen en luistert." />
+            </ScriptPhase>
 
-          {/* ── FASE 2: Doorvragen op de pijn ── */}
-          <div className="bg-white border border-[#DDD5C5] flex flex-col">
-            <div className="bg-[#008CFF] text-white px-3 py-[10px]">
-              <div className="flex items-baseline justify-between mb-[3px]">
-                <span className="font-dm text-[9.5px] font-bold tracking-[0.16em] uppercase opacity-85">Fase 2</span>
-                <span className="font-dm text-[9.5px] font-medium opacity-85">2–3 min</span>
-              </div>
-              <div className="font-dm text-[15px] font-bold leading-[1.15] tracking-[-0.01em]">Doorvragen op de pijn</div>
-            </div>
-            <div className="bg-[#2B6CA0] text-white px-3 py-[7px] text-[11px] leading-[1.35]">
-              <div className="font-dm text-[8.5px] font-bold tracking-[0.16em] uppercase opacity-70 mb-[1px]">Doel</div>
-              Laat de klant onbewust de urgentie van eigen probleem voelen.
-            </div>
-            <div className="p-[10px] flex-1">
+            {/* FASE 2 */}
+            <ScriptPhase fase="Fase 2" tijd="2–3 min" titel="Doorvragen op de pijn" doel="Laat de klant onbewust de urgentie van eigen probleem voelen.">
               <QCard label="Duur-vraag" question={`"Hoe lang speelt dat eigenlijk al?"`} why="De klant beseft zelf hoe lang ze rondlopen met de frustratie." />
               <QCard label="Impact-vraag" question={`"Heeft dat veel impact op hoe jullie het huis nu kunnen gebruiken?"`} toon="Rustig, lichtbezorgd. Laat een pauze vallen na de vraag." />
               <QCard label="Verduidelijking" question={`"Op welke manier bedoel je dat precies? Kan je een voorbeeld geven?"`} why="Onder vage antwoorden zit de échte motivatie." />
               <QCard label="Resultaat-vraag" question={`"Stel dat we dit helemaal naar wens kunnen oplossen — wat zou die ruimte voor jullie betekenen?"`} why="Verlegt focus van prijs naar waarde." />
               <QCard label="Echte zorgen" question={`"Wat zijn jullie grootste vragen of bezorgdheden rond zo'n zolderrenovatie?"`} why={`Detecteert hun angst om "gepakt" te worden. Noteer letterlijk.`} />
-            </div>
-          </div>
+            </ScriptPhase>
 
-          {/* ── FASE 3: Videocall framen + deliverables ── */}
-          <div className="bg-white border border-[#DDD5C5] flex flex-col">
-            <div className="bg-[#008CFF] text-white px-3 py-[10px]">
-              <div className="flex items-baseline justify-between mb-[3px]">
-                <span className="font-dm text-[9.5px] font-bold tracking-[0.16em] uppercase opacity-85">Fase 3</span>
-                <span className="font-dm text-[9.5px] font-medium opacity-85">2–3 min</span>
-              </div>
-              <div className="font-dm text-[15px] font-bold leading-[1.15] tracking-[-0.01em]">Videocall framen + deliverables</div>
-            </div>
-            <div className="bg-[#2B6CA0] text-white px-3 py-[7px] text-[11px] leading-[1.35]">
-              <div className="font-dm text-[8.5px] font-bold tracking-[0.16em] uppercase opacity-70 mb-[1px]">Doel</div>
-              Videocall als voordeel positioneren. Foto's + oppervlakte vragen. Tijdsvraag stellen.
-            </div>
-            <div className="p-[10px] flex-1">
+            {/* FASE 3 */}
+            <ScriptPhase fase="Fase 3" tijd="2–3 min" titel="Videocall framen + deliverables" doel="Videocall als voordeel positioneren. Foto's + oppervlakte vragen.">
               <QCard
                 label="Framing van de videocall"
-                question={`"Om jullie concrete antwoorden te geven op budget, timing, duur en haalbaarheid, plannen we eerst een korte videocall in met Bram, onze zolderexpert. Hij kan via video vaak al meteen inschatten of jullie wensen haalbaar zijn — zo hoeven jullie geen halve dag verlof te nemen voor een plaatsbezoek."`}
+                question={`"Om jullie concrete antwoorden te geven op budget, timing, duur en haalbaarheid, plannen we eerst een korte videocall in met Bram, onze zolderexpert."`}
                 why="Positioneer Bram als expert. Videocall bespaart hún tijd."
               />
-              <DeliverableCard label="Deliverable 1 · Foto's" text={`Bram maakt tijdens de call een eerste kostenraming. Foto's van de zolder zoals ze er nu bij ligt — <em>niet opruimen</em>, hoe realistischer hoe beter. Bij vaste trap: ook foto's van de verdieping eronder.`} />
-              <DeliverableCard label="Deliverable 2 · Oppervlakte" text="Een ruwe oppervlakte van de vloer — zelf opmeten volstaat. Of een foto van een plan als ze dat hebben liggen." />
+              <DeliverableCard label="Deliverable 1 · Foto's" text={`Bram maakt tijdens de call een eerste kostenraming. Foto's van de zolder zoals ze er nu bij ligt — <em>niet opruimen</em>.`} />
+              <DeliverableCard label="Deliverable 2 · Oppervlakte" text="Een ruwe oppervlakte van de vloer — zelf opmeten volstaat." />
               <QCard
                 label="De tijdsvraag · bepaalt videocall-datum"
-                question={`"Wanneer denken jullie dat realistisch te kunnen doen? Hebben jullie deze week makkelijk toegang tot de zolder, of is dat moeilijker te plannen?"`}
-                why={`"Realistisch" geeft toestemming om eerlijk te zijn. Videocall pas ná dit moment plannen.`}
+                question={`"Wanneer denken jullie dat realistisch te kunnen doen?"`}
+                why={`"Realistisch" geeft toestemming om eerlijk te zijn.`}
               />
-              <TipCard label="Tip · Verstop kwalificatie hierin" text="Stel terloops: gemeente? Echte zolderrenovatie of ook dakwerken? Eigenaar of in aankoop? Type woning? Geen checklist — gewoon doorvlechten." />
-            </div>
-          </div>
+              <TipCard label="Tip · Verstop kwalificatie hierin" text="Stel terloops: gemeente? Eigenaar of in aankoop? Type woning? Geen checklist — gewoon doorvlechten." />
+            </ScriptPhase>
 
-          {/* ── FASE 4: Inplannen + afsluiten ── */}
-          <div className="bg-white border border-[#DDD5C5] flex flex-col">
-            <div className="bg-[#008CFF] text-white px-3 py-[10px]">
-              <div className="flex items-baseline justify-between mb-[3px]">
-                <span className="font-dm text-[9.5px] font-bold tracking-[0.16em] uppercase opacity-85">Fase 4</span>
-                <span className="font-dm text-[9.5px] font-medium opacity-85">1–2 min</span>
-              </div>
-              <div className="font-dm text-[15px] font-bold leading-[1.15] tracking-[-0.01em]">Inplannen + afsluiten</div>
-            </div>
-            <div className="bg-[#2B6CA0] text-white px-3 py-[7px] text-[11px] leading-[1.35]">
-              <div className="font-dm text-[8.5px] font-bold tracking-[0.16em] uppercase opacity-70 mb-[1px]">Doel</div>
-              Videocall in agenda. Guard-Down vraag. Warm afsluiten — geen open einde.
-            </div>
-            <div className="p-[10px] flex-1">
-              {/* Scenario mini-grid */}
+            {/* FASE 4 */}
+            <ScriptPhase fase="Fase 4" tijd="1–2 min" titel="Inplannen + afsluiten" doel="Videocall in agenda. Guard-Down vraag. Warm afsluiten.">
               <div className="border border-[#DDD5C5] mb-2 overflow-hidden">
                 <div className="bg-[#F8F3EB] text-[#2B6CA0] font-dm text-[9px] font-bold tracking-[0.13em] uppercase px-[9px] py-1 border-b border-[#DDD5C5]">
                   Inplan-scenario
@@ -495,101 +506,71 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation }
                   ))}
                 </div>
               </div>
+              <QCard label={`Als de klant "ik bel u nog terug" zegt`} question={`"Mijn ervaring leert dat zo'n terugbel-afspraak vaak verloren gaat. Veel handiger als we nu een moment in de agenda zetten — verzetten kan altijd."`} />
+              <QCard label="Guard-Down vraag · pas NÁ het prikken" question={`"Helemaal goed, de videocall staat. Nog even voor ik je laat gaan: wat wilden jij en je partner zeker nog doornemen?"`} why="Afspraak staat, verdediging zakt. Hier komt het echte bezwaar." />
+              <QCard label="Warme afsluiter" question={`"Super, dan zorg ik dat Bram perfect voorbereid is. Fijne dag nog!"`} />
+            </ScriptPhase>
 
-              <QCard
-                label={`Als de klant "ik bel u nog terug" zegt`}
-                question={`"Mijn ervaring leert dat zo'n terugbel-afspraak vaak verloren gaat. Veel handiger als we nu een moment in de agenda zetten — verzetten kan altijd."`}
-                why={`"Verzetten kan altijd" verlaagt de drempel om nu te committen.`}
-              />
-              <QCard
-                label="Guard-Down vraag · pas NÁ het prikken"
-                question={`"Helemaal goed, de videocall staat. Nog even voor ik je laat gaan: wat wilden jij en je partner zeker nog doornemen, zodat ik dat aan Bram kan doorgeven?"`}
-                why="Afspraak staat, verdediging zakt. Hier komt het echte bezwaar. Noteer letterlijk."
-              />
-              <QCard
-                label="Warme afsluiter"
-                question={`"Super, dan zorg ik dat Bram perfect voorbereid is. Je krijgt zo de uitnodiging in je mailbox, en het nummer voor de foto's krijg je daar ook bij. Fijne dag nog!"`}
-              />
-            </div>
-          </div>
-
-        </div>
-
-        {/* ═══ ANTICIPATIE-STROOK ═══ */}
-        <div className="mt-3 bg-white border border-[#DDD5C5]">
-          <div className="bg-[#E89F3D] text-white px-[14px] py-[7px] flex items-center gap-2">
-            <span className="text-[14px]">⚠️</span>
-            <span className="font-dm text-[11px] font-bold tracking-[0.12em] uppercase">Anticipatie · wat als de klant deze vragen stelt?</span>
-          </div>
-          <div className="grid grid-cols-3">
-            <AnticipateCard topic="Wat kost het ongeveer?" klant={`"Wat kost zo'n zolderrenovatie?"`} jij={`"Logische vraag. Een prijs hangt af van oppervlakte, toestand, indeling, vaste trap... Daarom rekent Bram dit in de videocall voor jullie uit op basis van jullie situatie. Klinkt dat eerlijk?"`} />
-            <AnticipateCard topic="Wanneer kunnen jullie starten?" klant={`"Wanneer kan dat starten en hoe lang duurt het?"`} jij={`"Heel logisch — een van de eerste dingen die Bram met jullie doorneemt. Concrete data noemen aan de telefoon doen we bewust niet, want dan zit je later met cijfers die niet kloppen."`} />
-            <AnticipateCard topic="Hoeveel overlast?" klant={`"Hoeveel overlast brengt dat mee?"`} jij={`"Veel mensen bezighoudt, heel terecht. Bram bespreekt standaard hoe het verloop er praktisch uitziet — zodat je vooraf weet waar je aan toe bent."`} />
-            <AnticipateCard topic="Is ons idee haalbaar?" klant={`"Kan onze indeling wel?"`} jij={`"Daar gaat Bram in de call concreet antwoord op geven. Op basis van de foto's en oppervlakte kan hij meestal al inschatten wat haalbaar is. Precies daarvoor is die call."`} />
-            <AnticipateCard topic="Kan er niet gewoon iemand langskomen?" klant={`"Stuur gewoon iemand langs."`} jij={`"Begrijp ik, dat is hoe het vroeger ging. We starten via video om te vermijden dat we jullie tijd verspillen als wensen niet aansluiten. Wat was de belangrijkste reden dat je liefst direct iemand wou?"`} />
-            <AnticipateCard topic="Eerst met partner overleggen" klant={`"Ik moet het eerst met mijn vrouw/man bespreken."`} jij={`"Groot gelijk, jullie moeten er allebei achter staan. Wat dacht je ervan als we de videocall juist plannen op een moment dat jullie allebei thuis zijn?"`} />
-          </div>
-        </div>
-
-        {/* ═══ NOTITIEBLOK ═══ */}
-        <div className="mt-3 bg-white border border-[#DDD5C5]">
-          <div className="bg-[#0F1419] text-white px-[14px] py-2 flex items-center justify-between">
-            <div className="font-dm text-[11px] font-bold tracking-[0.12em] uppercase flex items-center gap-2">
-              <span className="text-[13px]">📝</span> Notitieblok · wat onthou ik uit dit gesprek?
-            </div>
-            <div className="text-[10.5px] text-white/70 italic">Niet gelinkt aan een fase. De essentie om naar Bram door te geven.</div>
-          </div>
-          <div className="grid grid-cols-[1.1fr_1.4fr_1.4fr_1fr_1fr]">
-
-            {/* Trigger */}
-            <div className="p-[10px_12px_12px_12px] border-r border-[#DDD5C5]">
-              <label className="font-dm text-[9.5px] font-bold tracking-[0.12em] uppercase text-[#0F1419] block mb-[3px]">De trigger</label>
-              <div className="text-[10px] text-[#5B6470] italic mb-[6px] leading-[1.3]">Waarom belt de klant nu?</div>
-              <input type="text" value={data.trigger_text} onChange={e => update({ trigger_text: e.target.value })}
-                placeholder="bv. oudste naar middelbaar in september"
-                className="w-full border border-[#DDD5C5] bg-[#F8F3EB] px-2 py-[6px] font-body text-[11.5px] text-[#0F1419] focus:outline-none focus:border-[#008CFF] focus:bg-white" />
-            </div>
-
-            {/* Citaten */}
-            <div className="p-[10px_12px_12px_12px] border-r border-[#DDD5C5]">
-              <label className="font-dm text-[9.5px] font-bold tracking-[0.12em] uppercase text-[#0F1419] block mb-[3px]">Letterlijke citaten</label>
-              <div className="text-[10px] text-[#5B6470] italic mb-[6px] leading-[1.3]">Exacte woorden — tussen aanhalingstekens</div>
-              <ChipInput chips={data.emotional_keywords} onAdd={addEmotionalKeyword} onRemove={removeEmotionalKeyword}
-                placeholder="typ en druk op +" accentColor="bg-[#F8F3EB] text-[#0F1419] border-[#DDD5C5] italic text-[10.5px]" />
-            </div>
-
-            {/* Twijfels */}
-            <div className="p-[10px_12px_12px_12px] border-r border-[#DDD5C5]">
-              <label className="font-dm text-[9.5px] font-bold tracking-[0.12em] uppercase text-[#0F1419] block mb-[3px]">Twijfels en zorgen</label>
-              <div className="text-[10px] text-[#5B6470] italic mb-[6px] leading-[1.3]">Angsten, slechte ervaringen — ook letterlijk</div>
-              <ChipInput chips={data.fomu_concerns} onAdd={addFomuConcern} onRemove={removeFomuConcern}
-                placeholder="typ en druk op +" accentColor="bg-[#FFF6E5] text-[#0F1419] border-[#E89F3D] italic text-[10.5px]" />
-            </div>
-
-            {/* Buying committee */}
-            <div className="p-[10px_12px_12px_12px] border-r border-[#DDD5C5]">
-              <label className="font-dm text-[9.5px] font-bold tracking-[0.12em] uppercase text-[#0F1419] block mb-[3px]">Wie beslist mee?</label>
-              <div className="text-[10px] text-[#5B6470] italic mb-[6px] leading-[1.3]">Partner, ouders, familie?</div>
-              <textarea value={data.buying_committee} onChange={e => update({ buying_committee: e.target.value })}
-                placeholder="bv. Joris belt — An moet 100% akkoord zijn over budget"
-                className="w-full border border-[#DDD5C5] bg-[#F8F3EB] px-2 py-[6px] font-body text-[11.5px] text-[#0F1419] resize-none min-h-[50px] focus:outline-none focus:border-[#008CFF] focus:bg-white" />
-            </div>
-
-            {/* Indruk */}
-            <div className="p-[10px_12px_12px_12px]">
-              <label className="font-dm text-[9.5px] font-bold tracking-[0.12em] uppercase text-[#0F1419] block mb-[3px]">Algemene indruk</label>
-              <div className="text-[10px] text-[#5B6470] italic mb-[6px] leading-[1.3]">Gehaast, rustig, sceptisch, enthousiast?</div>
-              <textarea value={data.general_impression} onChange={e => update({ general_impression: e.target.value })}
-                placeholder="bv. klonk gehaast, lijkt veel op het bord te hebben"
-                className="w-full border border-[#DDD5C5] bg-[#F8F3EB] px-2 py-[6px] font-body text-[11.5px] text-[#0F1419] resize-none min-h-[50px] focus:outline-none focus:border-[#008CFF] focus:bg-white" />
-            </div>
+            {/* ANTICIPATIE */}
+            <ScriptPhase fase="⚠ Anticipatie" tijd="" titel="Wat als de klant deze vragen stelt?" doel="Snelle antwoorden bij weerstand." accent="amber">
+              <div className="space-y-2">
+                <AnticipateCard topic="Wat kost het ongeveer?" klant={`"Wat kost zo'n zolderrenovatie?"`} jij={`"Logische vraag. Een prijs hangt af van oppervlakte, toestand, indeling... Daarom rekent Bram dit in de videocall voor jullie uit."`} />
+                <AnticipateCard topic="Wanneer kunnen jullie starten?" klant={`"Wanneer kan dat starten?"`} jij={`"Heel logisch — een van de eerste dingen die Bram met jullie doorneemt. Concrete data noemen aan de telefoon doen we bewust niet."`} />
+                <AnticipateCard topic="Hoeveel overlast?" klant={`"Hoeveel overlast brengt dat mee?"`} jij={`"Bram bespreekt standaard hoe het verloop er praktisch uitziet — zodat je vooraf weet waar je aan toe bent."`} />
+                <AnticipateCard topic="Is ons idee haalbaar?" klant={`"Kan onze indeling wel?"`} jij={`"Daar gaat Bram in de call concreet antwoord op geven. Op basis van de foto's en oppervlakte kan hij al inschatten wat haalbaar is."`} />
+                <AnticipateCard topic="Stuur iemand langs" klant={`"Stuur gewoon iemand langs."`} jij={`"Begrijp ik. We starten via video om te vermijden dat we jullie tijd verspillen als wensen niet aansluiten."`} />
+                <AnticipateCard topic="Eerst met partner overleggen" klant={`"Ik moet het eerst met mijn vrouw/man bespreken."`} jij={`"Groot gelijk. Wat dacht je ervan als we de videocall juist plannen op een moment dat jullie allebei thuis zijn?"`} />
+              </div>
+            </ScriptPhase>
 
           </div>
         </div>
-
       </div>
 
       <CloseCallDialog open={showCloseDialog} onClose={() => setShowCloseDialog(false)} onConfirm={handleCloseCall} />
     </div>
   );
 }
+
+/* ───────────────────────── HELPER COMPONENTS ───────────────────────── */
+
+function FieldBlock({ label, hint, children }: { label: string; hint: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="font-dm text-[13px] font-bold text-[#0F1419] block mb-[2px]">{label}</label>
+      <div className="text-[11.5px] text-[#5B6470] italic mb-[8px]">{hint}</div>
+      {children}
+    </div>
+  );
+}
+
+function ScriptPhase({
+  fase, tijd, titel, doel, children, defaultOpen = false, accent = 'blue',
+}: {
+  fase: string; tijd: string; titel: string; doel: string;
+  children: React.ReactNode; defaultOpen?: boolean; accent?: 'blue' | 'amber';
+}) {
+  const headerBg = accent === 'amber' ? 'bg-[#E89F3D]' : 'bg-white';
+  const headerText = accent === 'amber' ? 'text-white' : 'text-[#0F1419]';
+  const stripe = accent === 'amber' ? 'border-l-[#E89F3D]' : 'border-l-[#008CFF]';
+  const tag = accent === 'amber' ? 'text-white/85' : 'text-[#008CFF]';
+  return (
+    <details open={defaultOpen} className={`group bg-white border border-[#DDD5C5] border-l-[3px] ${stripe} open:shadow-sm`}>
+      <summary className={`${headerBg} ${headerText} list-none cursor-pointer px-3 py-[10px] flex items-center justify-between gap-3 select-none`}>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-baseline gap-2">
+            <span className={`font-dm text-[9.5px] font-bold tracking-[0.14em] uppercase ${tag}`}>{fase}</span>
+            {tijd && <span className="font-dm text-[9.5px] font-medium opacity-70">{tijd}</span>}
+          </div>
+          <div className="font-dm text-[13.5px] font-bold leading-[1.2] tracking-[-0.01em] truncate">{titel}</div>
+          <div className={`text-[10.5px] mt-[1px] truncate ${accent === 'amber' ? 'text-white/85' : 'text-[#5B6470]'}`}>{doel}</div>
+        </div>
+        <svg className="w-4 h-4 shrink-0 transition-transform group-open:rotate-90" viewBox="0 0 20 20" fill="currentColor"><path d="M7 5l6 5-6 5V5z" /></svg>
+      </summary>
+      <div className="p-[10px] border-t border-[#DDD5C5]">
+        {children}
+      </div>
+    </details>
+  );
+}
+
