@@ -16,13 +16,16 @@ import PortalPreview from '@/components/portal/PortalPreview';
 const fmt = (n: number) =>
   new Intl.NumberFormat('nl-BE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
 
-const STATUS_LABELS: Record<string, string> = {
-  intake: 'Intake',
-  plaatsbezoek: 'Plaatsbezoek',
-  offerte: 'Offerte',
-  uitvoering: 'Uitvoering',
-  afgesloten: 'Afgesloten',
-  verloren: 'Verloren',
+const STATUS_CONFIG: Record<string, { label: string; bg: string; color: string }> = {
+  nieuw:            { label: 'Nieuw',            bg: 'bg-muted',          color: 'text-muted-foreground' },
+  telefoongesprek:  { label: 'Telefoongesprek',  bg: 'bg-blue-100',       color: 'text-blue-700' },
+  intake_gepland:   { label: 'Intake gepland',   bg: 'bg-amber-100',      color: 'text-amber-800' },
+  intake:           { label: 'Intake gedaan',    bg: 'bg-primary/15',     color: 'text-primary' },
+  plaatsbezoek:     { label: 'Plaatsbezoek',     bg: 'bg-indigo-100',     color: 'text-indigo-700' },
+  offerte:          { label: 'Offerte',          bg: 'bg-purple-100',     color: 'text-purple-700' },
+  uitvoering:       { label: 'Uitvoering',       bg: 'bg-orange-100',     color: 'text-orange-700' },
+  afgesloten:       { label: 'Afgesloten',       bg: 'bg-green-100',      color: 'text-green-700' },
+  verloren:         { label: 'Verloren',         bg: 'bg-red-100',        color: 'text-red-700' },
 };
 
 function rowToLead(row: any): LeadData {
@@ -68,7 +71,7 @@ function rowToLead(row: any): LeadData {
     rapport_gegenereerd_op: row.rapport_gegenereerd_op ?? null,
     rapport_versies: Array.isArray(row.rapport_versies) ? row.rapport_versies : [],
     project_feiten: Array.isArray(row.project_feiten) ? row.project_feiten : [],
-    status: row.status ?? 'intake',
+    status: row.status ?? 'nieuw',
     fotos: Array.isArray(row.fotos) ? row.fotos : [],
     technisch: row.technisch ? { ...defaultTechnisch, ...(row.technisch as any) } : { ...defaultTechnisch },
     gespreksvragen: (row as any).gespreksvragen && typeof (row as any).gespreksvragen === 'object'
@@ -268,9 +271,7 @@ export default function Dossiers({ onOpenLead, onOpenValidation }: DossiersProps
                         </TableCell>
                         <TableCell className="font-body">{lead.gesprek_datum || '—'}</TableCell>
                         <TableCell>
-                          <span className="text-xs font-bold tracking-wider uppercase text-primary">
-                            {STATUS_LABELS[lead.status] || lead.status}
-                          </span>
+                          <StatusBadge status={lead.status} />
                         </TableCell>
                         <TableCell className="font-body">
                           {lead.budget_min ? `${fmt(lead.budget_min)} — ${fmt(lead.budget_max)}` : '—'}
