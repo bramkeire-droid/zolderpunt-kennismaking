@@ -248,74 +248,47 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation }
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          <div className="max-w-2xl mx-auto p-8 space-y-6">
+          <div className="max-w-3xl mx-auto p-8 space-y-5">
 
-            {/* Klantgegevens */}
-            <section className="bg-white border border-[#DDD5C5] p-5 space-y-4">
-              <h2 className="font-dm text-[10px] font-bold text-[#0F1419] uppercase tracking-[0.12em]">Klantgegevens</h2>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-body text-[#5B6470]">Voornaam</label>
-                  <input type="text" value={leadVoornaam} onChange={e => setLeadVoornaam(e.target.value)} placeholder="Voornaam"
-                    className="w-full h-9 px-3 mt-1 bg-[#F8F3EB] border border-[#DDD5C5] text-sm font-body text-[#0F1419] placeholder:text-[#5B6470] focus:outline-none focus:ring-2 focus:ring-[#008CFF]/30" />
-                </div>
-                <div>
-                  <label className="text-xs font-body text-[#5B6470]">Achternaam</label>
-                  <input type="text" value={leadAchternaam} onChange={e => setLeadAchternaam(e.target.value)} placeholder="Achternaam"
-                    className="w-full h-9 px-3 mt-1 bg-[#F8F3EB] border border-[#DDD5C5] text-sm font-body text-[#0F1419] placeholder:text-[#5B6470] focus:outline-none focus:ring-2 focus:ring-[#008CFF]/30" />
-                </div>
+            {/* Klantgegevens — compact grid, inputs prominent */}
+            <section className="space-y-3">
+              <h2 className="font-dm text-[9px] font-bold text-[#5B6470] uppercase tracking-[0.14em]">Klantgegevens</h2>
+              <div className="grid grid-cols-[1fr_1fr_1.5fr] gap-3">
+                <input type="text" value={leadVoornaam} onChange={e => setLeadVoornaam(e.target.value)} placeholder="Voornaam"
+                  className="h-12 px-4 bg-white border-2 border-[#DDD5C5] text-[15px] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
+                <input type="text" value={leadAchternaam} onChange={e => setLeadAchternaam(e.target.value)} placeholder="Achternaam"
+                  className="h-12 px-4 bg-white border-2 border-[#DDD5C5] text-[15px] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
+                <input type="email" value={leadEmail} onChange={e => setLeadEmail(e.target.value)} placeholder="E-mailadres"
+                  className="h-12 px-4 bg-white border-2 border-[#DDD5C5] text-[15px] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
               </div>
-              <div>
-                <label className="text-xs font-body text-[#5B6470]">Adres</label>
-                <input type="text" value={leadAdres} onChange={e => setLeadAdres(e.target.value)} placeholder="bv. Kerkstraat 12, 9000 Gent"
-                  className="w-full h-9 px-3 mt-1 bg-[#F8F3EB] border border-[#DDD5C5] text-sm font-body text-[#0F1419] placeholder:text-[#5B6470] focus:outline-none focus:ring-2 focus:ring-[#008CFF]/30" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-body text-[#5B6470]">Partner</label>
-                  <input type="text" value={leadPartnerNaam} onChange={e => setLeadPartnerNaam(e.target.value)} placeholder="Naam partner"
-                    className="w-full h-9 px-3 mt-1 bg-[#F8F3EB] border border-[#DDD5C5] text-sm font-body text-[#0F1419] placeholder:text-[#5B6470] focus:outline-none focus:ring-2 focus:ring-[#008CFF]/30" />
-                </div>
-                <div>
-                  <label className="text-xs font-body text-[#5B6470]">Gemeente</label>
-                  <input type="text" value={data.region_gemeente} onChange={e => update({ region_gemeente: e.target.value })} placeholder="bv. Gent, Aalst, Brugge..."
-                    className="w-full h-9 px-3 mt-1 bg-[#F8F3EB] border border-[#DDD5C5] text-sm font-body text-[#0F1419] placeholder:text-[#5B6470] focus:outline-none focus:ring-2 focus:ring-[#008CFF]/30" />
-                </div>
-              </div>
-              <div>
-                <label className="text-xs font-body text-[#5B6470]">E-mail</label>
-                <input type="email" value={leadEmail} onChange={e => setLeadEmail(e.target.value)} placeholder="email@voorbeeld.be"
-                  className="w-full h-9 px-3 mt-1 bg-[#F8F3EB] border border-[#DDD5C5] text-sm font-body text-[#0F1419] placeholder:text-[#5B6470] focus:outline-none focus:ring-2 focus:ring-[#008CFF]/30" />
+              <input type="text" value={leadAdres} onChange={e => setLeadAdres(e.target.value)} placeholder="Volledig adres — bv. Kerkstraat 12, 9000 Gent"
+                className="w-full h-12 px-4 bg-white border-2 border-[#DDD5C5] text-[15px] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
+              <div className="grid grid-cols-2 gap-3">
+                <input type="text" value={leadPartnerNaam} onChange={e => setLeadPartnerNaam(e.target.value)} placeholder="Naam partner"
+                  className="h-12 px-4 bg-white border-2 border-[#DDD5C5] text-[15px] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
+                <input type="text" value={data.region_gemeente} onChange={e => update({ region_gemeente: e.target.value })} placeholder="Gemeente"
+                  className="h-12 px-4 bg-white border-2 border-[#DDD5C5] text-[15px] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
               </div>
             </section>
 
-            {/* Videocall plannen */}
-            <section className="bg-white border border-[#DDD5C5] p-5 space-y-4">
-              <h2 className="font-dm text-[10px] font-bold text-[#0F1419] uppercase tracking-[0.12em]">Videocall plannen</h2>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-body text-[#5B6470]">Datum</label>
-                  <input type="date" value={data.videocall_scheduled_at ? data.videocall_scheduled_at.split('T')[0] : ''}
-                    onChange={e => {
-                      const time = data.videocall_scheduled_at ? data.videocall_scheduled_at.split('T')[1] || '10:00' : '10:00';
-                      update({ videocall_scheduled_at: e.target.value ? `${e.target.value}T${time}` : null });
-                    }}
-                    className="w-full h-9 px-3 mt-1 bg-[#F8F3EB] border border-[#DDD5C5] text-sm font-body text-[#0F1419] focus:outline-none focus:ring-2 focus:ring-[#008CFF]/30" />
-                </div>
-                <div>
-                  <label className="text-xs font-body text-[#5B6470]">Uur</label>
-                  <input type="time" value={data.videocall_scheduled_at ? data.videocall_scheduled_at.split('T')[1]?.substring(0, 5) || '10:00' : ''}
-                    onChange={e => {
-                      const date = data.videocall_scheduled_at ? data.videocall_scheduled_at.split('T')[0] : new Date().toISOString().split('T')[0];
-                      update({ videocall_scheduled_at: `${date}T${e.target.value}` });
-                    }}
-                    className="w-full h-9 px-3 mt-1 bg-[#F8F3EB] border border-[#DDD5C5] text-sm font-body text-[#0F1419] focus:outline-none focus:ring-2 focus:ring-[#008CFF]/30" />
-                </div>
-              </div>
-              <div>
-                <label className="text-xs font-body text-[#5B6470]">Google Meet link</label>
-                <input type="url" value={data.google_meet_link} onChange={e => update({ google_meet_link: e.target.value })} placeholder="https://meet.google.com/..."
-                  className="w-full h-9 px-3 mt-1 bg-[#F8F3EB] border border-[#DDD5C5] text-sm font-body text-[#0F1419] placeholder:text-[#5B6470] focus:outline-none focus:ring-2 focus:ring-[#008CFF]/30" />
+            {/* Videocall plannen — inputs first, labels minimal */}
+            <section className="space-y-3">
+              <h2 className="font-dm text-[9px] font-bold text-[#5B6470] uppercase tracking-[0.14em]">Videocall plannen</h2>
+              <div className="grid grid-cols-[1fr_1fr_2fr] gap-3">
+                <input type="date" value={data.videocall_scheduled_at ? data.videocall_scheduled_at.split('T')[0] : ''}
+                  onChange={e => {
+                    const time = data.videocall_scheduled_at ? data.videocall_scheduled_at.split('T')[1] || '10:00' : '10:00';
+                    update({ videocall_scheduled_at: e.target.value ? `${e.target.value}T${time}` : null });
+                  }}
+                  className="h-12 px-4 bg-white border-2 border-[#DDD5C5] text-[15px] font-body font-medium text-[#0F1419] focus:outline-none focus:border-[#008CFF]" />
+                <input type="time" value={data.videocall_scheduled_at ? data.videocall_scheduled_at.split('T')[1]?.substring(0, 5) || '10:00' : ''}
+                  onChange={e => {
+                    const date = data.videocall_scheduled_at ? data.videocall_scheduled_at.split('T')[0] : new Date().toISOString().split('T')[0];
+                    update({ videocall_scheduled_at: `${date}T${e.target.value}` });
+                  }}
+                  className="h-12 px-4 bg-white border-2 border-[#DDD5C5] text-[15px] font-body font-medium text-[#0F1419] focus:outline-none focus:border-[#008CFF]" />
+                <input type="url" value={data.google_meet_link} onChange={e => update({ google_meet_link: e.target.value })} placeholder="Google Meet link"
+                  className="h-12 px-4 bg-white border-2 border-[#DDD5C5] text-[15px] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
               </div>
               {data.videocall_scheduled_at && leadEmail && (
                 <button type="button" onClick={() => {
@@ -323,31 +296,27 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation }
                   const dag = dt.toLocaleDateString('nl-BE', { weekday: 'long', day: 'numeric', month: 'long' });
                   const uur = dt.toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' });
                   const meetLine = data.google_meet_link ? `\n${data.google_meet_link}\n` : '';
-                  const trapLine = data.photos_promised || true
-                    ? `\nAls u mij op voorhand kan meegeven:\n• Enkele foto's die de huidige toestand van de zolder goed weergeven\n• Enkele foto's van de ruimte waar de nieuwe vaste trap kan komen\n• Een inschatting van de oppervlakte van de zolder\n`
-                    : '';
-                  const subject = `Bevestiging videocall ${dag} om ${uur} — Zolderpunt`;
-                  const body = `Hi ${leadVoornaam},\n\nBij deze bevestig ik graag onze afspraak in de vorm van een videocall op ${dag} om ${uur}.${meetLine}${trapLine}\nIk kijk ernaar uit om meer te weten te komen over jullie project. Tot dan!\n\nPositieve groeten,\n\nBram Keirsschieter\n+32 492 400 954\n\nZaakvoerder\nZolderpunt.be`;
-                  window.open(`mailto:${leadEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
+                  const body = `Hi ${leadVoornaam},\n\nBij deze bevestig ik graag onze afspraak in de vorm van een videocall op ${dag} om ${uur}.${meetLine}\nAls u mij op voorhand kan meegeven:\n• Enkele foto's die de huidige toestand van de zolder goed weergeven\n• Enkele foto's van de ruimte waar de nieuwe vaste trap kan komen\n• Een inschatting van de oppervlakte van de zolder\n\nIk kijk ernaar uit om meer te weten te komen over jullie project. Tot dan!\n\nPositieve groeten,\n\nBram Keirsschieter\n+32 492 400 954\n\nZaakvoerder\nZolderpunt.be`;
+                  window.open(`mailto:${leadEmail}?subject=${encodeURIComponent(`Bevestiging videocall ${dag} om ${uur} — Zolderpunt`)}&body=${encodeURIComponent(body)}`);
                 }}
-                  className="w-full py-3 bg-[#2E7D38] text-white font-dm font-bold text-sm hover:bg-[#256B2E] transition-colors flex items-center justify-center gap-2">
+                  className="w-full h-12 bg-[#2E7D38] text-white font-dm font-bold text-[14px] hover:bg-[#256B2E] transition-colors">
                   Open bevestigingsmail
                 </button>
               )}
               {data.videocall_scheduled_at && !leadEmail && (
-                <p className="text-xs font-body text-[#E89F3D] italic">Vul een e-mailadres in bij klantgegevens om de bevestigingsmail te openen.</p>
+                <p className="text-xs font-body text-[#E89F3D] italic">Vul een e-mailadres in om de bevestigingsmail te openen.</p>
               )}
             </section>
 
-            {/* 8 klantvragen */}
-            <section className="bg-white border border-[#DDD5C5] p-5 space-y-3">
-              <h2 className="font-dm text-[10px] font-bold text-[#0F1419] uppercase tracking-[0.12em]">Welke klantvragen kwamen aan bod?</h2>
+            {/* Klantvragen — toggle chips */}
+            <section className="space-y-3">
+              <h2 className="font-dm text-[9px] font-bold text-[#5B6470] uppercase tracking-[0.14em]">Welke klantvragen kwamen aan bod?</h2>
               <div className="flex flex-wrap gap-2">
                 {CALLING_QUESTIONS.map(q => {
                   const raised = data.questions_raised[q.key]?.raised;
                   return (
                     <button key={q.key} type="button" onClick={() => toggleQuestion(q.key)}
-                      className={`px-3 py-1.5 text-sm font-body transition-colors ${raised ? 'bg-[#008CFF] text-white' : 'bg-[#F8F3EB] text-[#5B6470] hover:bg-[#DDD5C5]'}`}>
+                      className={`h-10 px-4 text-[14px] font-body font-medium transition-colors ${raised ? 'bg-[#008CFF] text-white border-2 border-[#008CFF]' : 'bg-white text-[#5B6470] border-2 border-[#DDD5C5] hover:border-[#008CFF]/50'}`}>
                       {q.label}
                     </button>
                   );
@@ -355,25 +324,22 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation }
               </div>
             </section>
 
-            {/* Validatie checklist */}
-            <section className="bg-white border border-[#DDD5C5] p-5 space-y-2">
-              <h2 className="font-dm text-[10px] font-bold text-[#0F1419] uppercase tracking-[0.12em]">Validatie-checklist</h2>
-              <p className="text-xs font-body text-[#5B6470] italic">Niet blokkerend — ter controle.</p>
+            {/* Validatie — compact inline */}
+            <section className="flex flex-wrap items-center gap-x-5 gap-y-1 py-3 border-t border-[#DDD5C5]">
               {[
-                { label: 'Emotioneel citaat genoteerd', ok: data.emotional_keywords.length > 0 },
-                { label: 'Buying committee benoemd', ok: !!data.buying_committee.trim() },
-                { label: 'Scenario gekozen', ok: !!data.scenario_chosen },
-                { label: 'Videocall-datum geprikt', ok: !!data.videocall_scheduled_at },
-                { label: 'Adres ingevuld', ok: !!leadAdres.trim() },
+                { label: 'Citaat', ok: data.emotional_keywords.length > 0 },
+                { label: 'Buying committee', ok: !!data.buying_committee.trim() },
+                { label: 'Scenario', ok: !!data.scenario_chosen },
+                { label: 'Videocall', ok: !!data.videocall_scheduled_at },
+                { label: 'Adres', ok: !!leadAdres.trim() },
               ].map((c, i) => (
-                <div key={i} className="flex items-center gap-2 text-sm font-body">
-                  <span className={c.ok ? 'text-[#2E7D38]' : 'text-[#E89F3D]'}>{c.ok ? '✓' : '○'}</span>
-                  <span className={c.ok ? 'text-[#0F1419]' : 'text-[#5B6470]'}>{c.label}</span>
-                </div>
+                <span key={i} className={`text-[12px] font-body ${c.ok ? 'text-[#2E7D38]' : 'text-[#B0A898]'}`}>
+                  {c.ok ? '✓' : '○'} {c.label}
+                </span>
               ))}
             </section>
 
-            <button onClick={handleFinishWrapUp} className="w-full py-4 bg-[#008CFF] text-white font-dm font-bold text-base hover:bg-[#0070CC] transition-colors">
+            <button onClick={handleFinishWrapUp} className="w-full h-14 bg-[#008CFF] text-white font-dm font-bold text-[16px] hover:bg-[#0070CC] transition-colors">
               Vergrendel dossier
             </button>
           </div>
