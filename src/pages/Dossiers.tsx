@@ -372,3 +372,12 @@ function PortalStatusBadge({ status }: { status: string }) {
     </span>
   );
 }
+
+function StatusBadge({ status }: { status: string }) {
+  const config = STATUS_CONFIG[status] || { label: status || '—', bg: 'bg-muted', color: 'text-muted-foreground' };
+  return (
+    <span className={`inline-block text-[0.7rem] font-bold tracking-wider uppercase px-2.5 py-1 ${config.bg} ${config.color}`}>
+      {config.label}
+    </span>
+  );
+}

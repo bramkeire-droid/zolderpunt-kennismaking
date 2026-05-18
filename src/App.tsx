@@ -36,7 +36,9 @@ import { ArrowRight, FolderOpen, Phone } from 'lucide-react';
 import logoBlauw from '@/assets/logo-blauw.svg';
 import DecorativeAngle from '@/components/DecorativeAngle';
 import CoachingSuggestions from '@/components/CoachingSuggestions';
+import IntakeBriefing from '@/components/IntakeBriefing';
 import Portal from '@/pages/Portal';
+import { supabase } from '@/integrations/supabase/client';
 import type { SlideId } from '@/contexts/SessionContext';
 import type { LeadData } from '@/contexts/SessionContext';
 
@@ -48,12 +50,13 @@ const SLIDE_COMPONENTS: Record<SlideId, React.ComponentType> = {
   '8': Slide8, '9': Slide9, '10': Slide10,
 };
 
-export type AppView = 'start' | 'slides' | 'dossiers' | 'calling' | 'validation';
+export type AppView = 'start' | 'slides' | 'dossiers' | 'calling' | 'validation' | 'briefing';
 
 function AppContent() {
   const [view, setView] = useState<AppView>('start');
   const [validationLeadId, setValidationLeadId] = useState<string | null>(null);
   const [validationPreIntakeId, setValidationPreIntakeId] = useState<string | null>(null);
+  const [briefingLead, setBriefingLead] = useState<LeadData | null>(null);
   const { currentMode, currentSlide, resetSession, setCurrentMode, loadLead } = useSession();
   const { flushSave } = useLeadSave();
 
@@ -65,8 +68,27 @@ function AppContent() {
     prevModeRef.current = currentMode;
   }, [currentMode, flushSave]);
 
-  const handleOpenLead = (lead: LeadData) => {
+  const handleOpenLead = async (lead: LeadData) => {
+    // Toon briefing als er een pre_intake bestaat voor dit dossier
+    if (lead.id) {
+      const { data: pi } = await supabase
+        .from('pre_intake' as any)
+        .select('id')
+        .eq('lead_id', lead.id)
+        .maybeSingle();
+      if (pi) {
+        setBriefingLead(lead);
+        setView('briefing');
+        return;
+      }
+    }
     loadLead(lead);
+    setView('slides');
+  };
+
+  const handleStartFromBriefing = () => {
+    if (briefingLead) loadLead(briefingLead);
+    setBriefingLead(null);
     setView('slides');
   };
 
