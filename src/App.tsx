@@ -1,3 +1,4 @@
+// Claude Code push test
 import { useState, useEffect, useRef } from 'react';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { SessionProvider, useSession } from '@/contexts/SessionContext';
