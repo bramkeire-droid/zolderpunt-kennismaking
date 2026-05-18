@@ -365,6 +365,20 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation }
         </div>
       </div>
 
+      {/* ═══ TWO-COLUMN WORKSPACE ═══ */}
+      <div className="flex-1 grid grid-cols-[1.85fr_1fr] min-h-0">
+
+        {/* ─────── LEFT: NOTITIEBLOK (hoofdwerkvlak) ─────── */}
+        <div className="overflow-y-auto bg-[#FFFCF5] border-r-2 border-[#DDD5C5]">
+          <div className="p-8 max-w-[1100px] mx-auto h-full flex flex-col">
+
+            <div className="flex items-baseline gap-3 mb-2">
+              <span className="text-[30px]">📝</span>
+              <h2 className="font-dm text-[36px] font-bold text-[#0F1419] tracking-[-0.01em]">Notitieblok</h2>
+              <span className="text-[24px] text-[#5B6470] italic">Wat onthou ik uit dit gesprek?</span>
+            </div>
+            <p className="text-[23px] text-[#5B6470] mb-8">De essentie om straks naar Bram door te geven. <strong>Hier ligt je focus tijdens het gesprek.</strong></p>
+
             <div className="flex flex-col gap-8 flex-1">
 
               {/* Klantgegevens — eerste blok, zelfde stijl als andere velden */}
@@ -382,16 +396,7 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation }
                 <input type="text" value={leadAdres} onChange={e => setLeadAdres(e.target.value)} placeholder="Adres"
                   className="w-full h-16 px-5 mt-3 bg-white border-2 border-[#DDD5C5] text-[32px] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
               </FieldBlock>
-          <div className="p-8 max-w-[1100px] mx-auto h-full flex flex-col">
 
-            <div className="flex items-baseline gap-3 mb-2">
-              <span className="text-[30px]">📝</span>
-              <h2 className="font-dm text-[36px] font-bold text-[#0F1419] tracking-[-0.01em]">Notitieblok</h2>
-              <span className="text-[24px] text-[#5B6470] italic">Wat onthou ik uit dit gesprek?</span>
-            </div>
-            <p className="text-[23px] text-[#5B6470] mb-8">De essentie om straks naar Bram door te geven. <strong>Hier ligt je focus tijdens het gesprek.</strong></p>
-
-            <div className="flex flex-col gap-8 flex-1">
 
               {/* Trigger */}
               <FieldBlock label="De trigger" hint="Waarom belt de klant nu?">
