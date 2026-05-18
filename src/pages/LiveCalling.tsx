@@ -574,4 +574,3 @@ function ScriptPhase({
   );
 }
 
-    <div className="min-h-screen bg-[#F8F3EB] text-[13px] leading-[1.4] font-body text-[#0F1419]">
