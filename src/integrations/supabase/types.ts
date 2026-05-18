@@ -264,6 +264,107 @@ export type Database = {
           },
         ]
       }
+      pre_intake: {
+        Row: {
+          buying_committee: string | null
+          call_duration_seconds: number | null
+          call_ended_at: string | null
+          call_started_at: string | null
+          created_at: string | null
+          created_by: string | null
+          deliverables_due_date: string | null
+          emotional_keywords: Json | null
+          fomu_concerns: Json | null
+          general_impression: string | null
+          google_meet_link: string
+          id: string
+          impression_tags: string[] | null
+          lead_id: string | null
+          locked_at: string | null
+          measurement_promised: boolean | null
+          photos_promised: boolean | null
+          qual_in_region: boolean | null
+          qual_is_decision_maker: boolean | null
+          qual_is_owner: boolean | null
+          qual_real_attic: boolean | null
+          questions_raised: Json | null
+          quick_notes: string | null
+          region_gemeente: string | null
+          scenario_chosen: string | null
+          trigger_text: string | null
+          updated_at: string | null
+          videocall_scheduled_at: string | null
+        }
+        Insert: {
+          buying_committee?: string | null
+          call_duration_seconds?: number | null
+          call_ended_at?: string | null
+          call_started_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          deliverables_due_date?: string | null
+          emotional_keywords?: Json | null
+          fomu_concerns?: Json | null
+          general_impression?: string | null
+          google_meet_link?: string
+          id?: string
+          impression_tags?: string[] | null
+          lead_id?: string | null
+          locked_at?: string | null
+          measurement_promised?: boolean | null
+          photos_promised?: boolean | null
+          qual_in_region?: boolean | null
+          qual_is_decision_maker?: boolean | null
+          qual_is_owner?: boolean | null
+          qual_real_attic?: boolean | null
+          questions_raised?: Json | null
+          quick_notes?: string | null
+          region_gemeente?: string | null
+          scenario_chosen?: string | null
+          trigger_text?: string | null
+          updated_at?: string | null
+          videocall_scheduled_at?: string | null
+        }
+        Update: {
+          buying_committee?: string | null
+          call_duration_seconds?: number | null
+          call_ended_at?: string | null
+          call_started_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          deliverables_due_date?: string | null
+          emotional_keywords?: Json | null
+          fomu_concerns?: Json | null
+          general_impression?: string | null
+          google_meet_link?: string
+          id?: string
+          impression_tags?: string[] | null
+          lead_id?: string | null
+          locked_at?: string | null
+          measurement_promised?: boolean | null
+          photos_promised?: boolean | null
+          qual_in_region?: boolean | null
+          qual_is_decision_maker?: boolean | null
+          qual_is_owner?: boolean | null
+          qual_real_attic?: boolean | null
+          questions_raised?: Json | null
+          quick_notes?: string | null
+          region_gemeente?: string | null
+          scenario_chosen?: string | null
+          trigger_text?: string | null
+          updated_at?: string | null
+          videocall_scheduled_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pre_intake_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -290,6 +391,60 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      transcript_analyses: {
+        Row: {
+          accepted_fields: Json | null
+          ai_analysis: Json
+          analyzed_at: string | null
+          analyzed_by: string | null
+          coaching_feedback: string | null
+          coaching_scores: Json | null
+          id: string
+          lead_id: string | null
+          match_scores: Json | null
+          pre_intake_id: string | null
+        }
+        Insert: {
+          accepted_fields?: Json | null
+          ai_analysis: Json
+          analyzed_at?: string | null
+          analyzed_by?: string | null
+          coaching_feedback?: string | null
+          coaching_scores?: Json | null
+          id?: string
+          lead_id?: string | null
+          match_scores?: Json | null
+          pre_intake_id?: string | null
+        }
+        Update: {
+          accepted_fields?: Json | null
+          ai_analysis?: Json
+          analyzed_at?: string | null
+          analyzed_by?: string | null
+          coaching_feedback?: string | null
+          coaching_scores?: Json | null
+          id?: string
+          lead_id?: string | null
+          match_scores?: Json | null
+          pre_intake_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transcript_analyses_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transcript_analyses_pre_intake_id_fkey"
+            columns: ["pre_intake_id"]
+            isOneToOne: false
+            referencedRelation: "pre_intake"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
