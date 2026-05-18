@@ -368,58 +368,57 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation }
       {/* ═══ TWO-COLUMN WORKSPACE ═══ */}
       <div className="flex-1 grid grid-cols-[1.85fr_1fr] min-h-0">
 
-        {/* ─────── LEFT: NOTITIEBLOK (hoofdwerkvlak) ─────── */}
-        <div className="overflow-y-auto bg-[#FFFCF5] border-r-2 border-[#DDD5C5]">
-          <div className="p-8 max-w-[1100px] mx-auto h-full flex flex-col">
+        {/* ─────── LEFT: NOTITIEBLOK (hoofdwerkvlak) — past binnen viewport ─────── */}
+        <div className="overflow-hidden bg-[#FFFCF5] border-r-2 border-[#DDD5C5] min-h-0">
+          <div className="px-6 py-4 max-w-[1100px] mx-auto h-full flex flex-col min-h-0">
 
-            <div className="flex items-baseline gap-3 mb-2">
-              <span className="text-[30px]">📝</span>
-              <h2 className="font-dm text-[36px] font-bold text-[#0F1419] tracking-[-0.01em]">Notitieblok</h2>
-              <span className="text-[24px] text-[#5B6470] italic">Wat onthou ik uit dit gesprek?</span>
+            <div className="flex items-baseline gap-3 mb-1 shrink-0">
+              <span className="text-[clamp(14px,1.8vh,22px)]">📝</span>
+              <h2 className="font-dm text-[clamp(16px,2.4vh,28px)] font-bold text-[#0F1419] tracking-[-0.01em]">Notitieblok</h2>
+              <span className="text-[clamp(11px,1.4vh,16px)] text-[#5B6470] italic">Wat onthou ik uit dit gesprek?</span>
             </div>
-            <p className="text-[23px] text-[#5B6470] mb-8">De essentie om straks naar Bram door te geven. <strong>Hier ligt je focus tijdens het gesprek.</strong></p>
+            <p className="text-[clamp(11px,1.3vh,15px)] text-[#5B6470] mb-3 shrink-0">De essentie om straks naar Bram door te geven. <strong>Hier ligt je focus tijdens het gesprek.</strong></p>
 
-            <div className="flex flex-col gap-8 flex-1">
+            <div className="flex flex-col gap-3 flex-1 min-h-0">
 
-              {/* Klantgegevens — eerste blok, zelfde stijl als andere velden */}
+              {/* Klantgegevens */}
               <FieldBlock label="Klantgegevens" hint="Vul aan tijdens of vlak na het gesprek">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-2">
                   <input type="text" value={leadVoornaam} onChange={e => setLeadVoornaam(e.target.value)} placeholder="Voornaam"
-                    className="h-16 px-5 bg-white border-2 border-[#DDD5C5] text-[32px] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
+                    className="h-[clamp(36px,4.5vh,56px)] px-3 bg-white border-2 border-[#DDD5C5] text-[clamp(13px,1.7vh,20px)] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
                   <input type="text" value={leadAchternaam} onChange={e => setLeadAchternaam(e.target.value)} placeholder="Achternaam"
-                    className="h-16 px-5 bg-white border-2 border-[#DDD5C5] text-[32px] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
+                    className="h-[clamp(36px,4.5vh,56px)] px-3 bg-white border-2 border-[#DDD5C5] text-[clamp(13px,1.7vh,20px)] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
                   <input type="text" value={leadTelefoon} onChange={e => setLeadTelefoon(e.target.value)} placeholder="Telefoon"
-                    className="h-16 px-5 bg-white border-2 border-[#DDD5C5] text-[32px] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
+                    className="h-[clamp(36px,4.5vh,56px)] px-3 bg-white border-2 border-[#DDD5C5] text-[clamp(13px,1.7vh,20px)] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
                   <input type="text" value={leadPartnerNaam} onChange={e => setLeadPartnerNaam(e.target.value)} placeholder="Partner"
-                    className="h-16 px-5 bg-white border-2 border-[#DDD5C5] text-[32px] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
+                    className="h-[clamp(36px,4.5vh,56px)] px-3 bg-white border-2 border-[#DDD5C5] text-[clamp(13px,1.7vh,20px)] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
                 </div>
                 <input type="text" value={leadAdres} onChange={e => setLeadAdres(e.target.value)} placeholder="Adres"
-                  className="w-full h-16 px-5 mt-3 bg-white border-2 border-[#DDD5C5] text-[32px] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
+                  className="w-full h-[clamp(36px,4.5vh,56px)] px-3 mt-2 bg-white border-2 border-[#DDD5C5] text-[clamp(13px,1.7vh,20px)] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
               </FieldBlock>
-
 
               {/* Trigger */}
               <FieldBlock label="De trigger" hint="Waarom belt de klant nu?">
                 <input type="text" value={data.trigger_text} onChange={e => update({ trigger_text: e.target.value })}
                   placeholder="bv. oudste naar middelbaar in september"
-                  className="w-full h-16 px-5 bg-white border-2 border-[#DDD5C5] text-[32px] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
+                  className="w-full h-[clamp(40px,5vh,60px)] px-4 bg-white border-2 border-[#DDD5C5] text-[clamp(14px,1.8vh,22px)] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
               </FieldBlock>
 
               {/* Citaten */}
               <FieldBlock label="Letterlijke citaten" hint="Exacte woorden — tussen aanhalingstekens">
-                <div className="bg-white border-2 border-[#DDD5C5] p-5 min-h-[120px] focus-within:border-[#008CFF]">
+                <div className="bg-white border-2 border-[#DDD5C5] p-3 min-h-[clamp(56px,7vh,90px)] focus-within:border-[#008CFF]">
                   <ChipInput chips={data.emotional_keywords} onAdd={addEmotionalKeyword} onRemove={removeEmotionalKeyword}
                     placeholder="typ een citaat en druk op +"
-                    accentColor="bg-[#F8F3EB] text-[#0F1419] border-[#DDD5C5] italic text-[26px]" />
+                    accentColor="bg-[#F8F3EB] text-[#0F1419] border-[#DDD5C5] italic text-[clamp(12px,1.5vh,16px)]" />
                 </div>
               </FieldBlock>
 
               {/* Twijfels */}
               <FieldBlock label="Twijfels en zorgen" hint="Angsten, slechte ervaringen — ook letterlijk">
-                <div className="bg-white border-2 border-[#DDD5C5] p-5 min-h-[120px] focus-within:border-[#008CFF]">
+                <div className="bg-white border-2 border-[#DDD5C5] p-3 min-h-[clamp(56px,7vh,90px)] focus-within:border-[#008CFF]">
                   <ChipInput chips={data.fomu_concerns} onAdd={addFomuConcern} onRemove={removeFomuConcern}
                     placeholder="typ een zorg en druk op +"
-                    accentColor="bg-[#FFF6E5] text-[#0F1419] border-[#E89F3D] italic text-[26px]" />
+                    accentColor="bg-[#FFF6E5] text-[#0F1419] border-[#E89F3D] italic text-[clamp(12px,1.5vh,16px)]" />
                 </div>
               </FieldBlock>
 
@@ -427,16 +426,16 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation }
               <FieldBlock label="Wie beslist mee?" hint="Partner, ouders, familie?">
                 <textarea value={data.buying_committee} onChange={e => update({ buying_committee: e.target.value })}
                   placeholder="bv. Joris belt — An moet 100% akkoord zijn over budget"
-                  className="w-full px-5 py-4 bg-white border-2 border-[#DDD5C5] text-[32px] font-body text-[#0F1419] placeholder:text-[#B0A898] resize-none min-h-[140px] focus:outline-none focus:border-[#008CFF]" />
+                  className="w-full px-4 py-2 bg-white border-2 border-[#DDD5C5] text-[clamp(13px,1.6vh,20px)] font-body text-[#0F1419] placeholder:text-[#B0A898] resize-none h-[clamp(60px,8vh,110px)] focus:outline-none focus:border-[#008CFF]" />
               </FieldBlock>
 
               {/* Indruk — vult resterende ruimte */}
-              <div className="flex flex-col flex-1 min-h-[200px]">
-                <label className="font-dm text-[28px] font-semibold text-[#0F1419] block mb-1">Algemene indruk</label>
-                <div className="text-[23px] text-[#5B6470] italic mb-3">Gehaast, rustig, sceptisch, enthousiast?</div>
+              <div className="flex flex-col flex-1 min-h-0">
+                <label className="font-dm text-[clamp(13px,1.6vh,20px)] font-semibold text-[#0F1419] block mb-[2px]">Algemene indruk</label>
+                <div className="text-[clamp(11px,1.3vh,15px)] text-[#5B6470] italic mb-1">Gehaast, rustig, sceptisch, enthousiast?</div>
                 <textarea value={data.general_impression} onChange={e => update({ general_impression: e.target.value })}
                   placeholder="bv. klonk gehaast, lijkt veel op het bord te hebben"
-                  className="w-full flex-1 px-5 py-4 bg-white border-2 border-[#DDD5C5] text-[32px] font-body text-[#0F1419] placeholder:text-[#B0A898] resize-none min-h-[200px] focus:outline-none focus:border-[#008CFF]" />
+                  className="w-full flex-1 min-h-0 px-4 py-2 bg-white border-2 border-[#DDD5C5] text-[clamp(13px,1.6vh,20px)] font-body text-[#0F1419] placeholder:text-[#B0A898] resize-none focus:outline-none focus:border-[#008CFF]" />
               </div>
 
             </div>
@@ -542,8 +541,8 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation }
 function FieldBlock({ label, hint, children }: { label: string; hint: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="font-dm text-[28px] font-semibold text-[#0F1419] block mb-1">{label}</label>
-      <div className="text-[23px] text-[#5B6470] italic mb-3">{hint}</div>
+      <label className="font-dm text-[clamp(13px,1.6vh,20px)] font-semibold text-[#0F1419] block mb-[2px]">{label}</label>
+      <div className="text-[clamp(11px,1.3vh,15px)] text-[#5B6470] italic mb-1">{hint}</div>
       {children}
     </div>
   );
