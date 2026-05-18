@@ -29,6 +29,7 @@ function rowToLead(row: any): LeadData {
   return {
     id: row.id,
     voornaam: row.voornaam ?? '',
+    partner_naam: row.partner_naam ?? '',
     achternaam: row.achternaam ?? '',
     email: row.email ?? '',
     telefoon: row.telefoon ?? '',
