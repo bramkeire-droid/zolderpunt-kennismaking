@@ -386,37 +386,37 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation }
         <div className="overflow-y-auto bg-[#FFFCF5] border-r-2 border-[#DDD5C5]">
           <div className="p-8 max-w-[1100px] mx-auto h-full flex flex-col">
 
-            <div className="flex items-baseline gap-3 mb-1">
-              <span className="text-[15px]">📝</span>
-              <h2 className="font-dm text-[18px] font-bold text-[#0F1419] tracking-[-0.01em]">Notitieblok</h2>
-              <span className="text-[12px] text-[#5B6470] italic">Wat onthou ik uit dit gesprek?</span>
+            <div className="flex items-baseline gap-3 mb-2">
+              <span className="text-[30px]">📝</span>
+              <h2 className="font-dm text-[36px] font-bold text-[#0F1419] tracking-[-0.01em]">Notitieblok</h2>
+              <span className="text-[24px] text-[#5B6470] italic">Wat onthou ik uit dit gesprek?</span>
             </div>
-            <p className="text-[11.5px] text-[#5B6470] mb-6">De essentie om straks naar Bram door te geven. <strong>Hier ligt je focus tijdens het gesprek.</strong></p>
+            <p className="text-[23px] text-[#5B6470] mb-8">De essentie om straks naar Bram door te geven. <strong>Hier ligt je focus tijdens het gesprek.</strong></p>
 
-            <div className="flex flex-col gap-5 flex-1">
+            <div className="flex flex-col gap-8 flex-1">
 
               {/* Trigger */}
               <FieldBlock label="De trigger" hint="Waarom belt de klant nu?">
                 <input type="text" value={data.trigger_text} onChange={e => update({ trigger_text: e.target.value })}
                   placeholder="bv. oudste naar middelbaar in september"
-                  className="w-full h-14 px-4 bg-white border-2 border-[#DDD5C5] text-[16px] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
+                  className="w-full h-16 px-5 bg-white border-2 border-[#DDD5C5] text-[32px] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
               </FieldBlock>
 
               {/* Citaten */}
               <FieldBlock label="Letterlijke citaten" hint="Exacte woorden — tussen aanhalingstekens">
-                <div className="bg-white border-2 border-[#DDD5C5] p-4 min-h-[88px] focus-within:border-[#008CFF]">
+                <div className="bg-white border-2 border-[#DDD5C5] p-5 min-h-[120px] focus-within:border-[#008CFF]">
                   <ChipInput chips={data.emotional_keywords} onAdd={addEmotionalKeyword} onRemove={removeEmotionalKeyword}
                     placeholder="typ een citaat en druk op +"
-                    accentColor="bg-[#F8F3EB] text-[#0F1419] border-[#DDD5C5] italic text-[13px]" />
+                    accentColor="bg-[#F8F3EB] text-[#0F1419] border-[#DDD5C5] italic text-[26px]" />
                 </div>
               </FieldBlock>
 
               {/* Twijfels */}
               <FieldBlock label="Twijfels en zorgen" hint="Angsten, slechte ervaringen — ook letterlijk">
-                <div className="bg-white border-2 border-[#DDD5C5] p-4 min-h-[88px] focus-within:border-[#008CFF]">
+                <div className="bg-white border-2 border-[#DDD5C5] p-5 min-h-[120px] focus-within:border-[#008CFF]">
                   <ChipInput chips={data.fomu_concerns} onAdd={addFomuConcern} onRemove={removeFomuConcern}
                     placeholder="typ een zorg en druk op +"
-                    accentColor="bg-[#FFF6E5] text-[#0F1419] border-[#E89F3D] italic text-[13px]" />
+                    accentColor="bg-[#FFF6E5] text-[#0F1419] border-[#E89F3D] italic text-[26px]" />
                 </div>
               </FieldBlock>
 
@@ -424,16 +424,16 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation }
               <FieldBlock label="Wie beslist mee?" hint="Partner, ouders, familie?">
                 <textarea value={data.buying_committee} onChange={e => update({ buying_committee: e.target.value })}
                   placeholder="bv. Joris belt — An moet 100% akkoord zijn over budget"
-                  className="w-full px-4 py-3 bg-white border-2 border-[#DDD5C5] text-[16px] font-body text-[#0F1419] placeholder:text-[#B0A898] resize-none min-h-[120px] focus:outline-none focus:border-[#008CFF]" />
+                  className="w-full px-5 py-4 bg-white border-2 border-[#DDD5C5] text-[32px] font-body text-[#0F1419] placeholder:text-[#B0A898] resize-none min-h-[140px] focus:outline-none focus:border-[#008CFF]" />
               </FieldBlock>
 
               {/* Indruk — vult resterende ruimte */}
-              <div className="flex flex-col flex-1 min-h-[160px]">
-                <label className="font-dm text-[14px] font-semibold text-[#0F1419] block mb-[2px]">Algemene indruk</label>
-                <div className="text-[11.5px] text-[#5B6470] italic mb-[8px]">Gehaast, rustig, sceptisch, enthousiast?</div>
+              <div className="flex flex-col flex-1 min-h-[200px]">
+                <label className="font-dm text-[28px] font-semibold text-[#0F1419] block mb-1">Algemene indruk</label>
+                <div className="text-[23px] text-[#5B6470] italic mb-3">Gehaast, rustig, sceptisch, enthousiast?</div>
                 <textarea value={data.general_impression} onChange={e => update({ general_impression: e.target.value })}
                   placeholder="bv. klonk gehaast, lijkt veel op het bord te hebben"
-                  className="w-full flex-1 px-4 py-3 bg-white border-2 border-[#DDD5C5] text-[16px] font-body text-[#0F1419] placeholder:text-[#B0A898] resize-none min-h-[160px] focus:outline-none focus:border-[#008CFF]" />
+                  className="w-full flex-1 px-5 py-4 bg-white border-2 border-[#DDD5C5] text-[32px] font-body text-[#0F1419] placeholder:text-[#B0A898] resize-none min-h-[200px] focus:outline-none focus:border-[#008CFF]" />
               </div>
 
             </div>
@@ -539,8 +539,8 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation }
 function FieldBlock({ label, hint, children }: { label: string; hint: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="font-dm text-[14px] font-semibold text-[#0F1419] block mb-[2px]">{label}</label>
-      <div className="text-[11.5px] text-[#5B6470] italic mb-[8px]">{hint}</div>
+      <label className="font-dm text-[28px] font-semibold text-[#0F1419] block mb-1">{label}</label>
+      <div className="text-[23px] text-[#5B6470] italic mb-3">{hint}</div>
       {children}
     </div>
   );
