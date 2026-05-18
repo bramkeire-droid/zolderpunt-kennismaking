@@ -290,30 +290,28 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation }
                 <input type="url" value={data.google_meet_link} onChange={e => update({ google_meet_link: e.target.value })} placeholder="Google Meet link"
                   className="h-12 px-4 bg-white border-2 border-[#DDD5C5] text-[15px] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
               </div>
-              {data.videocall_scheduled_at && leadEmail && (
-                {(() => {
-                  const dt = new Date(data.videocall_scheduled_at!);
-                  const dag = dt.toLocaleDateString('nl-BE', { weekday: 'long', day: 'numeric', month: 'long' });
-                  const uur = dt.toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' });
-                  const meetLine = data.google_meet_link ? `\n${data.google_meet_link}\n` : '';
-                  const subject = `Bevestiging videocall ${dag} om ${uur} — Zolderpunt`;
-                  const body = `Hi ${leadVoornaam},\n\nBij deze bevestig ik graag onze afspraak in de vorm van een videocall op ${dag} om ${uur}.${meetLine}\nAls u mij op voorhand kan meegeven:\n• Enkele foto's die de huidige toestand van de zolder goed weergeven\n• Enkele foto's van de ruimte waar de nieuwe vaste trap kan komen\n• Een inschatting van de oppervlakte van de zolder\n\nIk kijk ernaar uit om meer te weten te komen over jullie project. Tot dan!\n\nPositieve groeten,\n\nBram Keirsschieter\n+32 492 400 954\n\nZaakvoerder\nZolderpunt.be`;
-                  const mailto = `mailto:${leadEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-                  return (
-                    <a
-                      href={mailto}
-                      onClick={(e) => {
-                        // Forceer OS mailto-handler i.p.v. nieuwe browser-tab
-                        e.preventDefault();
-                        window.location.href = mailto;
-                      }}
-                      className="w-full h-12 flex items-center justify-center bg-[#2E7D38] text-white font-dm font-bold text-[14px] hover:bg-[#256B2E] transition-colors"
-                    >
-                      Open bevestigingsmail
-                    </a>
-                  );
-                })()}
-              )}
+              {data.videocall_scheduled_at && leadEmail && (() => {
+                const dt = new Date(data.videocall_scheduled_at!);
+                const dag = dt.toLocaleDateString('nl-BE', { weekday: 'long', day: 'numeric', month: 'long' });
+                const uur = dt.toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' });
+                const meetLine = data.google_meet_link ? `\n${data.google_meet_link}\n` : '';
+                const subject = `Bevestiging videocall ${dag} om ${uur} — Zolderpunt`;
+                const body = `Hi ${leadVoornaam},\n\nBij deze bevestig ik graag onze afspraak in de vorm van een videocall op ${dag} om ${uur}.${meetLine}\nAls u mij op voorhand kan meegeven:\n• Enkele foto's die de huidige toestand van de zolder goed weergeven\n• Enkele foto's van de ruimte waar de nieuwe vaste trap kan komen\n• Een inschatting van de oppervlakte van de zolder\n\nIk kijk ernaar uit om meer te weten te komen over jullie project. Tot dan!\n\nPositieve groeten,\n\nBram Keirsschieter\n+32 492 400 954\n\nZaakvoerder\nZolderpunt.be`;
+                const mailto = `mailto:${leadEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                return (
+                  <a
+                    href={mailto}
+                    onClick={(e) => {
+                      // Forceer OS mailto-handler i.p.v. nieuwe browser-tab
+                      e.preventDefault();
+                      window.location.href = mailto;
+                    }}
+                    className="w-full h-12 flex items-center justify-center bg-[#2E7D38] text-white font-dm font-bold text-[14px] hover:bg-[#256B2E] transition-colors"
+                  >
+                    Open bevestigingsmail
+                  </a>
+                );
+              })()}
               {data.videocall_scheduled_at && !leadEmail && (
                 <p className="text-xs font-body text-[#E89F3D] italic">Vul een e-mailadres in om de bevestigingsmail te openen.</p>
               )}
