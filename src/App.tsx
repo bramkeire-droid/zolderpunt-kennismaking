@@ -182,6 +182,19 @@ function AppContent() {
     );
   }
 
+  if (view === 'briefing' && briefingLead) {
+    return (
+      <div className="h-screen flex flex-col">
+        <NavigationBar onGoHome={handleGoHome} onNewCall={handleNewCall} />
+        <IntakeBriefing
+          lead={briefingLead}
+          onStart={handleStartFromBriefing}
+          onBack={() => { setBriefingLead(null); handleGoDossiers(); }}
+        />
+      </div>
+    );
+  }
+
   const actualMode = view === 'dossiers' ? 'dossiers' : currentMode;
 
   return (
