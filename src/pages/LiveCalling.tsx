@@ -365,11 +365,23 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation }
         </div>
       </div>
 
-      {/* ═══ TWO-COLUMN WORKSPACE ═══ */}
-      <div className="flex-1 grid grid-cols-[1.85fr_1fr] min-h-0">
+            <div className="flex flex-col gap-8 flex-1">
 
-        {/* ─────── LEFT: NOTITIEBLOK (hoofdwerkvlak) ─────── */}
-        <div className="overflow-y-auto bg-[#FFFCF5] border-r-2 border-[#DDD5C5]">
+              {/* Klantgegevens — eerste blok, zelfde stijl als andere velden */}
+              <FieldBlock label="Klantgegevens" hint="Vul aan tijdens of vlak na het gesprek">
+                <div className="grid grid-cols-2 gap-3">
+                  <input type="text" value={leadVoornaam} onChange={e => setLeadVoornaam(e.target.value)} placeholder="Voornaam"
+                    className="h-16 px-5 bg-white border-2 border-[#DDD5C5] text-[32px] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
+                  <input type="text" value={leadAchternaam} onChange={e => setLeadAchternaam(e.target.value)} placeholder="Achternaam"
+                    className="h-16 px-5 bg-white border-2 border-[#DDD5C5] text-[32px] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
+                  <input type="text" value={leadTelefoon} onChange={e => setLeadTelefoon(e.target.value)} placeholder="Telefoon"
+                    className="h-16 px-5 bg-white border-2 border-[#DDD5C5] text-[32px] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
+                  <input type="text" value={leadPartnerNaam} onChange={e => setLeadPartnerNaam(e.target.value)} placeholder="Partner"
+                    className="h-16 px-5 bg-white border-2 border-[#DDD5C5] text-[32px] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
+                </div>
+                <input type="text" value={leadAdres} onChange={e => setLeadAdres(e.target.value)} placeholder="Adres"
+                  className="w-full h-16 px-5 mt-3 bg-white border-2 border-[#DDD5C5] text-[32px] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
+              </FieldBlock>
           <div className="p-8 max-w-[1100px] mx-auto h-full flex flex-col">
 
             <div className="flex items-baseline gap-3 mb-2">
