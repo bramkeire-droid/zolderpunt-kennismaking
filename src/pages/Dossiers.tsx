@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useState, useEffect, useMemo } from 'react';
-import { Search, FolderOpen, Users, TrendingUp, DollarSign, Eye, RefreshCw, Trash2, CheckCircle, Globe } from 'lucide-react';
+import { Search, FolderOpen, Users, TrendingUp, DollarSign, Eye, RefreshCw, Trash2, CheckCircle, Globe, Phone, Bot } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { defaultTechnisch } from '@/contexts/SessionContext';
 import type { LeadData } from '@/contexts/SessionContext';
@@ -81,14 +81,17 @@ function rowToLead(row: any): LeadData {
 
 interface DossiersProps {
   onOpenLead?: (lead: LeadData) => void;
+  onOpenValidation?: (leadId: string, preIntakeId: string) => void;
 }
 
-export default function Dossiers({ onOpenLead }: DossiersProps) {
+export default function Dossiers({ onOpenLead, onOpenValidation }: DossiersProps) {
   const [search, setSearch] = useState('');
   const [leads, setLeads] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [portalLead, setPortalLead] = useState<any>(null);
   const [previewLead, setPreviewLead] = useState<any>(null);
+  const [preIntakeMap, setPreIntakeMap] = useState<Record<string, any>>({});
+  const [analysisMap, setAnalysisMap] = useState<Record<string, boolean>>({});
 
   const handlePortalUpdate = (leadId: string, updates: Record<string, any>) => {
     setLeads(prev => prev.map(l => l.id === leadId ? { ...l, ...updates } : l));
@@ -105,6 +108,29 @@ export default function Dossiers({ onOpenLead }: DossiersProps) {
   };
 
   useEffect(() => { fetchLeads(); }, []);
+
+  // Fetch pre-intake indicators
+  useEffect(() => {
+    const fetchPreIntakes = async () => {
+      const { data: piRows } = await supabase
+        .from('pre_intake' as any)
+        .select('id, lead_id, locked_at');
+      if (piRows) {
+        const map: Record<string, any> = {};
+        (piRows as any[]).forEach(row => { map[row.lead_id] = row; });
+        setPreIntakeMap(map);
+      }
+      const { data: taRows } = await supabase
+        .from('transcript_analyses' as any)
+        .select('lead_id');
+      if (taRows) {
+        const aMap: Record<string, boolean> = {};
+        (taRows as any[]).forEach(row => { aMap[row.lead_id] = true; });
+        setAnalysisMap(aMap);
+      }
+    };
+    fetchPreIntakes();
+  }, [leads]);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return leads;
@@ -199,6 +225,7 @@ export default function Dossiers({ onOpenLead }: DossiersProps) {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Naam</TableHead>
+                      <TableHead></TableHead>
                       <TableHead>Datum</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Budget</TableHead>
@@ -215,6 +242,28 @@ export default function Dossiers({ onOpenLead }: DossiersProps) {
                             ? `${lead.voornaam} ${lead.achternaam}`.trim()
                             : <span className="text-muted-foreground italic">Geen naam</span>
                           }
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1.5">
+                            {preIntakeMap[lead.id] && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); onOpenValidation?.(lead.id, preIntakeMap[lead.id].id); }}
+                                className="inline-flex items-center gap-1 text-[0.6rem] font-bold tracking-wider uppercase px-1.5 py-0.5 bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                                title="Open transcript validatie"
+                              >
+                                <Phone className="h-3 w-3" />
+                              </button>
+                            )}
+                            {analysisMap[lead.id] && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); onOpenValidation?.(lead.id, preIntakeMap[lead.id]?.id); }}
+                                className="inline-flex items-center gap-1 text-[0.6rem] font-bold tracking-wider uppercase px-1.5 py-0.5 bg-purple-100 text-purple-700 hover:bg-purple-200 transition-colors"
+                                title="Bekijk transcript analyse"
+                              >
+                                <Bot className="h-3 w-3" />
+                              </button>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell className="font-body">{lead.gesprek_datum || '—'}</TableCell>
                         <TableCell>

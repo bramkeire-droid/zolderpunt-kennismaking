@@ -16,6 +16,7 @@ export default {
       fontFamily: {
         headline: ["'Space Grotesk'", "sans-serif"],
         body: ["'Rethink Sans'", "sans-serif"],
+        dm: ["'DM Sans'", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",

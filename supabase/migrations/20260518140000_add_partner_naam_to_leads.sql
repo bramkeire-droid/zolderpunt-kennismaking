@@ -1,0 +1,1 @@
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS partner_naam text NOT NULL DEFAULT '';

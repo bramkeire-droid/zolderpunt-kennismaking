@@ -55,6 +55,7 @@ export interface LeadData {
   adres: string;
   adres_lat: number | null;
   adres_lng: number | null;
+  partner_naam: string;
   oppervlakte_m2: number | null;
   project_type: string;
   project_timing: string;
@@ -129,6 +130,7 @@ export const defaultLeadData: LeadData = {
   adres: '',
   adres_lat: null,
   adres_lng: null,
+  partner_naam: '',
   oppervlakte_m2: null,
   project_type: '',
   project_timing: '',

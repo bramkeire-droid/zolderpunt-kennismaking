@@ -1,11 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { SessionProvider, useSession } from '@/contexts/SessionContext';
+import { PreIntakeProvider } from '@/contexts/PreIntakeContext';
 import { useLeadSave } from '@/hooks/useLeadSave';
 import NavigationBar from '@/components/NavigationBar';
 import Dossiers from '@/pages/Dossiers';
 import LoginPage from '@/pages/LoginPage';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
+import LiveCalling from '@/pages/LiveCalling';
+import TranscriptValidation from '@/pages/TranscriptValidation';
 import Slide0A from '@/slides/Slide0A';
 import Slide0A2 from '@/slides/Slide0A2';
 import Slide0B from '@/slides/Slide0B';
@@ -29,7 +32,7 @@ import Slide10 from '@/slides/Slide10';
 import { Toaster } from '@/components/ui/toaster';
 import { Toaster as Sonner } from '@/components/ui/sonner';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, FolderOpen } from 'lucide-react';
+import { ArrowRight, FolderOpen, Phone } from 'lucide-react';
 import logoBlauw from '@/assets/logo-blauw.svg';
 import DecorativeAngle from '@/components/DecorativeAngle';
 import CoachingSuggestions from '@/components/CoachingSuggestions';
@@ -45,12 +48,15 @@ const SLIDE_COMPONENTS: Record<SlideId, React.ComponentType> = {
   '8': Slide8, '9': Slide9, '10': Slide10,
 };
 
+export type AppView = 'start' | 'slides' | 'dossiers' | 'calling' | 'validation';
+
 function AppContent() {
-  const [view, setView] = useState<'start' | 'slides' | 'dossiers'>('start');
+  const [view, setView] = useState<AppView>('start');
+  const [validationLeadId, setValidationLeadId] = useState<string | null>(null);
+  const [validationPreIntakeId, setValidationPreIntakeId] = useState<string | null>(null);
   const { currentMode, currentSlide, resetSession, setCurrentMode, loadLead } = useSession();
   const { flushSave } = useLeadSave();
 
-  // Flush save whenever leaving slides (must be before any early return)
   const prevModeRef = useRef(currentMode);
   useEffect(() => {
     if (prevModeRef.current !== 'dossiers' && currentMode === 'dossiers') {
@@ -75,10 +81,21 @@ function AppContent() {
     setView('slides');
   };
 
+  const handleNewCall = async () => {
+    if (view === 'slides') await flushSave();
+    setView('calling');
+  };
+
   const handleGoDossiers = async () => {
     if (view === 'slides') await flushSave();
     setCurrentMode('dossiers');
     setView('dossiers');
+  };
+
+  const handleOpenValidation = (leadId: string, preIntakeId: string) => {
+    setValidationLeadId(leadId);
+    setValidationPreIntakeId(preIntakeId);
+    setView('validation');
   };
 
   if (view === 'start') {
@@ -90,8 +107,16 @@ function AppContent() {
           <img src={logoBlauw} alt="Zolderpunt" className="h-14 mb-12" />
           <div className="space-y-4 flex flex-col items-center">
             <Button
-              onClick={handleNewIntake}
+              onClick={handleNewCall}
               className="bg-primary text-primary-foreground hover:bg-secondary font-headline text-lg px-8 py-6 gap-3"
+            >
+              <Phone className="h-5 w-5" />
+              Nieuw telefoongesprek
+            </Button>
+            <Button
+              onClick={handleNewIntake}
+              variant="outline"
+              className="font-headline text-base px-8 py-5 gap-3"
             >
               Nieuw intakegesprek starten
               <ArrowRight className="h-5 w-5" />
@@ -111,13 +136,43 @@ function AppContent() {
     );
   }
 
+  if (view === 'calling') {
+    return (
+      <PreIntakeProvider>
+        <LiveCalling
+          onGoHome={handleGoHome}
+          onGoDossiers={handleGoDossiers}
+          onOpenValidation={handleOpenValidation}
+        />
+      </PreIntakeProvider>
+    );
+  }
+
+  if (view === 'validation') {
+    return (
+      <PreIntakeProvider>
+        <TranscriptValidation
+          leadId={validationLeadId}
+          preIntakeId={validationPreIntakeId}
+          onBack={() => setView('dossiers')}
+        />
+      </PreIntakeProvider>
+    );
+  }
+
   const actualMode = view === 'dossiers' ? 'dossiers' : currentMode;
 
   return (
     <div className="h-screen flex flex-col">
-      <NavigationBar />
+      <NavigationBar
+        onGoHome={handleGoHome}
+        onNewCall={handleNewCall}
+      />
       {actualMode === 'dossiers' ? (
-        <Dossiers onOpenLead={handleOpenLead} />
+        <Dossiers
+          onOpenLead={handleOpenLead}
+          onOpenValidation={handleOpenValidation}
+        />
       ) : (
         (() => {
           const SlideComponent = SLIDE_COMPONENTS[currentSlide];
@@ -131,7 +186,6 @@ function AppContent() {
 function AuthGate() {
   const { user, loading } = useAuth();
 
-  // Check for password reset route
   if (window.location.pathname === '/reset-password') {
     return <ResetPasswordPage />;
   }
@@ -164,7 +218,6 @@ function PortalRoute() {
 }
 
 const App = () => {
-  // Portal routes are public — no auth required
   const portalPage = PortalRoute();
   if (portalPage) return portalPage;
 

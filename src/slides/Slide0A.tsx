@@ -2,7 +2,6 @@ import { useSession } from '@/contexts/SessionContext';
 import SlideLayout from '@/components/SlideLayout';
 import SlideLabel from '@/components/SlideLabel';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 
 export default function Slide0A() {
@@ -40,6 +39,16 @@ export default function Slide0A() {
 
           <div className="grid grid-cols-2 gap-5">
             <div className="space-y-2">
+              <Label className="font-body text-base">Postcode</Label>
+              <Input
+                value={lead.adres}
+                onChange={e => updateLead({ adres: e.target.value })}
+                placeholder="bv. 9000"
+                className="bg-card"
+                maxLength={10}
+              />
+            </div>
+            <div className="space-y-2">
               <Label className="font-body text-base">E-mailadres</Label>
               <Input
                 type="email"
@@ -49,35 +58,16 @@ export default function Slide0A() {
                 className="bg-card"
               />
             </div>
-            <div className="space-y-2">
-              <Label className="font-body text-base">Telefoonnummer</Label>
-              <Input
-                type="tel"
-                value={lead.telefoon}
-                onChange={e => updateLead({ telefoon: e.target.value })}
-                placeholder="+32 ..."
-                className="bg-card"
-              />
-            </div>
           </div>
 
           <div className="space-y-2">
-            <Label className="font-body text-base">Wat zochten ze specifiek?</Label>
+            <Label className="font-body text-base">Telefoonnummer</Label>
             <Input
-              value={lead.gezocht_naar}
-              onChange={e => updateLead({ gezocht_naar: e.target.value })}
-              placeholder="bv. tienerkamer, extra slaapkamer, thuiskantoor..."
-              className="bg-card"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label className="font-body text-base">Notities vooraf</Label>
-            <Textarea
-              value={lead.notities_vooraf}
-              onChange={e => updateLead({ notities_vooraf: e.target.value })}
-              placeholder="Eventuele opmerkingen of aandachtspunten..."
-              className="bg-card min-h-[100px]"
+              type="tel"
+              value={lead.telefoon}
+              onChange={e => updateLead({ telefoon: e.target.value })}
+              placeholder="+32 ..."
+              className="bg-card max-w-sm"
             />
           </div>
         </div>

@@ -39,6 +39,7 @@ export type Database = {
           inbegrepen_posten: Json
           notities_vooraf: string
           oppervlakte_m2: number | null
+          partner_naam: string
           portal_activated_at: string | null
           portal_sent_via: string | null
           portal_status: string | null
@@ -89,6 +90,7 @@ export type Database = {
           inbegrepen_posten?: Json
           notities_vooraf?: string
           oppervlakte_m2?: number | null
+          partner_naam?: string
           portal_activated_at?: string | null
           portal_sent_via?: string | null
           portal_status?: string | null
@@ -139,6 +141,7 @@ export type Database = {
           inbegrepen_posten?: Json
           notities_vooraf?: string
           oppervlakte_m2?: number | null
+          partner_naam?: string
           portal_activated_at?: string | null
           portal_sent_via?: string | null
           portal_status?: string | null

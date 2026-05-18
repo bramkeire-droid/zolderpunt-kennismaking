@@ -17,3 +17,9 @@ verify_jwt = false
 
 [functions.log-portal-event]
 verify_jwt = false
+
+[functions.analyze-transcript]
+verify_jwt = false
+
+[functions.generate-coaching-tips]
+verify_jwt = false
