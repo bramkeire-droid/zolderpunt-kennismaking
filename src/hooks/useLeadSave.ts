@@ -99,16 +99,22 @@ export function useLeadSave() {
     isSavingRef.current = true;
 
     try {
-      const row = leadToRow(leadData);
+      // Auto-promote status: zodra intake-slides bewaard worden, markeer als 'intake'
+      let effectiveLead = leadData;
+      if (leadData.status === 'nieuw' || leadData.status === 'telefoongesprek' || leadData.status === 'intake_gepland') {
+        effectiveLead = { ...leadData, status: 'intake' };
+      }
+      const row = leadToRow(effectiveLead);
 
-      if (leadData.id) {
-        const { error } = await supabase.from('leads').update(row).eq('id', leadData.id);
+      if (effectiveLead.id) {
+        const { error } = await supabase.from('leads').update(row).eq('id', effectiveLead.id);
         if (error) throw error;
+        if (effectiveLead.status !== leadData.status) updateLead({ status: effectiveLead.status });
       } else {
         const { data, error } = await supabase.from('leads').insert(row).select('id').single();
         if (error) throw error;
         if (data) {
-          updateLead({ id: data.id });
+          updateLead({ id: data.id, status: effectiveLead.status });
           // Persist lead ID to localStorage for session recovery
           try { localStorage.setItem(LEAD_SESSION_KEY, data.id); } catch {}
         }

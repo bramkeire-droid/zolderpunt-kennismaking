@@ -160,7 +160,7 @@ export const defaultLeadData: LeadData = {
   rapport_gegenereerd_op: null,
   rapport_versies: [],
   project_feiten: [] as FeitjeItem[],
-  status: 'intake',
+  status: 'nieuw',
   fotos: [],
   technisch: { ...defaultTechnisch },
   gespreksvragen: { ...defaultGespreksvragen },

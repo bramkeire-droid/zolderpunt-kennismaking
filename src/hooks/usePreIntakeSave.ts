@@ -81,6 +81,15 @@ export function usePreIntakeSave() {
         }
       }
 
+      // Auto-promote lead status van 'nieuw' naar 'telefoongesprek'
+      if (d.lead_id) {
+        await supabase
+          .from('leads')
+          .update({ status: 'telefoongesprek' })
+          .eq('id', d.lead_id)
+          .eq('status', 'nieuw');
+      }
+
       lastSavedRef.current = serialized;
 
       // Clear localStorage draft on successful save
