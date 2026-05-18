@@ -165,7 +165,7 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation }
   };
 
   const handleNewLead = async () => {
-    const { data: newLead, error } = await supabase.from('leads').insert({ voornaam: '', achternaam: '', status: 'intake' }).select('id, voornaam, achternaam, email, telefoon, adres').single();
+    const { data: newLead, error } = await supabase.from('leads').insert({ voornaam: '', achternaam: '', status: 'telefoongesprek' }).select('id, voornaam, achternaam, email, telefoon, adres').single();
     if (error) { toast.error('Fout bij aanmaken lead'); return; }
     startCall(newLead);
   };

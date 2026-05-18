@@ -99,10 +99,12 @@ export function useLeadSave() {
     isSavingRef.current = true;
 
     try {
-      // Auto-promote status: zodra intake-slides bewaard worden, markeer als 'intake'
+      // Auto-promote status: nieuw → telefoongesprek bij eerste opslag.
+      // 'intake' (= intake/videocall gedaan) wordt NIET automatisch gezet —
+      // dat gebeurt expliciet wanneer de videocall is afgerond.
       let effectiveLead = leadData;
-      if (leadData.status === 'nieuw' || leadData.status === 'telefoongesprek' || leadData.status === 'intake_gepland') {
-        effectiveLead = { ...leadData, status: 'intake' };
+      if (leadData.status === 'nieuw' || !leadData.status) {
+        effectiveLead = { ...leadData, status: 'telefoongesprek' };
       }
       const row = leadToRow(effectiveLead);
 
