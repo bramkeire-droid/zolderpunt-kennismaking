@@ -1,80 +1,63 @@
+## Probleem
 
-## Antwoord op je vragen
+Op het live-belscherm domineren de 4 fase-kolommen (script, vragen, tips) + de oranje anticipatie-strook visueel het scherm. Het notitieblok onderaan — net dát wat tijdens het gesprek ingevuld móét worden — is een dun strookje van ~140 px hoog met 5 mini-velden. De gebruiker kijkt naar de tekst i.p.v. te schrijven.
 
-**1. Waar staat de gemapte data van het telefoongesprek?**
-Die data zit in twee tabellen:
-- `pre_intake` — alles wat tijdens het korte telefoongesprek wordt ingevuld (trigger, emotionele keywords, FOMU-zorgen, kwalificatie, scenario, beloofde foto's/metingen, quick notes, ...).
-- `transcript_analyses` — de AI-analyse van het opgenomen transcript (ai_analysis, coaching, match_scores).
+## Doelstelling
 
-Op dit moment wordt die data nergens getoond als je een dossier opent voor het intakegesprek. Je ziet enkel de iconen (📞 / 🤖) in de Dossier-tabel, maar je springt direct naar Slide0A met lege velden. Er is dus **geen briefing-laag** tussen "dossier openen" en "intake starten".
+Visuele hiërarchie omdraaien: **invulvelden zijn het hoofdgerecht, script is referentie.**
 
-**2. Status "intake" klopt niet**
-De `status` kolom op `leads` heeft één lineaire enum (`intake → plaatsbezoek → offerte → uitvoering → afgesloten → verloren`). Er is geen onderscheid tussen *"heeft enkel telefoongesprek gehad"* en *"intakegesprek is doorlopen"*. Default is altijd `intake`, ook voor een lead die alleen de telefoon-fase deed.
+## Aanpak
 
----
+### 1. Layout omkeren — notitieblok als hoofdkolom
 
-## Plan
-
-### A. Briefing-scherm vóór intake
-
-Nieuw scherm `IntakeBriefing` dat verschijnt wanneer je een dossier opent via de Dossier-tabel **als er een `pre_intake` bestaat**. Eén compact overzicht, gegroepeerd:
-
-- **Klant** — naam, telefoon, e-mail, adres, regio
-- **Trigger & emoties** — `trigger_text`, `emotional_keywords` (chips), `impression_tags`
-- **FOMU-zorgen** — lijst chips uit `fomu_concerns`
-- **Vragen die de klant stelde** — alle `questions_raised` waar `raised=true` met de notitie
-- **Kwalificatie** — 4 booleans (in regio / echte zolder / eigenaar / beslisser) als groen/rood badges
-- **Beloofd door klant** — foto's beloofd, meting beloofd, deadline
-- **Scenario & afspraak** — gekozen scenario, videocall datum, meet link
-- **AI-analyse (indien aanwezig)** — samenvatting uit `transcript_analyses.ai_analysis` + coaching feedback in collapsible
-- **Quick notes** — vrije tekst onderaan
-
-Twee knoppen onderaan: **"Start intakegesprek"** (→ Slide0A) en **"Terug naar dossiers"**.
-
-Als er géén `pre_intake` bestaat → briefing overslaan, direct naar Slide0A (huidig gedrag).
-
-### B. Statusmodel opsplitsen
-
-Nieuwe enum-waarden voor `leads.status`:
+Nieuw grid op `step === 'calling'`:
 
 ```text
-nieuw            → lead aangemaakt, nog niets gebeurd
-telefoongesprek  → pre_intake afgerond
-intake_gepland   → afspraak intake staat
-intake           → intakegesprek doorlopen (slides ingevuld)
-plaatsbezoek
-offerte
-uitvoering
-afgesloten
-verloren
+┌─────────────────────────────────────────────────────────────┐
+│  Topbar (timer, lead, klantgegevens-inline, sluit-knop)      │
+├──────────────────────────────────────┬──────────────────────┤
+│                                       │                      │
+│   NOTITIEBLOK (links, ~65% breed)     │  SCRIPT RAIL        │
+│   ───────────────                     │  (rechts, 35%)      │
+│   • De trigger          [groot input] │  Fase 1 ▾           │
+│   • Letterlijke citaten [chip area]   │  Fase 2 ▾           │
+│   • Twijfels/zorgen     [chip area]   │  Fase 3 ▾           │
+│   • Wie beslist mee     [textarea]    │  Fase 4 ▾           │
+│   • Algemene indruk     [chips+text]  │  ⚠ Anticipatie ▾    │
+│                                       │                      │
+└──────────────────────────────────────┴──────────────────────┘
 ```
 
-- Default voor nieuwe leads wordt `nieuw` i.p.v. `intake`.
-- Auto-promotion via app-logica (geen DB triggers):
-  - bij opslaan van `pre_intake` → status naar `telefoongesprek` (als nog `nieuw`)
-  - bij eerste save van een intake-slide (Slide0A+) → status naar `intake`
-- Dossier-tabel: status-label krijgt eigen kleur per fase (telefoongesprek = grijs/blauw, intake = primair blauw, etc.) zodat je in één oogopslag ziet wie waar zit.
-- Filter-chips bovenaan Overzicht-tab: *Alle / Telefoon / Intake / Lopend / Afgesloten*.
+- **Notitieblok-velden** krijgen `text-[15px]`, `min-h-[80-110px]`, witte achtergrond met dikke `border-2 border-[#DDD5C5]` die op focus naar `#008CFF` springt — zelfde stijl als de wrap-up inputs.
+- Labels in donker zwart, niet de huidige micro-tracking grijs.
+- Chip-inputs (citaten, zorgen) groter: chip-pillen `text-sm` i.p.v. `text-[10.5px]`.
+- Sectie krijgt een eigen lichtgele/beige zone-kleur zodat ze visueel "het werkvlak" is.
 
-### C. UI-cleanup Dossier-tabel
+### 2. Script wordt rustige rechter-rail
 
-- Iconen 📞 (Phone) en 🤖 (Bot) blijven, maar krijgen tooltip met datum laatste call/analyse.
-- Status-kolom wordt prominenter (badge i.p.v. tekst-uppercase).
+- 4 fase-blokken stapelen verticaal in 1 kolom (i.p.v. 4 naast elkaar).
+- Elke fase is collapsible — alleen titel + 1 regel doel zichtbaar; klik om te expanden.
+- Standaard: Fase 1 open, rest dicht. Manueel open/dicht.
+- Kleinere typografie (`text-[11px]`), gedempte kleuren — geen felle blauwe headers meer, eerder een lichte rand met blauwe accent-streep links.
+- Anticipatie-strook wordt 6e collapsible item onderaan, niet meer fullwidth oranje.
+- Tips en deliverable-cards blijven in z'n fase maar krijgen rustigere kleuren (geen volle blauwe/groene vlakken).
 
----
+### 3. Klantgegevens-mini bovenin
+
+Mini-inline strook bovenaan (voornaam, achternaam, telefoon, adres, partner) blijft op dezelfde plek maar wordt iets compacter zodat de notitieblok-kolom hoger kan starten.
+
+### 4. Sticky scroll-gedrag
+
+- Topbar + klantgegevens sticky bovenaan.
+- Notitieblok-kolom scrollt onafhankelijk van script-rail (twee `overflow-y-auto` kolommen) → altijd zowel input als referentie zichtbaar.
 
 ## Technische details
 
-**DB-migratie**
-- `leads.status` is `text` — geen enum-wijziging nodig, alleen `STATUS_LABELS` map en default uitbreiden. Migratie alleen voor de default-wijziging op de kolom.
+**Eén bestand wijzigen:** `src/pages/LiveCalling.tsx`
 
-**Nieuwe files**
-- `src/components/IntakeBriefing.tsx` — read-only briefing view, krijgt `leadId` als prop, laadt `pre_intake` + `transcript_analyses` zelf.
-- Hook in `App.tsx`: bij `onOpenLead` eerst checken of pre_intake bestaat → state `briefingLeadId` → briefing rendert i.p.v. slides; "Start intake" verwijdert briefing-state.
+- Nieuwe state `expandedPhase: 'fase1' | 'fase2' | 'fase3' | 'fase4' | 'anticipatie' | null` voor de collapsibles.
+- Bestaande `QCard`, `TipCard`, `DeliverableCard`, `AnticipateCard` componenten blijven, krijgen een `compact` styling-variant (kleinere padding, gedempte achtergronden).
+- Notitieblok-velden hergebruiken bestaande `ChipInput` en `update()` calls — geen wijziging aan state/save-logica.
+- Geen wijzigingen aan `usePreIntakeSave`, `PreIntakeContext`, of DB.
 
-**Aangepaste files**
-- `src/pages/Dossiers.tsx` — `STATUS_LABELS` uitbreiden, badge-styling per status, filter-chips, default status verwijderen uit `rowToLead` (gewoon `row.status`).
-- `src/hooks/usePreIntakeSave.ts` — na succesvolle save → indien `lead.status === 'nieuw'`, update naar `'telefoongesprek'`.
-- `src/hooks/useLeadSave.ts` — bij eerste save vanuit intake-slides → indien status `nieuw` of `telefoongesprek`, update naar `'intake'`.
-
-**Geen wijzigingen aan** edge functions, portal, of rapport-flow.
+Resultaat: tijdens een gesprek zie je 5 grote invulvelden links, met rechts een rustige collapsable script-rail. Eén oogopslag = "hier moet ik typen".
