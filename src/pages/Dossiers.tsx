@@ -90,9 +90,10 @@ function rowToLead(row: any): LeadData {
 interface DossiersProps {
   onOpenLead?: (lead: LeadData) => void;
   onOpenValidation?: (leadId: string, preIntakeId: string) => void;
+  onOpenCall?: (leadId: string, step?: 'calling' | 'wrap-up') => void;
 }
 
-export default function Dossiers({ onOpenLead, onOpenValidation }: DossiersProps) {
+export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: DossiersProps) {
   const [search, setSearch] = useState('');
   const [leads, setLeads] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
