@@ -310,6 +310,9 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
             <ArrowLeft className="h-4 w-4" /> Terug
           </button>
           <h1 className="text-base font-dm font-bold text-[#0F1419]">Nieuw telefoongesprek</h1>
+          <button onClick={signOut} className="ml-auto p-2 text-[#5B6470] hover:text-[#0F1419] transition-colors" title="Uitloggen">
+            <LogOut className="h-4 w-4" />
+          </button>
         </div>
         <div className="flex-1 overflow-y-auto p-8 lg:p-12">
           <div className="max-w-xl mx-auto space-y-6">
