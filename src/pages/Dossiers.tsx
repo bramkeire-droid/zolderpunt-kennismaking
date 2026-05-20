@@ -321,13 +321,13 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Naam</TableHead>
+                      <TableHead onClick={() => toggleSort('naam')} className="cursor-pointer select-none">Naam<SortIcon k="naam" /></TableHead>
                       <TableHead></TableHead>
-                      <TableHead>Datum</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Budget</TableHead>
-                      <TableHead>Portaal</TableHead>
-                      <TableHead>Volgende stap</TableHead>
+                      <TableHead onClick={() => toggleSort('gesprek_datum')} className="cursor-pointer select-none">Datum<SortIcon k="gesprek_datum" /></TableHead>
+                      <TableHead onClick={() => toggleSort('status')} className="cursor-pointer select-none">Status<SortIcon k="status" /></TableHead>
+                      <TableHead onClick={() => toggleSort('budget')} className="cursor-pointer select-none">Budget<SortIcon k="budget" /></TableHead>
+                      <TableHead onClick={() => toggleSort('portal')} className="cursor-pointer select-none">Portaal<SortIcon k="portal" /></TableHead>
+                      <TableHead onClick={() => toggleSort('volgende_stap')} className="cursor-pointer select-none">Volgende stap<SortIcon k="volgende_stap" /></TableHead>
                       <TableHead>Acties</TableHead>
                     </TableRow>
                   </TableHeader>
