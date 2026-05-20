@@ -166,7 +166,7 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
       setLeadAdres(lead.adres || '');
       setLeadPartnerNaam(lead.partner_naam || '');
       setLeadEmail(lead.email || '');
-      const { data: pi } = await supabase.from('pre_intake' as any).select('*').eq('lead_id', initialLeadId).maybeSingle();
+      const { data: pi } = await supabase.from('pre_intake' as any).select('*').eq('lead_id', initialLeadId).order('updated_at', { ascending: false }).limit(1).maybeSingle();
       if (pi) {
         loadPreIntake(pi as any);
         if (initialStep === 'wrap-up' || (pi as any).locked_at) setStep('wrap-up');

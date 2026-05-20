@@ -133,7 +133,7 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
     const fetchPreIntakes = async () => {
       const { data: piRows } = await supabase
         .from('pre_intake' as any)
-        .select('id, lead_id, locked_at');
+        .select('id, lead_id, locked_at, videocall_scheduled_at, google_meet_link, scenario_chosen');
       if (piRows) {
         const map: Record<string, any> = {};
         (piRows as any[]).forEach(row => { map[row.lead_id] = row; });
@@ -372,7 +372,18 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
                         <TableCell>
                           <PortalStatusBadge status={lead.portal_status || 'draft'} />
                         </TableCell>
-                        <TableCell className="font-body">{lead.volgende_stap || '—'}</TableCell>
+                        <TableCell className="font-body">
+                          {preIntakeMap[lead.id]?.videocall_scheduled_at ? (
+                            <div className="flex flex-col">
+                              <span className="inline-flex items-center gap-1 text-[0.65rem] font-bold tracking-wider uppercase px-2 py-0.5 bg-primary/15 text-primary w-fit">
+                                Video call
+                              </span>
+                              <span className="text-xs text-muted-foreground mt-0.5">
+                                {new Date(preIntakeMap[lead.id].videocall_scheduled_at).toLocaleString('nl-BE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                          ) : (lead.volgende_stap || '—')}
+                        </TableCell>
                         <TableCell>
                           <div className="flex gap-1">
                             <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); handleOpen(lead); }} title="Open intake">
