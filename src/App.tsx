@@ -107,6 +107,15 @@ function AppContent() {
 
   const handleNewCall = async () => {
     if (view === 'slides') await flushSave();
+    setCallingLeadId(null);
+    setCallingInitialStep('select-lead');
+    setView('calling');
+  };
+
+  const handleOpenCall = async (leadId: string, step: 'calling' | 'wrap-up' = 'calling') => {
+    if (view === 'slides') await flushSave();
+    setCallingLeadId(leadId);
+    setCallingInitialStep(step);
     setView('calling');
   };
 
