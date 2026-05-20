@@ -66,7 +66,12 @@ function hasTechnischData(tech: LeadData['technisch']): boolean {
   );
 }
 
-/** Check if lead has ANY meaningful data worth saving */
+/** Minimum gegevens vereist om een NIEUW dossier aan te maken (insert). */
+function hasMinimumForInsert(lead: LeadData): boolean {
+  return !!(lead.voornaam?.trim() || lead.achternaam?.trim() || lead.email?.trim() || lead.telefoon?.trim());
+}
+
+/** Check if lead has ANY meaningful data worth saving (voor updates van bestaand dossier) */
 function hasAnyData(lead: LeadData): boolean {
   return !!(
     lead.voornaam || lead.achternaam || lead.email || lead.telefoon ||
