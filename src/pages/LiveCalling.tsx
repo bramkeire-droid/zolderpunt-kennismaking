@@ -119,21 +119,24 @@ const SCENARIOS: { type: ScenarioType; tag: string; text: string; sub: string }[
 
 /* ───────────────────────── MAIN COMPONENT ───────────────────────── */
 
-export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation }: LiveCallingProps) {
-  const [step, setStep] = useState<CallingStep>('select-lead');
+export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, initialLeadId, initialStep }: LiveCallingProps) {
+  const [step, setStep] = useState<CallingStep>(initialStep ?? 'select-lead');
   const [search, setSearch] = useState('');
   const [leads, setLeads] = useState<any[]>([]);
   const [selectedLead, setSelectedLead] = useState<any>(null);
   const [showCloseDialog, setShowCloseDialog] = useState(false);
+  const [showBackConfirm, setShowBackConfirm] = useState(false);
   const [leadVoornaam, setLeadVoornaam] = useState('');
   const [leadAchternaam, setLeadAchternaam] = useState('');
   const [leadTelefoon, setLeadTelefoon] = useState('');
   const [leadAdres, setLeadAdres] = useState('');
   const [leadPartnerNaam, setLeadPartnerNaam] = useState('');
   const [leadEmail, setLeadEmail] = useState('');
+  const [followupType, setFollowupType] = useState<'videocall' | 'klant_terug' | null>(null);
+  const [klantTerugNotitie, setKlantTerugNotitie] = useState('');
 
   const {
-    data, update, resetPreIntake,
+    data, update, resetPreIntake, loadPreIntake,
     addEmotionalKeyword, removeEmotionalKeyword,
     addFomuConcern, removeFomuConcern,
     toggleImpressionTag, toggleQuestion,
@@ -147,6 +150,32 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation }
       if (rows) setLeads(rows);
     })();
   }, []);
+
+  // Open direct uit dossierlijst: laad lead + bestaande pre_intake
+  useEffect(() => {
+    if (!initialLeadId) return;
+    (async () => {
+      const { data: lead } = await supabase.from('leads').select('*').eq('id', initialLeadId).maybeSingle();
+      if (!lead) return;
+      setSelectedLead(lead);
+      setLeadVoornaam(lead.voornaam || '');
+      setLeadAchternaam(lead.achternaam || '');
+      setLeadTelefoon(lead.telefoon || '');
+      setLeadAdres(lead.adres || '');
+      setLeadPartnerNaam(lead.partner_naam || '');
+      setLeadEmail(lead.email || '');
+      const { data: pi } = await supabase.from('pre_intake' as any).select('*').eq('lead_id', initialLeadId).maybeSingle();
+      if (pi) {
+        loadPreIntake(pi as any);
+        if (initialStep === 'wrap-up' || (pi as any).locked_at) setStep('wrap-up');
+        else setStep('calling');
+      } else {
+        resetPreIntake(initialLeadId);
+        setStep(initialStep ?? 'calling');
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialLeadId]);
 
   const filteredLeads = search.trim()
     ? leads.filter(l => `${l.voornaam} ${l.achternaam} ${l.email} ${l.telefoon}`.toLowerCase().includes(search.toLowerCase()))
@@ -166,36 +195,109 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation }
     setStep('calling');
   };
 
+  // Nieuwe lead aanmaken: GEEN insert meer — pas later inserten wanneer naam ingevuld is.
   const handleNewLead = async () => {
-    const { data: newLead, error } = await supabase.from('leads').insert({ voornaam: '', achternaam: '', status: 'telefoongesprek' }).select('id, voornaam, achternaam, email, telefoon, adres').single();
-    if (error) { toast.error('Fout bij aanmaken lead'); return; }
-    startCall(newLead);
+    const tempLead = { id: undefined, voornaam: '', achternaam: '', email: '', telefoon: '', adres: '', partner_naam: '' };
+    setSelectedLead(tempLead);
+    setLeadVoornaam('');
+    setLeadAchternaam('');
+    setLeadTelefoon('');
+    setLeadAdres('');
+    setLeadPartnerNaam('');
+    setLeadEmail('');
+    resetPreIntake(undefined);
+    update({ call_started_at: new Date().toISOString() });
+    timer.start();
+    setStep('calling');
+  };
+
+  /** Zorg dat er een lead-row bestaat (insert indien nodig met dubbel-detectie). Retourneert lead id of null. */
+  const ensureLeadRow = async (): Promise<string | null> => {
+    if (selectedLead?.id) {
+      // Update bestaande
+      await supabase.from('leads').update({ voornaam: leadVoornaam, achternaam: leadAchternaam, telefoon: leadTelefoon, adres: leadAdres, partner_naam: leadPartnerNaam, email: leadEmail }).eq('id', selectedLead.id);
+      return selectedLead.id;
+    }
+    if (!leadVoornaam.trim() && !leadAchternaam.trim() && !leadEmail.trim() && !leadTelefoon.trim()) {
+      return null; // niets om op te slaan
+    }
+    // Dubbel-detectie op email/telefoon
+    const orParts: string[] = [];
+    if (leadEmail.trim()) orParts.push(`email.eq.${leadEmail.trim()}`);
+    if (leadTelefoon.trim()) orParts.push(`telefoon.eq.${leadTelefoon.trim()}`);
+    let existingId: string | null = null;
+    if (orParts.length > 0) {
+      const { data: existing } = await supabase.from('leads').select('id').or(orParts.join(',')).limit(1).maybeSingle();
+      if (existing?.id) existingId = existing.id;
+    }
+    if (existingId) {
+      const ok = window.confirm('Er bestaat al een dossier met dit e-mailadres of telefoonnummer. Bestaand dossier overschrijven en samenvoegen?');
+      if (ok) {
+        await supabase.from('leads').update({ voornaam: leadVoornaam, achternaam: leadAchternaam, telefoon: leadTelefoon, adres: leadAdres, partner_naam: leadPartnerNaam, email: leadEmail }).eq('id', existingId);
+        setSelectedLead((prev: any) => ({ ...prev, id: existingId }));
+        update({ lead_id: existingId });
+        return existingId;
+      }
+    }
+    const { data: newRow, error } = await supabase.from('leads').insert({
+      voornaam: leadVoornaam, achternaam: leadAchternaam, telefoon: leadTelefoon, adres: leadAdres, partner_naam: leadPartnerNaam, email: leadEmail, status: 'nieuw',
+    }).select('id').single();
+    if (error || !newRow) { toast.error('Aanmaken dossier mislukt'); return null; }
+    setSelectedLead((prev: any) => ({ ...prev, id: newRow.id }));
+    update({ lead_id: newRow.id });
+    return newRow.id;
   };
 
   const handleCloseCall = async () => {
     update({ call_ended_at: new Date().toISOString(), call_duration_seconds: timer.elapsed });
     timer.pause();
-    if (selectedLead?.id) {
-      await supabase.from('leads').update({ voornaam: leadVoornaam, achternaam: leadAchternaam, telefoon: leadTelefoon, adres: leadAdres, partner_naam: leadPartnerNaam, email: leadEmail }).eq('id', selectedLead.id);
-    }
+    await ensureLeadRow();
     await flushSave();
     setShowCloseDialog(false);
     setStep('wrap-up');
   };
 
   const handleFinishWrapUp = async () => {
-    if (selectedLead?.id) {
-      await supabase.from('leads').update({ voornaam: leadVoornaam, achternaam: leadAchternaam, telefoon: leadTelefoon, adres: leadAdres, partner_naam: leadPartnerNaam, email: leadEmail }).eq('id', selectedLead.id);
+    const leadId = await ensureLeadRow();
+    // Wrap-up afronden = telefoongesprek is gevoerd → status 'telefoongesprek'
+    if (leadId) {
+      await supabase.from('leads').update({ status: 'telefoongesprek' }).eq('id', leadId);
     }
     update({ locked_at: new Date().toISOString() });
     await flushSave();
     toast.success('Dossier opgeslagen');
-    if (selectedLead?.id && data.id) {
-      onOpenValidation(selectedLead.id, data.id);
+    if (leadId && data.id) {
+      onOpenValidation(leadId, data.id);
     } else {
       onGoDossiers();
     }
   };
+
+  /** Terug-knop: bij ingevulde naam+email vraag om op te slaan, anders direct terug zonder lege rij. */
+  const handleBackToDossiers = async () => {
+    const heeftMinimum = !!(leadVoornaam.trim() || leadAchternaam.trim()) && !!leadEmail.trim();
+    if (heeftMinimum) {
+      setShowBackConfirm(true);
+    } else {
+      // niets noemenswaardig ingevuld — gewoon weg, géén lege rij achterlaten
+      onGoDossiers();
+    }
+  };
+
+  const confirmBackSave = async () => {
+    await ensureLeadRow();
+    await flushSave();
+    toast.success('Dossier bewaard');
+    setShowBackConfirm(false);
+    onGoDossiers();
+  };
+
+  const confirmBackDiscard = () => {
+    setShowBackConfirm(false);
+    onGoDossiers();
+  };
+
+
 
   /* ─── LEAD SELECTION ─── */
   if (step === 'select-lead') {
