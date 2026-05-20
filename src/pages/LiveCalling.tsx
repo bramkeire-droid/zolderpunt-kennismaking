@@ -486,7 +486,13 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
 
       {/* ═══ TOPBAR ═══ */}
       <div className="shrink-0 bg-white border-b border-[#DDD5C5] px-6 py-3 flex items-center justify-between gap-4">
-        <span className="font-dm font-extrabold text-[18px] text-[#008CFF] tracking-[-0.02em]">zolderpunt.</span>
+        <div className="flex items-center gap-3">
+          <button onClick={handleBackToDossiers} className="flex items-center gap-1.5 text-[13px] font-dm text-[#5B6470] hover:text-[#0F1419]">
+            <ArrowLeft className="h-4 w-4" /> Naar dossiers
+          </button>
+          <div className="w-px h-5 bg-[#DDD5C5]" />
+          <span className="font-dm font-extrabold text-[18px] text-[#008CFF] tracking-[-0.02em]">zolderpunt.</span>
+        </div>
         <div className="flex items-center gap-3">
           <span className="font-dm text-[14px] text-[#5B6470] font-semibold tabular-nums">⏱ {timer.formatted}</span>
           <span className="text-[12px] text-[#5B6470] font-dm">Opgeslagen ·</span>
