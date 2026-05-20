@@ -379,51 +379,66 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
               </div>
             </section>
 
-            {/* Videocall plannen — inputs first, labels minimal */}
+            {/* Opvolging — kies scenario */}
             <section className="space-y-3">
-              <h2 className="font-dm text-[9px] font-bold text-[#5B6470] uppercase tracking-[0.14em]">Videocall plannen</h2>
-              <div className="grid grid-cols-[1fr_1fr_2fr] gap-3">
-                <input type="date" value={data.videocall_scheduled_at ? data.videocall_scheduled_at.split('T')[0] : ''}
-                  onChange={e => {
-                    const time = data.videocall_scheduled_at ? data.videocall_scheduled_at.split('T')[1] || '10:00' : '10:00';
-                    update({ videocall_scheduled_at: e.target.value ? `${e.target.value}T${time}` : null });
-                  }}
-                  className="h-12 px-4 bg-white border-2 border-[#DDD5C5] text-[15px] font-body font-medium text-[#0F1419] focus:outline-none focus:border-[#008CFF]" />
-                <input type="time" value={data.videocall_scheduled_at ? data.videocall_scheduled_at.split('T')[1]?.substring(0, 5) || '10:00' : ''}
-                  onChange={e => {
-                    const date = data.videocall_scheduled_at ? data.videocall_scheduled_at.split('T')[0] : new Date().toISOString().split('T')[0];
-                    update({ videocall_scheduled_at: `${date}T${e.target.value}` });
-                  }}
-                  className="h-12 px-4 bg-white border-2 border-[#DDD5C5] text-[15px] font-body font-medium text-[#0F1419] focus:outline-none focus:border-[#008CFF]" />
-                <input type="url" value={data.google_meet_link} onChange={e => update({ google_meet_link: e.target.value })} placeholder="Google Meet link"
-                  className="h-12 px-4 bg-white border-2 border-[#DDD5C5] text-[15px] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
+              <h2 className="font-dm text-[9px] font-bold text-[#5B6470] uppercase tracking-[0.14em]">Opvolging</h2>
+              <div className="grid grid-cols-2 gap-3">
+                <button type="button" onClick={() => setFollowupType('videocall')}
+                  className={`h-14 px-4 border-2 font-dm font-bold text-[14px] transition-colors ${followupType === 'videocall' ? 'bg-[#008CFF] text-white border-[#008CFF]' : 'bg-white text-[#0F1419] border-[#DDD5C5] hover:border-[#008CFF]/50'}`}>
+                  📅 Videocall ingepland
+                </button>
+                <button type="button" onClick={() => { setFollowupType('klant_terug'); update({ videocall_scheduled_at: null }); }}
+                  className={`h-14 px-4 border-2 font-dm font-bold text-[14px] transition-colors ${followupType === 'klant_terug' ? 'bg-[#E89F3D] text-white border-[#E89F3D]' : 'bg-white text-[#0F1419] border-[#DDD5C5] hover:border-[#E89F3D]/50'}`}>
+                  📞 Klant neemt zelf contact op
+                </button>
               </div>
-              {data.videocall_scheduled_at && leadEmail && (() => {
-                const dt = new Date(data.videocall_scheduled_at!);
-                const dag = dt.toLocaleDateString('nl-BE', { weekday: 'long', day: 'numeric', month: 'long' });
-                const uur = dt.toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' });
-                const meetLine = data.google_meet_link ? `\n${data.google_meet_link}\n` : '';
-                const subject = `Bevestiging videocall ${dag} om ${uur} — Zolderpunt`;
-                const body = `Hi ${leadVoornaam},\n\nBij deze bevestig ik graag onze afspraak in de vorm van een videocall op ${dag} om ${uur}.${meetLine}\nAls u mij op voorhand kan meegeven:\n• Enkele foto's die de huidige toestand van de zolder goed weergeven\n• Enkele foto's van de ruimte waar de nieuwe vaste trap kan komen\n• Een inschatting van de oppervlakte van de zolder\n\nIk kijk ernaar uit om meer te weten te komen over jullie project. Tot dan!\n\nPositieve groeten,\n\nBram Keirsschieter\n+32 492 400 954\n\nZaakvoerder\nZolderpunt.be`;
-                const mailto = `mailto:${leadEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-                return (
-                  <a
-                    href={mailto}
-                    onClick={(e) => {
-                      // Forceer OS mailto-handler i.p.v. nieuwe browser-tab
-                      e.preventDefault();
-                      window.location.href = mailto;
-                    }}
-                    className="w-full h-12 flex items-center justify-center bg-[#2E7D38] text-white font-dm font-bold text-[14px] hover:bg-[#256B2E] transition-colors"
-                  >
-                    Open bevestigingsmail
-                  </a>
-                );
-              })()}
-              {data.videocall_scheduled_at && !leadEmail && (
-                <p className="text-xs font-body text-[#E89F3D] italic">Vul een e-mailadres in om de bevestigingsmail te openen.</p>
+
+              {followupType === 'videocall' && (
+                <div className="space-y-3 pt-2">
+                  <div className="grid grid-cols-[1fr_1fr_2fr] gap-3">
+                    <input type="date" value={data.videocall_scheduled_at ? data.videocall_scheduled_at.split('T')[0] : ''}
+                      onChange={e => {
+                        const time = data.videocall_scheduled_at ? data.videocall_scheduled_at.split('T')[1] || '10:00' : '10:00';
+                        update({ videocall_scheduled_at: e.target.value ? `${e.target.value}T${time}` : null });
+                      }}
+                      className="h-12 px-4 bg-white border-2 border-[#DDD5C5] text-[15px] font-body font-medium text-[#0F1419] focus:outline-none focus:border-[#008CFF]" />
+                    <input type="time" value={data.videocall_scheduled_at ? data.videocall_scheduled_at.split('T')[1]?.substring(0, 5) || '10:00' : ''}
+                      onChange={e => {
+                        const date = data.videocall_scheduled_at ? data.videocall_scheduled_at.split('T')[0] : new Date().toISOString().split('T')[0];
+                        update({ videocall_scheduled_at: `${date}T${e.target.value}` });
+                      }}
+                      className="h-12 px-4 bg-white border-2 border-[#DDD5C5] text-[15px] font-body font-medium text-[#0F1419] focus:outline-none focus:border-[#008CFF]" />
+                    <input type="url" value={data.google_meet_link} onChange={e => update({ google_meet_link: e.target.value })} placeholder="Google Meet link"
+                      className="h-12 px-4 bg-white border-2 border-[#DDD5C5] text-[15px] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
+                  </div>
+                  {data.videocall_scheduled_at && leadEmail && (() => {
+                    const dt = new Date(data.videocall_scheduled_at!);
+                    const dag = dt.toLocaleDateString('nl-BE', { weekday: 'long', day: 'numeric', month: 'long' });
+                    const uur = dt.toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' });
+                    const meetLine = data.google_meet_link ? `\n${data.google_meet_link}\n` : '';
+                    const subject = `Bevestiging videocall ${dag} om ${uur} — Zolderpunt`;
+                    const body = `Hi ${leadVoornaam},\n\nBij deze bevestig ik graag onze afspraak in de vorm van een videocall op ${dag} om ${uur}.${meetLine}\nAls u mij op voorhand kan meegeven:\n• Enkele foto's die de huidige toestand van de zolder goed weergeven\n• Enkele foto's van de ruimte waar de nieuwe vaste trap kan komen\n• Een inschatting van de oppervlakte van de zolder\n\nIk kijk ernaar uit om meer te weten te komen over jullie project. Tot dan!\n\nPositieve groeten,\n\nBram Keirsschieter\n+32 492 400 954\n\nZaakvoerder\nZolderpunt.be`;
+                    const mailto = `mailto:${leadEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                    return (
+                      <a href={mailto} onClick={(e) => { e.preventDefault(); window.location.href = mailto; }}
+                        className="w-full h-12 flex items-center justify-center bg-[#2E7D38] text-white font-dm font-bold text-[14px] hover:bg-[#256B2E] transition-colors">
+                        Open bevestigingsmail
+                      </a>
+                    );
+                  })()}
+                  {data.videocall_scheduled_at && !leadEmail && (
+                    <p className="text-xs font-body text-[#E89F3D] italic">Vul een e-mailadres in om de bevestigingsmail te openen.</p>
+                  )}
+                </div>
+              )}
+
+              {followupType === 'klant_terug' && (
+                <textarea value={klantTerugNotitie} onChange={e => setKlantTerugNotitie(e.target.value)}
+                  placeholder="Wanneer + context — bv. klant belt volgende week vrijdag na overleg met partner"
+                  className="w-full h-24 px-4 py-3 bg-white border-2 border-[#DDD5C5] text-[14px] font-body text-[#0F1419] placeholder:text-[#B0A898] resize-none focus:outline-none focus:border-[#E89F3D]" />
               )}
             </section>
+
 
             {/* Klantvragen — toggle chips */}
             <section className="space-y-3">
