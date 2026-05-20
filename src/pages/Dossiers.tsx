@@ -253,10 +253,22 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-headline font-bold text-foreground">Dossiers</h1>
-          <Button variant="outline" onClick={fetchLeads} className="gap-2 font-headline" disabled={loading}>
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            Vernieuwen
-          </Button>
+          <div className="flex gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="gap-2 font-headline">
+                  <MoreVertical className="h-4 w-4" /> Bulkacties
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleCleanEmpty}>Lege dossiers wissen</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button variant="outline" onClick={fetchLeads} className="gap-2 font-headline" disabled={loading}>
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              Vernieuwen
+            </Button>
+          </div>
         </div>
 
         <Tabs defaultValue="overzicht">
