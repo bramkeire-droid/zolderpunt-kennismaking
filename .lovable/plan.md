@@ -1,78 +1,50 @@
-# Plan: Dossierbeheer + statusflow + autosave-discipline
+## Mail-tekst aanpassen (wrap-up bevestigingsmail)
 
-Zes samenhangende fixes rond de dossierlijst, de telefoongesprek-flow en de autosave.
+**Locatie:** `src/pages/LiveCalling.tsx` regels 414-428 — de `body` string die in de `mailto:` link gestopt wordt.
 
-## 1. Correcte statusflow (Nieuw → Telefonisch → Intake)
+### Mapping uit telefoongesprek
 
-**Regels:**
-- Nieuwe lead (insert): `status='nieuw'`. Pas wanneer telefoongesprek volledig is afgesloten (wrap-up bevestigd) → `telefoongesprek`.
-- Intake-videocall: status `intake` wordt enkel gezet wanneer in slide 10 (rapport) op "Rapport definitief / klaar" geklikt wordt (rapport_gegenereerd_op gevuld).
-- Autosave promoot NIETS meer (regel uit `useLeadSave.ts` weghalen). Status wordt enkel expliciet gezet op duidelijke momenten.
+| Geel gearceerd in mockup | Bron-veld |
+|---|---|
+| "Antonio en Koen" | `lead.voornaam` + (indien `lead.partner_naam` ingevuld) ` en ${partner_naam}` |
+| "woensdag 3 juni om 16:30" | `data.videocall_scheduled_at` → `dag` + `uur` (al berekend) |
+| `https://meet.google.com/...` | `data.google_meet_link` |
+| `+32 492 400 954` (in body) | hardcoded constante |
 
-**Backfill:** `UPDATE leads SET status='nieuw' WHERE status='telefoongesprek' AND (voornaam='' AND achternaam='' AND email='' AND telefoon='')` (alleen lege dossiers terugzetten — ingevulde blijven 'telefoongesprek').
+### Nieuwe body-tekst (exact zoals mockup, stopt op "Positieve groeten,")
 
-## 2. Geen lege en geen dubbele dossiers
+```
+Hi {voornaam}{ en partner_naam},
 
-**Lege blokkeren:**
-- `useLeadSave.hasAnyData()` strenger maken: minimaal `voornaam` of `achternaam` of `email` of `telefoon` vereist vóór INSERT. Updates op bestaande id blijven gewoon werken (zodat autosave een al aangemaakt dossier wel blijft bijwerken).
-- `handleNewLead` in `LiveCalling.tsx`: niet meer direct een lege row inserten. In plaats daarvan een tijdelijk lokaal lead-object (geen id) gebruiken; de eerste echte save (autosave/flushSave) maakt pas de row aan zodra naam/email/telefoon ingevuld is.
+Bij deze bevestig ik graag onze videocall op {dag} om {uur}.
+{google_meet_link}
 
-**Dubbel detecteren:**
-- Vóór INSERT in `persistLead`: lookup op `email` (case-insensitive, niet-leeg) OR (`voornaam`+`achternaam` exact match niet-leeg) OR `telefoon` genormaliseerd.
-- Indien match: dialog `MergeDuplicateDialog` met "Overschrijven & samenvoegen" of "Toch nieuw aanmaken". Bij overschrijven → UPDATE op gevonden id; lokale lead krijgt die id, niet-lege velden uit huidige sessie winnen, lege velden vallen terug op bestaande waarden.
+Om ons gesprek goed te kunnen voorbereiden, mogen jullie mij vooraf gerust al even volgende zaken bezorgen:
 
-## 3. Wrap-up: twee scenario's i.p.v. altijd videocall-blok
+• Enkele foto's die de huidige toestand van de zolder goed weergeven
+• Een ruwe inschatting van de oppervlakte van de zolder
+• Indien er een nieuwe vaste trap naar de zolder nodig is: graag ook enkele foto's of een korte toelichting van de verdieping onder de zolder. Zo krijgen we een beter beeld van waar jullie de trap eventueel zien komen, via welke ruimte dit zou gebeuren en welke ruimte daarvoor mogelijk opgeofferd wordt.
 
-In `LiveCalling.tsx` wrap-up sectie "Videocall plannen":
-- Twee grote keuzeknoppen bovenaan: **"Videocall ingepland"** en **"Klant neemt zelf terug contact op"**.
-- Keuze opgeslagen in `pre_intake.scenario_chosen` of nieuw veld `followup_type` ('videocall' | 'klant_terug').
-- Bij 'videocall': huidige date/time/meet-link/mail-blok opent.
-- Bij 'klant_terug': blok blijft dicht, korte notitie-input "Wanneer + context".
-- `CloseCallDialog`: check `videocall_scheduled_at` enkel als scenario='videocall'.
+De foto's en informatie mogen eenvoudig doorgestuurd worden via WhatsApp of mail, afhankelijk van wat voor jullie het gemakkelijkst werkt.
++32 492 400 954
 
-## 4. Telefoongesprek vanuit dossierlijst openen
+Ik kijk ernaar uit om jullie project verder samen te bekijken. Tot dan!
 
-**Nieuwe knop in `Dossiers.tsx` actie-kolom:** telefoon-icoon (📞) naast 📁 Open. Klik → opent `LiveCalling` direct in wrap-up modus voor dit dossier (data uit `pre_intake` + lead vooraf geladen). Indien geen `pre_intake` bestaat: open in `calling`-step met bestaande lead, zodat er alsnog ingevuld kan worden.
+Positieve groeten,
+```
 
-**Implementatie:**
-- Nieuwe prop `onOpenCall(lead)` op `Dossiers`.
-- In `App.tsx`: nieuwe handler die `setView('calling')` doet met een prefilled lead-id; `LiveCalling` krijgt optionele prop `initialLeadId` + `initialStep` ('calling' | 'wrap-up') om voorbij select-lead te springen.
+Geen handtekening (Bram / Zaakvoerder / Zolderpunt.be) meer in de body — de mailclient-handtekening voegt dit automatisch toe.
 
-## 5. PDF-downloadknop in dossierlijst (indien rapport bestaat)
+### Subject ongewijzigd
+`Bevestiging videocall {dag} om {uur} — Zolderpunt`
 
-In actie-kolom van `Dossiers.tsx`: extra knop met download-icoon, alleen zichtbaar als `lead.rapport_gegenereerd_op` gevuld is.
+### Over de `tel:` link — belangrijke beperking
 
-Klik → gebruikt dezelfde `@react-pdf/renderer` flow als in `Slide10`: render `ReportDocument` met `lead` data via `pdf().toBlob()` en triggert download (`saveAs` of blob link). Geen UI-navigatie nodig.
+`mailto:` body is **plain text** — het ondersteunt geen HTML, dus geen klikbare `<a href="tel:...">` tag. De enige manieren om wél een echte tel-link te krijgen:
+1. **Vertrouwen op auto-linkify** van de mailclient (Outlook/Gmail/Apple Mail detecteren `+32 492 400 954` automatisch en maken er een tel: link van bij ontvangst). → Werkt in praktijk overal, vereist geen code.
+2. **HTML-mail genereren** via een eigen "open in nieuwe tab"-preview of via een backend send (edge function met Resend). → Grote ingreep, niet via `mailto:`.
 
-## 6. "Terug naar dossiers" vanuit telefoongesprek zonder dataverlies
+**Voorstel:** optie 1 toepassen (gewoon het nummer in de tekst), tenzij je echt wilt overschakelen naar HTML-mailverzending via een backend.
 
-In `LiveCalling.tsx` header (calling + wrap-up): knop **"Naar dossiers"** links bovenin.
-- Indien `voornaam` + `email` ingevuld: confirm dialog "Dossier opslaan vóór je terug gaat?" → bij ja: `flushSave()` + `pre_intake` save + status='telefoongesprek' indien wrap-up al gedaan, anders blijft 'nieuw' → terug.
-- Indien geen naam/email: gewoon weg zonder save (geen lege row).
-- Bij later opnieuw openen uit dossierlijst (zie #4): alle ingevulde data is er nog.
-
-## 7. Bulkacties — "Lege dossiers wissen"
-
-**Knop "Bulkacties" rechts boven in `Dossiers.tsx`** (naast Vernieuwen) → DropdownMenu.
-
-Eerste actie: **"Lege dossiers wissen"**.
-- Selecteert leads waar ALLES leeg is: `voornaam='' AND achternaam='' AND email='' AND telefoon='' AND adres='' AND oppervlakte_m2 IS NULL AND gezocht_naar='' AND gesprek_notities='' AND notities_vooraf='' AND budget_min IS NULL AND budget_excl IS NULL AND project_feiten='[]' AND fotos='[]' AND rapport_situatie_ai='' AND rapport_tekst=''`.
-- Modal toont lijst (id + created_at) met aantal → "Definitief verwijderen" knop.
-- DELETE per id (RLS staat admin delete toe; gebruikers met admin-rol kunnen wissen).
-
-## Technische details
-
-**Files te wijzigen:**
-- `src/hooks/useLeadSave.ts` — strengere `hasAnyData`, geen auto-status-promotie, dubbel-check vóór insert
-- `src/pages/LiveCalling.tsx` — geen lege insert in `handleNewLead`, scenario-keuze, "Naar dossiers" knop, optionele `initialLeadId`/`initialStep` props
-- `src/components/calling/CloseCallDialog.tsx` — videocall-check conditioneel
-- `src/pages/Dossiers.tsx` — telefoongesprek-knop, PDF-download-knop, Bulkacties dropdown + modal
-- `src/App.tsx` — nieuwe handler voor "open call from dossier"
-- Nieuwe component: `src/components/MergeDuplicateDialog.tsx`
-- Nieuwe component: `src/components/dossiers/BulkActionsMenu.tsx` + `CleanEmptyDossiersDialog.tsx`
-
-**Database:**
-- Geen schemawijziging strikt nodig. Optioneel: `pre_intake.followup_type text` toevoegen om scenario-keuze los van `scenario_chosen` op te slaan.
-- Backfill SQL voor status (zie #1).
-
-**Bestaande PDF-render:** hergebruik `pdf(<ReportDocument lead={...} />).toBlob()` uit `@react-pdf/renderer` (al gebruikt in Slide10).
+### Te wijzigen bestand
+- `src/pages/LiveCalling.tsx` (alleen de `body` constante op regel 420; eventueel `leadPartnerNaam` uit `lead` halen indien nog niet beschikbaar in scope)
