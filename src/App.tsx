@@ -176,6 +176,8 @@ function AppContent() {
           onGoHome={handleGoHome}
           onGoDossiers={handleGoDossiers}
           onOpenValidation={handleOpenValidation}
+          initialLeadId={callingLeadId}
+          initialStep={callingInitialStep}
         />
       </PreIntakeProvider>
     );
