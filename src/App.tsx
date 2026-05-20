@@ -220,6 +220,7 @@ function AppContent() {
         <Dossiers
           onOpenLead={handleOpenLead}
           onOpenValidation={handleOpenValidation}
+          onOpenCall={handleOpenCall}
         />
       ) : (
         (() => {
