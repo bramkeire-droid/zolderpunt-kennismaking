@@ -166,6 +166,13 @@ export default function Slide10() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
+      // Markeer rapport als gegenereerd + promoveer dossier-status naar 'intake'
+      if (lead.id) {
+        const nowIso = new Date().toISOString();
+        await supabase.from('leads').update({ rapport_gegenereerd_op: nowIso, status: 'intake' }).eq('id', lead.id);
+        updateLead({ rapport_gegenereerd_op: nowIso, status: 'intake' });
+      }
+
       toast.success('PDF succesvol gedownload!');
     } catch (err) {
       console.error('PDF generation failed:', err);
