@@ -5,7 +5,8 @@ import { useCallTimer } from '@/hooks/useCallTimer';
 import { supabase } from '@/integrations/supabase/client';
 import ChipInput from '@/components/calling/ChipInput';
 import CloseCallDialog from '@/components/calling/CloseCallDialog';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ArrowRight, LogOut } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -121,6 +122,7 @@ const SCENARIOS: { type: ScenarioType; tag: string; text: string; sub: string }[
 
 export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, initialLeadId, initialStep }: LiveCallingProps) {
   const [step, setStep] = useState<CallingStep>(initialStep ?? 'select-lead');
+  const { signOut } = useAuth();
   const [search, setSearch] = useState('');
   const [leads, setLeads] = useState<any[]>([]);
   const [selectedLead, setSelectedLead] = useState<any>(null);
@@ -308,6 +310,9 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
             <ArrowLeft className="h-4 w-4" /> Terug
           </button>
           <h1 className="text-base font-dm font-bold text-[#0F1419]">Nieuw telefoongesprek</h1>
+          <button onClick={signOut} className="ml-auto p-2 text-[#5B6470] hover:text-[#0F1419] transition-colors" title="Uitloggen">
+            <LogOut className="h-4 w-4" />
+          </button>
         </div>
         <div className="flex-1 overflow-y-auto p-8 lg:p-12">
           <div className="max-w-xl mx-auto space-y-6">
@@ -349,10 +354,17 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
             <ArrowLeft className="h-4 w-4" /> Naar dossiers
           </button>
           <div className="w-px h-5 bg-[#DDD5C5]" />
+          <button onClick={() => setStep('calling')} className="flex items-center gap-2 text-sm font-dm font-semibold text-[#008CFF] hover:text-[#0070CC]" title="Terug naar live invulscherm">
+            <ArrowLeft className="h-4 w-4" /> Terug naar gesprek
+          </button>
+          <div className="w-px h-5 bg-[#DDD5C5]" />
           <h1 className="text-base font-dm font-bold text-[#0F1419]">Gesprek afwerken</h1>
           <span className="text-xs font-body text-[#5B6470] ml-3">
             {leadVoornaam} {leadAchternaam} — {Math.floor((data.call_duration_seconds || 0) / 60)} min
           </span>
+          <button onClick={signOut} className="ml-auto p-2 text-[#5B6470] hover:text-[#0F1419] transition-colors" title="Uitloggen">
+            <LogOut className="h-4 w-4" />
+          </button>
         </div>
 
         <div className="flex-1 overflow-y-auto">
@@ -493,6 +505,10 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
             <ArrowLeft className="h-4 w-4" /> Naar dossiers
           </button>
           <div className="w-px h-5 bg-[#DDD5C5]" />
+          <button onClick={() => setStep('wrap-up')} className="flex items-center gap-1.5 text-[13px] font-dm font-semibold text-[#008CFF] hover:text-[#0070CC]" title="Naar afwerkscherm">
+            Naar afwerken <ArrowRight className="h-4 w-4" />
+          </button>
+          <div className="w-px h-5 bg-[#DDD5C5]" />
           <span className="font-dm font-extrabold text-[18px] text-[#008CFF] tracking-[-0.02em]">zolderpunt.</span>
         </div>
         <div className="flex items-center gap-3">
@@ -501,6 +517,9 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
           <button onClick={() => setShowCloseDialog(true)}
             className="h-11 bg-[#008CFF] text-white border-none px-6 font-dm font-semibold text-[14px] tracking-[0.02em] cursor-pointer hover:bg-[#0070CC] transition-colors">
             Sluit gesprek af →
+          </button>
+          <button onClick={signOut} className="p-2 text-[#5B6470] hover:text-[#0F1419] transition-colors" title="Uitloggen">
+            <LogOut className="h-4 w-4" />
           </button>
         </div>
       </div>
