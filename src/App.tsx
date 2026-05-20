@@ -57,6 +57,8 @@ function AppContent() {
   const [validationLeadId, setValidationLeadId] = useState<string | null>(null);
   const [validationPreIntakeId, setValidationPreIntakeId] = useState<string | null>(null);
   const [briefingLead, setBriefingLead] = useState<LeadData | null>(null);
+  const [callingLeadId, setCallingLeadId] = useState<string | null>(null);
+  const [callingInitialStep, setCallingInitialStep] = useState<'calling' | 'wrap-up' | 'select-lead'>('select-lead');
   const { currentMode, currentSlide, resetSession, setCurrentMode, loadLead } = useSession();
   const { flushSave } = useLeadSave();
 
