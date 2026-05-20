@@ -505,6 +505,10 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
             <ArrowLeft className="h-4 w-4" /> Naar dossiers
           </button>
           <div className="w-px h-5 bg-[#DDD5C5]" />
+          <button onClick={() => setStep('wrap-up')} className="flex items-center gap-1.5 text-[13px] font-dm font-semibold text-[#008CFF] hover:text-[#0070CC]" title="Naar afwerkscherm">
+            Naar afwerken <ArrowRight className="h-4 w-4" />
+          </button>
+          <div className="w-px h-5 bg-[#DDD5C5]" />
           <span className="font-dm font-extrabold text-[18px] text-[#008CFF] tracking-[-0.02em]">zolderpunt.</span>
         </div>
         <div className="flex items-center gap-3">
@@ -513,6 +517,9 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
           <button onClick={() => setShowCloseDialog(true)}
             className="h-11 bg-[#008CFF] text-white border-none px-6 font-dm font-semibold text-[14px] tracking-[0.02em] cursor-pointer hover:bg-[#0070CC] transition-colors">
             Sluit gesprek af →
+          </button>
+          <button onClick={signOut} className="p-2 text-[#5B6470] hover:text-[#0F1419] transition-colors" title="Uitloggen">
+            <LogOut className="h-4 w-4" />
           </button>
         </div>
       </div>
