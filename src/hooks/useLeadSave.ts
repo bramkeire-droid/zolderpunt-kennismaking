@@ -107,8 +107,22 @@ export function useLeadSave() {
     isSavingRef.current = true;
 
     try {
-      // GEEN auto-promotie meer. Status wordt expliciet gezet op duidelijke momenten
-      // (wrap-up afronden → 'telefoongesprek', rapport gegenereerd → 'intake').
+      // Auto-promote naar 'intake' wanneer er duidelijke intake-data is.
+      // 'telefoongesprek' wordt expliciet gezet via wrap-up. 'intake' via deze hint of via Slide10.
+      const hasIntakeData = !!(
+        leadData.rapport_gegenereerd_op ||
+        leadData.rapport_situatie_ai?.trim() ||
+        leadData.rapport_besproken_ai?.trim() ||
+        leadData.rapport_verwachtingen_ai?.trim() ||
+        leadData.rapport_aandachtspunten_ai?.trim() ||
+        leadData.rapport_tekst?.trim() ||
+        leadData.waarde_tekst_ai?.trim() ||
+        (leadData.fotos && (leadData.fotos as any[]).length > 0) ||
+        leadData.calculator_state
+      );
+      if (hasIntakeData && ['nieuw', 'telefoongesprek', 'intake_gepland'].includes(leadData.status)) {
+        leadData = { ...leadData, status: 'intake' };
+      }
       const row = leadToRow(leadData);
 
       if (leadData.id) {
