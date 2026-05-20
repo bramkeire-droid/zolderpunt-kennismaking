@@ -152,13 +152,28 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
   }, [leads]);
 
   const filtered = useMemo(() => {
-    if (!search.trim()) return leads;
-    const q = search.toLowerCase();
-    return leads.filter(l =>
-      `${l.voornaam} ${l.achternaam}`.toLowerCase().includes(q) ||
-      (l.adres ?? '').toLowerCase().includes(q)
+    const base = !search.trim() ? leads : leads.filter(l =>
+      `${l.voornaam} ${l.achternaam}`.toLowerCase().includes(search.toLowerCase()) ||
+      (l.adres ?? '').toLowerCase().includes(search.toLowerCase())
     );
-  }, [leads, search]);
+    const getVal = (l: any): string | number => {
+      switch (sortKey) {
+        case 'naam': return `${l.voornaam ?? ''} ${l.achternaam ?? ''}`.trim().toLowerCase();
+        case 'gesprek_datum': return l.gesprek_datum || '';
+        case 'status': return l.status || '';
+        case 'budget': return l.budget_min ?? -1;
+        case 'portal': return l.portal_status || 'draft';
+        case 'volgende_stap': return (l.volgende_stap || '').toLowerCase();
+      }
+    };
+    const sorted = [...base].sort((a, b) => {
+      const va = getVal(a), vb = getVal(b);
+      if (va < vb) return sortDir === 'asc' ? -1 : 1;
+      if (va > vb) return sortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
+    return sorted;
+  }, [leads, search, sortKey, sortDir]);
 
   const stats = useMemo(() => {
     const total = leads.length;
