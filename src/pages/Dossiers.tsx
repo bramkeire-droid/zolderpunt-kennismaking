@@ -176,12 +176,8 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
     const naam = `${lead.voornaam} ${lead.achternaam}`.trim() || 'dit dossier';
     if (!window.confirm(`Weet je zeker dat je "${naam}" wilt verwijderen?`)) return;
     const { error } = await supabase.from('leads').delete().eq('id', lead.id);
-    if (error) {
-      toast.error('Verwijderen mislukt');
-    } else {
-      toast.success('Dossier verwijderd');
-      setLeads(prev => prev.filter(l => l.id !== lead.id));
-    }
+    if (error) toast.error('Verwijderen mislukt');
+    else { toast.success('Dossier verwijderd'); setLeads(prev => prev.filter(l => l.id !== lead.id)); }
   };
 
   const handleConvert = async (e: React.MouseEvent, lead: any) => {
@@ -189,13 +185,68 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
     const naam = `${lead.voornaam} ${lead.achternaam}`.trim() || 'dit dossier';
     if (!window.confirm(`"${naam}" markeren als uitgevoerd (afgesloten)?`)) return;
     const { error } = await supabase.from('leads').update({ status: 'afgesloten' }).eq('id', lead.id);
-    if (error) {
-      toast.error('Status wijzigen mislukt');
-    } else {
-      toast.success('Dossier gemarkeerd als afgesloten');
-      setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, status: 'afgesloten' } : l));
+    if (error) toast.error('Status wijzigen mislukt');
+    else { toast.success('Dossier gemarkeerd als afgesloten'); setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, status: 'afgesloten' } : l)); }
+  };
+
+  const handleDownloadPdf = async (e: React.MouseEvent, lead: any) => {
+    e.stopPropagation();
+    const t = toast.loading('PDF wordt opgemaakt...');
+    try {
+      const reportData: ReportData = {
+        voornaam: lead.voornaam || '', achternaam: lead.achternaam || '',
+        adres: lead.adres || '',
+        datum_gesprek: lead.gesprek_datum || new Date().toISOString().split('T')[0],
+        situatie: lead.rapport_situatie_ai || '',
+        verwachtingen: lead.rapport_verwachtingen_ai || '',
+        besproken: lead.rapport_besproken_ai || '',
+        aandachtspunten: lead.rapport_aandachtspunten_ai || '',
+        gewenst_resultaat: lead.gezocht_naar || '—',
+        oppervlakte_m2: lead.oppervlakte_m2 || 0,
+        prijs_min: lead.budget_min || 0, prijs_max: lead.budget_max || 0,
+        prijs_incl6: lead.budget_incl6 || 0, prijs_incl21: lead.budget_incl21 || 0,
+        budget_excl: lead.budget_excl || 0,
+        btw_percentage: lead.btw_percentage ?? 6,
+        prijs_min_incl_btw: lead.prijs_min_incl_btw ?? 0,
+        prijs_max_incl_btw: lead.prijs_max_incl_btw ?? 0,
+        prijs_mw_min_incl_btw: lead.prijs_mw_min_incl_btw ?? 0,
+        prijs_mw_max_incl_btw: lead.prijs_mw_max_incl_btw ?? 0,
+        fotos: (lead.fotos || []).filter((f: any) => f.url).map((f: any) => f.url),
+        fotos_met_path: (lead.fotos || []).filter((f: any) => f.url).map((f: any) => ({ url: f.url, storage_path: f.storage_path })),
+        waarde_tekst_ai: lead.waarde_tekst_ai || 'Extra leefruimte gecreëerd uit ruimte die er al was.',
+        inbegrepen_posten: lead.inbegrepen_posten || [],
+        project_feiten: (lead.project_feiten || []).filter((f: any): f is FeitjeItem => typeof f === 'object' && 'tekst' in f),
+      };
+      const blob = await pdf(<ReportDocument data={reportData} />).toBlob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Zolderpunt_${lead.achternaam || 'Klant'}_${lead.gesprek_datum || 'rapport'}.pdf`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success('PDF gedownload', { id: t });
+    } catch (err: any) {
+      console.error(err);
+      toast.error('PDF mislukt', { id: t });
     }
   };
+
+  const handleCleanEmpty = async () => {
+    const { data: candidates, error } = await supabase.from('leads').select('id, created_at')
+      .eq('voornaam', '').eq('achternaam', '').eq('email', '').eq('telefoon', '')
+      .eq('adres', '').is('oppervlakte_m2', null)
+      .eq('gezocht_naar', '').eq('gesprek_notities', '').eq('notities_vooraf', '')
+      .is('budget_min', null).eq('rapport_situatie_ai', '').eq('rapport_tekst', '');
+    if (error) { toast.error('Selectie mislukt'); return; }
+    const count = candidates?.length ?? 0;
+    if (count === 0) { toast.info('Geen lege dossiers gevonden'); return; }
+    if (!window.confirm(`${count} volledig leeg dossier(s) gevonden. Definitief verwijderen?`)) return;
+    const ids = candidates!.map((c: any) => c.id);
+    const { error: delErr } = await supabase.from('leads').delete().in('id', ids);
+    if (delErr) toast.error('Verwijderen mislukt');
+    else { toast.success(`${count} leeg dossier(s) verwijderd`); fetchLeads(); }
+  };
+
 
   return (
     <div className="flex-1 overflow-y-auto p-8 lg:p-12 bg-background">
