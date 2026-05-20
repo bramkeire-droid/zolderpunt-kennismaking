@@ -17,6 +17,8 @@ interface LiveCallingProps {
   onGoHome: () => void;
   onGoDossiers: () => void;
   onOpenValidation: (leadId: string, preIntakeId: string) => void;
+  initialLeadId?: string | null;
+  initialStep?: CallingStep;
 }
 
 /* ───────────────────────── STATIC CONTENT ───────────────────────── */
