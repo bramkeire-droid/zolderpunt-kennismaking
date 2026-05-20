@@ -57,6 +57,8 @@ function AppContent() {
   const [validationLeadId, setValidationLeadId] = useState<string | null>(null);
   const [validationPreIntakeId, setValidationPreIntakeId] = useState<string | null>(null);
   const [briefingLead, setBriefingLead] = useState<LeadData | null>(null);
+  const [callingLeadId, setCallingLeadId] = useState<string | null>(null);
+  const [callingInitialStep, setCallingInitialStep] = useState<'calling' | 'wrap-up' | 'select-lead'>('select-lead');
   const { currentMode, currentSlide, resetSession, setCurrentMode, loadLead } = useSession();
   const { flushSave } = useLeadSave();
 
@@ -105,6 +107,15 @@ function AppContent() {
 
   const handleNewCall = async () => {
     if (view === 'slides') await flushSave();
+    setCallingLeadId(null);
+    setCallingInitialStep('select-lead');
+    setView('calling');
+  };
+
+  const handleOpenCall = async (leadId: string, step: 'calling' | 'wrap-up' = 'calling') => {
+    if (view === 'slides') await flushSave();
+    setCallingLeadId(leadId);
+    setCallingInitialStep(step);
     setView('calling');
   };
 
@@ -165,6 +176,8 @@ function AppContent() {
           onGoHome={handleGoHome}
           onGoDossiers={handleGoDossiers}
           onOpenValidation={handleOpenValidation}
+          initialLeadId={callingLeadId}
+          initialStep={callingInitialStep}
         />
       </PreIntakeProvider>
     );
@@ -207,6 +220,7 @@ function AppContent() {
         <Dossiers
           onOpenLead={handleOpenLead}
           onOpenValidation={handleOpenValidation}
+          onOpenCall={handleOpenCall}
         />
       ) : (
         (() => {

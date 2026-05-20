@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useState, useEffect, useMemo } from 'react';
-import { Search, FolderOpen, Users, TrendingUp, DollarSign, Eye, RefreshCw, Trash2, CheckCircle, Globe, Phone, Bot } from 'lucide-react';
+import { Search, FolderOpen, Users, TrendingUp, DollarSign, Eye, RefreshCw, Trash2, CheckCircle, Globe, Phone, Bot, FileDown, MoreVertical } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { defaultTechnisch } from '@/contexts/SessionContext';
 import type { LeadData } from '@/contexts/SessionContext';
@@ -12,6 +12,10 @@ import { toast } from 'sonner';
 import SalesAnalysis from '@/components/SalesAnalysis';
 import PortalManageDialog from '@/components/portal/PortalManageDialog';
 import PortalPreview from '@/components/portal/PortalPreview';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { pdf } from '@react-pdf/renderer';
+import ReportDocument from '@/components/report/ReportDocument';
+import type { ReportData, FeitjeItem } from '@/components/report/reportTypes';
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('nl-BE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
@@ -86,9 +90,10 @@ function rowToLead(row: any): LeadData {
 interface DossiersProps {
   onOpenLead?: (lead: LeadData) => void;
   onOpenValidation?: (leadId: string, preIntakeId: string) => void;
+  onOpenCall?: (leadId: string, step?: 'calling' | 'wrap-up') => void;
 }
 
-export default function Dossiers({ onOpenLead, onOpenValidation }: DossiersProps) {
+export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: DossiersProps) {
   const [search, setSearch] = useState('');
   const [leads, setLeads] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -171,12 +176,8 @@ export default function Dossiers({ onOpenLead, onOpenValidation }: DossiersProps
     const naam = `${lead.voornaam} ${lead.achternaam}`.trim() || 'dit dossier';
     if (!window.confirm(`Weet je zeker dat je "${naam}" wilt verwijderen?`)) return;
     const { error } = await supabase.from('leads').delete().eq('id', lead.id);
-    if (error) {
-      toast.error('Verwijderen mislukt');
-    } else {
-      toast.success('Dossier verwijderd');
-      setLeads(prev => prev.filter(l => l.id !== lead.id));
-    }
+    if (error) toast.error('Verwijderen mislukt');
+    else { toast.success('Dossier verwijderd'); setLeads(prev => prev.filter(l => l.id !== lead.id)); }
   };
 
   const handleConvert = async (e: React.MouseEvent, lead: any) => {
@@ -184,23 +185,90 @@ export default function Dossiers({ onOpenLead, onOpenValidation }: DossiersProps
     const naam = `${lead.voornaam} ${lead.achternaam}`.trim() || 'dit dossier';
     if (!window.confirm(`"${naam}" markeren als uitgevoerd (afgesloten)?`)) return;
     const { error } = await supabase.from('leads').update({ status: 'afgesloten' }).eq('id', lead.id);
-    if (error) {
-      toast.error('Status wijzigen mislukt');
-    } else {
-      toast.success('Dossier gemarkeerd als afgesloten');
-      setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, status: 'afgesloten' } : l));
+    if (error) toast.error('Status wijzigen mislukt');
+    else { toast.success('Dossier gemarkeerd als afgesloten'); setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, status: 'afgesloten' } : l)); }
+  };
+
+  const handleDownloadPdf = async (e: React.MouseEvent, lead: any) => {
+    e.stopPropagation();
+    const t = toast.loading('PDF wordt opgemaakt...');
+    try {
+      const reportData: ReportData = {
+        voornaam: lead.voornaam || '', achternaam: lead.achternaam || '',
+        adres: lead.adres || '',
+        datum_gesprek: lead.gesprek_datum || new Date().toISOString().split('T')[0],
+        situatie: lead.rapport_situatie_ai || '',
+        verwachtingen: lead.rapport_verwachtingen_ai || '',
+        besproken: lead.rapport_besproken_ai || '',
+        aandachtspunten: lead.rapport_aandachtspunten_ai || '',
+        gewenst_resultaat: lead.gezocht_naar || '—',
+        oppervlakte_m2: lead.oppervlakte_m2 || 0,
+        prijs_min: lead.budget_min || 0, prijs_max: lead.budget_max || 0,
+        prijs_incl6: lead.budget_incl6 || 0, prijs_incl21: lead.budget_incl21 || 0,
+        budget_excl: lead.budget_excl || 0,
+        btw_percentage: lead.btw_percentage ?? 6,
+        prijs_min_incl_btw: lead.prijs_min_incl_btw ?? 0,
+        prijs_max_incl_btw: lead.prijs_max_incl_btw ?? 0,
+        prijs_mw_min_incl_btw: lead.prijs_mw_min_incl_btw ?? 0,
+        prijs_mw_max_incl_btw: lead.prijs_mw_max_incl_btw ?? 0,
+        fotos: (lead.fotos || []).filter((f: any) => f.url).map((f: any) => f.url),
+        fotos_met_path: (lead.fotos || []).filter((f: any) => f.url).map((f: any) => ({ url: f.url, storage_path: f.storage_path })),
+        waarde_tekst_ai: lead.waarde_tekst_ai || 'Extra leefruimte gecreëerd uit ruimte die er al was.',
+        inbegrepen_posten: lead.inbegrepen_posten || [],
+        project_feiten: (lead.project_feiten || []).filter((f: any): f is FeitjeItem => typeof f === 'object' && 'tekst' in f),
+      };
+      const blob = await pdf(<ReportDocument data={reportData} />).toBlob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Zolderpunt_${lead.achternaam || 'Klant'}_${lead.gesprek_datum || 'rapport'}.pdf`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success('PDF gedownload', { id: t });
+    } catch (err: any) {
+      console.error(err);
+      toast.error('PDF mislukt', { id: t });
     }
   };
+
+  const handleCleanEmpty = async () => {
+    const { data: candidates, error } = await supabase.from('leads').select('id, created_at')
+      .eq('voornaam', '').eq('achternaam', '').eq('email', '').eq('telefoon', '')
+      .eq('adres', '').is('oppervlakte_m2', null)
+      .eq('gezocht_naar', '').eq('gesprek_notities', '').eq('notities_vooraf', '')
+      .is('budget_min', null).eq('rapport_situatie_ai', '').eq('rapport_tekst', '');
+    if (error) { toast.error('Selectie mislukt'); return; }
+    const count = candidates?.length ?? 0;
+    if (count === 0) { toast.info('Geen lege dossiers gevonden'); return; }
+    if (!window.confirm(`${count} volledig leeg dossier(s) gevonden. Definitief verwijderen?`)) return;
+    const ids = candidates!.map((c: any) => c.id);
+    const { error: delErr } = await supabase.from('leads').delete().in('id', ids);
+    if (delErr) toast.error('Verwijderen mislukt');
+    else { toast.success(`${count} leeg dossier(s) verwijderd`); fetchLeads(); }
+  };
+
 
   return (
     <div className="flex-1 overflow-y-auto p-8 lg:p-12 bg-background">
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-headline font-bold text-foreground">Dossiers</h1>
-          <Button variant="outline" onClick={fetchLeads} className="gap-2 font-headline" disabled={loading}>
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            Vernieuwen
-          </Button>
+          <div className="flex gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="gap-2 font-headline">
+                  <MoreVertical className="h-4 w-4" /> Bulkacties
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleCleanEmpty}>Lege dossiers wissen</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button variant="outline" onClick={fetchLeads} className="gap-2 font-headline" disabled={loading}>
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              Vernieuwen
+            </Button>
+          </div>
         </div>
 
         <Tabs defaultValue="overzicht">
@@ -282,18 +350,26 @@ export default function Dossiers({ onOpenLead, onOpenValidation }: DossiersProps
                         <TableCell className="font-body">{lead.volgende_stap || '—'}</TableCell>
                         <TableCell>
                           <div className="flex gap-1">
-                            <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); handleOpen(lead); }}>
+                            <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); handleOpen(lead); }} title="Open intake">
                               <FolderOpen className="h-4 w-4" />
                             </Button>
-                            <Button size="sm" variant="ghost" className="text-[#008CFF] hover:text-[#0070CC]" onClick={(e) => { e.stopPropagation(); setPortalLead(lead); }}>
+                            <Button size="sm" variant="ghost" className="text-[#008CFF]" onClick={(e) => { e.stopPropagation(); onOpenCall?.(lead.id, preIntakeMap[lead.id] ? 'wrap-up' : 'calling'); }} title="Telefoongesprek openen">
+                              <Phone className="h-4 w-4" />
+                            </Button>
+                            {lead.rapport_gegenereerd_op && (
+                              <Button size="sm" variant="ghost" className="text-[#2E7D38]" onClick={(e) => handleDownloadPdf(e, lead)} title="PDF rapport downloaden">
+                                <FileDown className="h-4 w-4" />
+                              </Button>
+                            )}
+                            <Button size="sm" variant="ghost" className="text-[#008CFF] hover:text-[#0070CC]" onClick={(e) => { e.stopPropagation(); setPortalLead(lead); }} title="Portaal">
                               <Globe className="h-4 w-4" />
                             </Button>
                             {lead.status !== 'afgesloten' && (
-                              <Button size="sm" variant="ghost" className="text-green-600 hover:text-green-700" onClick={(e) => handleConvert(e, lead)}>
+                              <Button size="sm" variant="ghost" className="text-green-600 hover:text-green-700" onClick={(e) => handleConvert(e, lead)} title="Markeer afgesloten">
                                 <CheckCircle className="h-4 w-4" />
                               </Button>
                             )}
-                            <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={(e) => handleDelete(e, lead)}>
+                            <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={(e) => handleDelete(e, lead)} title="Verwijder">
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>

@@ -81,14 +81,8 @@ export function usePreIntakeSave() {
         }
       }
 
-      // Auto-promote lead status van 'nieuw' naar 'telefoongesprek'
-      if (d.lead_id) {
-        await supabase
-          .from('leads')
-          .update({ status: 'telefoongesprek' })
-          .eq('id', d.lead_id)
-          .eq('status', 'nieuw');
-      }
+      // Status van het lead-dossier wordt NIET auto-gepromoot vanuit de pre-intake autosave.
+      // Promotie naar 'telefoongesprek' gebeurt expliciet bij het afronden van de wrap-up.
 
       lastSavedRef.current = serialized;
 

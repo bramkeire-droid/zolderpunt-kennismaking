@@ -17,6 +17,8 @@ interface LiveCallingProps {
   onGoHome: () => void;
   onGoDossiers: () => void;
   onOpenValidation: (leadId: string, preIntakeId: string) => void;
+  initialLeadId?: string | null;
+  initialStep?: CallingStep;
 }
 
 /* ───────────────────────── STATIC CONTENT ───────────────────────── */
@@ -117,21 +119,24 @@ const SCENARIOS: { type: ScenarioType; tag: string; text: string; sub: string }[
 
 /* ───────────────────────── MAIN COMPONENT ───────────────────────── */
 
-export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation }: LiveCallingProps) {
-  const [step, setStep] = useState<CallingStep>('select-lead');
+export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, initialLeadId, initialStep }: LiveCallingProps) {
+  const [step, setStep] = useState<CallingStep>(initialStep ?? 'select-lead');
   const [search, setSearch] = useState('');
   const [leads, setLeads] = useState<any[]>([]);
   const [selectedLead, setSelectedLead] = useState<any>(null);
   const [showCloseDialog, setShowCloseDialog] = useState(false);
+  const [showBackConfirm, setShowBackConfirm] = useState(false);
   const [leadVoornaam, setLeadVoornaam] = useState('');
   const [leadAchternaam, setLeadAchternaam] = useState('');
   const [leadTelefoon, setLeadTelefoon] = useState('');
   const [leadAdres, setLeadAdres] = useState('');
   const [leadPartnerNaam, setLeadPartnerNaam] = useState('');
   const [leadEmail, setLeadEmail] = useState('');
+  const [followupType, setFollowupType] = useState<'videocall' | 'klant_terug' | null>(null);
+  const [klantTerugNotitie, setKlantTerugNotitie] = useState('');
 
   const {
-    data, update, resetPreIntake,
+    data, update, resetPreIntake, loadPreIntake,
     addEmotionalKeyword, removeEmotionalKeyword,
     addFomuConcern, removeFomuConcern,
     toggleImpressionTag, toggleQuestion,
@@ -145,6 +150,32 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation }
       if (rows) setLeads(rows);
     })();
   }, []);
+
+  // Open direct uit dossierlijst: laad lead + bestaande pre_intake
+  useEffect(() => {
+    if (!initialLeadId) return;
+    (async () => {
+      const { data: lead } = await supabase.from('leads').select('*').eq('id', initialLeadId).maybeSingle();
+      if (!lead) return;
+      setSelectedLead(lead);
+      setLeadVoornaam(lead.voornaam || '');
+      setLeadAchternaam(lead.achternaam || '');
+      setLeadTelefoon(lead.telefoon || '');
+      setLeadAdres(lead.adres || '');
+      setLeadPartnerNaam(lead.partner_naam || '');
+      setLeadEmail(lead.email || '');
+      const { data: pi } = await supabase.from('pre_intake' as any).select('*').eq('lead_id', initialLeadId).maybeSingle();
+      if (pi) {
+        loadPreIntake(pi as any);
+        if (initialStep === 'wrap-up' || (pi as any).locked_at) setStep('wrap-up');
+        else setStep('calling');
+      } else {
+        resetPreIntake(initialLeadId);
+        setStep(initialStep ?? 'calling');
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialLeadId]);
 
   const filteredLeads = search.trim()
     ? leads.filter(l => `${l.voornaam} ${l.achternaam} ${l.email} ${l.telefoon}`.toLowerCase().includes(search.toLowerCase()))
@@ -164,36 +195,109 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation }
     setStep('calling');
   };
 
+  // Nieuwe lead aanmaken: GEEN insert meer — pas later inserten wanneer naam ingevuld is.
   const handleNewLead = async () => {
-    const { data: newLead, error } = await supabase.from('leads').insert({ voornaam: '', achternaam: '', status: 'telefoongesprek' }).select('id, voornaam, achternaam, email, telefoon, adres').single();
-    if (error) { toast.error('Fout bij aanmaken lead'); return; }
-    startCall(newLead);
+    const tempLead = { id: undefined, voornaam: '', achternaam: '', email: '', telefoon: '', adres: '', partner_naam: '' };
+    setSelectedLead(tempLead);
+    setLeadVoornaam('');
+    setLeadAchternaam('');
+    setLeadTelefoon('');
+    setLeadAdres('');
+    setLeadPartnerNaam('');
+    setLeadEmail('');
+    resetPreIntake(undefined);
+    update({ call_started_at: new Date().toISOString() });
+    timer.start();
+    setStep('calling');
+  };
+
+  /** Zorg dat er een lead-row bestaat (insert indien nodig met dubbel-detectie). Retourneert lead id of null. */
+  const ensureLeadRow = async (): Promise<string | null> => {
+    if (selectedLead?.id) {
+      // Update bestaande
+      await supabase.from('leads').update({ voornaam: leadVoornaam, achternaam: leadAchternaam, telefoon: leadTelefoon, adres: leadAdres, partner_naam: leadPartnerNaam, email: leadEmail }).eq('id', selectedLead.id);
+      return selectedLead.id;
+    }
+    if (!leadVoornaam.trim() && !leadAchternaam.trim() && !leadEmail.trim() && !leadTelefoon.trim()) {
+      return null; // niets om op te slaan
+    }
+    // Dubbel-detectie op email/telefoon
+    const orParts: string[] = [];
+    if (leadEmail.trim()) orParts.push(`email.eq.${leadEmail.trim()}`);
+    if (leadTelefoon.trim()) orParts.push(`telefoon.eq.${leadTelefoon.trim()}`);
+    let existingId: string | null = null;
+    if (orParts.length > 0) {
+      const { data: existing } = await supabase.from('leads').select('id').or(orParts.join(',')).limit(1).maybeSingle();
+      if (existing?.id) existingId = existing.id;
+    }
+    if (existingId) {
+      const ok = window.confirm('Er bestaat al een dossier met dit e-mailadres of telefoonnummer. Bestaand dossier overschrijven en samenvoegen?');
+      if (ok) {
+        await supabase.from('leads').update({ voornaam: leadVoornaam, achternaam: leadAchternaam, telefoon: leadTelefoon, adres: leadAdres, partner_naam: leadPartnerNaam, email: leadEmail }).eq('id', existingId);
+        setSelectedLead((prev: any) => ({ ...prev, id: existingId }));
+        update({ lead_id: existingId });
+        return existingId;
+      }
+    }
+    const { data: newRow, error } = await supabase.from('leads').insert({
+      voornaam: leadVoornaam, achternaam: leadAchternaam, telefoon: leadTelefoon, adres: leadAdres, partner_naam: leadPartnerNaam, email: leadEmail, status: 'nieuw',
+    }).select('id').single();
+    if (error || !newRow) { toast.error('Aanmaken dossier mislukt'); return null; }
+    setSelectedLead((prev: any) => ({ ...prev, id: newRow.id }));
+    update({ lead_id: newRow.id });
+    return newRow.id;
   };
 
   const handleCloseCall = async () => {
     update({ call_ended_at: new Date().toISOString(), call_duration_seconds: timer.elapsed });
     timer.pause();
-    if (selectedLead?.id) {
-      await supabase.from('leads').update({ voornaam: leadVoornaam, achternaam: leadAchternaam, telefoon: leadTelefoon, adres: leadAdres, partner_naam: leadPartnerNaam, email: leadEmail }).eq('id', selectedLead.id);
-    }
+    await ensureLeadRow();
     await flushSave();
     setShowCloseDialog(false);
     setStep('wrap-up');
   };
 
   const handleFinishWrapUp = async () => {
-    if (selectedLead?.id) {
-      await supabase.from('leads').update({ voornaam: leadVoornaam, achternaam: leadAchternaam, telefoon: leadTelefoon, adres: leadAdres, partner_naam: leadPartnerNaam, email: leadEmail }).eq('id', selectedLead.id);
+    const leadId = await ensureLeadRow();
+    // Wrap-up afronden = telefoongesprek is gevoerd → status 'telefoongesprek'
+    if (leadId) {
+      await supabase.from('leads').update({ status: 'telefoongesprek' }).eq('id', leadId);
     }
     update({ locked_at: new Date().toISOString() });
     await flushSave();
     toast.success('Dossier opgeslagen');
-    if (selectedLead?.id && data.id) {
-      onOpenValidation(selectedLead.id, data.id);
+    if (leadId && data.id) {
+      onOpenValidation(leadId, data.id);
     } else {
       onGoDossiers();
     }
   };
+
+  /** Terug-knop: bij ingevulde naam+email vraag om op te slaan, anders direct terug zonder lege rij. */
+  const handleBackToDossiers = async () => {
+    const heeftMinimum = !!(leadVoornaam.trim() || leadAchternaam.trim()) && !!leadEmail.trim();
+    if (heeftMinimum) {
+      setShowBackConfirm(true);
+    } else {
+      // niets noemenswaardig ingevuld — gewoon weg, géén lege rij achterlaten
+      onGoDossiers();
+    }
+  };
+
+  const confirmBackSave = async () => {
+    await ensureLeadRow();
+    await flushSave();
+    toast.success('Dossier bewaard');
+    setShowBackConfirm(false);
+    onGoDossiers();
+  };
+
+  const confirmBackDiscard = () => {
+    setShowBackConfirm(false);
+    onGoDossiers();
+  };
+
+
 
   /* ─── LEAD SELECTION ─── */
   if (step === 'select-lead') {
@@ -240,7 +344,11 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation }
 
     return (
       <div className="h-screen flex flex-col bg-[#F8F3EB]">
-        <div className="h-14 bg-white border-b border-[#DDD5C5] flex items-center px-6 shrink-0">
+        <div className="h-14 bg-white border-b border-[#DDD5C5] flex items-center px-6 shrink-0 gap-3">
+          <button onClick={handleBackToDossiers} className="flex items-center gap-2 text-sm font-dm text-[#5B6470] hover:text-[#0F1419]">
+            <ArrowLeft className="h-4 w-4" /> Naar dossiers
+          </button>
+          <div className="w-px h-5 bg-[#DDD5C5]" />
           <h1 className="text-base font-dm font-bold text-[#0F1419]">Gesprek afwerken</h1>
           <span className="text-xs font-body text-[#5B6470] ml-3">
             {leadVoornaam} {leadAchternaam} — {Math.floor((data.call_duration_seconds || 0) / 60)} min
@@ -271,51 +379,66 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation }
               </div>
             </section>
 
-            {/* Videocall plannen — inputs first, labels minimal */}
+            {/* Opvolging — kies scenario */}
             <section className="space-y-3">
-              <h2 className="font-dm text-[9px] font-bold text-[#5B6470] uppercase tracking-[0.14em]">Videocall plannen</h2>
-              <div className="grid grid-cols-[1fr_1fr_2fr] gap-3">
-                <input type="date" value={data.videocall_scheduled_at ? data.videocall_scheduled_at.split('T')[0] : ''}
-                  onChange={e => {
-                    const time = data.videocall_scheduled_at ? data.videocall_scheduled_at.split('T')[1] || '10:00' : '10:00';
-                    update({ videocall_scheduled_at: e.target.value ? `${e.target.value}T${time}` : null });
-                  }}
-                  className="h-12 px-4 bg-white border-2 border-[#DDD5C5] text-[15px] font-body font-medium text-[#0F1419] focus:outline-none focus:border-[#008CFF]" />
-                <input type="time" value={data.videocall_scheduled_at ? data.videocall_scheduled_at.split('T')[1]?.substring(0, 5) || '10:00' : ''}
-                  onChange={e => {
-                    const date = data.videocall_scheduled_at ? data.videocall_scheduled_at.split('T')[0] : new Date().toISOString().split('T')[0];
-                    update({ videocall_scheduled_at: `${date}T${e.target.value}` });
-                  }}
-                  className="h-12 px-4 bg-white border-2 border-[#DDD5C5] text-[15px] font-body font-medium text-[#0F1419] focus:outline-none focus:border-[#008CFF]" />
-                <input type="url" value={data.google_meet_link} onChange={e => update({ google_meet_link: e.target.value })} placeholder="Google Meet link"
-                  className="h-12 px-4 bg-white border-2 border-[#DDD5C5] text-[15px] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
+              <h2 className="font-dm text-[9px] font-bold text-[#5B6470] uppercase tracking-[0.14em]">Opvolging</h2>
+              <div className="grid grid-cols-2 gap-3">
+                <button type="button" onClick={() => setFollowupType('videocall')}
+                  className={`h-14 px-4 border-2 font-dm font-bold text-[14px] transition-colors ${followupType === 'videocall' ? 'bg-[#008CFF] text-white border-[#008CFF]' : 'bg-white text-[#0F1419] border-[#DDD5C5] hover:border-[#008CFF]/50'}`}>
+                  📅 Videocall ingepland
+                </button>
+                <button type="button" onClick={() => { setFollowupType('klant_terug'); update({ videocall_scheduled_at: null }); }}
+                  className={`h-14 px-4 border-2 font-dm font-bold text-[14px] transition-colors ${followupType === 'klant_terug' ? 'bg-[#E89F3D] text-white border-[#E89F3D]' : 'bg-white text-[#0F1419] border-[#DDD5C5] hover:border-[#E89F3D]/50'}`}>
+                  📞 Klant neemt zelf contact op
+                </button>
               </div>
-              {data.videocall_scheduled_at && leadEmail && (() => {
-                const dt = new Date(data.videocall_scheduled_at!);
-                const dag = dt.toLocaleDateString('nl-BE', { weekday: 'long', day: 'numeric', month: 'long' });
-                const uur = dt.toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' });
-                const meetLine = data.google_meet_link ? `\n${data.google_meet_link}\n` : '';
-                const subject = `Bevestiging videocall ${dag} om ${uur} — Zolderpunt`;
-                const body = `Hi ${leadVoornaam},\n\nBij deze bevestig ik graag onze afspraak in de vorm van een videocall op ${dag} om ${uur}.${meetLine}\nAls u mij op voorhand kan meegeven:\n• Enkele foto's die de huidige toestand van de zolder goed weergeven\n• Enkele foto's van de ruimte waar de nieuwe vaste trap kan komen\n• Een inschatting van de oppervlakte van de zolder\n\nIk kijk ernaar uit om meer te weten te komen over jullie project. Tot dan!\n\nPositieve groeten,\n\nBram Keirsschieter\n+32 492 400 954\n\nZaakvoerder\nZolderpunt.be`;
-                const mailto = `mailto:${leadEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-                return (
-                  <a
-                    href={mailto}
-                    onClick={(e) => {
-                      // Forceer OS mailto-handler i.p.v. nieuwe browser-tab
-                      e.preventDefault();
-                      window.location.href = mailto;
-                    }}
-                    className="w-full h-12 flex items-center justify-center bg-[#2E7D38] text-white font-dm font-bold text-[14px] hover:bg-[#256B2E] transition-colors"
-                  >
-                    Open bevestigingsmail
-                  </a>
-                );
-              })()}
-              {data.videocall_scheduled_at && !leadEmail && (
-                <p className="text-xs font-body text-[#E89F3D] italic">Vul een e-mailadres in om de bevestigingsmail te openen.</p>
+
+              {followupType === 'videocall' && (
+                <div className="space-y-3 pt-2">
+                  <div className="grid grid-cols-[1fr_1fr_2fr] gap-3">
+                    <input type="date" value={data.videocall_scheduled_at ? data.videocall_scheduled_at.split('T')[0] : ''}
+                      onChange={e => {
+                        const time = data.videocall_scheduled_at ? data.videocall_scheduled_at.split('T')[1] || '10:00' : '10:00';
+                        update({ videocall_scheduled_at: e.target.value ? `${e.target.value}T${time}` : null });
+                      }}
+                      className="h-12 px-4 bg-white border-2 border-[#DDD5C5] text-[15px] font-body font-medium text-[#0F1419] focus:outline-none focus:border-[#008CFF]" />
+                    <input type="time" value={data.videocall_scheduled_at ? data.videocall_scheduled_at.split('T')[1]?.substring(0, 5) || '10:00' : ''}
+                      onChange={e => {
+                        const date = data.videocall_scheduled_at ? data.videocall_scheduled_at.split('T')[0] : new Date().toISOString().split('T')[0];
+                        update({ videocall_scheduled_at: `${date}T${e.target.value}` });
+                      }}
+                      className="h-12 px-4 bg-white border-2 border-[#DDD5C5] text-[15px] font-body font-medium text-[#0F1419] focus:outline-none focus:border-[#008CFF]" />
+                    <input type="url" value={data.google_meet_link} onChange={e => update({ google_meet_link: e.target.value })} placeholder="Google Meet link"
+                      className="h-12 px-4 bg-white border-2 border-[#DDD5C5] text-[15px] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
+                  </div>
+                  {data.videocall_scheduled_at && leadEmail && (() => {
+                    const dt = new Date(data.videocall_scheduled_at!);
+                    const dag = dt.toLocaleDateString('nl-BE', { weekday: 'long', day: 'numeric', month: 'long' });
+                    const uur = dt.toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' });
+                    const meetLine = data.google_meet_link ? `\n${data.google_meet_link}\n` : '';
+                    const subject = `Bevestiging videocall ${dag} om ${uur} — Zolderpunt`;
+                    const body = `Hi ${leadVoornaam},\n\nBij deze bevestig ik graag onze afspraak in de vorm van een videocall op ${dag} om ${uur}.${meetLine}\nAls u mij op voorhand kan meegeven:\n• Enkele foto's die de huidige toestand van de zolder goed weergeven\n• Enkele foto's van de ruimte waar de nieuwe vaste trap kan komen\n• Een inschatting van de oppervlakte van de zolder\n\nIk kijk ernaar uit om meer te weten te komen over jullie project. Tot dan!\n\nPositieve groeten,\n\nBram Keirsschieter\n+32 492 400 954\n\nZaakvoerder\nZolderpunt.be`;
+                    const mailto = `mailto:${leadEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                    return (
+                      <a href={mailto} onClick={(e) => { e.preventDefault(); window.location.href = mailto; }}
+                        className="w-full h-12 flex items-center justify-center bg-[#2E7D38] text-white font-dm font-bold text-[14px] hover:bg-[#256B2E] transition-colors">
+                        Open bevestigingsmail
+                      </a>
+                    );
+                  })()}
+                  {data.videocall_scheduled_at && !leadEmail && (
+                    <p className="text-xs font-body text-[#E89F3D] italic">Vul een e-mailadres in om de bevestigingsmail te openen.</p>
+                  )}
+                </div>
+              )}
+
+              {followupType === 'klant_terug' && (
+                <textarea value={klantTerugNotitie} onChange={e => { setKlantTerugNotitie(e.target.value); update({ quick_notes: e.target.value }); }}
+                  placeholder="Wanneer + context — bv. klant belt volgende week vrijdag na overleg met partner"
+                  className="w-full h-24 px-4 py-3 bg-white border-2 border-[#DDD5C5] text-[14px] font-body text-[#0F1419] placeholder:text-[#B0A898] resize-none focus:outline-none focus:border-[#E89F3D]" />
               )}
             </section>
+
 
             {/* Klantvragen — toggle chips */}
             <section className="space-y-3">
@@ -353,6 +476,7 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation }
             </button>
           </div>
         </div>
+        <BackConfirmDialog open={showBackConfirm} onCancel={() => setShowBackConfirm(false)} onDiscard={confirmBackDiscard} onSave={confirmBackSave} />
       </div>
     );
   }
@@ -363,7 +487,13 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation }
 
       {/* ═══ TOPBAR ═══ */}
       <div className="shrink-0 bg-white border-b border-[#DDD5C5] px-6 py-3 flex items-center justify-between gap-4">
-        <span className="font-dm font-extrabold text-[18px] text-[#008CFF] tracking-[-0.02em]">zolderpunt.</span>
+        <div className="flex items-center gap-3">
+          <button onClick={handleBackToDossiers} className="flex items-center gap-1.5 text-[13px] font-dm text-[#5B6470] hover:text-[#0F1419]">
+            <ArrowLeft className="h-4 w-4" /> Naar dossiers
+          </button>
+          <div className="w-px h-5 bg-[#DDD5C5]" />
+          <span className="font-dm font-extrabold text-[18px] text-[#008CFF] tracking-[-0.02em]">zolderpunt.</span>
+        </div>
         <div className="flex items-center gap-3">
           <span className="font-dm text-[14px] text-[#5B6470] font-semibold tabular-nums">⏱ {timer.formatted}</span>
           <span className="text-[12px] text-[#5B6470] font-dm">Opgeslagen ·</span>
@@ -541,6 +671,24 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation }
       </div>
 
       <CloseCallDialog open={showCloseDialog} onClose={() => setShowCloseDialog(false)} onConfirm={handleCloseCall} />
+      <BackConfirmDialog open={showBackConfirm} onCancel={() => setShowBackConfirm(false)} onDiscard={confirmBackDiscard} onSave={confirmBackSave} />
+    </div>
+  );
+}
+
+function BackConfirmDialog({ open, onCancel, onDiscard, onSave }: { open: boolean; onCancel: () => void; onDiscard: () => void; onSave: () => void }) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+      <div className="bg-white border border-[#DDD5C5] shadow-xl w-full max-w-md mx-4 p-6">
+        <h3 className="text-lg font-headline font-bold text-[#0F1419] mb-2">Dossier opslaan?</h3>
+        <p className="text-sm font-body text-[#5B6470] mb-5">Je hebt al gegevens ingevuld. Wil je dit dossier opslaan voordat je terug gaat?</p>
+        <div className="flex flex-col gap-2">
+          <button onClick={onSave} className="h-11 px-4 bg-[#008CFF] text-white font-headline font-semibold text-sm hover:bg-[#0070CC]">Opslaan en terug</button>
+          <button onClick={onDiscard} className="h-11 px-4 bg-white text-[#0F1419] border border-[#DDD5C5] font-headline font-semibold text-sm hover:bg-[#F8F3EB]">Niet opslaan, terug</button>
+          <button onClick={onCancel} className="h-9 text-[12px] font-body text-[#5B6470] hover:text-[#0F1419]">Annuleer</button>
+        </div>
+      </div>
     </div>
   );
 }

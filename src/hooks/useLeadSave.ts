@@ -66,7 +66,12 @@ function hasTechnischData(tech: LeadData['technisch']): boolean {
   );
 }
 
-/** Check if lead has ANY meaningful data worth saving */
+/** Minimum gegevens vereist om een NIEUW dossier aan te maken (insert). */
+function hasMinimumForInsert(lead: LeadData): boolean {
+  return !!(lead.voornaam?.trim() || lead.achternaam?.trim() || lead.email?.trim() || lead.telefoon?.trim());
+}
+
+/** Check if lead has ANY meaningful data worth saving (voor updates van bestaand dossier) */
 function hasAnyData(lead: LeadData): boolean {
   return !!(
     lead.voornaam || lead.achternaam || lead.email || lead.telefoon ||
@@ -92,6 +97,9 @@ export function useLeadSave() {
     // Skip only if there is truly NOTHING to save
     if (!hasAnyData(leadData)) return;
 
+    // INSERT vereist minimaal naam/email/telefoon — anders ontstaan lege spookdossiers
+    if (!leadData.id && !hasMinimumForInsert(leadData)) return;
+
     const serialized = JSON.stringify(leadToRow(leadData));
     if (serialized === lastSavedRef.current) return; // no changes
 
@@ -99,26 +107,37 @@ export function useLeadSave() {
     isSavingRef.current = true;
 
     try {
-      // Auto-promote status: nieuw → telefoongesprek bij eerste opslag.
-      // 'intake' (= intake/videocall gedaan) wordt NIET automatisch gezet —
-      // dat gebeurt expliciet wanneer de videocall is afgerond.
-      let effectiveLead = leadData;
-      if (leadData.status === 'nieuw' || !leadData.status) {
-        effectiveLead = { ...leadData, status: 'telefoongesprek' };
-      }
-      const row = leadToRow(effectiveLead);
+      // GEEN auto-promotie meer. Status wordt expliciet gezet op duidelijke momenten
+      // (wrap-up afronden → 'telefoongesprek', rapport gegenereerd → 'intake').
+      const row = leadToRow(leadData);
 
-      if (effectiveLead.id) {
-        const { error } = await supabase.from('leads').update(row).eq('id', effectiveLead.id);
+      if (leadData.id) {
+        const { error } = await supabase.from('leads').update(row).eq('id', leadData.id);
         if (error) throw error;
-        if (effectiveLead.status !== leadData.status) updateLead({ status: effectiveLead.status });
       } else {
-        const { data, error } = await supabase.from('leads').insert(row).select('id').single();
-        if (error) throw error;
-        if (data) {
-          updateLead({ id: data.id, status: effectiveLead.status });
-          // Persist lead ID to localStorage for session recovery
-          try { localStorage.setItem(LEAD_SESSION_KEY, data.id); } catch {}
+        // Dubbel-detectie vóór INSERT: zoek bestaand dossier op email of telefoon
+        const orParts: string[] = [];
+        if (leadData.email?.trim()) orParts.push(`email.eq.${leadData.email.trim()}`);
+        if (leadData.telefoon?.trim()) orParts.push(`telefoon.eq.${leadData.telefoon.trim()}`);
+        let existingId: string | null = null;
+        if (orParts.length > 0) {
+          const { data: existing } = await supabase
+            .from('leads').select('id').or(orParts.join(',')).limit(1).maybeSingle();
+          if (existing?.id) existingId = existing.id;
+        }
+        if (existingId) {
+          // Merge: update bestaand dossier i.p.v. duplicaat aanmaken
+          const { error } = await supabase.from('leads').update(row).eq('id', existingId);
+          if (error) throw error;
+          updateLead({ id: existingId });
+          try { localStorage.setItem(LEAD_SESSION_KEY, existingId); } catch {}
+        } else {
+          const { data, error } = await supabase.from('leads').insert(row).select('id').single();
+          if (error) throw error;
+          if (data) {
+            updateLead({ id: data.id });
+            try { localStorage.setItem(LEAD_SESSION_KEY, data.id); } catch {}
+          }
         }
       }
 
