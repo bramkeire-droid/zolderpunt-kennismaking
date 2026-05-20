@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useState, useEffect, useMemo } from 'react';
-import { Search, FolderOpen, Users, TrendingUp, DollarSign, Eye, RefreshCw, Trash2, CheckCircle, Globe, Phone, Bot, FileDown, MoreVertical } from 'lucide-react';
+import { Search, FolderOpen, Users, TrendingUp, DollarSign, Eye, RefreshCw, Trash2, CheckCircle, Globe, Phone, Bot, FileDown, MoreVertical, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { defaultTechnisch } from '@/contexts/SessionContext';
 import type { LeadData } from '@/contexts/SessionContext';
@@ -101,6 +101,16 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
   const [previewLead, setPreviewLead] = useState<any>(null);
   const [preIntakeMap, setPreIntakeMap] = useState<Record<string, any>>({});
   const [analysisMap, setAnalysisMap] = useState<Record<string, boolean>>({});
+  type SortKey = 'naam' | 'gesprek_datum' | 'status' | 'budget' | 'portal' | 'volgende_stap';
+  const [sortKey, setSortKey] = useState<SortKey>('gesprek_datum');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortKey(key); setSortDir('asc'); }
+  };
+  const SortIcon = ({ k }: { k: SortKey }) => sortKey !== k
+    ? <ArrowUpDown className="h-3 w-3 inline ml-1 opacity-40" />
+    : (sortDir === 'asc' ? <ArrowUp className="h-3 w-3 inline ml-1" /> : <ArrowDown className="h-3 w-3 inline ml-1" />);
 
   const handlePortalUpdate = (leadId: string, updates: Record<string, any>) => {
     setLeads(prev => prev.map(l => l.id === leadId ? { ...l, ...updates } : l));
@@ -142,13 +152,28 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
   }, [leads]);
 
   const filtered = useMemo(() => {
-    if (!search.trim()) return leads;
-    const q = search.toLowerCase();
-    return leads.filter(l =>
-      `${l.voornaam} ${l.achternaam}`.toLowerCase().includes(q) ||
-      (l.adres ?? '').toLowerCase().includes(q)
+    const base = !search.trim() ? leads : leads.filter(l =>
+      `${l.voornaam} ${l.achternaam}`.toLowerCase().includes(search.toLowerCase()) ||
+      (l.adres ?? '').toLowerCase().includes(search.toLowerCase())
     );
-  }, [leads, search]);
+    const getVal = (l: any): string | number => {
+      switch (sortKey) {
+        case 'naam': return `${l.voornaam ?? ''} ${l.achternaam ?? ''}`.trim().toLowerCase();
+        case 'gesprek_datum': return l.gesprek_datum || '';
+        case 'status': return l.status || '';
+        case 'budget': return l.budget_min ?? -1;
+        case 'portal': return l.portal_status || 'draft';
+        case 'volgende_stap': return (l.volgende_stap || '').toLowerCase();
+      }
+    };
+    const sorted = [...base].sort((a, b) => {
+      const va = getVal(a), vb = getVal(b);
+      if (va < vb) return sortDir === 'asc' ? -1 : 1;
+      if (va > vb) return sortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
+    return sorted;
+  }, [leads, search, sortKey, sortDir]);
 
   const stats = useMemo(() => {
     const total = leads.length;
@@ -296,13 +321,13 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Naam</TableHead>
+                      <TableHead onClick={() => toggleSort('naam')} className="cursor-pointer select-none">Naam<SortIcon k="naam" /></TableHead>
                       <TableHead></TableHead>
-                      <TableHead>Datum</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Budget</TableHead>
-                      <TableHead>Portaal</TableHead>
-                      <TableHead>Volgende stap</TableHead>
+                      <TableHead onClick={() => toggleSort('gesprek_datum')} className="cursor-pointer select-none">Datum<SortIcon k="gesprek_datum" /></TableHead>
+                      <TableHead onClick={() => toggleSort('status')} className="cursor-pointer select-none">Status<SortIcon k="status" /></TableHead>
+                      <TableHead onClick={() => toggleSort('budget')} className="cursor-pointer select-none">Budget<SortIcon k="budget" /></TableHead>
+                      <TableHead onClick={() => toggleSort('portal')} className="cursor-pointer select-none">Portaal<SortIcon k="portal" /></TableHead>
+                      <TableHead onClick={() => toggleSort('volgende_stap')} className="cursor-pointer select-none">Volgende stap<SortIcon k="volgende_stap" /></TableHead>
                       <TableHead>Acties</TableHead>
                     </TableRow>
                   </TableHeader>
