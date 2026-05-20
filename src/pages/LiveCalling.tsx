@@ -433,7 +433,7 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
               )}
 
               {followupType === 'klant_terug' && (
-                <textarea value={klantTerugNotitie} onChange={e => setKlantTerugNotitie(e.target.value)}
+                <textarea value={klantTerugNotitie} onChange={e => { setKlantTerugNotitie(e.target.value); update({ quick_notes: e.target.value }); }}
                   placeholder="Wanneer + context — bv. klant belt volgende week vrijdag na overleg met partner"
                   className="w-full h-24 px-4 py-3 bg-white border-2 border-[#DDD5C5] text-[14px] font-body text-[#0F1419] placeholder:text-[#B0A898] resize-none focus:outline-none focus:border-[#E89F3D]" />
               )}
