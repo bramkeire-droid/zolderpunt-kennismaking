@@ -1,43 +1,78 @@
-## Probleem
+# Plan: Dossierbeheer + statusflow + autosave-discipline
 
-Op het bel-scherm (`step === 'calling'` in `src/pages/LiveCalling.tsx`):
+Zes samenhangende fixes rond de dossierlijst, de telefoongesprek-flow en de autosave.
 
-1. **Linker werkvlak vult zijn kolom niet** — `max-w-3xl` (768px) op een kolom van ~1300px laat ~50% witruimte rechts in de notitieblok-kolom (zichtbaar in screenshot).
-2. **Onderkant blijft leeg** — velden hebben vaste `min-h-[80px]`, dus na "Algemene indruk" volgt grote leegte tot aan de viewport-bodem.
-3. **Topbar-inputs (voornaam, achternaam, telefoon, adres, partner) zijn miniatuurklein** — `h-[5px] py-`, `text-[12px]`, breedtes 100–180px. Visueel niet uit te lezen of vlot in te vullen.
+## 1. Correcte statusflow (Nieuw → Telefonisch → Intake)
 
-## Oplossing — alleen `src/pages/LiveCalling.tsx`
+**Regels:**
+- Nieuwe lead (insert): `status='nieuw'`. Pas wanneer telefoongesprek volledig is afgesloten (wrap-up bevestigd) → `telefoongesprek`.
+- Intake-videocall: status `intake` wordt enkel gezet wanneer in slide 10 (rapport) op "Rapport definitief / klaar" geklikt wordt (rapport_gegenereerd_op gevuld).
+- Autosave promoot NIETS meer (regel uit `useLeadSave.ts` weghalen). Status wordt enkel expliciet gezet op duidelijke momenten.
 
-### 1. Topbar prominenter (regel 356–380)
-- Topbar-hoogte iets groter: `py-2` → `py-3`.
-- Input-styling uniform met de werkvlak-velden:
-  - `h-10` i.p.v. `py-[5px]`
-  - `text-[14px] font-medium`
-  - `bg-white border-2 border-[#DDD5C5]` (i.p.v. lichte beige + dunne border)
-  - Bredere velden: voornaam/achternaam `w-[140px]`, telefoon `w-[140px]`, adres `w-[260px]`, partner `w-[140px]`
-  - Focus-state behouden (`focus:border-[#008CFF]`)
-- Timer + "Sluit gesprek af" knop: knop ook iets groter (`h-10 px-5 text-[13px]`) zodat hij in balans is.
+**Backfill:** `UPDATE leads SET status='nieuw' WHERE status='telefoongesprek' AND (voornaam='' AND achternaam='' AND email='' AND telefoon='')` (alleen lege dossiers terugzetten — ingevulde blijven 'telefoongesprek').
 
-### 2. Notitieblok vult de volledige kolom (regel 386–438)
-- `max-w-3xl` weghalen → vervangen door `max-w-[1100px] mx-auto` (of gewoon volledige breedte met `px-10`). Hierdoor verdwijnt de witte band rechts.
-- Sectie-padding `p-6` → `p-8` voor ademruimte.
+## 2. Geen lege en geen dubbele dossiers
 
-### 3. Invulvelden visueel prominenter
-- Inputs (`trigger_text`): `h-12` → `h-14`, `text-[15px]` → `text-[16px]`.
-- Textareas (`buying_committee`, `general_impression`): `min-h-[80px]` → `min-h-[120px]`, `text-[15px]` → `text-[16px]`.
-- ChipInput containers (citaten, twijfels): `p-3` → `p-4`, `min-h-[80px]` toevoegen zodat lege chip-velden ook visueel ruimte innemen.
-- Veld-labels (`FieldBlock`): label `text-[13px]` → `text-[14px] font-semibold`, hint blijft klein.
+**Lege blokkeren:**
+- `useLeadSave.hasAnyData()` strenger maken: minimaal `voornaam` of `achternaam` of `email` of `telefoon` vereist vóór INSERT. Updates op bestaande id blijven gewoon werken (zodat autosave een al aangemaakt dossier wel blijft bijwerken).
+- `handleNewLead` in `LiveCalling.tsx`: niet meer direct een lege row inserten. In plaats daarvan een tijdelijk lokaal lead-object (geen id) gebruiken; de eerste echte save (autosave/flushSave) maakt pas de row aan zodra naam/email/telefoon ingevuld is.
 
-### 4. Laatste veld vult resterende ruimte
-- "Algemene indruk" textarea: `min-h-[120px]` + `flex-1` op de wrapper-`<div className="space-y-5">` veranderen naar `flex flex-col gap-5` zodat het laatste veld kan groeien (`flex-1` op de laatste FieldBlock).
-- Alternatief: gewoon hogere min-heights — eenvoudiger en voorspelbaarder. Ik kies voor de tweede aanpak (geen flex-grow), tenzij je expliciet wil dat het laatste veld altijd helemaal naar beneden uitloopt.
+**Dubbel detecteren:**
+- Vóór INSERT in `persistLead`: lookup op `email` (case-insensitive, niet-leeg) OR (`voornaam`+`achternaam` exact match niet-leeg) OR `telefoon` genormaliseerd.
+- Indien match: dialog `MergeDuplicateDialog` met "Overschrijven & samenvoegen" of "Toch nieuw aanmaken". Bij overschrijven → UPDATE op gevonden id; lokale lead krijgt die id, niet-lege velden uit huidige sessie winnen, lege velden vallen terug op bestaande waarden.
 
-### 5. Kolomverhouding (regel 383)
-- Huidige `grid-cols-[1.85fr_1fr]` blijft (~65/35). Met de bredere inputs en gevulde kolom wordt de focus vanzelf duidelijker.
+## 3. Wrap-up: twee scenario's i.p.v. altijd videocall-blok
 
-## Scope
+In `LiveCalling.tsx` wrap-up sectie "Videocall plannen":
+- Twee grote keuzeknoppen bovenaan: **"Videocall ingepland"** en **"Klant neemt zelf terug contact op"**.
+- Keuze opgeslagen in `pre_intake.scenario_chosen` of nieuw veld `followup_type` ('videocall' | 'klant_terug').
+- Bij 'videocall': huidige date/time/meet-link/mail-blok opent.
+- Bij 'klant_terug': blok blijft dicht, korte notitie-input "Wanneer + context".
+- `CloseCallDialog`: check `videocall_scheduled_at` enkel als scenario='videocall'.
 
-- 1 bestand: `src/pages/LiveCalling.tsx`
-- Alleen Tailwind-classes en kleine layout-wijzigingen
-- Geen wijziging aan state, autosave, of business logic
-- Andere schermen (`step === 'idle'`, `step === 'wrap-up'`) blijven ongemoeid
+## 4. Telefoongesprek vanuit dossierlijst openen
+
+**Nieuwe knop in `Dossiers.tsx` actie-kolom:** telefoon-icoon (📞) naast 📁 Open. Klik → opent `LiveCalling` direct in wrap-up modus voor dit dossier (data uit `pre_intake` + lead vooraf geladen). Indien geen `pre_intake` bestaat: open in `calling`-step met bestaande lead, zodat er alsnog ingevuld kan worden.
+
+**Implementatie:**
+- Nieuwe prop `onOpenCall(lead)` op `Dossiers`.
+- In `App.tsx`: nieuwe handler die `setView('calling')` doet met een prefilled lead-id; `LiveCalling` krijgt optionele prop `initialLeadId` + `initialStep` ('calling' | 'wrap-up') om voorbij select-lead te springen.
+
+## 5. PDF-downloadknop in dossierlijst (indien rapport bestaat)
+
+In actie-kolom van `Dossiers.tsx`: extra knop met download-icoon, alleen zichtbaar als `lead.rapport_gegenereerd_op` gevuld is.
+
+Klik → gebruikt dezelfde `@react-pdf/renderer` flow als in `Slide10`: render `ReportDocument` met `lead` data via `pdf().toBlob()` en triggert download (`saveAs` of blob link). Geen UI-navigatie nodig.
+
+## 6. "Terug naar dossiers" vanuit telefoongesprek zonder dataverlies
+
+In `LiveCalling.tsx` header (calling + wrap-up): knop **"Naar dossiers"** links bovenin.
+- Indien `voornaam` + `email` ingevuld: confirm dialog "Dossier opslaan vóór je terug gaat?" → bij ja: `flushSave()` + `pre_intake` save + status='telefoongesprek' indien wrap-up al gedaan, anders blijft 'nieuw' → terug.
+- Indien geen naam/email: gewoon weg zonder save (geen lege row).
+- Bij later opnieuw openen uit dossierlijst (zie #4): alle ingevulde data is er nog.
+
+## 7. Bulkacties — "Lege dossiers wissen"
+
+**Knop "Bulkacties" rechts boven in `Dossiers.tsx`** (naast Vernieuwen) → DropdownMenu.
+
+Eerste actie: **"Lege dossiers wissen"**.
+- Selecteert leads waar ALLES leeg is: `voornaam='' AND achternaam='' AND email='' AND telefoon='' AND adres='' AND oppervlakte_m2 IS NULL AND gezocht_naar='' AND gesprek_notities='' AND notities_vooraf='' AND budget_min IS NULL AND budget_excl IS NULL AND project_feiten='[]' AND fotos='[]' AND rapport_situatie_ai='' AND rapport_tekst=''`.
+- Modal toont lijst (id + created_at) met aantal → "Definitief verwijderen" knop.
+- DELETE per id (RLS staat admin delete toe; gebruikers met admin-rol kunnen wissen).
+
+## Technische details
+
+**Files te wijzigen:**
+- `src/hooks/useLeadSave.ts` — strengere `hasAnyData`, geen auto-status-promotie, dubbel-check vóór insert
+- `src/pages/LiveCalling.tsx` — geen lege insert in `handleNewLead`, scenario-keuze, "Naar dossiers" knop, optionele `initialLeadId`/`initialStep` props
+- `src/components/calling/CloseCallDialog.tsx` — videocall-check conditioneel
+- `src/pages/Dossiers.tsx` — telefoongesprek-knop, PDF-download-knop, Bulkacties dropdown + modal
+- `src/App.tsx` — nieuwe handler voor "open call from dossier"
+- Nieuwe component: `src/components/MergeDuplicateDialog.tsx`
+- Nieuwe component: `src/components/dossiers/BulkActionsMenu.tsx` + `CleanEmptyDossiersDialog.tsx`
+
+**Database:**
+- Geen schemawijziging strikt nodig. Optioneel: `pre_intake.followup_type text` toevoegen om scenario-keuze los van `scenario_chosen` op te slaan.
+- Backfill SQL voor status (zie #1).
+
+**Bestaande PDF-render:** hergebruik `pdf(<ReportDocument lead={...} />).toBlob()` uit `@react-pdf/renderer` (al gebruikt in Slide10).
