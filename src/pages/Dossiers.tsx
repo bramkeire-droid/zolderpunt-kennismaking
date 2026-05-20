@@ -101,6 +101,16 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
   const [previewLead, setPreviewLead] = useState<any>(null);
   const [preIntakeMap, setPreIntakeMap] = useState<Record<string, any>>({});
   const [analysisMap, setAnalysisMap] = useState<Record<string, boolean>>({});
+  type SortKey = 'naam' | 'gesprek_datum' | 'status' | 'budget' | 'portal' | 'volgende_stap';
+  const [sortKey, setSortKey] = useState<SortKey>('gesprek_datum');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortKey(key); setSortDir('asc'); }
+  };
+  const SortIcon = ({ k }: { k: SortKey }) => sortKey !== k
+    ? <ArrowUpDown className="h-3 w-3 inline ml-1 opacity-40" />
+    : (sortDir === 'asc' ? <ArrowUp className="h-3 w-3 inline ml-1" /> : <ArrowDown className="h-3 w-3 inline ml-1" />);
 
   const handlePortalUpdate = (leadId: string, updates: Record<string, any>) => {
     setLeads(prev => prev.map(l => l.id === leadId ? { ...l, ...updates } : l));
