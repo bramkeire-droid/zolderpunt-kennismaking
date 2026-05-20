@@ -122,6 +122,7 @@ const SCENARIOS: { type: ScenarioType; tag: string; text: string; sub: string }[
 
 export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, initialLeadId, initialStep }: LiveCallingProps) {
   const [step, setStep] = useState<CallingStep>(initialStep ?? 'select-lead');
+  const { signOut } = useAuth();
   const [search, setSearch] = useState('');
   const [leads, setLeads] = useState<any[]>([]);
   const [selectedLead, setSelectedLead] = useState<any>(null);
