@@ -344,7 +344,11 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
 
     return (
       <div className="h-screen flex flex-col bg-[#F8F3EB]">
-        <div className="h-14 bg-white border-b border-[#DDD5C5] flex items-center px-6 shrink-0">
+        <div className="h-14 bg-white border-b border-[#DDD5C5] flex items-center px-6 shrink-0 gap-3">
+          <button onClick={handleBackToDossiers} className="flex items-center gap-2 text-sm font-dm text-[#5B6470] hover:text-[#0F1419]">
+            <ArrowLeft className="h-4 w-4" /> Naar dossiers
+          </button>
+          <div className="w-px h-5 bg-[#DDD5C5]" />
           <h1 className="text-base font-dm font-bold text-[#0F1419]">Gesprek afwerken</h1>
           <span className="text-xs font-body text-[#5B6470] ml-3">
             {leadVoornaam} {leadAchternaam} — {Math.floor((data.call_duration_seconds || 0) / 60)} min
