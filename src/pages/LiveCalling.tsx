@@ -742,7 +742,7 @@ function FieldBlock({ label, hint, children }: { label: string; hint: string; ch
 }
 
 function ScriptPhase({
-  fase, tijd, titel, doel, children, defaultOpen = false, accent = 'blue',
+  fase, tijd, titel, doel, children, accent = 'blue',
 }: {
   fase: string; tijd: string; titel: string; doel: string;
   children: React.ReactNode; defaultOpen?: boolean; accent?: 'blue' | 'amber';
@@ -751,23 +751,22 @@ function ScriptPhase({
   const headerText = accent === 'amber' ? 'text-white' : 'text-[#0F1419]';
   const stripe = accent === 'amber' ? 'border-l-[#E89F3D]' : 'border-l-[#008CFF]';
   const tag = accent === 'amber' ? 'text-white/85' : 'text-[#008CFF]';
+  const sub = accent === 'amber' ? 'text-white/90' : 'text-[#5B6470]';
   return (
-    <details open={defaultOpen} className={`group bg-white border border-[#DDD5C5] border-l-[3px] ${stripe} open:shadow-sm`}>
-      <summary className={`${headerBg} ${headerText} list-none cursor-pointer px-3 py-[10px] flex items-center justify-between gap-3 select-none`}>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-baseline gap-2">
-            <span className={`font-dm text-[9.5px] font-bold tracking-[0.14em] uppercase ${tag}`}>{fase}</span>
-            {tijd && <span className="font-dm text-[9.5px] font-medium opacity-70">{tijd}</span>}
-          </div>
-          <div className="font-dm text-[13.5px] font-bold leading-[1.2] tracking-[-0.01em] truncate">{titel}</div>
-          <div className={`text-[10.5px] mt-[1px] truncate ${accent === 'amber' ? 'text-white/85' : 'text-[#5B6470]'}`}>{doel}</div>
+    <section className={`bg-white border border-[#DDD5C5] border-l-[4px] ${stripe} shadow-sm mb-3`}>
+      <header className={`${headerBg} ${headerText} px-4 py-3`}>
+        <div className="flex items-baseline gap-2">
+          <span className={`font-dm text-[10px] font-bold tracking-[0.16em] uppercase ${tag}`}>{fase}</span>
+          {tijd && <span className="font-dm text-[10px] font-medium opacity-70">{tijd}</span>}
         </div>
-        <svg className="w-4 h-4 shrink-0 transition-transform group-open:rotate-90" viewBox="0 0 20 20" fill="currentColor"><path d="M7 5l6 5-6 5V5z" /></svg>
-      </summary>
+        <div className="font-dm text-[17px] font-extrabold leading-[1.15] tracking-[-0.01em] mt-[2px]">{titel}</div>
+        <div className={`text-[12px] mt-[3px] leading-[1.35] ${sub}`}>{doel}</div>
+      </header>
       <div className="p-[10px] border-t border-[#DDD5C5]">
         {children}
       </div>
-    </details>
+    </section>
   );
 }
+
 
