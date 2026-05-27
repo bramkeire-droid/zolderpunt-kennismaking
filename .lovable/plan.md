@@ -1,19 +1,35 @@
-## Twee kleine fixes in LiveCalling header
+## Doel
 
-### 1. Schakelen tussen 'live gesprek' en 'afwerken'
-In `src/pages/LiveCalling.tsx` headers van de **'calling'** en **'wrap-up'** stappen een toggle-knop toevoegen naast "Naar dossiers":
+Live-belscherm (`src/pages/LiveCalling.tsx`) overzichtelijker maken: gespreksgids rechts wordt in één oogopslag leesbaar, klantgegevens krijgen een e-mailveld, en onderaan komt een grote knop die rechtstreeks naar de Calendly-pagina linkt met de klantgegevens vooraf ingevuld.
 
-- **In wrap-up scherm:** knop `← Terug naar gesprek` → `setStep('calling')`
-- **In calling scherm:** knop `Naar afwerken →` → `setStep('wrap-up')`
+## Wijzigingen
 
-Zo kan Caroline (of wie dan ook) heen en weer tussen het live invul-scherm en het afwerkscherm zonder data te verliezen (alle data zit in dezelfde `data`/`update` state via PreIntakeContext + autosave).
+### 1. Rechterkolom — Gespreksgids als open blokken
 
-### 2. Logout-knop in LiveCalling header
-Caroline werkt vermoedelijk enkel in het belscherm en ziet de globale `NavigationBar` (met logout) nooit, want LiveCalling rendert een eigen header zonder uitlog-optie.
+In de rechter "Script rail" (regel 605–690) vervang ik het inklapbare `ScriptPhase` patroon (`<details>/<summary>`) door **altijd-zichtbare blokken**: 
 
-Voeg een `LogOut` icoon-knop toe rechts in de header van **alle drie de stappen** (`select-lead`, `calling`, `wrap-up`) die `signOut()` uit `useAuth()` aanroept. Plaatsing: helemaal rechts, `ml-auto`.
+- Per fase één kaart met een gekleurde header (fase-label + tijd), een grote duidelijke titel en één korte uitleg-zin (de huidige `doel`). 
+- Daaronder de bestaande inhoud (QCard / TipCard / DeliverableCard / AnticipateCard) zonder klik-interactie.
+- Behoud de blauwe / oranje accenten (oranje voor Anticipatie). 
+- De `ScriptPhase` helper-component wordt vervangen door een nieuwe `ScriptBlock` component (geen `<details>` meer).
+- Klein intro-regeltje "klik om te openen" rechts bovenaan wordt verwijderd (niet meer van toepassing).
 
-### Te wijzigen bestanden
-- `src/pages/LiveCalling.tsx` (alleen header-secties van de drie stappen + `useAuth` import)
+### 2. Klantgegevens — e-mailveld toevoegen
 
-Geen schema- of routingwijzigingen nodig.
+In het `FieldBlock "Klantgegevens"` van het live-scherm (regel 544–557) ontbreekt het e-mailveld. Ik voeg een `<input type="email">` toe, gebonden aan `leadEmail` / `setLeadEmail`, met dezelfde styling als de andere velden. Layout wordt aangepast zodat het netjes in het 2-koloms grid past (telefoon + e-mail naast elkaar, partner + adres eronder, of vergelijkbaar).
+
+### 3. Calendly-knop rechtsonder
+
+Onder de notitieblok-kolom (linker werkblad) komt onderaan een grote **"VIDEOCALL INPLANNEN AGENDA"** knop (full-width binnen de linker kolom, prominent blauw, hoog). 
+
+- Link: `https://calendly.com/belhouse/zolderpunt-kennismaking-met-jouw-project`
+- Prefill via querystring: `?name={voornaam achternaam}&email={email}` — Calendly accepteert `name` en `email` als prefill-parameters. Lege velden worden weggelaten.
+- Opent in nieuw tabblad (`target="_blank" rel="noopener noreferrer"`).
+- Knop is altijd zichtbaar onderaan de linker kolom, los van het scroll-gedrag van de velden boven.
+
+## Technische details
+
+- Alleen `src/pages/LiveCalling.tsx` wordt aangepast.
+- `ScriptPhase` helper wordt vervangen door `ScriptBlock` (geen state, geen `<details>`).
+- Calendly prefill URL wordt opgebouwd met `URLSearchParams` zodat speciale karakters correct geëncodeerd worden.
+- Geen wijzigingen aan database, hooks of context.
