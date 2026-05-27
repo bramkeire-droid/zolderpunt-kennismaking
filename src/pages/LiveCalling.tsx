@@ -547,14 +547,30 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
                     className="h-[clamp(36px,4.5vh,56px)] px-3 bg-white border-2 border-[#DDD5C5] text-[clamp(13px,1.7vh,20px)] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
                   <input type="text" value={leadAchternaam} onChange={e => setLeadAchternaam(e.target.value)} placeholder="Achternaam"
                     className="h-[clamp(36px,4.5vh,56px)] px-3 bg-white border-2 border-[#DDD5C5] text-[clamp(13px,1.7vh,20px)] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
+                  <input type="email" value={leadEmail} onChange={e => setLeadEmail(e.target.value)} placeholder="E-mailadres"
+                    className="h-[clamp(36px,4.5vh,56px)] px-3 bg-white border-2 border-[#DDD5C5] text-[clamp(13px,1.7vh,20px)] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
                   <input type="text" value={leadTelefoon} onChange={e => setLeadTelefoon(e.target.value)} placeholder="Telefoon"
                     className="h-[clamp(36px,4.5vh,56px)] px-3 bg-white border-2 border-[#DDD5C5] text-[clamp(13px,1.7vh,20px)] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
                   <input type="text" value={leadPartnerNaam} onChange={e => setLeadPartnerNaam(e.target.value)} placeholder="Partner"
                     className="h-[clamp(36px,4.5vh,56px)] px-3 bg-white border-2 border-[#DDD5C5] text-[clamp(13px,1.7vh,20px)] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
+                  <input type="text" value={leadAdres} onChange={e => setLeadAdres(e.target.value)} placeholder="Adres"
+                    className="h-[clamp(36px,4.5vh,56px)] px-3 bg-white border-2 border-[#DDD5C5] text-[clamp(13px,1.7vh,20px)] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
                 </div>
-                <input type="text" value={leadAdres} onChange={e => setLeadAdres(e.target.value)} placeholder="Adres"
-                  className="w-full h-[clamp(36px,4.5vh,56px)] px-3 mt-2 bg-white border-2 border-[#DDD5C5] text-[clamp(13px,1.7vh,20px)] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
               </FieldBlock>
+              {(() => {
+                const fullName = `${leadVoornaam} ${leadAchternaam}`.trim();
+                const params = new URLSearchParams();
+                if (fullName) params.set('name', fullName);
+                if (leadEmail.trim()) params.set('email', leadEmail.trim());
+                const qs = params.toString();
+                const url = `https://calendly.com/belhouse/zolderpunt-kennismaking-met-jouw-project${qs ? `?${qs}` : ''}`;
+                return (
+                  <a href={url} target="_blank" rel="noopener noreferrer"
+                    className="w-full h-[clamp(48px,6.5vh,72px)] flex items-center justify-center gap-2 bg-[#008CFF] text-white font-dm font-extrabold text-[clamp(14px,1.9vh,20px)] tracking-[0.04em] uppercase hover:bg-[#0070CC] transition-colors">
+                    📅 Videocall inplannen agenda
+                  </a>
+                );
+              })()}
 
               {/* Trigger */}
               <FieldBlock label="De trigger" hint="Waarom belt de klant nu?">
@@ -605,10 +621,10 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
         <div className="overflow-y-auto bg-[#F8F3EB]">
           <div className="p-4 space-y-2">
 
-            <div className="px-1 pb-2 flex items-center gap-2">
+            <div className="px-1 pb-2">
               <span className="font-dm text-[10px] font-bold tracking-[0.14em] uppercase text-[#5B6470]">Gespreksgids</span>
-              <span className="text-[10.5px] text-[#B0A898] italic">— referentie, klik om te openen</span>
             </div>
+
 
             {/* FASE 1 */}
             <ScriptPhase fase="Fase 1" tijd="1–2 min" titel="Motivatie blootleggen" doel="Ontdek waarom de klant vandaag belt." defaultOpen>
@@ -726,7 +742,7 @@ function FieldBlock({ label, hint, children }: { label: string; hint: string; ch
 }
 
 function ScriptPhase({
-  fase, tijd, titel, doel, children, defaultOpen = false, accent = 'blue',
+  fase, tijd, titel, doel, children, accent = 'blue',
 }: {
   fase: string; tijd: string; titel: string; doel: string;
   children: React.ReactNode; defaultOpen?: boolean; accent?: 'blue' | 'amber';
@@ -735,23 +751,22 @@ function ScriptPhase({
   const headerText = accent === 'amber' ? 'text-white' : 'text-[#0F1419]';
   const stripe = accent === 'amber' ? 'border-l-[#E89F3D]' : 'border-l-[#008CFF]';
   const tag = accent === 'amber' ? 'text-white/85' : 'text-[#008CFF]';
+  const sub = accent === 'amber' ? 'text-white/90' : 'text-[#5B6470]';
   return (
-    <details open={defaultOpen} className={`group bg-white border border-[#DDD5C5] border-l-[3px] ${stripe} open:shadow-sm`}>
-      <summary className={`${headerBg} ${headerText} list-none cursor-pointer px-3 py-[10px] flex items-center justify-between gap-3 select-none`}>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-baseline gap-2">
-            <span className={`font-dm text-[9.5px] font-bold tracking-[0.14em] uppercase ${tag}`}>{fase}</span>
-            {tijd && <span className="font-dm text-[9.5px] font-medium opacity-70">{tijd}</span>}
-          </div>
-          <div className="font-dm text-[13.5px] font-bold leading-[1.2] tracking-[-0.01em] truncate">{titel}</div>
-          <div className={`text-[10.5px] mt-[1px] truncate ${accent === 'amber' ? 'text-white/85' : 'text-[#5B6470]'}`}>{doel}</div>
+    <section className={`bg-white border border-[#DDD5C5] border-l-[4px] ${stripe} shadow-sm mb-3`}>
+      <header className={`${headerBg} ${headerText} px-4 py-3`}>
+        <div className="flex items-baseline gap-2">
+          <span className={`font-dm text-[10px] font-bold tracking-[0.16em] uppercase ${tag}`}>{fase}</span>
+          {tijd && <span className="font-dm text-[10px] font-medium opacity-70">{tijd}</span>}
         </div>
-        <svg className="w-4 h-4 shrink-0 transition-transform group-open:rotate-90" viewBox="0 0 20 20" fill="currentColor"><path d="M7 5l6 5-6 5V5z" /></svg>
-      </summary>
+        <div className="font-dm text-[17px] font-extrabold leading-[1.15] tracking-[-0.01em] mt-[2px]">{titel}</div>
+        <div className={`text-[12px] mt-[3px] leading-[1.35] ${sub}`}>{doel}</div>
+      </header>
       <div className="p-[10px] border-t border-[#DDD5C5]">
         {children}
       </div>
-    </details>
+    </section>
   );
 }
+
 
