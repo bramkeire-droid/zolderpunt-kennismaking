@@ -10,7 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import type { ScenarioType } from '@/types/preIntake';
+
 
 type CallingStep = 'select-lead' | 'calling' | 'wrap-up';
 
@@ -22,101 +22,8 @@ interface LiveCallingProps {
   initialStep?: CallingStep;
 }
 
-/* ───────────────────────── STATIC CONTENT ───────────────────────── */
 
-interface QCardProps {
-  label: string;
-  question: string;
-  why?: string;
-  toon?: string;
-  variant?: string;
-}
 
-function QCard({ label, question, why, toon, variant }: QCardProps) {
-  return (
-    <div className="border border-[#DDD5C5] mb-2 overflow-hidden">
-      <div className="bg-[#F8F3EB] text-[#2B6CA0] font-dm text-[9px] font-bold tracking-[0.13em] uppercase px-[9px] py-1 border-b border-[#DDD5C5]">
-        {label}
-      </div>
-      <div className="bg-white px-[10px] py-[9px] border-l-[3px] border-l-[#008CFF] font-body italic font-medium text-[12.5px] leading-[1.35] text-[#0F1419]">
-        {question}
-      </div>
-      {(why || toon) && (
-        <div className="flex flex-col border-t border-[#DDD5C5]">
-          {why && (
-            <div className="grid grid-cols-[60px_1fr] text-[10.5px] leading-[1.4]">
-              <div className="bg-[#E8F4FF] text-[#008CFF] font-dm text-[8.5px] font-bold tracking-[0.1em] uppercase px-2 py-[6px] flex items-center justify-center border-r border-[#DDD5C5]">Waarom</div>
-              <div className="bg-white text-[#0F1419] px-[9px] py-[6px]">{why}</div>
-            </div>
-          )}
-          {toon && (
-            <div className={`grid grid-cols-[60px_1fr] text-[10.5px] leading-[1.4] ${why ? 'border-t border-dotted border-[#DDD5C5]' : ''}`}>
-              <div className="bg-[#FFF6E5] text-[#A06010] font-dm text-[8.5px] font-bold tracking-[0.1em] uppercase px-2 py-[6px] flex items-center justify-center border-r border-[#DDD5C5]">Toon</div>
-              <div className="bg-white text-[#0F1419] px-[9px] py-[6px]">{toon}</div>
-            </div>
-          )}
-        </div>
-      )}
-      {variant && (
-        <div className="bg-[#FAFAFA] px-[10px] py-[7px] border-t border-dashed border-[#DDD5C5] font-body italic text-[11.5px] text-[#0F1419] leading-[1.35]">
-          <span className="not-italic font-dm text-[8.5px] font-bold tracking-[0.1em] text-[#5B6470] mr-1">OF</span>
-          {variant}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function TipCard({ label, text }: { label: string; text: string }) {
-  return (
-    <div className="bg-[#E8F4FF] border border-[#B8DCFF] px-[10px] py-[7px] mb-2">
-      <div className="font-dm text-[8.5px] font-bold tracking-[0.13em] uppercase text-[#008CFF] mb-[3px] flex items-center gap-[5px]">
-        <span className="text-[11px]">💡</span> {label}
-      </div>
-      <div className="text-[11px] leading-[1.4] text-[#0F1419]" dangerouslySetInnerHTML={{ __html: text }} />
-    </div>
-  );
-}
-
-function DeliverableCard({ label, text }: { label: string; text: string }) {
-  return (
-    <div className="bg-[#EAF5EC] border border-[#B8D4BC] px-[10px] py-[7px] mb-2">
-      <div className="font-dm text-[8.5px] font-bold tracking-[0.13em] uppercase text-[#2E7D38] mb-[3px] flex items-center gap-[5px]">
-        <span className="text-[11px]">📎</span> {label}
-      </div>
-      <div className="text-[11px] leading-[1.4] text-[#0F1419]" dangerouslySetInnerHTML={{ __html: text }} />
-    </div>
-  );
-}
-
-interface AnticipateCardProps {
-  topic: string;
-  klant: string;
-  jij: string;
-}
-
-function AnticipateCard({ topic, klant, jij }: AnticipateCardProps) {
-  return (
-    <div className="p-[10px_12px_11px_12px] border-r border-b border-[#DDD5C5]">
-      <div className="font-dm text-[9px] font-bold tracking-[0.14em] uppercase text-[#A06010] mb-[5px]">{topic}</div>
-      <div className="mb-[5px] grid grid-cols-[38px_1fr] gap-[6px] items-start">
-        <div className="font-dm text-[8.5px] font-bold tracking-[0.06em] uppercase bg-[#FFF6E5] text-[#A06010] px-1 py-[3px] text-center leading-none">Klant</div>
-        <div className="text-[11px] leading-[1.35] text-[#0F1419] italic">{klant}</div>
-      </div>
-      <div className="grid grid-cols-[38px_1fr] gap-[6px] items-start">
-        <div className="font-dm text-[8.5px] font-bold tracking-[0.06em] uppercase bg-[#E8F4FF] text-[#008CFF] px-1 py-[3px] text-center leading-none">Jij</div>
-        <div className="text-[11px] leading-[1.35] text-[#0F1419] italic">{jij}</div>
-      </div>
-    </div>
-  );
-}
-
-const SCENARIOS: { type: ScenarioType; tag: string; text: string; sub: string }[] = [
-  { type: 'A', tag: 'A', text: '"Deze week lukt"', sub: '→ call volgende week' },
-  { type: 'B', tag: 'B', text: '"Enkel weekend"', sub: '→ 2-3 wd ná weekend' },
-  { type: 'C', tag: 'C', text: '"Pas over X weken"', sub: '→ toch direct prikken' },
-  { type: 'D', tag: 'D', text: '"Moeilijk te zeggen"', sub: '→ veilige datum verder' },
-];
 
 /* ───────────────────────── MAIN COMPONENT ───────────────────────── */
 
@@ -617,98 +524,41 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
           </div>
         </div>
 
-        {/* ─────── RIGHT: SCRIPT RAIL ─────── */}
-        <div className="overflow-y-auto bg-[#F8F3EB]">
-          <div className="p-4 space-y-2">
-
-            <div className="px-1 pb-2">
-              <span className="font-dm text-[10px] font-bold tracking-[0.14em] uppercase text-[#5B6470]">Gespreksgids</span>
+        {/* ─────── RIGHT: STATISCHE SPIEKKAART — 5 fases, geen scroll ─────── */}
+        <div className="bg-[#0F1419] h-full flex flex-col overflow-hidden">
+          {[
+            { n: 1, titel: 'Motivatie blootleggen', tekst: 'Laat de klant zelf vertellen wat hem vandaag doet bellen.' },
+            { n: 2, titel: 'Doorvragen op de pijn', tekst: 'Laat de klant de urgentie van zijn eigen probleem voelen.' },
+            { n: 3, titel: 'Videocall framen', tekst: 'Positioneer Bram als expert en vraag foto\u2019s en oppervlakte.' },
+            { n: 4, titel: 'Inplannen + afsluiten', tekst: 'Zet de afspraak in de agenda en stel daarna de guard-down vraag.' },
+            { n: 5, titel: 'Bij weerstand', tekst: 'Verwijs alles over prijs, timing of haalbaarheid naar de videocall.', amber: true },
+          ].map((f, i) => (
+            <div
+              key={f.n}
+              className={`flex-1 min-h-0 flex items-center gap-5 px-7 ${i > 0 ? 'border-t border-white/10' : ''} ${f.amber ? 'bg-[#3a2a10]' : ''}`}
+            >
+              <div
+                className={`font-dm font-extrabold tabular-nums leading-none shrink-0 text-[clamp(48px,9vh,110px)] ${f.amber ? 'text-[#E89F3D]' : 'text-[#008CFF]'}`}
+              >
+                {f.n}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-dm font-extrabold text-white text-[clamp(20px,3vh,36px)] leading-[1.1] tracking-[-0.01em]">
+                  {f.titel}
+                </div>
+                <div className="font-body text-white/85 text-[clamp(14px,1.9vh,22px)] leading-[1.35] mt-2">
+                  {f.tekst}
+                </div>
+              </div>
             </div>
-
-
-            {/* FASE 1 */}
-            <ScriptPhase fase="Fase 1" tijd="1–2 min" titel="Motivatie blootleggen" doel="Ontdek waarom de klant vandaag belt." defaultOpen>
-              <QCard
-                label="Openingsvraag"
-                question={`"Waar liep je in huis precies tegenaan waardoor je dacht: 'nu is het tijd om die zolder aan te pakken'?"`}
-                why="Open vraag laat de klant zélf het probleem benoemen — niet jij."
-                toon="Warm, nieuwsgierig. Geen Amerikaans enthousiasme."
-                variant={`"Mag ik vragen wat je precies hoopt te bereiken met die extra ruimte?"`}
-              />
-              <TipCard label="Tip · Mirroring" text={`Klant zegt <em>"frustrerend"</em>. Jij zacht: <em>"frustrerend...?"</em> en zwijg. De klant vertelt vanzelf meer.`} />
-              <TipCard label="Tip · 80/20-regel" text="Klant praat 90% van de tijd. Jij stelt vragen en luistert." />
-            </ScriptPhase>
-
-            {/* FASE 2 */}
-            <ScriptPhase fase="Fase 2" tijd="2–3 min" titel="Doorvragen op de pijn" doel="Laat de klant onbewust de urgentie van eigen probleem voelen.">
-              <QCard label="Duur-vraag" question={`"Hoe lang speelt dat eigenlijk al?"`} why="De klant beseft zelf hoe lang ze rondlopen met de frustratie." />
-              <QCard label="Impact-vraag" question={`"Heeft dat veel impact op hoe jullie het huis nu kunnen gebruiken?"`} toon="Rustig, lichtbezorgd. Laat een pauze vallen na de vraag." />
-              <QCard label="Verduidelijking" question={`"Op welke manier bedoel je dat precies? Kan je een voorbeeld geven?"`} why="Onder vage antwoorden zit de échte motivatie." />
-              <QCard label="Resultaat-vraag" question={`"Stel dat we dit helemaal naar wens kunnen oplossen — wat zou die ruimte voor jullie betekenen?"`} why="Verlegt focus van prijs naar waarde." />
-              <QCard label="Echte zorgen" question={`"Wat zijn jullie grootste vragen of bezorgdheden rond zo'n zolderrenovatie?"`} why={`Detecteert hun angst om "gepakt" te worden. Noteer letterlijk.`} />
-            </ScriptPhase>
-
-            {/* FASE 3 */}
-            <ScriptPhase fase="Fase 3" tijd="2–3 min" titel="Videocall framen + deliverables" doel="Videocall als voordeel positioneren. Foto's + oppervlakte vragen.">
-              <QCard
-                label="Framing van de videocall"
-                question={`"Om jullie concrete antwoorden te geven op budget, timing, duur en haalbaarheid, plannen we eerst een korte videocall in met Bram, onze zolderexpert."`}
-                why="Positioneer Bram als expert. Videocall bespaart hún tijd."
-              />
-              <DeliverableCard label="Deliverable 1 · Foto's" text={`Bram maakt tijdens de call een eerste kostenraming. Foto's van de zolder zoals ze er nu bij ligt — <em>niet opruimen</em>.`} />
-              <DeliverableCard label="Deliverable 2 · Oppervlakte" text="Een ruwe oppervlakte van de vloer — zelf opmeten volstaat." />
-              <QCard
-                label="De tijdsvraag · bepaalt videocall-datum"
-                question={`"Wanneer denken jullie dat realistisch te kunnen doen?"`}
-                why={`"Realistisch" geeft toestemming om eerlijk te zijn.`}
-              />
-              <TipCard label="Tip · Verstop kwalificatie hierin" text="Stel terloops: gemeente? Eigenaar of in aankoop? Type woning? Geen checklist — gewoon doorvlechten." />
-            </ScriptPhase>
-
-            {/* FASE 4 */}
-            <ScriptPhase fase="Fase 4" tijd="1–2 min" titel="Inplannen + afsluiten" doel="Videocall in agenda. Guard-Down vraag. Warm afsluiten.">
-              <div className="border border-[#DDD5C5] mb-2 overflow-hidden">
-                <div className="bg-[#F8F3EB] text-[#2B6CA0] font-dm text-[9px] font-bold tracking-[0.13em] uppercase px-[9px] py-1 border-b border-[#DDD5C5]">
-                  Inplan-scenario
-                </div>
-                <div className="grid grid-cols-2">
-                  {SCENARIOS.map((s, i) => (
-                    <button key={s.type} type="button" onClick={() => update({ scenario_chosen: s.type })}
-                      className={`p-[6px_8px] text-[10.5px] text-left leading-[1.3] bg-white cursor-pointer transition-colors
-                        ${i % 2 === 0 ? 'border-r border-[#DDD5C5]' : ''}
-                        ${i < 2 ? 'border-b border-[#DDD5C5]' : ''}
-                        ${data.scenario_chosen === s.type ? 'bg-[#E8F4FF] !border-[#008CFF]' : 'hover:bg-[#E8F4FF]'}
-                      `}>
-                      <span className="font-dm text-[11px] font-extrabold text-[#008CFF] mr-1">{s.tag}</span>{s.text}
-                      <span className="block mt-[1px] text-[10.5px]"><em className="text-[#5B6470] not-italic text-[10px]">{s.sub}</em></span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <QCard label={`Als de klant "ik bel u nog terug" zegt`} question={`"Mijn ervaring leert dat zo'n terugbel-afspraak vaak verloren gaat. Veel handiger als we nu een moment in de agenda zetten — verzetten kan altijd."`} />
-              <QCard label="Guard-Down vraag · pas NÁ het prikken" question={`"Helemaal goed, de videocall staat. Nog even voor ik je laat gaan: wat wilden jij en je partner zeker nog doornemen?"`} why="Afspraak staat, verdediging zakt. Hier komt het echte bezwaar." />
-              <QCard label="Warme afsluiter" question={`"Super, dan zorg ik dat Bram perfect voorbereid is. Fijne dag nog!"`} />
-            </ScriptPhase>
-
-            {/* ANTICIPATIE */}
-            <ScriptPhase fase="⚠ Anticipatie" tijd="" titel="Wat als de klant deze vragen stelt?" doel="Snelle antwoorden bij weerstand." accent="amber">
-              <div className="space-y-2">
-                <AnticipateCard topic="Wat kost het ongeveer?" klant={`"Wat kost zo'n zolderrenovatie?"`} jij={`"Logische vraag. Een prijs hangt af van oppervlakte, toestand, indeling... Daarom rekent Bram dit in de videocall voor jullie uit."`} />
-                <AnticipateCard topic="Wanneer kunnen jullie starten?" klant={`"Wanneer kan dat starten?"`} jij={`"Heel logisch — een van de eerste dingen die Bram met jullie doorneemt. Concrete data noemen aan de telefoon doen we bewust niet."`} />
-                <AnticipateCard topic="Hoeveel overlast?" klant={`"Hoeveel overlast brengt dat mee?"`} jij={`"Bram bespreekt standaard hoe het verloop er praktisch uitziet — zodat je vooraf weet waar je aan toe bent."`} />
-                <AnticipateCard topic="Is ons idee haalbaar?" klant={`"Kan onze indeling wel?"`} jij={`"Daar gaat Bram in de call concreet antwoord op geven. Op basis van de foto's en oppervlakte kan hij al inschatten wat haalbaar is."`} />
-                <AnticipateCard topic="Stuur iemand langs" klant={`"Stuur gewoon iemand langs."`} jij={`"Begrijp ik. We starten via video om te vermijden dat we jullie tijd verspillen als wensen niet aansluiten."`} />
-                <AnticipateCard topic="Eerst met partner overleggen" klant={`"Ik moet het eerst met mijn vrouw/man bespreken."`} jij={`"Groot gelijk. Wat dacht je ervan als we de videocall juist plannen op een moment dat jullie allebei thuis zijn?"`} />
-              </div>
-            </ScriptPhase>
-
-          </div>
+          ))}
         </div>
       </div>
 
       <CloseCallDialog open={showCloseDialog} onClose={() => setShowCloseDialog(false)} onConfirm={handleCloseCall} />
       <BackConfirmDialog open={showBackConfirm} onCancel={() => setShowBackConfirm(false)} onDiscard={confirmBackDiscard} onSave={confirmBackSave} />
     </div>
+
   );
 }
 
@@ -741,32 +591,5 @@ function FieldBlock({ label, hint, children }: { label: string; hint: string; ch
   );
 }
 
-function ScriptPhase({
-  fase, tijd, titel, doel, children, accent = 'blue',
-}: {
-  fase: string; tijd: string; titel: string; doel: string;
-  children: React.ReactNode; defaultOpen?: boolean; accent?: 'blue' | 'amber';
-}) {
-  const headerBg = accent === 'amber' ? 'bg-[#E89F3D]' : 'bg-white';
-  const headerText = accent === 'amber' ? 'text-white' : 'text-[#0F1419]';
-  const stripe = accent === 'amber' ? 'border-l-[#E89F3D]' : 'border-l-[#008CFF]';
-  const tag = accent === 'amber' ? 'text-white/85' : 'text-[#008CFF]';
-  const sub = accent === 'amber' ? 'text-white/90' : 'text-[#5B6470]';
-  return (
-    <section className={`bg-white border border-[#DDD5C5] border-l-[4px] ${stripe} shadow-sm mb-3`}>
-      <header className={`${headerBg} ${headerText} px-4 py-3`}>
-        <div className="flex items-baseline gap-2">
-          <span className={`font-dm text-[10px] font-bold tracking-[0.16em] uppercase ${tag}`}>{fase}</span>
-          {tijd && <span className="font-dm text-[10px] font-medium opacity-70">{tijd}</span>}
-        </div>
-        <div className="font-dm text-[17px] font-extrabold leading-[1.15] tracking-[-0.01em] mt-[2px]">{titel}</div>
-        <div className={`text-[12px] mt-[3px] leading-[1.35] ${sub}`}>{doel}</div>
-      </header>
-      <div className="p-[10px] border-t border-[#DDD5C5]">
-        {children}
-      </div>
-    </section>
-  );
-}
 
 
