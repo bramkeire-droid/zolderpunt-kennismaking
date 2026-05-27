@@ -527,31 +527,56 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
         {/* ─────── RIGHT: STATISCHE SPIEKKAART — 5 fases, geen scroll ─────── */}
         <div className="bg-[#0F1419] h-full flex flex-col overflow-hidden">
           {[
-            { n: 1, titel: 'Motivatie blootleggen', tekst: 'Laat de klant zelf vertellen wat hem vandaag doet bellen.' },
-            { n: 2, titel: 'Doorvragen op de pijn', tekst: 'Laat de klant de urgentie van zijn eigen probleem voelen.' },
-            { n: 3, titel: 'Videocall framen', tekst: 'Positioneer Bram als expert en vraag foto\u2019s en oppervlakte.' },
-            { n: 4, titel: 'Inplannen + afsluiten', tekst: 'Zet de afspraak in de agenda en stel daarna de guard-down vraag.' },
-            { n: 5, titel: 'Bij weerstand', tekst: 'Verwijs alles over prijs, timing of haalbaarheid naar de videocall.', amber: true },
+            {
+              n: 1, titel: 'Motivatie blootleggen',
+              tekst: 'Laat de klant zelf vertellen wat hem vandaag doet bellen.',
+              extra: 'Open vraag: "Waar liep je tegenaan waardoor je dacht: nu is het tijd?" Warm en nieuwsgierig — herhaal sleutelwoorden zacht en zwijg.',
+            },
+            {
+              n: 2, titel: 'Doorvragen op de pijn',
+              tekst: 'Laat de klant de urgentie van zijn eigen probleem voelen.',
+              extra: 'Vraag naar duur, impact op het dagelijks leven en wat de oplossing zou betekenen. Noteer letterlijk citaten en zorgen.',
+            },
+            {
+              n: 3, titel: 'Videocall framen',
+              tekst: 'Positioneer Bram als expert en vraag foto\u2019s en oppervlakte.',
+              extra: 'Videocall = bespaart hun tijd, geen verkooppraatje. Foto\u2019s van de huidige toestand (niet opruimen) + ruwe m\u00B2. Vlecht gemeente / eigenaar / type woning terloops door.',
+            },
+            {
+              n: 4, titel: 'Inplannen + afsluiten',
+              tekst: 'Zet de afspraak in de agenda en stel daarna de guard-down vraag.',
+              extra: 'Prik nu een moment — "verzetten kan altijd". Na het prikken: "Wat wilden jij en je partner zeker nog doornemen?" Daar komt het echte bezwaar.',
+            },
+            {
+              n: 5, titel: 'Bij weerstand',
+              tekst: 'Verwijs alles over prijs, timing of haalbaarheid naar de videocall.',
+              amber: true,
+              extra: '"Logische vraag — daar geeft Bram in de call concreet antwoord op." Geen cijfers of data aan de telefoon. Bevestig de zorg, parkeer ze naar de call.',
+            },
           ].map((f, i) => (
             <div
               key={f.n}
               className={`flex-1 min-h-0 flex items-center gap-5 px-7 ${i > 0 ? 'border-t border-white/10' : ''} ${f.amber ? 'bg-[#3a2a10]' : ''}`}
             >
               <div
-                className={`font-dm font-extrabold tabular-nums leading-none shrink-0 text-[clamp(48px,9vh,110px)] ${f.amber ? 'text-[#E89F3D]' : 'text-[#008CFF]'}`}
+                className={`font-dm font-extrabold tabular-nums leading-none shrink-0 text-[clamp(44px,8vh,100px)] ${f.amber ? 'text-[#E89F3D]' : 'text-[#008CFF]'}`}
               >
                 {f.n}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="font-dm font-extrabold text-white text-[clamp(20px,3vh,36px)] leading-[1.1] tracking-[-0.01em]">
+                <div className="font-dm font-extrabold text-white text-[clamp(18px,2.6vh,32px)] leading-[1.1] tracking-[-0.01em]">
                   {f.titel}
                 </div>
-                <div className="font-body text-white/85 text-[clamp(14px,1.9vh,22px)] leading-[1.35] mt-2">
+                <div className="font-body text-white text-[clamp(13px,1.7vh,20px)] leading-[1.3] mt-[6px]">
                   {f.tekst}
+                </div>
+                <div className="font-body text-white/65 text-[clamp(11px,1.45vh,17px)] leading-[1.35] mt-[6px]">
+                  {f.extra}
                 </div>
               </div>
             </div>
           ))}
+
         </div>
       </div>
 
