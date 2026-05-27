@@ -621,10 +621,10 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
         <div className="overflow-y-auto bg-[#F8F3EB]">
           <div className="p-4 space-y-2">
 
-            <div className="px-1 pb-2 flex items-center gap-2">
+            <div className="px-1 pb-2">
               <span className="font-dm text-[10px] font-bold tracking-[0.14em] uppercase text-[#5B6470]">Gespreksgids</span>
-              <span className="text-[10.5px] text-[#B0A898] italic">— referentie, klik om te openen</span>
             </div>
+
 
             {/* FASE 1 */}
             <ScriptPhase fase="Fase 1" tijd="1–2 min" titel="Motivatie blootleggen" doel="Ontdek waarom de klant vandaag belt." defaultOpen>
