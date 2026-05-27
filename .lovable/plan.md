@@ -1,35 +1,34 @@
 ## Doel
 
-Live-belscherm (`src/pages/LiveCalling.tsx`) overzichtelijker maken: gespreksgids rechts wordt in één oogopslag leesbaar, klantgegevens krijgen een e-mailveld, en onderaan komt een grote knop die rechtstreeks naar de Calendly-pagina linkt met de klantgegevens vooraf ingevuld.
+Rechterkolom van het live-belscherm wordt een **statische "spiekkaart"**: 5 fases, elk met een titel en één korte zin als richtlijn. Geen interactieve onderdelen, geen scrollen, leesbaar met één oog tijdens het bellen.
 
-## Wijzigingen
+## Wijzigingen — alleen in `src/pages/LiveCalling.tsx`
 
-### 1. Rechterkolom — Gespreksgids als open blokken
+### Vervangen
+De volledige rechterkolom (huidige "Script rail", regels ±624–710 met `ScriptPhase` blokken, `QCard`, `TipCard`, `DeliverableCard`, `AnticipateCard`, scenario-knoppen) wordt vervangen door **vijf grote statische fase-blokken** onder elkaar in een flex-kolom die de volledige hoogte vult (`h-full flex flex-col`), zonder scroll.
 
-In de rechter "Script rail" (regel 605–690) vervang ik het inklapbare `ScriptPhase` patroon (`<details>/<summary>`) door **altijd-zichtbare blokken**: 
+### De 5 fases (titel + één-zin richtlijn)
 
-- Per fase één kaart met een gekleurde header (fase-label + tijd), een grote duidelijke titel en één korte uitleg-zin (de huidige `doel`). 
-- Daaronder de bestaande inhoud (QCard / TipCard / DeliverableCard / AnticipateCard) zonder klik-interactie.
-- Behoud de blauwe / oranje accenten (oranje voor Anticipatie). 
-- De `ScriptPhase` helper-component wordt vervangen door een nieuwe `ScriptBlock` component (geen `<details>` meer).
-- Klein intro-regeltje "klik om te openen" rechts bovenaan wordt verwijderd (niet meer van toepassing).
+1. **Motivatie blootleggen** — *Laat de klant zelf vertellen wat hem vandaag doet bellen.*
+2. **Doorvragen op de pijn** — *Laat de klant de urgentie van zijn eigen probleem voelen.*
+3. **Videocall framen** — *Positioneer Bram als expert, vraag foto's en oppervlakte.*
+4. **Inplannen + afsluiten** — *Zet de afspraak in de agenda en stel daarna de guard-down vraag.*
+5. **Bij weerstand** — *Verwijs alles wat met prijs, timing of haalbaarheid te maken heeft naar de videocall.*
 
-### 2. Klantgegevens — e-mailveld toevoegen
+### Visueel — leesbaar met één oog
 
-In het `FieldBlock "Klantgegevens"` van het live-scherm (regel 544–557) ontbreekt het e-mailveld. Ik voeg een `<input type="email">` toe, gebonden aan `leadEmail` / `setLeadEmail`, met dezelfde styling als de andere velden. Layout wordt aangepast zodat het netjes in het 2-koloms grid past (telefoon + e-mail naast elkaar, partner + adres eronder, of vergelijkbaar).
+- Elke fase = blok dat gelijk verdeeld is over de beschikbare hoogte (`flex-1`), zodat alle 5 samen exact de viewport vullen, geen scroll.
+- Donkere achtergrond (`bg-[#0F1419]` of donker variant) met witte tekst voor **maximaal contrast** in een drukke gesprek-context.
+- Grote nummering (1–5) links in fel blauw (`#008CFF`) — `text-[clamp(40px,6vh,72px)]` zodat het meteen leesbaar is.
+- Titel groot en vet: `font-dm font-extrabold text-[clamp(20px,2.6vh,32px)]`.
+- Beschrijving licht en duidelijk: `text-[clamp(14px,1.7vh,20px)] text-white/85 leading-snug`.
+- Dunne scheidingslijn tussen blokken.
+- Fase 5 (weerstand) krijgt amber accent (`#E89F3D`) voor visuele waarschuwing.
 
-### 3. Calendly-knop rechtsonder
+### Behoud
 
-Onder de notitieblok-kolom (linker werkblad) komt onderaan een grote **"VIDEOCALL INPLANNEN AGENDA"** knop (full-width binnen de linker kolom, prominent blauw, hoog). 
+Links (notitieblok + Calendly-knop + klantgegevens met e-mail) blijft ongewijzigd.
 
-- Link: `https://calendly.com/belhouse/zolderpunt-kennismaking-met-jouw-project`
-- Prefill via querystring: `?name={voornaam achternaam}&email={email}` — Calendly accepteert `name` en `email` als prefill-parameters. Lege velden worden weggelaten.
-- Opent in nieuw tabblad (`target="_blank" rel="noopener noreferrer"`).
-- Knop is altijd zichtbaar onderaan de linker kolom, los van het scroll-gedrag van de velden boven.
+### Opruimen
 
-## Technische details
-
-- Alleen `src/pages/LiveCalling.tsx` wordt aangepast.
-- `ScriptPhase` helper wordt vervangen door `ScriptBlock` (geen state, geen `<details>`).
-- Calendly prefill URL wordt opgebouwd met `URLSearchParams` zodat speciale karakters correct geëncodeerd worden.
-- Geen wijzigingen aan database, hooks of context.
+De helper-componenten `QCard`, `TipCard`, `DeliverableCard`, `AnticipateCard`, `ScriptPhase` en de `SCENARIOS` constante worden verwijderd (niet meer gebruikt). Wrap-up en lead-select blijven intact.
