@@ -10,7 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import type { ScenarioType } from '@/types/preIntake';
+
 
 type CallingStep = 'select-lead' | 'calling' | 'wrap-up';
 
