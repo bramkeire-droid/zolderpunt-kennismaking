@@ -11,6 +11,7 @@ export interface OffertebijlageData {
   achternaam: string;
   adres: string;
   datum: string;
+  offerteNummer?: string;
   bedragExcl: number;
   weken: number;
   trapgat: boolean;
