@@ -364,6 +364,7 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
                             )}
                           </div>
                         </TableCell>
+                        <TableCell className="font-body">{lead.gesprek_datum || '—'}</TableCell>
                         <TableCell>
                           <div className="flex flex-col gap-1">
                             <StatusBadge status={lead.status} />
