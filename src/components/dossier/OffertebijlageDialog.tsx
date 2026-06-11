@@ -160,6 +160,31 @@ export default function OffertebijlageDialog({ open, onClose, lead, onUpdate }: 
           </div>
         )}
 
+        {/* Offerte identificatie */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-card border border-border p-4">
+            <Label htmlFor="offerte-nr" className="text-xs uppercase tracking-wider text-muted-foreground">Offertenummer</Label>
+            <Input
+              id="offerte-nr"
+              value={offerteNummer}
+              onChange={e => setOfferteNummer(e.target.value)}
+              placeholder="bv. 2026-042"
+              className="mt-2 font-headline font-semibold"
+            />
+            <div className="text-[10px] text-muted-foreground mt-1">Wordt gebruikt in de bestandsnaam van de bijlage.</div>
+          </div>
+          <div className="bg-card border border-border p-4">
+            <Label htmlFor="offerte-datum" className="text-xs uppercase tracking-wider text-muted-foreground">Datum offerte</Label>
+            <Input
+              id="offerte-datum"
+              type="date"
+              value={offerteDatum}
+              onChange={e => setOfferteDatum(e.target.value)}
+              className="mt-2 font-headline font-semibold"
+            />
+          </div>
+        </div>
+
         {/* Inputs */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="bg-card border-2 border-primary p-5">
