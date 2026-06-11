@@ -25,6 +25,8 @@ export default function OffertebijlageDialog({ open, onClose, lead, onUpdate }: 
   const [bedrag, setBedrag] = useState<number>(
     Number(lead?.offerte_bedrag_excl) || Number(lead?.budget_excl) || Number(lead?.budget_min) || 30000
   );
+  const [offerteNummer, setOfferteNummer] = useState<string>(lead?.offerte_nummer || '');
+  const [offerteDatum, setOfferteDatum] = useState<string>(lead?.offerte_datum || new Date().toISOString().split('T')[0]);
   const [weken, setWeken] = useState<number>(initialSettings.weken || 5);
   const [trapgat, setTrapgat] = useState<boolean>(initialSettings.trapgat ?? !!lead?.technisch?.trap);
   const [btwPct, setBtwPct] = useState<6 | 21>((lead?.btw_percentage === 21 ? 21 : 6) as 6 | 21);
@@ -34,6 +36,8 @@ export default function OffertebijlageDialog({ open, onClose, lead, onUpdate }: 
   useEffect(() => {
     if (!open) return;
     setBedrag(Number(lead?.offerte_bedrag_excl) || Number(lead?.budget_excl) || Number(lead?.budget_min) || 30000);
+    setOfferteNummer(lead?.offerte_nummer || '');
+    setOfferteDatum(lead?.offerte_datum || new Date().toISOString().split('T')[0]);
     setWeken(lead?.offerte_bijlage_settings?.weken || 5);
     setTrapgat(lead?.offerte_bijlage_settings?.trapgat ?? !!lead?.technisch?.trap);
     setBtwPct((lead?.btw_percentage === 21 ? 21 : 6) as 6 | 21);
@@ -60,32 +64,40 @@ export default function OffertebijlageDialog({ open, onClose, lead, onUpdate }: 
   const oplevering = bedrag * 0.10;
   const perWeek = uitvoering / Math.max(1, weken);
 
+  const slug = (s: string) => s.replace(/[^\w\-]+/g, '_').replace(/^_+|_+$/g, '') || 'Onbekend';
+
   const handleSave = async () => {
-    if (!lead?.id) return;
+    if (!lead?.id) return true;
     setSaving(true);
     const patch = {
       offerte_bedrag_excl: bedrag,
-      offerte_datum: lead.offerte_datum || new Date().toISOString().split('T')[0],
+      offerte_nummer: offerteNummer.trim() || null,
+      offerte_datum: offerteDatum || new Date().toISOString().split('T')[0],
       offerte_bijlage_settings: { weken, trapgat },
     };
     const { error } = await supabase.from('leads').update(patch as any).eq('id', lead.id);
     setSaving(false);
-    if (error) { toast.error('Opslaan mislukt'); return; }
+    if (error) { toast.error('Opslaan mislukt'); return false; }
     toast.success('Offerte opgeslagen');
     onUpdate?.(lead.id, patch);
+    return true;
   };
 
   const handleDownload = async () => {
+    if (!offerteNummer.trim()) { toast.error('Vul eerst het offertenummer in'); return; }
+    if (!offerteDatum) { toast.error('Vul eerst de offertedatum in'); return; }
     setGenerating(true);
     try {
-      await handleSave();
+      const ok = await handleSave();
+      if (!ok) return;
       const blob = await pdf(
         <OffertebijlagePdf
           data={{
             voornaam: lead?.voornaam || '',
             achternaam: lead?.achternaam || '',
             adres: lead?.adres || '',
-            datum: lead?.offerte_datum || new Date().toISOString().split('T')[0],
+            datum: offerteDatum,
+            offerteNummer: offerteNummer.trim(),
             bedragExcl: bedrag,
             weken,
             trapgat,
@@ -96,7 +108,7 @@ export default function OffertebijlageDialog({ open, onClose, lead, onUpdate }: 
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `Zolderpunt_Offertebijlage_${lead?.achternaam || 'Klant'}.pdf`;
+      a.download = `Zolderpunt_Offertebijlage_${slug(offerteNummer.trim())}_${slug(lead?.achternaam || 'Klant')}.pdf`;
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
       URL.revokeObjectURL(url);
       toast.success('Offertebijlage gedownload');
