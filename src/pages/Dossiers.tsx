@@ -484,7 +484,45 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
       {previewLead && (
         <PortalPreview lead={previewLead} onClose={() => setPreviewLead(null)} />
       )}
+
+      {offerteLead && (
+        <OffertebijlageDialog
+          open={!!offerteLead}
+          onClose={() => setOfferteLead(null)}
+          lead={offerteLead}
+          onUpdate={(leadId, patch) => {
+            setLeads(prev => prev.map(l => l.id === leadId ? { ...l, ...patch } : l));
+            setOfferteLead((prev: any) => prev ? { ...prev, ...patch } : prev);
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+function OfferteCompareBadge({ bedrag, min, max }: { bedrag: number; min: number; max: number }) {
+  if (!min || !max) {
+    return (
+      <span className="inline-block text-[0.6rem] font-bold tracking-wider uppercase px-2 py-0.5 bg-primary/10 text-primary w-fit">
+        Offerte: {new Intl.NumberFormat('nl-BE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(bedrag)}
+      </span>
+    );
+  }
+  let cls = 'bg-green-100 text-green-700';
+  let label = 'Offerte binnen intake';
+  if (bedrag < min) {
+    const pct = Math.round(((min - bedrag) / min) * 100);
+    cls = 'bg-blue-100 text-blue-700';
+    label = `Offerte −${pct}% < min`;
+  } else if (bedrag > max) {
+    const pct = Math.round(((bedrag - max) / max) * 100);
+    cls = 'bg-red-100 text-red-700';
+    label = `Offerte +${pct}% > max`;
+  }
+  return (
+    <span className={`inline-block text-[0.6rem] font-bold tracking-wider uppercase px-2 py-0.5 w-fit ${cls}`}>
+      {label}
+    </span>
   );
 }
 
