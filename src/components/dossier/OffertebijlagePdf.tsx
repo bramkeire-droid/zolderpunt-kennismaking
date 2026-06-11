@@ -11,6 +11,7 @@ export interface OffertebijlageData {
   achternaam: string;
   adres: string;
   datum: string;
+  offerteNummer?: string;
   bedragExcl: number;
   weken: number;
   trapgat: boolean;
@@ -211,6 +212,10 @@ export default function OffertebijlagePdf({ data }: { data: OffertebijlageData }
           <View style={{ flex: 2 }}>
             <Text style={s.metaLabel}>Adres</Text>
             <Text style={s.metaValue}>{data.adres || '—'}</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={s.metaLabel}>Offertenummer</Text>
+            <Text style={s.metaValue}>{data.offerteNummer || '—'}</Text>
           </View>
           <View style={{ flex: 1, alignItems: 'flex-end' }}>
             <Text style={s.metaLabel}>Datum</Text>

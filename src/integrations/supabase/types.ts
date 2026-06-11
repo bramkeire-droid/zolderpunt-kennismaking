@@ -41,6 +41,7 @@ export type Database = {
           offerte_bedrag_excl: number | null
           offerte_bijlage_settings: Json | null
           offerte_datum: string | null
+          offerte_nummer: string | null
           oppervlakte_m2: number | null
           partner_naam: string
           portal_activated_at: string | null
@@ -95,6 +96,7 @@ export type Database = {
           offerte_bedrag_excl?: number | null
           offerte_bijlage_settings?: Json | null
           offerte_datum?: string | null
+          offerte_nummer?: string | null
           oppervlakte_m2?: number | null
           partner_naam?: string
           portal_activated_at?: string | null
@@ -149,6 +151,7 @@ export type Database = {
           offerte_bedrag_excl?: number | null
           offerte_bijlage_settings?: Json | null
           offerte_datum?: string | null
+          offerte_nummer?: string | null
           oppervlakte_m2?: number | null
           partner_naam?: string
           portal_activated_at?: string | null
