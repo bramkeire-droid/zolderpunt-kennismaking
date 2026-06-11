@@ -101,6 +101,43 @@ const s = StyleSheet.create({
 
   btwNote: { fontSize: 8, color: COLORS.subtekst, marginTop: 8, fontStyle: 'italic' },
 
+  // Weekly invoice callout
+  weeklyCallout: {
+    flexDirection: 'row',
+    backgroundColor: '#FFF7E6',
+    borderWidth: 1.5,
+    borderColor: COLORS.gold,
+    padding: 14,
+    marginTop: 14,
+    alignItems: 'center',
+  },
+  weeklyBadge: {
+    backgroundColor: COLORS.gold,
+    color: COLORS.white,
+    fontFamily: 'SpaceGrotesk',
+    fontWeight: 700,
+    fontSize: 9,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    marginRight: 14,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  weeklyTitle: {
+    fontFamily: 'SpaceGrotesk',
+    fontWeight: 700,
+    fontSize: 13,
+    color: COLORS.dark,
+  },
+  weeklySub: { fontSize: 10, color: COLORS.dark, marginTop: 3 },
+  weeklyAmount: {
+    fontFamily: 'SpaceGrotesk',
+    fontWeight: 700,
+    fontSize: 18,
+    color: COLORS.primary,
+    marginLeft: 'auto',
+  },
+
   // Tijdlijn
   timelineWrap: {
     backgroundColor: COLORS.white,
@@ -227,8 +264,22 @@ export default function OffertebijlagePdf({ data }: { data: OffertebijlageData }
             <Text style={s.totalValue}>{fmtEur(totalInclBtw)}</Text>
           </View>
 
+          {/* Weekly invoice callout */}
+          <View style={s.weeklyCallout}>
+            <Text style={s.weeklyBadge}>Elke{'\n'}vrijdag</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={s.weeklyTitle}>
+                {data.weken}× een wekelijkse factuur tijdens de uitvoering
+              </Text>
+              <Text style={s.weeklySub}>
+                Elke vrijdag verstuurd · betaalbaar binnen 7 dagen
+              </Text>
+            </View>
+            <Text style={s.weeklyAmount}>{fmtEur(perWeek)}<Text style={{ fontSize: 9, color: COLORS.subtekst, fontWeight: 400 }}> / week</Text></Text>
+          </View>
+
           <Text style={s.btwNote}>
-            Betalingstermijn 7 dagen · BTW {data.btwPct}% {data.btwPct === 6 ? '(woning ouder dan 10 jaar)' : '(woning jonger dan 10 jaar)'}
+            BTW {data.btwPct}% {data.btwPct === 6 ? '(woning ouder dan 10 jaar)' : '(woning jonger dan 10 jaar)'}
           </Text>
         </View>
 
