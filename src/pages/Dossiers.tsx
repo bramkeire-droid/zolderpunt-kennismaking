@@ -364,9 +364,17 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
                             )}
                           </div>
                         </TableCell>
-                        <TableCell className="font-body">{lead.gesprek_datum || '—'}</TableCell>
                         <TableCell>
-                          <StatusBadge status={lead.status} />
+                          <div className="flex flex-col gap-1">
+                            <StatusBadge status={lead.status} />
+                            {lead.offerte_bedrag_excl != null && (
+                              <OfferteCompareBadge
+                                bedrag={Number(lead.offerte_bedrag_excl)}
+                                min={Number(lead.budget_min) || 0}
+                                max={Number(lead.budget_max) || 0}
+                              />
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell className="font-body">
                           {lead.budget_min ? `${fmt(lead.budget_min)} — ${fmt(lead.budget_max)}` : '—'}
@@ -386,31 +394,51 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
                             </div>
                           ) : (lead.volgende_stap || '—')}
                         </TableCell>
-                        <TableCell>
-                          <div className="flex gap-1">
-                            <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); handleOpen(lead); }} title="Open intake">
-                              <FolderOpen className="h-4 w-4" />
-                            </Button>
-                            <Button size="sm" variant="ghost" className="text-[#008CFF]" onClick={(e) => { e.stopPropagation(); onOpenCall?.(lead.id, preIntakeMap[lead.id] ? 'wrap-up' : 'calling'); }} title="Telefoongesprek openen">
-                              <Phone className="h-4 w-4" />
-                            </Button>
-                            {lead.rapport_gegenereerd_op && (
-                              <Button size="sm" variant="ghost" className="text-[#2E7D38]" onClick={(e) => handleDownloadPdf(e, lead)} title="PDF rapport downloaden">
-                                <FileDown className="h-4 w-4" />
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button size="sm" variant="outline" className="gap-1 h-8">
+                                <span className="text-xs font-headline">Acties</span>
+                                <MoreVertical className="h-3.5 w-3.5" />
                               </Button>
-                            )}
-                            <Button size="sm" variant="ghost" className="text-[#008CFF] hover:text-[#0070CC]" onClick={(e) => { e.stopPropagation(); setPortalLead(lead); }} title="Portaal">
-                              <Globe className="h-4 w-4" />
-                            </Button>
-                            {lead.status !== 'afgesloten' && (
-                              <Button size="sm" variant="ghost" className="text-green-600 hover:text-green-700" onClick={(e) => handleConvert(e, lead)} title="Markeer afgesloten">
-                                <CheckCircle className="h-4 w-4" />
-                              </Button>
-                            )}
-                            <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={(e) => handleDelete(e, lead)} title="Verwijder">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-56">
+                              <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">Dossier</DropdownMenuLabel>
+                              <DropdownMenuItem onClick={() => handleOpen(lead)}>
+                                <FolderOpen className="h-4 w-4 mr-2" /> Dossier openen
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => onOpenCall?.(lead.id, preIntakeMap[lead.id] ? 'wrap-up' : 'calling')}>
+                                <Phone className="h-4 w-4 mr-2 text-[#008CFF]" /> Telefoongesprek
+                              </DropdownMenuItem>
+
+                              <DropdownMenuSeparator />
+                              <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">Offerte & rapport</DropdownMenuLabel>
+                              <DropdownMenuItem onClick={() => setOfferteLead(lead)}>
+                                <Receipt className="h-4 w-4 mr-2 text-primary" /> Offerte & bijlage
+                              </DropdownMenuItem>
+                              {lead.rapport_gegenereerd_op && (
+                                <DropdownMenuItem onClick={(e) => handleDownloadPdf(e as any, lead)}>
+                                  <FileDown className="h-4 w-4 mr-2 text-[#2E7D38]" /> PDF rapport downloaden
+                                </DropdownMenuItem>
+                              )}
+
+                              <DropdownMenuSeparator />
+                              <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">Portaal & status</DropdownMenuLabel>
+                              <DropdownMenuItem onClick={() => setPortalLead(lead)}>
+                                <Globe className="h-4 w-4 mr-2 text-[#008CFF]" /> Portaal beheren
+                              </DropdownMenuItem>
+                              {lead.status !== 'afgesloten' && (
+                                <DropdownMenuItem onClick={(e) => handleConvert(e as any, lead)}>
+                                  <CheckCircle className="h-4 w-4 mr-2 text-green-600" /> Markeer afgesloten
+                                </DropdownMenuItem>
+                              )}
+
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={(e) => handleDelete(e as any, lead)} className="text-destructive focus:text-destructive">
+                                <Trash2 className="h-4 w-4 mr-2" /> Dossier verwijderen
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </TableCell>
                       </TableRow>
                     ))}
