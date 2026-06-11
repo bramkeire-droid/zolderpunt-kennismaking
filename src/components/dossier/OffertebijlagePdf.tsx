@@ -264,8 +264,22 @@ export default function OffertebijlagePdf({ data }: { data: OffertebijlageData }
             <Text style={s.totalValue}>{fmtEur(totalInclBtw)}</Text>
           </View>
 
+          {/* Weekly invoice callout */}
+          <View style={s.weeklyCallout}>
+            <Text style={s.weeklyBadge}>Elke{'\n'}vrijdag</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={s.weeklyTitle}>
+                {data.weken}× een wekelijkse factuur tijdens de uitvoering
+              </Text>
+              <Text style={s.weeklySub}>
+                Elke vrijdag verstuurd · betaalbaar binnen 7 dagen
+              </Text>
+            </View>
+            <Text style={s.weeklyAmount}>{fmtEur(perWeek)}<Text style={{ fontSize: 9, color: COLORS.subtekst, fontWeight: 400 }}> / week</Text></Text>
+          </View>
+
           <Text style={s.btwNote}>
-            Betalingstermijn 7 dagen · BTW {data.btwPct}% {data.btwPct === 6 ? '(woning ouder dan 10 jaar)' : '(woning jonger dan 10 jaar)'}
+            BTW {data.btwPct}% {data.btwPct === 6 ? '(woning ouder dan 10 jaar)' : '(woning jonger dan 10 jaar)'}
           </Text>
         </View>
 
