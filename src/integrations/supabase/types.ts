@@ -38,6 +38,9 @@ export type Database = {
           id: string
           inbegrepen_posten: Json
           notities_vooraf: string
+          offerte_bedrag_excl: number | null
+          offerte_bijlage_settings: Json | null
+          offerte_datum: string | null
           oppervlakte_m2: number | null
           partner_naam: string
           portal_activated_at: string | null
@@ -89,6 +92,9 @@ export type Database = {
           id?: string
           inbegrepen_posten?: Json
           notities_vooraf?: string
+          offerte_bedrag_excl?: number | null
+          offerte_bijlage_settings?: Json | null
+          offerte_datum?: string | null
           oppervlakte_m2?: number | null
           partner_naam?: string
           portal_activated_at?: string | null
@@ -140,6 +146,9 @@ export type Database = {
           id?: string
           inbegrepen_posten?: Json
           notities_vooraf?: string
+          offerte_bedrag_excl?: number | null
+          offerte_bijlage_settings?: Json | null
+          offerte_datum?: string | null
           oppervlakte_m2?: number | null
           partner_naam?: string
           portal_activated_at?: string | null
