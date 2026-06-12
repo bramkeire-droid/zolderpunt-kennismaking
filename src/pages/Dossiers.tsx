@@ -504,6 +504,14 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
           }}
         />
       )}
+
+      {stabLead && (
+        <StabiliteitVoorbladDialog
+          open={!!stabLead}
+          onClose={() => setStabLead(null)}
+          lead={stabLead}
+        />
+      )}
     </div>
   );
 }
