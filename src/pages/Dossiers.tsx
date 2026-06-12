@@ -18,6 +18,7 @@ import ReportDocument from '@/components/report/ReportDocument';
 import type { ReportData, FeitjeItem } from '@/components/report/reportTypes';
 import OffertebijlageDialog from '@/components/dossier/OffertebijlageDialog';
 import StabiliteitVoorbladDialog from '@/components/dossier/StabiliteitVoorbladDialog';
+import GenericVoorbladDialog from '@/components/dossier/GenericVoorbladDialog';
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('nl-BE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
@@ -103,6 +104,7 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
   const [previewLead, setPreviewLead] = useState<any>(null);
   const [offerteLead, setOfferteLead] = useState<any>(null);
   const [stabLead, setStabLead] = useState<any>(null);
+  const [genericVoorblad, setGenericVoorblad] = useState<{ lead: any } | null>(null);
   const [preIntakeMap, setPreIntakeMap] = useState<Record<string, any>>({});
   const [analysisMap, setAnalysisMap] = useState<Record<string, boolean>>({});
   type SortKey = 'naam' | 'gesprek_datum' | 'status' | 'budget' | 'portal' | 'volgende_stap';
@@ -294,6 +296,9 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={handleCleanEmpty}>Lege dossiers wissen</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setGenericVoorblad({ lead: null })}>
+                  <FileText className="h-4 w-4 mr-2 text-primary" /> Generiek voorblad maken
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
             <Button variant="outline" onClick={fetchLeads} className="gap-2 font-headline" disabled={loading}>
@@ -430,6 +435,9 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
                               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setStabLead(lead); }}>
                                 <Hammer className="h-4 w-4 mr-2 text-primary" /> Stabiliteitsstudie (voorblad + merge)
                               </DropdownMenuItem>
+                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setGenericVoorblad({ lead }); }}>
+                                <FileText className="h-4 w-4 mr-2 text-primary" /> Generiek voorblad
+                              </DropdownMenuItem>
 
                               <DropdownMenuSeparator />
                               <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">Portaal & status</DropdownMenuLabel>
@@ -510,6 +518,14 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
           open={!!stabLead}
           onClose={() => setStabLead(null)}
           lead={stabLead}
+        />
+      )}
+
+      {genericVoorblad && (
+        <GenericVoorbladDialog
+          open={!!genericVoorblad}
+          onClose={() => setGenericVoorblad(null)}
+          lead={genericVoorblad.lead}
         />
       )}
     </div>
