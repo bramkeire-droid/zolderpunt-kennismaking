@@ -19,11 +19,11 @@ interface Props {
 const slugFn = (s: string) => (s || '').replace(/[^\w\-]+/g, '_').replace(/^_+|_+$/g, '') || 'Document';
 
 const PRESETS = [
-  { id: 'custom', label: 'Eigen titel', kicker: 'Voorblad · Document', sectionLabel: 'Document', title: '', subtitle: '' },
-  { id: 'stab', label: 'Stabiliteitsstudie', kicker: 'Voorblad · Stabiliteitsstudie', sectionLabel: 'Studie · Stabiliteit', title: 'Stabiliteitsstudie', subtitle: 'Technisch dossier in voorbereiding op de uitvoering van de werken.' },
-  { id: 'epb', label: 'EPB-verslag', kicker: 'Voorblad · EPB', sectionLabel: 'Energieprestatie', title: 'EPB-verslag', subtitle: 'Berekening en verslaggeving energieprestatie.' },
-  { id: 'meet', label: 'Meetstaat', kicker: 'Voorblad · Meetstaat', sectionLabel: 'Project · Meetstaat', title: 'Meetstaat', subtitle: 'Gedetailleerde opmeting van de uit te voeren werken.' },
-  { id: 'plan', label: 'Bouwplannen', kicker: 'Voorblad · Plannen', sectionLabel: 'Project · Plannen', title: 'Bouwplannen', subtitle: 'Architecturale en technische plannen.' },
+  { id: 'custom', label: 'Eigen titel', sectionLabel: 'PROJECTDOSSIER', title: '', subtitle: '' },
+  { id: 'stab', label: 'Stabiliteitsstudie', sectionLabel: 'STUDIE · STABILITEIT', title: 'Stabiliteitsstudie', subtitle: 'Technisch dossier in voorbereiding op de uitvoering van de werken.' },
+  { id: 'epb', label: 'EPB-verslag', sectionLabel: 'ENERGIEPRESTATIE', title: 'EPB-verslag', subtitle: 'Berekening en verslaggeving energieprestatie.' },
+  { id: 'meet', label: 'Meetstaat', sectionLabel: 'PROJECT · MEETSTAAT', title: 'Meetstaat', subtitle: 'Gedetailleerde opmeting van de uit te voeren werken.' },
+  { id: 'plan', label: 'Bouwplannen', sectionLabel: 'PROJECT · PLANNEN', title: 'Bouwplannen', subtitle: 'Architecturale en technische plannen.' },
 ] as const;
 
 export default function GenericVoorbladDialog({ open, onClose, lead }: Props) {
