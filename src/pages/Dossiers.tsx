@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useState, useEffect, useMemo } from 'react';
-import { Search, FolderOpen, Users, TrendingUp, DollarSign, Eye, RefreshCw, Trash2, CheckCircle, Globe, Phone, Bot, FileDown, MoreVertical, ArrowUp, ArrowDown, ArrowUpDown, FileText, Receipt } from 'lucide-react';
+import { Search, FolderOpen, Users, TrendingUp, DollarSign, Eye, RefreshCw, Trash2, CheckCircle, Globe, Phone, Bot, FileDown, MoreVertical, ArrowUp, ArrowDown, ArrowUpDown, FileText, Receipt, Hammer } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { defaultTechnisch } from '@/contexts/SessionContext';
 import type { LeadData } from '@/contexts/SessionContext';
@@ -17,6 +17,7 @@ import { pdf } from '@react-pdf/renderer';
 import ReportDocument from '@/components/report/ReportDocument';
 import type { ReportData, FeitjeItem } from '@/components/report/reportTypes';
 import OffertebijlageDialog from '@/components/dossier/OffertebijlageDialog';
+import StabiliteitVoorbladPdf from '@/components/dossier/StabiliteitVoorbladPdf';
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('nl-BE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
@@ -258,6 +259,37 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
     }
   };
 
+  const slugFn = (s: string) => (s || '').replace(/[^\w\-]+/g, '_').replace(/^_+|_+$/g, '') || 'Klant';
+
+  const handleDownloadStabiliteitVoorblad = async (e: React.MouseEvent, lead: any) => {
+    e.stopPropagation();
+    const t = toast.loading('Voorblad wordt opgemaakt...');
+    try {
+      const blob = await pdf(
+        <StabiliteitVoorbladPdf
+          data={{
+            voornaam: lead.voornaam || '',
+            achternaam: lead.achternaam || '',
+            adres: lead.adres || '',
+            datum: new Date().toISOString().split('T')[0],
+            dossierRef: lead.offerte_nummer || undefined,
+          }}
+        />
+      ).toBlob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Zolderpunt_Stabiliteitsstudie_Voorblad_${slugFn(lead.achternaam || 'Klant')}.pdf`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success('Voorblad gedownload', { id: t });
+    } catch (err: any) {
+      console.error(err);
+      toast.error('PDF mislukt', { id: t });
+    }
+  };
+
+
   const handleCleanEmpty = async () => {
     const { data: candidates, error } = await supabase.from('leads').select('id, created_at')
       .eq('voornaam', '').eq('achternaam', '').eq('email', '').eq('telefoon', '')
@@ -422,6 +454,9 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
                                   <FileDown className="h-4 w-4 mr-2 text-[#2E7D38]" /> PDF rapport downloaden
                                 </DropdownMenuItem>
                               )}
+                              <DropdownMenuItem onClick={(e) => handleDownloadStabiliteitVoorblad(e as any, lead)}>
+                                <Hammer className="h-4 w-4 mr-2 text-primary" /> Voorblad stabiliteitsstudie
+                              </DropdownMenuItem>
 
                               <DropdownMenuSeparator />
                               <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">Portaal & status</DropdownMenuLabel>
