@@ -19,17 +19,16 @@ interface Props {
 const slugFn = (s: string) => (s || '').replace(/[^\w\-]+/g, '_').replace(/^_+|_+$/g, '') || 'Document';
 
 const PRESETS = [
-  { id: 'custom', label: 'Eigen titel', kicker: 'Voorblad · Document', sectionLabel: 'Document', title: '', subtitle: '' },
-  { id: 'stab', label: 'Stabiliteitsstudie', kicker: 'Voorblad · Stabiliteitsstudie', sectionLabel: 'Studie · Stabiliteit', title: 'Stabiliteitsstudie', subtitle: 'Technisch dossier in voorbereiding op de uitvoering van de werken.' },
-  { id: 'epb', label: 'EPB-verslag', kicker: 'Voorblad · EPB', sectionLabel: 'Energieprestatie', title: 'EPB-verslag', subtitle: 'Berekening en verslaggeving energieprestatie.' },
-  { id: 'meet', label: 'Meetstaat', kicker: 'Voorblad · Meetstaat', sectionLabel: 'Project · Meetstaat', title: 'Meetstaat', subtitle: 'Gedetailleerde opmeting van de uit te voeren werken.' },
-  { id: 'plan', label: 'Bouwplannen', kicker: 'Voorblad · Plannen', sectionLabel: 'Project · Plannen', title: 'Bouwplannen', subtitle: 'Architecturale en technische plannen.' },
+  { id: 'custom', label: 'Eigen titel', sectionLabel: 'PROJECTDOSSIER', title: '', subtitle: '' },
+  { id: 'stab', label: 'Stabiliteitsstudie', sectionLabel: 'STUDIE · STABILITEIT', title: 'Stabiliteitsstudie', subtitle: 'Technisch dossier in voorbereiding op de uitvoering van de werken.' },
+  { id: 'epb', label: 'EPB-verslag', sectionLabel: 'ENERGIEPRESTATIE', title: 'EPB-verslag', subtitle: 'Berekening en verslaggeving energieprestatie.' },
+  { id: 'meet', label: 'Meetstaat', sectionLabel: 'PROJECT · MEETSTAAT', title: 'Meetstaat', subtitle: 'Gedetailleerde opmeting van de uit te voeren werken.' },
+  { id: 'plan', label: 'Bouwplannen', sectionLabel: 'PROJECT · PLANNEN', title: 'Bouwplannen', subtitle: 'Architecturale en technische plannen.' },
 ] as const;
 
 export default function GenericVoorbladDialog({ open, onClose, lead }: Props) {
   const [presetId, setPresetId] = useState<string>('custom');
-  const [kicker, setKicker] = useState('Voorblad · Document');
-  const [sectionLabel, setSectionLabel] = useState('Document');
+  const [sectionLabel, setSectionLabel] = useState('PROJECTDOSSIER');
   const [title, setTitle] = useState('');
   const [subtitle, setSubtitle] = useState('');
   const [klantNaam, setKlantNaam] = useState('');
@@ -52,7 +51,6 @@ export default function GenericVoorbladDialog({ open, onClose, lead }: Props) {
     setPresetId(id);
     const p = PRESETS.find(x => x.id === id);
     if (!p) return;
-    setKicker(p.kicker);
     setSectionLabel(p.sectionLabel);
     if (id !== 'custom') {
       setTitle(p.title);
@@ -64,7 +62,7 @@ export default function GenericVoorbladDialog({ open, onClose, lead }: Props) {
     const blob = await pdf(
       <GenericVoorbladPdf
         data={{
-          kicker, sectionLabel,
+          sectionLabel,
           title: title.trim() || 'Document',
           subtitle: subtitle.trim() || undefined,
           klantNaam: klantNaam.trim() || undefined,
@@ -76,6 +74,7 @@ export default function GenericVoorbladDialog({ open, onClose, lead }: Props) {
     ).toBlob();
     return new Uint8Array(await blob.arrayBuffer());
   };
+
 
   const download = (bytes: Uint8Array, filename: string) => {
     const blob = new Blob([bytes as BlobPart], { type: 'application/pdf' });
@@ -153,16 +152,11 @@ export default function GenericVoorbladDialog({ open, onClose, lead }: Props) {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div>
-              <Label htmlFor="gen-kicker" className="text-xs uppercase tracking-wider text-muted-foreground">Kicker (boven)</Label>
-              <Input id="gen-kicker" value={kicker} onChange={e => setKicker(e.target.value)} className="mt-1" />
-            </div>
-            <div>
-              <Label htmlFor="gen-section" className="text-xs uppercase tracking-wider text-muted-foreground">Sectielabel (klein blauw)</Label>
-              <Input id="gen-section" value={sectionLabel} onChange={e => setSectionLabel(e.target.value)} className="mt-1" />
-            </div>
+          <div>
+            <Label htmlFor="gen-section" className="text-xs uppercase tracking-wider text-muted-foreground">Klein label boven titel</Label>
+            <Input id="gen-section" value={sectionLabel} onChange={e => setSectionLabel(e.target.value.toUpperCase())} className="mt-1" />
           </div>
+
 
           <div>
             <Label htmlFor="gen-title" className="text-xs uppercase tracking-wider text-muted-foreground">Titel *</Label>
