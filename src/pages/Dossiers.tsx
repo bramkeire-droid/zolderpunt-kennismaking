@@ -435,6 +435,9 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
                               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setStabLead(lead); }}>
                                 <Hammer className="h-4 w-4 mr-2 text-primary" /> Stabiliteitsstudie (voorblad + merge)
                               </DropdownMenuItem>
+                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setGenericVoorblad({ lead }); }}>
+                                <FileText className="h-4 w-4 mr-2 text-primary" /> Generiek voorblad
+                              </DropdownMenuItem>
 
                               <DropdownMenuSeparator />
                               <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">Portaal & status</DropdownMenuLabel>
