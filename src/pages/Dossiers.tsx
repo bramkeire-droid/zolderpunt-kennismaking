@@ -520,6 +520,14 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
           lead={stabLead}
         />
       )}
+
+      {genericVoorblad && (
+        <GenericVoorbladDialog
+          open={!!genericVoorblad}
+          onClose={() => setGenericVoorblad(null)}
+          lead={genericVoorblad.lead}
+        />
+      )}
     </div>
   );
 }
