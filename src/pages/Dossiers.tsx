@@ -18,6 +18,7 @@ import ReportDocument from '@/components/report/ReportDocument';
 import type { ReportData, FeitjeItem } from '@/components/report/reportTypes';
 import OffertebijlageDialog from '@/components/dossier/OffertebijlageDialog';
 import StabiliteitVoorbladDialog from '@/components/dossier/StabiliteitVoorbladDialog';
+import GenericVoorbladDialog from '@/components/dossier/GenericVoorbladDialog';
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('nl-BE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
