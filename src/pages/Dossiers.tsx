@@ -17,7 +17,7 @@ import { pdf } from '@react-pdf/renderer';
 import ReportDocument from '@/components/report/ReportDocument';
 import type { ReportData, FeitjeItem } from '@/components/report/reportTypes';
 import OffertebijlageDialog from '@/components/dossier/OffertebijlageDialog';
-import StabiliteitVoorbladPdf from '@/components/dossier/StabiliteitVoorbladPdf';
+import StabiliteitVoorbladDialog from '@/components/dossier/StabiliteitVoorbladDialog';
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('nl-BE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
@@ -102,6 +102,7 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
   const [portalLead, setPortalLead] = useState<any>(null);
   const [previewLead, setPreviewLead] = useState<any>(null);
   const [offerteLead, setOfferteLead] = useState<any>(null);
+  const [stabLead, setStabLead] = useState<any>(null);
   const [preIntakeMap, setPreIntakeMap] = useState<Record<string, any>>({});
   const [analysisMap, setAnalysisMap] = useState<Record<string, boolean>>({});
   type SortKey = 'naam' | 'gesprek_datum' | 'status' | 'budget' | 'portal' | 'volgende_stap';
@@ -260,34 +261,6 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
   };
 
   const slugFn = (s: string) => (s || '').replace(/[^\w\-]+/g, '_').replace(/^_+|_+$/g, '') || 'Klant';
-
-  const handleDownloadStabiliteitVoorblad = async (e: React.MouseEvent, lead: any) => {
-    e.stopPropagation();
-    const t = toast.loading('Voorblad wordt opgemaakt...');
-    try {
-      const blob = await pdf(
-        <StabiliteitVoorbladPdf
-          data={{
-            voornaam: lead.voornaam || '',
-            achternaam: lead.achternaam || '',
-            adres: lead.adres || '',
-            datum: new Date().toISOString().split('T')[0],
-            dossierRef: lead.offerte_nummer || undefined,
-          }}
-        />
-      ).toBlob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Zolderpunt_Stabiliteitsstudie_Voorblad_${slugFn(lead.achternaam || 'Klant')}.pdf`;
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      toast.success('Voorblad gedownload', { id: t });
-    } catch (err: any) {
-      console.error(err);
-      toast.error('PDF mislukt', { id: t });
-    }
-  };
 
 
   const handleCleanEmpty = async () => {
@@ -454,8 +427,8 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
                                   <FileDown className="h-4 w-4 mr-2 text-[#2E7D38]" /> PDF rapport downloaden
                                 </DropdownMenuItem>
                               )}
-                              <DropdownMenuItem onClick={(e) => handleDownloadStabiliteitVoorblad(e as any, lead)}>
-                                <Hammer className="h-4 w-4 mr-2 text-primary" /> Voorblad stabiliteitsstudie
+                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setStabLead(lead); }}>
+                                <Hammer className="h-4 w-4 mr-2 text-primary" /> Stabiliteitsstudie (voorblad + merge)
                               </DropdownMenuItem>
 
                               <DropdownMenuSeparator />
@@ -529,6 +502,14 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
             setLeads(prev => prev.map(l => l.id === leadId ? { ...l, ...patch } : l));
             setOfferteLead((prev: any) => prev ? { ...prev, ...patch } : prev);
           }}
+        />
+      )}
+
+      {stabLead && (
+        <StabiliteitVoorbladDialog
+          open={!!stabLead}
+          onClose={() => setStabLead(null)}
+          lead={stabLead}
         />
       )}
     </div>
