@@ -427,8 +427,8 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
                                   <FileDown className="h-4 w-4 mr-2 text-[#2E7D38]" /> PDF rapport downloaden
                                 </DropdownMenuItem>
                               )}
-                              <DropdownMenuItem onClick={(e) => handleDownloadStabiliteitVoorblad(e as any, lead)}>
-                                <Hammer className="h-4 w-4 mr-2 text-primary" /> Voorblad stabiliteitsstudie
+                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setStabLead(lead); }}>
+                                <Hammer className="h-4 w-4 mr-2 text-primary" /> Stabiliteitsstudie (voorblad + merge)
                               </DropdownMenuItem>
 
                               <DropdownMenuSeparator />
