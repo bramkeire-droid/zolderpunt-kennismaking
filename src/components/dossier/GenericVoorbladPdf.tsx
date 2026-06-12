@@ -142,28 +142,38 @@ export default function GenericVoorbladPdf({ data }: { data: GenericVoorbladData
           </Text>
         </View>
 
-        {/* Slogan rechtsonder — huisstijl raambord */}
+        {/* Slogan onderaan — raambord-paneel in huisstijlblauw garandeert contrast */}
         <View style={{
           position: 'absolute',
-          right: 36,
-          bottom: 44,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          height: 130,
+          backgroundColor: COLORS.primary,
+          paddingHorizontal: 44,
+          paddingVertical: 24,
+          flexDirection: 'row',
+          justifyContent: 'flex-end',
           alignItems: 'flex-end',
         }}>
-          <Text style={{
-            fontFamily: 'SpaceGrotesk', fontWeight: 400,
-            fontSize: 16, color: COLORS.warmWhite, opacity: 0.95,
-            lineHeight: 1.0, marginBottom: 2,
-          }}>
-            hier begint
-          </Text>
-          <Text style={{
-            fontFamily: 'SpaceGrotesk', fontWeight: 700,
-            fontSize: 36, color: COLORS.warmWhite,
-            lineHeight: 1.0,
-          }}>
-            Meer Ruimte
-          </Text>
+          <View style={{ alignItems: 'flex-end' }}>
+            <Text style={{
+              fontFamily: 'SpaceGrotesk', fontWeight: 400,
+              fontSize: 18, color: COLORS.warmWhite,
+              lineHeight: 1.0, marginBottom: 4,
+            }}>
+              hier begint
+            </Text>
+            <Text style={{
+              fontFamily: 'SpaceGrotesk', fontWeight: 700,
+              fontSize: 42, color: COLORS.warmWhite,
+              lineHeight: 1.0,
+            }}>
+              Meer Ruimte
+            </Text>
+          </View>
         </View>
+
       </Page>
     </Document>
   );
