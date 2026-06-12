@@ -152,16 +152,11 @@ export default function GenericVoorbladDialog({ open, onClose, lead }: Props) {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div>
-              <Label htmlFor="gen-kicker" className="text-xs uppercase tracking-wider text-muted-foreground">Kicker (boven)</Label>
-              <Input id="gen-kicker" value={kicker} onChange={e => setKicker(e.target.value)} className="mt-1" />
-            </div>
-            <div>
-              <Label htmlFor="gen-section" className="text-xs uppercase tracking-wider text-muted-foreground">Sectielabel (klein blauw)</Label>
-              <Input id="gen-section" value={sectionLabel} onChange={e => setSectionLabel(e.target.value)} className="mt-1" />
-            </div>
+          <div>
+            <Label htmlFor="gen-section" className="text-xs uppercase tracking-wider text-muted-foreground">Klein label boven titel</Label>
+            <Input id="gen-section" value={sectionLabel} onChange={e => setSectionLabel(e.target.value.toUpperCase())} className="mt-1" />
           </div>
+
 
           <div>
             <Label htmlFor="gen-title" className="text-xs uppercase tracking-wider text-muted-foreground">Titel *</Label>
