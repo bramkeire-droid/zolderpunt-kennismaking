@@ -104,6 +104,7 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
   const [previewLead, setPreviewLead] = useState<any>(null);
   const [offerteLead, setOfferteLead] = useState<any>(null);
   const [stabLead, setStabLead] = useState<any>(null);
+  const [genericVoorblad, setGenericVoorblad] = useState<{ lead: any } | null>(null);
   const [preIntakeMap, setPreIntakeMap] = useState<Record<string, any>>({});
   const [analysisMap, setAnalysisMap] = useState<Record<string, boolean>>({});
   type SortKey = 'naam' | 'gesprek_datum' | 'status' | 'budget' | 'portal' | 'volgende_stap';
