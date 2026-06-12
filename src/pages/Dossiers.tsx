@@ -17,6 +17,7 @@ import { pdf } from '@react-pdf/renderer';
 import ReportDocument from '@/components/report/ReportDocument';
 import type { ReportData, FeitjeItem } from '@/components/report/reportTypes';
 import OffertebijlageDialog from '@/components/dossier/OffertebijlageDialog';
+import StabiliteitVoorbladPdf from '@/components/dossier/StabiliteitVoorbladPdf';
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('nl-BE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
