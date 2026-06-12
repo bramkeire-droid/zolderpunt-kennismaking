@@ -28,8 +28,7 @@ const PRESETS = [
 
 export default function GenericVoorbladDialog({ open, onClose, lead }: Props) {
   const [presetId, setPresetId] = useState<string>('custom');
-  const [kicker, setKicker] = useState('Voorblad · Document');
-  const [sectionLabel, setSectionLabel] = useState('Document');
+  const [sectionLabel, setSectionLabel] = useState('PROJECTDOSSIER');
   const [title, setTitle] = useState('');
   const [subtitle, setSubtitle] = useState('');
   const [klantNaam, setKlantNaam] = useState('');
@@ -52,7 +51,6 @@ export default function GenericVoorbladDialog({ open, onClose, lead }: Props) {
     setPresetId(id);
     const p = PRESETS.find(x => x.id === id);
     if (!p) return;
-    setKicker(p.kicker);
     setSectionLabel(p.sectionLabel);
     if (id !== 'custom') {
       setTitle(p.title);
@@ -64,7 +62,7 @@ export default function GenericVoorbladDialog({ open, onClose, lead }: Props) {
     const blob = await pdf(
       <GenericVoorbladPdf
         data={{
-          kicker, sectionLabel,
+          sectionLabel,
           title: title.trim() || 'Document',
           subtitle: subtitle.trim() || undefined,
           klantNaam: klantNaam.trim() || undefined,
@@ -76,6 +74,7 @@ export default function GenericVoorbladDialog({ open, onClose, lead }: Props) {
     ).toBlob();
     return new Uint8Array(await blob.arrayBuffer());
   };
+
 
   const download = (bytes: Uint8Array, filename: string) => {
     const blob = new Blob([bytes as BlobPart], { type: 'application/pdf' });
