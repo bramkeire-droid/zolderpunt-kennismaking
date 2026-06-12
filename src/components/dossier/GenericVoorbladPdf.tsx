@@ -141,7 +141,31 @@ export default function GenericVoorbladPdf({ data }: { data: GenericVoorbladData
             {CONTACT_WEBSITE}
           </Text>
         </View>
+
+        {/* Slogan rechtsonder — huisstijl raambord */}
+        <View style={{
+          position: 'absolute',
+          right: 36,
+          bottom: 44,
+          alignItems: 'flex-end',
+        }}>
+          <Text style={{
+            fontFamily: 'SpaceGrotesk', fontWeight: 400,
+            fontSize: 16, color: COLORS.warmWhite, opacity: 0.95,
+            lineHeight: 1.0, marginBottom: 2,
+          }}>
+            hier begint
+          </Text>
+          <Text style={{
+            fontFamily: 'SpaceGrotesk', fontWeight: 700,
+            fontSize: 36, color: COLORS.warmWhite,
+            lineHeight: 1.0,
+          }}>
+            Meer Ruimte
+          </Text>
+        </View>
       </Page>
     </Document>
   );
 }
+

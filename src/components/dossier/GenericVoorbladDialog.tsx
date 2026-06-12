@@ -20,6 +20,7 @@ const slugFn = (s: string) => (s || '').replace(/[^\w\-]+/g, '_').replace(/^_+|_
 
 const PRESETS = [
   { id: 'custom', label: 'Eigen titel', sectionLabel: 'PROJECTDOSSIER', title: '', subtitle: '' },
+  { id: 'offerte', label: 'Offerte', sectionLabel: 'OFFERTE · ZOLDERPUNT', title: 'Offerte', subtitle: 'Persoonlijk voorstel voor de uitvoering van uw zolderproject.' },
   { id: 'stab', label: 'Stabiliteitsstudie', sectionLabel: 'STUDIE · STABILITEIT', title: 'Stabiliteitsstudie', subtitle: 'Technisch dossier in voorbereiding op de uitvoering van de werken.' },
   { id: 'epb', label: 'EPB-verslag', sectionLabel: 'ENERGIEPRESTATIE', title: 'EPB-verslag', subtitle: 'Berekening en verslaggeving energieprestatie.' },
   { id: 'meet', label: 'Meetstaat', sectionLabel: 'PROJECT · MEETSTAAT', title: 'Meetstaat', subtitle: 'Gedetailleerde opmeting van de uit te voeren werken.' },
