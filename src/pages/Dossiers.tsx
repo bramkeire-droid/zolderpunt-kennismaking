@@ -296,6 +296,9 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={handleCleanEmpty}>Lege dossiers wissen</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setGenericVoorblad({ lead: null })}>
+                  <FileText className="h-4 w-4 mr-2 text-primary" /> Generiek voorblad maken
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
             <Button variant="outline" onClick={fetchLeads} className="gap-2 font-headline" disabled={loading}>
