@@ -30,6 +30,9 @@ export default function OffertebijlageDialog({ open, onClose, lead, onUpdate }: 
   const [weken, setWeken] = useState<number>(initialSettings.weken || 5);
   const [trapgat, setTrapgat] = useState<boolean>(initialSettings.trapgat ?? !!lead?.technisch?.trap);
   const [btwPct, setBtwPct] = useState<6 | 21>((lead?.btw_percentage === 21 ? 21 : 6) as 6 | 21);
+  const [voornaam, setVoornaam] = useState<string>(lead?.voornaam || '');
+  const [achternaam, setAchternaam] = useState<string>(lead?.achternaam || '');
+  const [adres, setAdres] = useState<string>(lead?.adres || '');
   const [saving, setSaving] = useState(false);
   const [generating, setGenerating] = useState(false);
 
@@ -41,6 +44,9 @@ export default function OffertebijlageDialog({ open, onClose, lead, onUpdate }: 
     setWeken(lead?.offerte_bijlage_settings?.weken || 5);
     setTrapgat(lead?.offerte_bijlage_settings?.trapgat ?? !!lead?.technisch?.trap);
     setBtwPct((lead?.btw_percentage === 21 ? 21 : 6) as 6 | 21);
+    setVoornaam(lead?.voornaam || '');
+    setAchternaam(lead?.achternaam || '');
+    setAdres(lead?.adres || '');
   }, [open, lead?.id]);
 
   // Vergelijking met intake-range (excl. BTW). Fallback op budget_min/max indien geen excl beschikbaar.
