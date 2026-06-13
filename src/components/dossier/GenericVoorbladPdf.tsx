@@ -1,5 +1,22 @@
 import { Document, Page, View, Text, Image, Svg, Polygon, Path } from '@react-pdf/renderer';
-import { COLORS, CONTACT_WEBSITE, TAGLINE, formatDatum } from '@/components/report/reportConstants';
+import { COLORS, CONTACT_WEBSITE, TAGLINE } from '@/components/report/reportConstants';
+
+function formatDatumEU(datum: string): string {
+  if (!datum) return '-';
+  const iso = datum.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return `${iso[3]}/${iso[2]}/${iso[1]}`;
+  const dmy = datum.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+  if (dmy) {
+    const d = dmy[1].padStart(2, '0');
+    const m = dmy[2].padStart(2, '0');
+    let y = parseInt(dmy[3], 10);
+    if (y < 100) y += 2000;
+    return `${d}/${m}/${y}`;
+  }
+  const d = new Date(datum);
+  if (isNaN(d.getTime())) return datum;
+  return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+}
 import '@/components/report/reportStyles'; // font registration
 import coverBackgroundRaw from '@/assets/coverbackground.jpg';
 
