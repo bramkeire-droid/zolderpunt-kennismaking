@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { pdf } from '@react-pdf/renderer';
 import OffertebijlagePdf from './OffertebijlagePdf';
+import { fetchGoogleReviews, type GoogleReviewsPayload } from '@/lib/googleReviews';
 
 const fmtEur = (n: number) =>
   new Intl.NumberFormat('nl-BE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
