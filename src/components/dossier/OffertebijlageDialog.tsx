@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { pdf } from '@react-pdf/renderer';
 import OffertebijlagePdf from './OffertebijlagePdf';
 import { fetchGoogleReviews, type GoogleReviewsPayload } from '@/lib/googleReviews';
+import { datumInputToIso, formatDatumInput } from '@/components/report/reportConstants';
 
 const fmtEur = (n: number) =>
   new Intl.NumberFormat('nl-BE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
@@ -204,12 +205,14 @@ export default function OffertebijlageDialog({ open, onClose, lead, onUpdate }: 
             <div className="text-[10px] text-muted-foreground mt-1">Wordt gebruikt in de bestandsnaam van de bijlage.</div>
           </div>
           <div className="bg-card border border-border p-4">
-            <Label htmlFor="offerte-datum" className="text-xs uppercase tracking-wider text-muted-foreground">Datum offerte</Label>
+            <Label htmlFor="offerte-datum" className="text-xs uppercase tracking-wider text-muted-foreground">Datum offerte (dd/mm/jjjj)</Label>
             <Input
               id="offerte-datum"
-              type="date"
-              value={offerteDatum}
-              onChange={e => setOfferteDatum(e.target.value)}
+              type="text"
+              inputMode="numeric"
+              placeholder="dd/mm/jjjj"
+              value={formatDatumInput(offerteDatum)}
+              onChange={e => setOfferteDatum(datumInputToIso(e.target.value))}
               className="mt-2 font-headline font-semibold"
             />
           </div>
