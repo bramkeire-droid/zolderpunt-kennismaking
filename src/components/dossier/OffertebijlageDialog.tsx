@@ -36,6 +36,9 @@ export default function OffertebijlageDialog({ open, onClose, lead, onUpdate }: 
   const [adres, setAdres] = useState<string>(lead?.adres || '');
   const [saving, setSaving] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [includeReviews, setIncludeReviews] = useState<boolean>(true);
+  const [reviewsData, setReviewsData] = useState<GoogleReviewsPayload | null>(null);
+  const [reviewsLoading, setReviewsLoading] = useState<boolean>(false);
 
   useEffect(() => {
     if (!open) return;
