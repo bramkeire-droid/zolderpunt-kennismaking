@@ -267,10 +267,12 @@ export default function OffertebijlageDialog({ open, onClose, lead, onUpdate }: 
 
         <div className="flex justify-end gap-2 pt-2">
           <Button variant="outline" onClick={onClose}>Sluiten</Button>
-          <Button variant="outline" onClick={handleSave} disabled={saving || !lead?.id}>
-            {saving ? 'Opslaan…' : 'Enkel opslaan'}
-          </Button>
-          <Button onClick={handleDownload} disabled={generating || !lead?.id} className="gap-2">
+          {lead?.id && (
+            <Button variant="outline" onClick={handleSave} disabled={saving}>
+              {saving ? 'Opslaan…' : 'Enkel opslaan'}
+            </Button>
+          )}
+          <Button onClick={handleDownload} disabled={generating} className="gap-2">
             <Download className="h-4 w-4" />
             {generating ? 'Bezig…' : 'Bijlage downloaden'}
           </Button>
