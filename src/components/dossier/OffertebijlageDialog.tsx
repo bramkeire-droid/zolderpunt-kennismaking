@@ -113,6 +113,7 @@ export default function OffertebijlageDialog({ open, onClose, lead, onUpdate }: 
       const ok = await handleSave();
       if (!ok) return;
       const useReviews = includeReviews && reviewsData && reviewsData.reviews?.length > 0;
+      console.log('[OffertebijlageDialog] start PDF', { useReviews, reviewsCount: reviewsData?.reviews?.length });
       const blob = await pdf(
         <OffertebijlagePdf
           data={{
@@ -136,16 +137,23 @@ export default function OffertebijlageDialog({ open, onClose, lead, onUpdate }: 
           }}
         />
       ).toBlob();
-      const url = URL.createObjectURL(blob);
+      console.log('[OffertebijlageDialog] PDF blob ready', { size: blob.size });
+      const bytes = new Uint8Array(await blob.arrayBuffer());
+      const outBlob = new Blob([bytes as BlobPart], { type: 'application/pdf' });
+      const url = URL.createObjectURL(outBlob);
       const a = document.createElement('a');
       a.href = url;
       a.download = `Zolderpunt_Offertebijlage_${slug(offerteNummer.trim())}_${slug(achternaam || 'Klant')}.pdf`;
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 1500);
       toast.success('Offertebijlage gedownload');
     } catch (err: any) {
-      console.error(err);
-      toast.error('PDF mislukt');
+      console.error('[OffertebijlageDialog] PDF error', err);
+      toast.error(`PDF mislukt: ${err?.message || 'onbekende fout'}`);
     } finally {
       setGenerating(false);
     }
