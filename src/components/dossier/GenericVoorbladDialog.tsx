@@ -176,8 +176,28 @@ export default function GenericVoorbladDialog({ open, onClose, lead }: Props) {
               <Input id="gen-klant" value={klantNaam} onChange={e => setKlantNaam(e.target.value)} className="mt-1" />
             </div>
             <div>
-              <Label htmlFor="gen-datum" className="text-xs uppercase tracking-wider text-muted-foreground">Datum</Label>
-              <Input id="gen-datum" type="date" value={datum} onChange={e => setDatum(e.target.value)} className="mt-1" />
+              <Label htmlFor="gen-datum" className="text-xs uppercase tracking-wider text-muted-foreground">Datum (dd/mm/jjjj)</Label>
+              <Input
+                id="gen-datum"
+                type="text"
+                inputMode="numeric"
+                placeholder="dd/mm/jjjj"
+                value={(() => {
+                  const m = datum.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                  return m ? `${m[3]}/${m[2]}/${m[1]}` : datum;
+                })()}
+                onChange={e => {
+                  const v = e.target.value;
+                  const m = v.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+                  if (m) {
+                    let y = parseInt(m[3], 10); if (y < 100) y += 2000;
+                    setDatum(`${y}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`);
+                  } else {
+                    setDatum(v);
+                  }
+                }}
+                className="mt-1"
+              />
             </div>
           </div>
 
