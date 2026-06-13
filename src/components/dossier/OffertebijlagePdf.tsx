@@ -439,6 +439,48 @@ export default function OffertebijlagePdf({ data }: { data: OffertebijlageData }
           <Text>{CONTACT_TELEFOON} · {CONTACT_EMAIL}</Text>
         </View>
       </Page>
+
+      {hasReviews && (
+        <Page size="A4" style={s.page}>
+          {/* Hero */}
+          <View style={s.reviewsHero}>
+            <Text style={s.reviewsKicker}>ERVARINGEN · GOOGLE REVIEWS</Text>
+            <Text style={s.reviewsTitle}>Wat klanten over ons zeggen</Text>
+            {(data.reviewsTotal || data.reviewsRating) ? (
+              <View style={s.reviewsScore}>
+                <Text style={s.reviewsScoreNum}>
+                  {(data.reviewsRating || 5).toFixed(1)} {stars(data.reviewsRating || 5)}
+                </Text>
+                <Text style={s.reviewsScoreSub}>
+                  op basis van {data.reviewsTotal || reviews.length} Google reviews
+                </Text>
+              </View>
+            ) : null}
+          </View>
+
+          <View style={s.reviewGrid}>
+            {reviews.map((r, i) => (
+              <View key={i} style={s.reviewCard} wrap={false}>
+                <View style={s.reviewTop}>
+                  <Text style={s.reviewStars}>{stars(r.rating)}</Text>
+                  <Text style={s.reviewTime}>{r.relativeTime}</Text>
+                </View>
+                <Text style={s.reviewAuthor}>{r.author}</Text>
+                <Text style={s.reviewText}>"{truncate((r.text || '').replace(/\s+/g, ' ').trim(), 320)}"</Text>
+              </View>
+            ))}
+          </View>
+
+          <Text style={s.reviewSource}>
+            Bron: Google Reviews · opgehaald op {formatDatum(new Date().toISOString().slice(0, 10))}
+          </Text>
+
+          <View style={s.footer} fixed>
+            <Text>Zolderpunt · {CONTACT_WEBSITE}</Text>
+            <Text>{CONTACT_TELEFOON} · {CONTACT_EMAIL}</Text>
+          </View>
+        </Page>
+      )}
     </Document>
   );
 }
