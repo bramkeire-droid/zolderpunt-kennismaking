@@ -183,7 +183,7 @@ export default function GenericVoorbladDialog({ open, onClose, lead }: Props) {
 
           <div>
             <Label htmlFor="gen-adres" className="text-xs uppercase tracking-wider text-muted-foreground">Projectadres</Label>
-            <Input id="gen-adres" value={adres} onChange={e => setAdres(e.target.value)} className="mt-1" />
+            <AddressAutocomplete value={adres} onChange={setAdres} placeholder="Straat nr, postcode gemeente" className="mt-1" />
           </div>
 
           <div>
