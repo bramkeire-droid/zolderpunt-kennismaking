@@ -2,7 +2,6 @@ export type PreparedDownloadWindow = Window | null;
 
 const isBrowser = () => typeof window !== 'undefined' && typeof document !== 'undefined';
 const escapeHtml = (value: string) => value.replace(/[&<>"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[char] || char));
-const escapeJs = (value: string) => value.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n').replace(/\r/g, '\\r');
 
 export const openDownloadWindow = (filename: string): PreparedDownloadWindow => {
   if (!isBrowser()) return null;
@@ -65,13 +64,12 @@ export const downloadBlob = async (blob: Blob, filename: string, preparedWindow?
           <body>
             <main>
               <strong>PDF is klaar</strong>
-              <p>Als de download niet automatisch startte, klik hieronder. Je kan de PDF ook bekijken en bewaren via je browser.</p>
+              <p>Als de download niet automatisch startte, klik hieronder. Openen kan apart, maar deze pagina blijft beschikbaar om te downloaden.</p>
               <a id="download-link" href="${url}" download="${safeFilename}">PDF downloaden</a>
-              <p><a href="${url}" target="_self">PDF openen</a></p>
+              <p><a href="${url}" target="_blank" rel="noopener">PDF openen</a></p>
             </main>
             <script>
               setTimeout(function(){ document.getElementById('download-link').click(); }, 100);
-              setTimeout(function(){ window.location.href = '${escapeJs(url)}'; }, 900);
             </script>
           </body>
         </html>`);

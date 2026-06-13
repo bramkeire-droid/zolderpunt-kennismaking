@@ -11,7 +11,7 @@ import { pdf } from '@react-pdf/renderer';
 import OffertebijlagePdf from './OffertebijlagePdf';
 import { fetchGoogleReviews, type GoogleReviewsPayload } from '@/lib/googleReviews';
 import { datumInputToIso, formatDatumInput } from '@/components/report/reportConstants';
-import { downloadBlob, openDownloadWindow } from '@/lib/downloadFile';
+import { downloadPdfBytes, openDownloadWindow } from '@/lib/downloadFile';
 
 const fmtEur = (n: number) =>
   new Intl.NumberFormat('nl-BE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
@@ -144,8 +144,9 @@ export default function OffertebijlageDialog({ open, onClose, lead, onUpdate }: 
         />
       ).toBlob();
       console.log('[OffertebijlageDialog] PDF blob ready', { size: blob.size });
-      await downloadBlob(blob, filename, fallbackWindow);
-      toast.success('Offertebijlage gedownload of geopend');
+      const bytes = new Uint8Array(await blob.arrayBuffer());
+      await downloadPdfBytes(bytes, filename, fallbackWindow);
+      toast.success('Offertebijlage staat klaar om te downloaden');
     } catch (err: any) {
       if (fallbackWindow && !fallbackWindow.closed) fallbackWindow.close();
       console.error('[OffertebijlageDialog] PDF error', err);
