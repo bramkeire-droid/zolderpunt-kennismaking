@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { pdf } from '@react-pdf/renderer';
 import { PDFDocument } from 'pdf-lib';
 import StabiliteitVoorbladPdf from './StabiliteitVoorbladPdf';
+import { datumInputToIso, formatDatumInput } from '@/components/report/reportConstants';
 
 interface Props {
   open: boolean;
@@ -107,8 +108,16 @@ export default function StabiliteitVoorbladDialog({ open, onClose, lead }: Props
           </div>
 
           <div>
-            <Label htmlFor="stab-datum" className="text-xs uppercase tracking-wider text-muted-foreground">Datum</Label>
-            <Input id="stab-datum" type="date" value={datum} onChange={e => setDatum(e.target.value)} className="mt-2 font-headline font-semibold" />
+            <Label htmlFor="stab-datum" className="text-xs uppercase tracking-wider text-muted-foreground">Datum (dd/mm/jjjj)</Label>
+            <Input
+              id="stab-datum"
+              type="text"
+              inputMode="numeric"
+              placeholder="dd/mm/jjjj"
+              value={formatDatumInput(datum)}
+              onChange={e => setDatum(datumInputToIso(e.target.value))}
+              className="mt-2 font-headline font-semibold"
+            />
           </div>
 
           <div className="bg-card border-2 border-dashed border-border p-4 space-y-3">
