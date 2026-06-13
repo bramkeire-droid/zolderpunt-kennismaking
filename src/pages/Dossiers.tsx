@@ -20,6 +20,7 @@ import OffertebijlageDialog from '@/components/dossier/OffertebijlageDialog';
 import StabiliteitVoorbladDialog from '@/components/dossier/StabiliteitVoorbladDialog';
 import GenericVoorbladDialog from '@/components/dossier/GenericVoorbladDialog';
 import { formatDatum } from '@/components/report/reportConstants';
+import { downloadBlob, openDownloadWindow } from '@/lib/downloadFile';
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('nl-BE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
@@ -223,6 +224,8 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
 
   const handleDownloadPdf = async (e: React.MouseEvent, lead: any) => {
     e.stopPropagation();
+    const filename = `Zolderpunt_${lead.achternaam || 'Klant'}_${lead.gesprek_datum ? formatDatum(lead.gesprek_datum).replace(/\//g, '-') : 'rapport'}.pdf`;
+    const fallbackWindow = openDownloadWindow(filename);
     const t = toast.loading('PDF wordt opgemaakt...');
     try {
       const reportData: ReportData = {
@@ -250,14 +253,10 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
         project_feiten: (lead.project_feiten || []).filter((f: any): f is FeitjeItem => typeof f === 'object' && 'tekst' in f),
       };
       const blob = await pdf(<ReportDocument data={reportData} />).toBlob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Zolderpunt_${lead.achternaam || 'Klant'}_${lead.gesprek_datum ? formatDatum(lead.gesprek_datum).replace(/\//g, '-') : 'rapport'}.pdf`;
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      toast.success('PDF gedownload', { id: t });
+      await downloadBlob(blob, filename, fallbackWindow);
+      toast.success('PDF gedownload of geopend', { id: t });
     } catch (err: any) {
+      if (fallbackWindow && !fallbackWindow.closed) fallbackWindow.close();
       console.error(err);
       toast.error('PDF mislukt', { id: t });
     }

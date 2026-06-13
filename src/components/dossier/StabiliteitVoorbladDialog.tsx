@@ -9,6 +9,7 @@ import { pdf } from '@react-pdf/renderer';
 import { PDFDocument } from 'pdf-lib';
 import StabiliteitVoorbladPdf from './StabiliteitVoorbladPdf';
 import { datumInputToIso, formatDatumInput } from '@/components/report/reportConstants';
+import { downloadPdfBytes, openDownloadWindow } from '@/lib/downloadFile';
 
 interface Props {
   open: boolean;
@@ -38,23 +39,16 @@ export default function StabiliteitVoorbladDialog({ open, onClose, lead }: Props
     return new Uint8Array(await blob.arrayBuffer());
   };
 
-  const triggerDownload = (bytes: Uint8Array, filename: string) => {
-    const blob = new Blob([bytes as BlobPart], { type: 'application/pdf' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
   const handleVoorbladOnly = async () => {
+    const filename = `Zolderpunt_Stabiliteitsstudie_Voorblad_${slugFn(lead?.achternaam || 'Klant')}.pdf`;
+    const fallbackWindow = openDownloadWindow(filename);
     setBusy(true);
     try {
       const bytes = await buildVoorbladBytes();
-      triggerDownload(bytes, `Zolderpunt_Stabiliteitsstudie_Voorblad_${slugFn(lead?.achternaam || 'Klant')}.pdf`);
-      toast.success('Voorblad gedownload');
+      await downloadPdfBytes(bytes, filename, fallbackWindow);
+      toast.success('Voorblad gedownload of geopend');
     } catch (err) {
+      if (fallbackWindow && !fallbackWindow.closed) fallbackWindow.close();
       console.error(err); toast.error('PDF mislukt');
     } finally { setBusy(false); }
   };
@@ -64,6 +58,8 @@ export default function StabiliteitVoorbladDialog({ open, onClose, lead }: Props
     if (rapportFile.type !== 'application/pdf' && !rapportFile.name.toLowerCase().endsWith('.pdf')) {
       toast.error('Alleen PDF-bestanden worden ondersteund'); return;
     }
+    const filename = `Zolderpunt_Stabiliteitsstudie_${slugFn(lead?.achternaam || 'Klant')}.pdf`;
+    const fallbackWindow = openDownloadWindow(filename);
     setBusy(true);
     const t = toast.loading('Documenten worden samengevoegd...');
     try {
@@ -80,9 +76,10 @@ export default function StabiliteitVoorbladDialog({ open, onClose, lead }: Props
       rPages.forEach(p => merged.addPage(p));
 
       const out = await merged.save();
-      triggerDownload(out, `Zolderpunt_Stabiliteitsstudie_${slugFn(lead?.achternaam || 'Klant')}.pdf`);
-      toast.success('Samengevoegd document gedownload', { id: t });
+      await downloadPdfBytes(out, filename, fallbackWindow);
+      toast.success('Samengevoegd document gedownload of geopend', { id: t });
     } catch (err: any) {
+      if (fallbackWindow && !fallbackWindow.closed) fallbackWindow.close();
       console.error(err);
       toast.error('Samenvoegen mislukt: ' + (err?.message || 'onbekende fout'), { id: t });
     } finally { setBusy(false); }
