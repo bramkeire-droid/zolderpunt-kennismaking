@@ -1,108 +1,73 @@
-## Doel
-Drie samenhangende uitbreidingen in de Dossiers-omgeving:
-1. **Offerte-module** in het dossieroverzicht: offertebedrag (excl. BTW) invullen en vergelijken met intake-range.
-2. **A4 facturatie- & planning-bijlage** als losse PDF-download, met instelbaar bedrag, aantal weken en optioneel trapgat in de tijdlijn.
-3. **Acties-dropdown** per dossier-rij i.p.v. losse iconen, zodat nieuwe functies netjes onderbracht worden.
+# Google Reviews-blad achteraan offertebijlage
 
----
+## Wat we bouwen
+Een extra A4-pagina achteraan de offertebijlage PDF met de 8 meest recente Google reviews van Zolderpunt, in dezelfde huisstijl (Space Grotesk / Rethink Sans, primary blauw, kicker-labels).
 
-## 1. Offerte-module in het dossier
+## Aanpak
 
-**Waar:** nieuwe sectie binnen het bestaande dossier-detail (intake/dossier-view) én een korte indicator in de dossier-overzichtstabel.
+**1. Google Maps Platform connector koppelen**
+- Connector linken (Lovable-managed key werkt op `*.lovable.app` voor preview/staging; custom domain vereist later eigen key).
+- Geeft toegang tot Places API (New) via de gateway.
 
-**Invoer:**
-- `offerte_bedrag_excl` (€, getal) — invulbaar zodra status ≥ `offerte`.
-- `offerte_datum` (auto bij eerste invulling, manueel bij te passen).
+**2. Place ID opzoeken (eenmalig)**
+- Via `places:searchText` met query "Zolderpunt zolderrenovatie" haal ik het juiste Place ID op.
+- Place ID hardcoded als constante in een gedeelde config (verandert nooit).
 
-**Vergelijking met intake-range (`budget_min` – `budget_max`, excl. BTW):**
-- **Binnen range** → groene badge "Binnen intake".
-- **Onder min** → blauwe badge met "−X% t.o.v. min".
-- **Boven max** → rode badge met "+X% t.o.v. max".
-- Toon ook absolute delta in €, plus de gecommuniceerde intake-range ter referentie.
-- Korte interpretatieregel (bv. *"Offerte ligt 8% boven de bovenkant van de intake — bespreek meerwerk of scope-uitbreiding."*).
+**3. Edge function `fetch-google-reviews`**
+- Roept Places API (New) `places/{placeId}` aan via de connector-gateway (server-side, want browser key mag dit endpoint niet).
+- FieldMask: `reviews,rating,userRatingCount`.
+- Cached resultaat ~24u in een nieuwe tabel `google_reviews_cache` (1 rij, met `payload jsonb` + `fetched_at`) — Google's ToS staat tijdelijke cache toe en bespaart calls.
+- Returnt sortering nieuw → oud, top 8.
 
-**In het overzicht:** extra (smalle) kolom of inline-badge bij **Status** die toont dat een offerte bedrag ingevuld is + kleur volgens vergelijking.
+**4. PDF-uitbreiding (`OffertebijlagePdf.tsx`)**
+- Optionele 2e `<Page>` toegevoegd aan het bestaande Document met de reviews.
+- Header: kicker "ERVARINGEN · GOOGLE", H1 "Wat klanten zeggen", totaal-rating + aantal reviews als subkop.
+- 8 reviews in een 2-koloms grid (4×2), elk met: ster-rating, korte datum, naam, quote (afgekapt op ~280 tekens met "…").
+- Footer: kleine bron-vermelding "Bron: Google Reviews · {datum}" + de slogan-band onderaan zoals het voorblad.
 
----
-
-## 2. A4 facturatie- & planningsbijlage
-
-**Aanroep:** vanuit nieuwe acties-dropdown (zie punt 3) → "Offerte-bijlage genereren". Opent een dialoog/instelscherm.
-
-**Instellingen (in dialoog):**
-- Totaalbedrag excl. BTW (pre-filled met `offerte_bedrag_excl`, plus/min in stappen van €5.000, ook vrij in te tikken).
-- Aantal weken project (plus/min, 1–12).
-- Checkbox **"Trapgat voorafgaand uitvoeren"** (geen aparte duur, gewoon een stap vóór het project op de tijdlijn).
-- BTW-tarief (6% / 21%, default uit lead).
-
-**Facturatieverdeling (zelfde logica als `FacturatieTimeline.tsx`):**
-- Fase 1 – Voorschot 30%
-- Fase 2 – Uitvoering 60%, verdeeld over N weken (gelijk per week, op vrijdag)
-- Fase 3 – Oplevering 10%
-- Toon zowel % als bedragen excl. en incl. BTW.
-
-**Planning-tijdlijn op A4:**
-- Horizontale tijdlijn met genummerde weken.
-- Indien trapgat aangevinkt: aparte markering **vóór** week 1 met label "Trapgat" (geen weeknummering).
-- Vervolgens "Week 1 … Week N" met visuele balk voor uitvoeringsperiode.
-- Eindmarker "Oplevering".
-
-**Output:** losse A4-PDF (`react-pdf`), in huisstijl (Space Grotesk / Rethink Sans, primary `#008CFF`), bestandsnaam `Zolderpunt_Offertebijlage_<Achternaam>.pdf`. Download via browser; niet automatisch toegevoegd aan het bestaande rapport.
-
----
-
-## 3. Acties-dropdown per dossier
-
-Vervang de rij iconen (FolderOpen, Phone, FileDown, Globe, CheckCircle, Trash2) door één **"Acties"-knop** met `DropdownMenu`:
-
-Menu-items (met icoontje + label, conditioneel zoals nu):
-- Dossier openen
-- Telefoongesprek
-- PDF rapport downloaden *(indien `rapport_gegenereerd_op`)*
-- **Offerte-bijlage genereren** *(nieuw)*
-- Portaal beheren
-- Markeer afgesloten *(indien status ≠ afgesloten)*
-- ─── separator ───
-- Verwijder portaal *(indien portaal bestaat)*
-- Dossier verwijderen (destructief, rood)
-
-Smalle "Acties"-kolom met enkel een `MoreVertical`-knop per rij.
-
----
+**5. Dialog-flow (`OffertebijlageDialog.tsx`)**
+- Bij openen: reviews op de achtergrond ophalen via de edge function (niet-blokkerend).
+- Checkbox "Google reviews bijvoegen" (default aan zodra reviews binnen zijn).
+- Bij download worden reviews als 2e pagina meegegeven aan `OffertebijlagePdf`. Failt het ophalen: stilletjes weglaten en toast met waarschuwing.
 
 ## Technische details
 
-**Database (migratie):**
-- `leads.offerte_bedrag_excl` `numeric`
-- `leads.offerte_datum` `date`
-- (Optioneel) `leads.offerte_bijlage_settings` `jsonb` om laatst gebruikte weken/trapgat te onthouden per dossier.
+**Nieuwe bestanden**
+- `supabase/functions/fetch-google-reviews/index.ts` — gateway-call + cache (`verify_jwt = false` niet nodig, mag standaard).
+- `src/lib/googleReviews.ts` — client-helper die de function aanroept en types definieert (`{ author, rating, text, relativeTime, time }`).
 
-**Nieuwe / aangepaste bestanden:**
-- `supabase/migrations/<timestamp>_offerte_velden.sql`
-- `src/components/dossier/OfferteVergelijking.tsx` — invoer + vergelijking-badge (binnen detail).
-- `src/components/dossier/OffertebijlageDialog.tsx` — instellingen + preview + downloadknop.
-- `src/components/dossier/OffertebijlagePdf.tsx` — `@react-pdf/renderer` document (A4, facturatie + tijdlijn).
-- `src/components/dossier/DossierActionsMenu.tsx` — `DropdownMenu` per rij.
-- `src/pages/Dossiers.tsx` — kolom "Acties" vervangen door de nieuwe menu-component; offerte-badge toevoegen aan Status-kolom.
-- Slide- of detailview waar offerte wordt ingevuld (in te passen op bestaande dossier-flow; concreet bestand bepalen tijdens implementatie a.d.h.v. waar `budget_min/max` wordt getoond).
+**Aangepast**
+- `src/components/dossier/OffertebijlagePdf.tsx` — extra Page-component + `reviews?: Review[]` prop.
+- `src/components/dossier/OffertebijlageDialog.tsx` — fetch + checkbox + prop doorgeven.
 
-**PDF-design (huisstijl):**
-- Header met logo + "Offertebijlage – Facturatie & Planning".
-- Block 1: Facturatieverdeling (3 fases, bedragen, btw-regel).
-- Block 2: Tijdlijn (trapgat-marker optioneel + weekbalken + oplevering).
-- Footer: klantgegevens + offertedatum + offertenr/lead-id.
-
-**Vergelijkingslogica (samengevat):**
+**Database**
+```text
+google_reviews_cache (singleton)
+  id           int primary key default 1 check (id = 1)
+  payload      jsonb           — { reviews, rating, total }
+  fetched_at   timestamptz
 ```
-range = [budget_min, budget_max]
-if offerte ∈ range          → status = "binnen"
-elif offerte < budget_min   → status = "onder",  delta% = (budget_min - offerte) / budget_min
-elif offerte > budget_max   → status = "boven",  delta% = (offerte - budget_max) / budget_max
+RLS: alleen service_role schrijft, authenticated mag lezen.
+
+**Gateway call**
+```text
+POST https://connector-gateway.lovable.dev/google_maps/places/v1/places/{PLACE_ID}
+Headers: Authorization, X-Connection-Api-Key, X-Goog-FieldMask: reviews,rating,userRatingCount
 ```
-Kleuren resp. groen / blauw / rood; tekstuele interpretatie automatisch.
 
----
+**Vorm reviewkaart (PDF)**
+```text
+★★★★★   3 weken geleden
+Brandon Van Moorleghem
+"Wat Bram echt onderscheidt is zijn communicatie en
+ oog voor detail. We krijgen elke dag een update…"
+```
 
-## Uit scope
-- Automatische opname in het bestaande rapport-PDF (expliciet gekozen voor losse download).
-- Aparte instelbare trapgat-duur (trapgat is enkel een tijdlijn-stap, geen weken).
+## Wat de gebruiker straks doet
+1. Klikken "Connect" wanneer ik de connector-prompt toon.
+2. Daarna werkt het automatisch — reviews verschijnen als 2e PDF-pagina bij elke offertebijlage download.
+
+## Out-of-scope (voor nu)
+- Custom domain key (komt aan bod als jullie naar eigen domein gaan).
+- Foto's van reviewers (niet beschikbaar in alle gevallen + privacy).
+- Generieke voorblad-tool reviews (apart verzoek indien gewenst).
