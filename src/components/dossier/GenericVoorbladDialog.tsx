@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { pdf } from '@react-pdf/renderer';
 import { PDFDocument } from 'pdf-lib';
 import GenericVoorbladPdf from './GenericVoorbladPdf';
+import AddressAutocomplete from '@/components/AddressAutocomplete';
 
 interface Props {
   open: boolean;
