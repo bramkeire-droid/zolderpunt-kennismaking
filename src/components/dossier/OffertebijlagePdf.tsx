@@ -6,6 +6,13 @@ import '@/components/report/reportStyles'; // ensures font registration
 const fmtEur = (n: number) =>
   new Intl.NumberFormat('nl-BE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
 
+export interface OffertebijlageReview {
+  author: string;
+  rating: number;
+  text: string;
+  relativeTime: string;
+}
+
 export interface OffertebijlageData {
   voornaam: string;
   achternaam: string;
@@ -16,6 +23,9 @@ export interface OffertebijlageData {
   weken: number;
   trapgat: boolean;
   btwPct: 6 | 21;
+  reviews?: OffertebijlageReview[];
+  reviewsRating?: number;
+  reviewsTotal?: number;
 }
 
 const s = StyleSheet.create({
