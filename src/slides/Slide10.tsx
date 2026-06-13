@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { fetchAndDownscaleToDataUrl } from '@/lib/imageCompression';
 import { formatDatum } from '@/components/report/reportConstants';
+import { downloadBlob, openDownloadWindow } from '@/lib/downloadFile';
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('nl-BE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
@@ -107,6 +108,8 @@ export default function Slide10() {
   }, [lead, updateLead]);
 
   const handleDownload = async () => {
+    const filename = `Zolderpunt_${lead.achternaam || 'Klant'}_${lead.gesprek_datum ? formatDatum(lead.gesprek_datum).replace(/\//g, '-') : 'rapport'}.pdf`;
+    const fallbackWindow = openDownloadWindow(filename);
     setLoading(true);
     try {
       // Generate AI summary if not yet available
@@ -114,6 +117,7 @@ export default function Slide10() {
         toast.info('AI-samenvatting wordt eerst gegenereerd…');
         const success = await generateAiSummary();
         if (!success) {
+          if (fallbackWindow && !fallbackWindow.closed) fallbackWindow.close();
           toast.error('AI-samenvatting kon niet gegenereerd worden. Ga eerst naar de Rapport Preview slide.');
           setLoading(false);
           return;
@@ -158,14 +162,7 @@ export default function Slide10() {
         return;
       }
 
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Zolderpunt_${lead.achternaam || 'Klant'}_${lead.gesprek_datum ? formatDatum(lead.gesprek_datum).replace(/\//g, '-') : 'rapport'}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      await downloadBlob(blob, filename, fallbackWindow);
 
       // Markeer rapport als gegenereerd + promoveer dossier-status naar 'intake'
       if (lead.id) {
@@ -174,8 +171,9 @@ export default function Slide10() {
         updateLead({ rapport_gegenereerd_op: nowIso, status: 'intake' });
       }
 
-      toast.success('PDF succesvol gedownload!');
+      toast.success('PDF succesvol gedownload of geopend!');
     } catch (err) {
+      if (fallbackWindow && !fallbackWindow.closed) fallbackWindow.close();
       console.error('PDF generation failed:', err);
       toast.error('PDF generatie mislukt. Probeer opnieuw.');
     } finally {

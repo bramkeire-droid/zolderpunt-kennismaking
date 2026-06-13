@@ -11,6 +11,7 @@ import { PDFDocument } from 'pdf-lib';
 import GenericVoorbladPdf from './GenericVoorbladPdf';
 import AddressAutocomplete from '@/components/AddressAutocomplete';
 import { datumInputToIso, formatDatumInput } from '@/components/report/reportConstants';
+import { downloadPdfBytes, openDownloadWindow } from '@/lib/downloadFile';
 
 interface Props {
   open: boolean;
@@ -79,15 +80,6 @@ export default function GenericVoorbladDialog({ open, onClose, lead }: Props) {
   };
 
 
-  const download = (bytes: Uint8Array, filename: string) => {
-    const blob = new Blob([bytes as BlobPart], { type: 'application/pdf' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = filename;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
   const filenameBase = () => {
     const t = slugFn(title || 'Voorblad');
     const k = slugFn(klantNaam || lead?.achternaam || '');
@@ -96,18 +88,22 @@ export default function GenericVoorbladDialog({ open, onClose, lead }: Props) {
 
   const handleVoorblad = async () => {
     if (!title.trim()) { toast.error('Geef een titel op'); return; }
+    const filename = `${filenameBase()}.pdf`;
+    const fallbackWindow = openDownloadWindow(filename);
     setBusy(true);
     try {
       const bytes = await buildBytes();
-      download(bytes, `${filenameBase()}.pdf`);
-      toast.success('Voorblad gedownload');
-    } catch (err) { console.error(err); toast.error('PDF mislukt'); }
+      await downloadPdfBytes(bytes, filename, fallbackWindow);
+      toast.success('Voorblad gedownload of geopend');
+    } catch (err) { if (fallbackWindow && !fallbackWindow.closed) fallbackWindow.close(); console.error(err); toast.error('PDF mislukt'); }
     finally { setBusy(false); }
   };
 
   const handleMerge = async () => {
     if (!title.trim()) { toast.error('Geef een titel op'); return; }
     if (!rapportFile) { toast.error('Selecteer eerst een PDF om samen te voegen'); return; }
+    const filename = `${filenameBase()}.pdf`;
+    const fallbackWindow = openDownloadWindow(filename);
     setBusy(true);
     const t = toast.loading('Documenten worden samengevoegd...');
     try {
@@ -119,9 +115,10 @@ export default function GenericVoorbladDialog({ open, onClose, lead }: Props) {
       (await merged.copyPages(v, v.getPageIndices())).forEach(p => merged.addPage(p));
       (await merged.copyPages(r, r.getPageIndices())).forEach(p => merged.addPage(p));
       const out = await merged.save();
-      download(out, `${filenameBase()}.pdf`);
-      toast.success('Samengevoegd document gedownload', { id: t });
+      await downloadPdfBytes(out, filename, fallbackWindow);
+      toast.success('Samengevoegd document gedownload of geopend', { id: t });
     } catch (err: any) {
+      if (fallbackWindow && !fallbackWindow.closed) fallbackWindow.close();
       console.error(err); toast.error('Samenvoegen mislukt', { id: t });
     } finally { setBusy(false); }
   };

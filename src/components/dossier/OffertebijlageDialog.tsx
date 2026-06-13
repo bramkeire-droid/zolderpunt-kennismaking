@@ -11,6 +11,7 @@ import { pdf } from '@react-pdf/renderer';
 import OffertebijlagePdf from './OffertebijlagePdf';
 import { fetchGoogleReviews, type GoogleReviewsPayload } from '@/lib/googleReviews';
 import { datumInputToIso, formatDatumInput } from '@/components/report/reportConstants';
+import { downloadBlob, openDownloadWindow } from '@/lib/downloadFile';
 
 const fmtEur = (n: number) =>
   new Intl.NumberFormat('nl-BE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
@@ -108,10 +109,15 @@ export default function OffertebijlageDialog({ open, onClose, lead, onUpdate }: 
   const handleDownload = async () => {
     if (!offerteNummer.trim()) { toast.error('Vul eerst het offertenummer in'); return; }
     if (!offerteDatum) { toast.error('Vul eerst de offertedatum in'); return; }
+    const filename = `Zolderpunt_Offertebijlage_${slug(offerteNummer.trim())}_${slug(achternaam || 'Klant')}.pdf`;
+    const fallbackWindow = openDownloadWindow(filename);
     setGenerating(true);
     try {
       const ok = await handleSave();
-      if (!ok) return;
+      if (!ok) {
+        if (fallbackWindow && !fallbackWindow.closed) fallbackWindow.close();
+        return;
+      }
       const useReviews = includeReviews && reviewsData && reviewsData.reviews?.length > 0;
       console.log('[OffertebijlageDialog] start PDF', { useReviews, reviewsCount: reviewsData?.reviews?.length });
       const blob = await pdf(
@@ -138,20 +144,10 @@ export default function OffertebijlageDialog({ open, onClose, lead, onUpdate }: 
         />
       ).toBlob();
       console.log('[OffertebijlageDialog] PDF blob ready', { size: blob.size });
-      const bytes = new Uint8Array(await blob.arrayBuffer());
-      const outBlob = new Blob([bytes as BlobPart], { type: 'application/pdf' });
-      const url = URL.createObjectURL(outBlob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Zolderpunt_Offertebijlage_${slug(offerteNummer.trim())}_${slug(achternaam || 'Klant')}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(() => {
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }, 1500);
-      toast.success('Offertebijlage gedownload');
+      await downloadBlob(blob, filename, fallbackWindow);
+      toast.success('Offertebijlage gedownload of geopend');
     } catch (err: any) {
+      if (fallbackWindow && !fallbackWindow.closed) fallbackWindow.close();
       console.error('[OffertebijlageDialog] PDF error', err);
       toast.error(`PDF mislukt: ${err?.message || 'onbekende fout'}`);
     } finally {
