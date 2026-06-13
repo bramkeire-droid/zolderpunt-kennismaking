@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import beeldmerk from '@/assets/beeldmerk-blauw.svg';
 import { RefreshCw } from 'lucide-react';
+import { formatDatum } from '@/components/report/reportConstants';
 
 export default function Slide9() {
   const { lead, updateLead } = useSession();
@@ -41,7 +42,7 @@ export default function Slide9() {
         // AI failed — build a basic rapport from available data
         const fallbackRapport = [
           `Rapport voor ${lead.voornaam || 'klant'} ${lead.achternaam || ''}`.trim(),
-          `Datum: ${lead.gesprek_datum || new Date().toLocaleDateString('nl-BE')}`,
+          `Datum: ${formatDatum(lead.gesprek_datum || new Date().toISOString().split('T')[0])}`,
           '',
           `Situatie: ${lead.adres || '—'}`,
           `Gewenst resultaat: ${lead.gezocht_naar || '—'}`,
@@ -62,7 +63,7 @@ export default function Slide9() {
       // AI returned structured narrative texts
       const rapport = [
         `Rapport voor ${lead.voornaam || 'klant'} ${lead.achternaam || ''}`.trim(),
-        `Datum: ${lead.gesprek_datum || new Date().toLocaleDateString('nl-BE')}`,
+        `Datum: ${formatDatum(lead.gesprek_datum || new Date().toISOString().split('T')[0])}`,
         '',
         '— Situatie —',
         data.situatie_tekst || '',

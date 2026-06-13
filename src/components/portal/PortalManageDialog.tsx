@@ -7,7 +7,7 @@ import {
   Eye, EyeOff, Send, ExternalLink, Copy, MessageCircle,
   Mail, Loader2, CheckCircle, Clock, AlertCircle
 } from 'lucide-react';
-import { CONTACT_TELEFOON } from '@/components/report/reportConstants';
+import { CONTACT_TELEFOON, formatDatum } from '@/components/report/reportConstants';
 
 interface Props {
   open: boolean;
@@ -145,7 +145,7 @@ export default function PortalManageDialog({ open, onClose, lead, onUpdate, onPr
           </div>
           {status === 'active' && lead?.portal_activated_at && (
             <span className="font-body text-xs text-[#888888]">
-              Actief sinds {new Date(lead.portal_activated_at).toLocaleDateString('nl-BE')}
+              Actief sinds {formatDatum(lead.portal_activated_at)}
             </span>
           )}
         </div>

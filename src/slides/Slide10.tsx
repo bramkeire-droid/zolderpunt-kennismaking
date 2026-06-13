@@ -10,6 +10,7 @@ import type { ReportData, FeitjeItem } from '@/components/report/reportTypes';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { fetchAndDownscaleToDataUrl } from '@/lib/imageCompression';
+import { formatDatum } from '@/components/report/reportConstants';
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('nl-BE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
@@ -91,7 +92,7 @@ export default function Slide10() {
         waarde_tekst_ai: data.waarde_tekst || 'Extra leefruimte gecreëerd uit ruimte die er al was.',
         rapport_tekst: [
           `Rapport voor ${lead.voornaam || 'klant'} ${lead.achternaam || ''}`.trim(),
-          `Datum: ${lead.gesprek_datum || new Date().toLocaleDateString('nl-BE')}`,
+          `Datum: ${formatDatum(lead.gesprek_datum || new Date().toISOString().split('T')[0])}`,
           '', '— Situatie —', data.situatie_tekst || '',
           '', '— Verwachtingen —', data.verwachtingen_tekst || '',
           '', '— Wat we bespraken —', data.besproken_tekst || '',
@@ -160,7 +161,7 @@ export default function Slide10() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `Zolderpunt_${lead.achternaam || 'Klant'}_${lead.gesprek_datum || 'rapport'}.pdf`;
+      a.download = `Zolderpunt_${lead.achternaam || 'Klant'}_${lead.gesprek_datum ? formatDatum(lead.gesprek_datum).replace(/\//g, '-') : 'rapport'}.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -201,7 +202,7 @@ export default function Slide10() {
         <div className="bg-card border border-border p-8 mb-8 space-y-4">
           <SummaryRow label="Klant" value={`${lead.voornaam} ${lead.achternaam}`.trim() || '—'} />
           <SummaryRow label="Adres" value={lead.adres || '—'} />
-          <SummaryRow label="Datum gesprek" value={lead.gesprek_datum || '—'} />
+          <SummaryRow label="Datum gesprek" value={formatDatum(lead.gesprek_datum)} />
           <SummaryRow
             label="Budget indicatie"
             value={lead.budget_min && lead.budget_max ? `${fmt(lead.budget_min)} — ${fmt(lead.budget_max)}` : '—'}
@@ -228,7 +229,7 @@ export default function Slide10() {
         </Button>
 
         <p className="text-xs text-muted-foreground text-center mt-6">
-          Bestandsnaam: Zolderpunt_{lead.achternaam || 'Klant'}_{lead.gesprek_datum}.pdf
+          Bestandsnaam: Zolderpunt_{lead.achternaam || 'Klant'}_{lead.gesprek_datum ? formatDatum(lead.gesprek_datum).replace(/\//g, '-') : 'rapport'}.pdf
         </p>
       </div>
     </SlideLayout>

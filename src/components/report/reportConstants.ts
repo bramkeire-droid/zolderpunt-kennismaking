@@ -24,16 +24,41 @@ export const COLORS = {
 } as const;
 
 // ─── Date formatting ────────────────────────────────────────────────
-const MAANDEN = [
-  'januari','februari','maart','april','mei','juni',
-  'juli','augustus','september','oktober','november','december',
-];
+type DatumParts = { day: string; month: string; year: string };
+
+export function parseDatumParts(datum?: string | null): DatumParts | null {
+  if (!datum) return null;
+  const value = String(datum).trim();
+
+  const iso = value.match(/^(\d{4})-(\d{2})-(\d{2})(?:$|[T\s])/);
+  if (iso) return { day: iso[3], month: iso[2], year: iso[1] };
+
+  const dmy = value.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/);
+  if (dmy) {
+    const day = dmy[1].padStart(2, '0');
+    const month = dmy[2].padStart(2, '0');
+    const yearNum = Number(dmy[3]);
+    const year = String(yearNum < 100 ? yearNum + 2000 : yearNum);
+    return { day, month, year };
+  }
+
+  return null;
+}
 
 export function formatDatum(datum: string): string {
-  if (!datum) return '-';
-  const d = new Date(datum);
-  if (isNaN(d.getTime())) return datum;
-  return `${d.getDate()} ${MAANDEN[d.getMonth()]} ${d.getFullYear()}`;
+  const parts = parseDatumParts(datum);
+  if (!parts) return datum || '-';
+  return `${parts.day}/${parts.month}/${parts.year}`;
+}
+
+export function formatDatumInput(datum: string): string {
+  return formatDatum(datum);
+}
+
+export function datumInputToIso(value: string): string {
+  const parts = parseDatumParts(value);
+  if (!parts) return value;
+  return `${parts.year}-${parts.month}-${parts.day}`;
 }
 
 // ─── Reviews ────────────────────────────────────────────────────────

@@ -10,6 +10,7 @@ import { pdf } from '@react-pdf/renderer';
 import { PDFDocument } from 'pdf-lib';
 import GenericVoorbladPdf from './GenericVoorbladPdf';
 import AddressAutocomplete from '@/components/AddressAutocomplete';
+import { datumInputToIso, formatDatumInput } from '@/components/report/reportConstants';
 
 interface Props {
   open: boolean;
@@ -182,20 +183,8 @@ export default function GenericVoorbladDialog({ open, onClose, lead }: Props) {
                 type="text"
                 inputMode="numeric"
                 placeholder="dd/mm/jjjj"
-                value={(() => {
-                  const m = datum.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-                  return m ? `${m[3]}/${m[2]}/${m[1]}` : datum;
-                })()}
-                onChange={e => {
-                  const v = e.target.value;
-                  const m = v.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
-                  if (m) {
-                    let y = parseInt(m[3], 10); if (y < 100) y += 2000;
-                    setDatum(`${y}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`);
-                  } else {
-                    setDatum(v);
-                  }
-                }}
+                value={formatDatumInput(datum)}
+                onChange={e => setDatum(datumInputToIso(e.target.value))}
                 className="mt-1"
               />
             </div>

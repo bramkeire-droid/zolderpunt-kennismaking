@@ -1,5 +1,5 @@
 import logoBlauw from '@/assets/logo-blauw.svg';
-import { TAGLINE } from '@/components/report/reportConstants';
+import { formatDatum, TAGLINE } from '@/components/report/reportConstants';
 import type { PortalData } from '@/hooks/usePortal';
 
 interface Props {
@@ -24,7 +24,7 @@ export default function PortalHeader({ data }: Props) {
         )}
         {data.gesprek_datum && (
           <p className="font-body text-white/50 text-sm mt-2">
-            Gesprek op {data.gesprek_datum}
+            Gesprek op {formatDatum(data.gesprek_datum)}
           </p>
         )}
       </div>
