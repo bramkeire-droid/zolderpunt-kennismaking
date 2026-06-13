@@ -6,6 +6,13 @@ import '@/components/report/reportStyles'; // ensures font registration
 const fmtEur = (n: number) =>
   new Intl.NumberFormat('nl-BE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
 
+export interface OffertebijlageReview {
+  author: string;
+  rating: number;
+  text: string;
+  relativeTime: string;
+}
+
 export interface OffertebijlageData {
   voornaam: string;
   achternaam: string;
@@ -16,6 +23,9 @@ export interface OffertebijlageData {
   weken: number;
   trapgat: boolean;
   btwPct: 6 | 21;
+  reviews?: OffertebijlageReview[];
+  reviewsRating?: number;
+  reviewsTotal?: number;
 }
 
 const s = StyleSheet.create({
@@ -177,7 +187,92 @@ const s = StyleSheet.create({
     paddingTop: 8,
     fontSize: 8, color: COLORS.grijs,
   },
+
+
+  // Reviews
+  reviewsHero: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 28,
+    paddingVertical: 22,
+    marginBottom: 22,
+  },
+  reviewsKicker: {
+    fontFamily: 'RethinkSans',
+    fontSize: 8,
+    color: COLORS.white,
+    letterSpacing: 2,
+    opacity: 0.75,
+    marginBottom: 6,
+  },
+  reviewsTitle: {
+    fontFamily: 'SpaceGrotesk',
+    fontWeight: 700,
+    fontSize: 24,
+    color: COLORS.white,
+  },
+  reviewsScore: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    marginTop: 8,
+  },
+  reviewsScoreNum: {
+    fontFamily: 'SpaceGrotesk',
+    fontWeight: 700,
+    fontSize: 22,
+    color: COLORS.white,
+    marginRight: 8,
+  },
+  reviewsScoreSub: {
+    fontFamily: 'RethinkSans',
+    fontSize: 10,
+    color: COLORS.white,
+    opacity: 0.85,
+  },
+  reviewGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  reviewCard: {
+    width: '48%',
+    marginRight: '2%',
+    marginBottom: 12,
+    backgroundColor: COLORS.white,
+    borderWidth: 1,
+    borderColor: COLORS.lightGray,
+    padding: 12,
+  },
+  reviewTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  reviewStars: {
+    fontFamily: 'SpaceGrotesk',
+    fontWeight: 700,
+    fontSize: 11,
+    color: COLORS.gold,
+    letterSpacing: 1,
+  },
+  reviewTime: { fontSize: 8, color: COLORS.grijs },
+  reviewAuthor: {
+    fontFamily: 'SpaceGrotesk',
+    fontWeight: 700,
+    fontSize: 10,
+    color: COLORS.dark,
+    marginBottom: 4,
+  },
+  reviewText: { fontSize: 9, color: COLORS.subtekst, lineHeight: 1.45 },
+  reviewSource: {
+    fontSize: 7,
+    color: COLORS.grijs,
+    marginTop: 6,
+    fontStyle: 'italic',
+  },
 });
+
+const truncate = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1).trimEnd() + '…' : s);
+const stars = (n: number) => '★'.repeat(Math.max(0, Math.min(5, Math.round(n)))) + '☆'.repeat(5 - Math.max(0, Math.min(5, Math.round(n))));
 
 export default function OffertebijlagePdf({ data }: { data: OffertebijlageData }) {
   const voorschot = data.bedragExcl * 0.30;
@@ -189,6 +284,8 @@ export default function OffertebijlagePdf({ data }: { data: OffertebijlageData }
   const totalInclBtw = data.bedragExcl * btwFactor;
 
   const klant = `${data.voornaam} ${data.achternaam}`.trim() || '—';
+  const reviews = (data.reviews || []).slice(0, 8);
+  const hasReviews = reviews.length > 0;
 
   return (
     <Document>
@@ -342,6 +439,48 @@ export default function OffertebijlagePdf({ data }: { data: OffertebijlageData }
           <Text>{CONTACT_TELEFOON} · {CONTACT_EMAIL}</Text>
         </View>
       </Page>
+
+      {hasReviews && (
+        <Page size="A4" style={s.page}>
+          {/* Hero */}
+          <View style={s.reviewsHero}>
+            <Text style={s.reviewsKicker}>ERVARINGEN · GOOGLE REVIEWS</Text>
+            <Text style={s.reviewsTitle}>Wat klanten over ons zeggen</Text>
+            {(data.reviewsTotal || data.reviewsRating) ? (
+              <View style={s.reviewsScore}>
+                <Text style={s.reviewsScoreNum}>
+                  {(data.reviewsRating || 5).toFixed(1)} {stars(data.reviewsRating || 5)}
+                </Text>
+                <Text style={s.reviewsScoreSub}>
+                  op basis van {data.reviewsTotal || reviews.length} Google reviews
+                </Text>
+              </View>
+            ) : null}
+          </View>
+
+          <View style={s.reviewGrid}>
+            {reviews.map((r, i) => (
+              <View key={i} style={s.reviewCard} wrap={false}>
+                <View style={s.reviewTop}>
+                  <Text style={s.reviewStars}>{stars(r.rating)}</Text>
+                  <Text style={s.reviewTime}>{r.relativeTime}</Text>
+                </View>
+                <Text style={s.reviewAuthor}>{r.author}</Text>
+                <Text style={s.reviewText}>"{truncate((r.text || '').replace(/\s+/g, ' ').trim(), 320)}"</Text>
+              </View>
+            ))}
+          </View>
+
+          <Text style={s.reviewSource}>
+            Bron: Google Reviews · opgehaald op {formatDatum(new Date().toISOString().slice(0, 10))}
+          </Text>
+
+          <View style={s.footer} fixed>
+            <Text>Zolderpunt · {CONTACT_WEBSITE}</Text>
+            <Text>{CONTACT_TELEFOON} · {CONTACT_EMAIL}</Text>
+          </View>
+        </Page>
+      )}
     </Document>
   );
 }

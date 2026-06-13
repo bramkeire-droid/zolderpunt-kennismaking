@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      google_reviews_cache: {
+        Row: {
+          fetched_at: string
+          id: number
+          payload: Json
+        }
+        Insert: {
+          fetched_at?: string
+          id?: number
+          payload: Json
+        }
+        Update: {
+          fetched_at?: string
+          id?: number
+          payload?: Json
+        }
+        Relationships: []
+      }
       leads: {
         Row: {
           achternaam: string

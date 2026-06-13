@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { pdf } from '@react-pdf/renderer';
 import OffertebijlagePdf from './OffertebijlagePdf';
+import { fetchGoogleReviews, type GoogleReviewsPayload } from '@/lib/googleReviews';
 
 const fmtEur = (n: number) =>
   new Intl.NumberFormat('nl-BE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
@@ -35,6 +36,9 @@ export default function OffertebijlageDialog({ open, onClose, lead, onUpdate }: 
   const [adres, setAdres] = useState<string>(lead?.adres || '');
   const [saving, setSaving] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [includeReviews, setIncludeReviews] = useState<boolean>(true);
+  const [reviewsData, setReviewsData] = useState<GoogleReviewsPayload | null>(null);
+  const [reviewsLoading, setReviewsLoading] = useState<boolean>(false);
 
   useEffect(() => {
     if (!open) return;
@@ -48,6 +52,17 @@ export default function OffertebijlageDialog({ open, onClose, lead, onUpdate }: 
     setAchternaam(lead?.achternaam || '');
     setAdres(lead?.adres || '');
   }, [open, lead?.id]);
+
+  // Reviews ophalen wanneer dialog opent (niet-blokkerend)
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    setReviewsLoading(true);
+    fetchGoogleReviews()
+      .then(data => { if (!cancelled) setReviewsData(data); })
+      .finally(() => { if (!cancelled) setReviewsLoading(false); });
+    return () => { cancelled = true; };
+  }, [open]);
 
   // Vergelijking met intake-range (excl. BTW). Fallback op budget_min/max indien geen excl beschikbaar.
   const intakeMin = Number(lead?.budget_min) || 0;
@@ -96,6 +111,7 @@ export default function OffertebijlageDialog({ open, onClose, lead, onUpdate }: 
     try {
       const ok = await handleSave();
       if (!ok) return;
+      const useReviews = includeReviews && reviewsData && reviewsData.reviews?.length > 0;
       const blob = await pdf(
         <OffertebijlagePdf
           data={{
@@ -108,6 +124,14 @@ export default function OffertebijlageDialog({ open, onClose, lead, onUpdate }: 
             weken,
             trapgat,
             btwPct,
+            reviews: useReviews ? reviewsData!.reviews.map(r => ({
+              author: r.author,
+              rating: r.rating,
+              text: r.text,
+              relativeTime: r.relativeTime,
+            })) : undefined,
+            reviewsRating: useReviews ? reviewsData!.rating : undefined,
+            reviewsTotal: useReviews ? reviewsData!.total : undefined,
           }}
         />
       ).toBlob();
@@ -245,6 +269,25 @@ export default function OffertebijlageDialog({ open, onClose, lead, onUpdate }: 
           <button onClick={() => setBtwPct(6)} className={`px-3 py-1 ${btwPct === 6 ? 'bg-primary text-white' : 'bg-muted'}`}>6%</button>
           <button onClick={() => setBtwPct(21)} className={`px-3 py-1 ${btwPct === 21 ? 'bg-primary text-white' : 'bg-muted'}`}>21%</button>
         </div>
+
+        {/* Google reviews-blad toggle */}
+        <label className="flex items-center gap-2 bg-card border border-border p-3 cursor-pointer">
+          <Checkbox
+            checked={includeReviews && !!reviewsData?.reviews?.length}
+            disabled={!reviewsData?.reviews?.length}
+            onCheckedChange={(v) => setIncludeReviews(!!v)}
+          />
+          <div className="flex-1">
+            <div className="text-sm font-headline font-semibold">Google reviews bijvoegen als laatste pagina</div>
+            <div className="text-[11px] text-muted-foreground">
+              {reviewsLoading
+                ? 'Reviews ophalen…'
+                : reviewsData?.reviews?.length
+                  ? `${reviewsData.reviews.length} reviews · gemiddelde ${reviewsData.rating?.toFixed(1)} ★ (${reviewsData.total} totaal)${reviewsData.stale ? ' · cache' : ''}`
+                  : 'Geen reviews beschikbaar'}
+            </div>
+          </div>
+        </label>
 
         {/* Live preview verdeling */}
         <div className="grid grid-cols-3 gap-2">
