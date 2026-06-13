@@ -53,6 +53,17 @@ export default function OffertebijlageDialog({ open, onClose, lead, onUpdate }: 
     setAdres(lead?.adres || '');
   }, [open, lead?.id]);
 
+  // Reviews ophalen wanneer dialog opent (niet-blokkerend)
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    setReviewsLoading(true);
+    fetchGoogleReviews()
+      .then(data => { if (!cancelled) setReviewsData(data); })
+      .finally(() => { if (!cancelled) setReviewsLoading(false); });
+    return () => { cancelled = true; };
+  }, [open]);
+
   // Vergelijking met intake-range (excl. BTW). Fallback op budget_min/max indien geen excl beschikbaar.
   const intakeMin = Number(lead?.budget_min) || 0;
   const intakeMax = Number(lead?.budget_max) || 0;
