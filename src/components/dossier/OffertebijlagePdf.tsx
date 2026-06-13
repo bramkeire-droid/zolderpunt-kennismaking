@@ -536,7 +536,7 @@ export default function OffertebijlagePdf({ data }: { data: OffertebijlageData }
           {/* Hero */}
           <View style={s.reviewsHero}>
             <View style={s.reviewsHeroLeft}>
-              <Text style={s.reviewsKicker}>★  ERVARINGEN  ·  GOOGLE REVIEWS  ★</Text>
+              <Text style={s.reviewsKicker}>★  GEVERIFIEERDE GOOGLE-REVIEWS  ★</Text>
               <Text style={s.reviewsTitle}>Wat klanten over ons zeggen</Text>
               <Text style={s.reviewsLead}>
                 Echte verhalen van klanten die kozen voor Zolderpunt — opgehaald rechtstreeks bij Google.
