@@ -299,6 +299,9 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
                 <DropdownMenuItem onClick={() => setGenericVoorblad({ lead: null })}>
                   <FileText className="h-4 w-4 mr-2 text-primary" /> Generiek voorblad maken
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setOfferteLead({ __standalone: true })}>
+                  <FileText className="h-4 w-4 mr-2 text-primary" /> Offerte & bijlage maken
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
             <Button variant="outline" onClick={fetchLeads} className="gap-2 font-headline" disabled={loading}>
