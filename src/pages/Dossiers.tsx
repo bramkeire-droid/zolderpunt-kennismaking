@@ -19,6 +19,7 @@ import type { ReportData, FeitjeItem } from '@/components/report/reportTypes';
 import OffertebijlageDialog from '@/components/dossier/OffertebijlageDialog';
 import StabiliteitVoorbladDialog from '@/components/dossier/StabiliteitVoorbladDialog';
 import GenericVoorbladDialog from '@/components/dossier/GenericVoorbladDialog';
+import { formatDatum } from '@/components/report/reportConstants';
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('nl-BE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
@@ -252,7 +253,7 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `Zolderpunt_${lead.achternaam || 'Klant'}_${lead.gesprek_datum || 'rapport'}.pdf`;
+      a.download = `Zolderpunt_${lead.achternaam || 'Klant'}_${lead.gesprek_datum ? formatDatum(lead.gesprek_datum).replace(/\//g, '-') : 'rapport'}.pdf`;
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
       URL.revokeObjectURL(url);
       toast.success('PDF gedownload', { id: t });
@@ -377,7 +378,7 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
                             )}
                           </div>
                         </TableCell>
-                        <TableCell className="font-body">{lead.gesprek_datum || '—'}</TableCell>
+                        <TableCell className="font-body">{formatDatum(lead.gesprek_datum)}</TableCell>
                         <TableCell>
                           <div className="flex flex-col gap-1">
                             <StatusBadge status={lead.status} />
@@ -403,7 +404,7 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
                                 Video call
                               </span>
                               <span className="text-xs text-muted-foreground mt-0.5">
-                                {new Date(preIntakeMap[lead.id].videocall_scheduled_at).toLocaleString('nl-BE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                                {formatDatum(preIntakeMap[lead.id].videocall_scheduled_at)} · {new Date(preIntakeMap[lead.id].videocall_scheduled_at).toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' })}
                               </span>
                             </div>
                           ) : (lead.volgende_stap || '—')}
