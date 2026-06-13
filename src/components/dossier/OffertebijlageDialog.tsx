@@ -99,9 +99,9 @@ export default function OffertebijlageDialog({ open, onClose, lead, onUpdate }: 
       const blob = await pdf(
         <OffertebijlagePdf
           data={{
-            voornaam: lead?.voornaam || '',
-            achternaam: lead?.achternaam || '',
-            adres: lead?.adres || '',
+            voornaam: voornaam || '',
+            achternaam: achternaam || '',
+            adres: adres || '',
             datum: offerteDatum,
             offerteNummer: offerteNummer.trim(),
             bedragExcl: bedrag,
@@ -114,7 +114,7 @@ export default function OffertebijlageDialog({ open, onClose, lead, onUpdate }: 
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `Zolderpunt_Offertebijlage_${slug(offerteNummer.trim())}_${slug(lead?.achternaam || 'Klant')}.pdf`;
+      a.download = `Zolderpunt_Offertebijlage_${slug(offerteNummer.trim())}_${slug(achternaam || 'Klant')}.pdf`;
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
       URL.revokeObjectURL(url);
       toast.success('Offertebijlage gedownload');
