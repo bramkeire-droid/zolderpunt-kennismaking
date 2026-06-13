@@ -135,7 +135,7 @@ export default function GenericVoorbladPdf({ data }: { data: GenericVoorbladData
           ) : null}
 
           <Text style={{ fontFamily: 'RethinkSans', fontSize: 8.5, color: COLORS.white, opacity: 0.6, marginTop: heeftKlant ? 6 : 0 }}>
-            {formatDatum(data.datum)}
+            {formatDatumEU(data.datum)}
           </Text>
 
           {data.referentie ? (
