@@ -117,6 +117,7 @@ export default function Slide10() {
         toast.info('AI-samenvatting wordt eerst gegenereerd…');
         const success = await generateAiSummary();
         if (!success) {
+          if (fallbackWindow && !fallbackWindow.closed) fallbackWindow.close();
           toast.error('AI-samenvatting kon niet gegenereerd worden. Ga eerst naar de Rapport Preview slide.');
           setLoading(false);
           return;

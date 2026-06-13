@@ -114,7 +114,10 @@ export default function OffertebijlageDialog({ open, onClose, lead, onUpdate }: 
     setGenerating(true);
     try {
       const ok = await handleSave();
-      if (!ok) return;
+      if (!ok) {
+        if (fallbackWindow && !fallbackWindow.closed) fallbackWindow.close();
+        return;
+      }
       const useReviews = includeReviews && reviewsData && reviewsData.reviews?.length > 0;
       console.log('[OffertebijlageDialog] start PDF', { useReviews, reviewsCount: reviewsData?.reviews?.length });
       const blob = await pdf(
