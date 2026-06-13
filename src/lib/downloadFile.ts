@@ -2,7 +2,6 @@ export type PreparedDownloadWindow = Window | null;
 
 const isBrowser = () => typeof window !== 'undefined' && typeof document !== 'undefined';
 const escapeHtml = (value: string) => value.replace(/[&<>"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[char] || char));
-const escapeJs = (value: string) => value.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n').replace(/\r/g, '\\r');
 
 export const openDownloadWindow = (filename: string): PreparedDownloadWindow => {
   if (!isBrowser()) return null;
