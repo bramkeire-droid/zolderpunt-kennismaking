@@ -31,7 +31,7 @@ export interface OffertebijlageData {
 const s = StyleSheet.create({
   page: {
     backgroundColor: COLORS.warmWhite,
-    padding: 40,
+    padding: 32,
     fontFamily: 'RethinkSans',
     fontSize: 10,
     color: COLORS.dark,
@@ -40,38 +40,38 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 24,
-    paddingBottom: 16,
+    marginBottom: 14,
+    paddingBottom: 10,
     borderBottomWidth: 2,
     borderBottomColor: COLORS.primary,
   },
   title: {
     fontFamily: 'SpaceGrotesk',
     fontWeight: 700,
-    fontSize: 22,
+    fontSize: 18,
     color: COLORS.dark,
     marginTop: 4,
   },
-  subtitle: { fontSize: 10, color: COLORS.subtekst, marginTop: 2 },
-  metaRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 18 },
-  metaLabel: { fontSize: 8, color: COLORS.grijs, textTransform: 'uppercase', letterSpacing: 1 },
-  metaValue: { fontSize: 11, fontWeight: 600, color: COLORS.dark, marginTop: 2 },
+  subtitle: { fontSize: 9, color: COLORS.subtekst, marginTop: 2 },
+  metaRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
+  metaLabel: { fontSize: 7, color: COLORS.grijs, textTransform: 'uppercase', letterSpacing: 1 },
+  metaValue: { fontSize: 10, fontWeight: 600, color: COLORS.dark, marginTop: 2 },
   sectionLabel: {
-    fontSize: 9,
+    fontSize: 8,
     color: COLORS.primary,
     fontWeight: 700,
     textTransform: 'uppercase',
     letterSpacing: 1.5,
-    marginBottom: 10,
+    marginBottom: 5,
   },
   sectionTitle: {
     fontFamily: 'SpaceGrotesk',
     fontWeight: 700,
-    fontSize: 16,
+    fontSize: 13,
     color: COLORS.dark,
-    marginBottom: 14,
+    marginBottom: 8,
   },
-  section: { marginBottom: 26 },
+  section: { marginBottom: 14 },
 
   // Facturatie
   faseRow: {
@@ -80,37 +80,37 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.lightGray,
     backgroundColor: COLORS.white,
-    padding: 12,
-    marginBottom: 8,
+    padding: 8,
+    marginBottom: 5,
   },
   faseNr: {
-    width: 28, height: 28,
+    width: 22, height: 22,
     backgroundColor: COLORS.primary,
     color: COLORS.white,
     fontFamily: 'SpaceGrotesk', fontWeight: 700,
-    fontSize: 13,
+    fontSize: 11,
     textAlign: 'center',
-    paddingTop: 5,
-    marginRight: 12,
+    paddingTop: 4,
+    marginRight: 10,
   },
   faseInfo: { flex: 1 },
-  faseTitle: { fontFamily: 'SpaceGrotesk', fontWeight: 700, fontSize: 12, color: COLORS.dark },
-  faseSub: { fontSize: 9, color: COLORS.subtekst, marginTop: 2 },
-  faseBedrag: { fontFamily: 'SpaceGrotesk', fontWeight: 700, fontSize: 14, color: COLORS.primary, textAlign: 'right' },
-  fasePct: { fontSize: 9, color: COLORS.grijs, textAlign: 'right', marginTop: 1 },
+  faseTitle: { fontFamily: 'SpaceGrotesk', fontWeight: 700, fontSize: 11, color: COLORS.dark },
+  faseSub: { fontSize: 8.5, color: COLORS.subtekst, marginTop: 1 },
+  faseBedrag: { fontFamily: 'SpaceGrotesk', fontWeight: 700, fontSize: 12, color: COLORS.primary, textAlign: 'right' },
+  fasePct: { fontSize: 8, color: COLORS.grijs, textAlign: 'right', marginTop: 1 },
 
   totalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 6,
-    paddingHorizontal: 12, paddingVertical: 10,
+    marginTop: 4,
+    paddingHorizontal: 10, paddingVertical: 7,
     backgroundColor: COLORS.primary,
   },
-  totalLabel: { fontFamily: 'SpaceGrotesk', fontWeight: 700, fontSize: 12, color: COLORS.white, textTransform: 'uppercase', letterSpacing: 1 },
-  totalValue: { fontFamily: 'SpaceGrotesk', fontWeight: 700, fontSize: 16, color: COLORS.white },
+  totalLabel: { fontFamily: 'SpaceGrotesk', fontWeight: 700, fontSize: 11, color: COLORS.white, textTransform: 'uppercase', letterSpacing: 1 },
+  totalValue: { fontFamily: 'SpaceGrotesk', fontWeight: 700, fontSize: 14, color: COLORS.white },
 
-  btwNote: { fontSize: 8, color: COLORS.subtekst, marginTop: 8, fontStyle: 'italic' },
+  btwNote: { fontSize: 8, color: COLORS.subtekst, marginTop: 4, fontStyle: 'italic' },
 
   // Weekly invoice callout
   weeklyCallout: {
@@ -118,8 +118,8 @@ const s = StyleSheet.create({
     backgroundColor: '#FFF7E6',
     borderWidth: 1.5,
     borderColor: COLORS.gold,
-    padding: 14,
-    marginTop: 14,
+    padding: 9,
+    marginTop: 8,
     alignItems: 'center',
   },
   weeklyBadge: {
@@ -127,24 +127,24 @@ const s = StyleSheet.create({
     color: COLORS.white,
     fontFamily: 'SpaceGrotesk',
     fontWeight: 700,
-    fontSize: 9,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    marginRight: 14,
+    fontSize: 8,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    marginRight: 10,
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
   weeklyTitle: {
     fontFamily: 'SpaceGrotesk',
     fontWeight: 700,
-    fontSize: 13,
+    fontSize: 11,
     color: COLORS.dark,
   },
-  weeklySub: { fontSize: 10, color: COLORS.dark, marginTop: 3 },
+  weeklySub: { fontSize: 9, color: COLORS.dark, marginTop: 2 },
   weeklyAmount: {
     fontFamily: 'SpaceGrotesk',
     fontWeight: 700,
-    fontSize: 18,
+    fontSize: 14,
     color: COLORS.primary,
     marginLeft: 'auto',
   },
@@ -153,19 +153,19 @@ const s = StyleSheet.create({
   timelineWrap: {
     backgroundColor: COLORS.white,
     borderWidth: 1, borderColor: COLORS.lightGray,
-    padding: 16,
+    padding: 10,
   },
   timeline: {
     flexDirection: 'row',
     alignItems: 'stretch',
-    marginTop: 8,
+    marginTop: 4,
   },
   tlBlock: {
     flex: 1,
     marginHorizontal: 2,
     borderWidth: 1, borderColor: COLORS.lightGray,
-    padding: 6,
-    minHeight: 50,
+    padding: 4,
+    minHeight: 38,
     backgroundColor: COLORS.warmWhite,
   },
   tlBlockActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
@@ -174,105 +174,181 @@ const s = StyleSheet.create({
   tlNr: { fontFamily: 'SpaceGrotesk', fontWeight: 700, fontSize: 10, color: COLORS.white, textAlign: 'center' },
   tlLabel: { fontSize: 7, color: COLORS.white, textAlign: 'center', marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.5 },
   tlSub: { fontSize: 7, color: COLORS.white, textAlign: 'center', marginTop: 1 },
-  legendRow: { flexDirection: 'row', marginTop: 14, gap: 14 },
+  legendRow: { flexDirection: 'row', marginTop: 8, gap: 12 },
   legendItem: { flexDirection: 'row', alignItems: 'center' },
-  legendDot: { width: 10, height: 10, marginRight: 4 },
+  legendDot: { width: 9, height: 9, marginRight: 4 },
   legendText: { fontSize: 8, color: COLORS.subtekst },
 
   footer: {
     position: 'absolute',
-    bottom: 24, left: 40, right: 40,
+    bottom: 18, left: 32, right: 32,
     flexDirection: 'row', justifyContent: 'space-between',
     borderTopWidth: 1, borderTopColor: COLORS.lightGray,
-    paddingTop: 8,
+    paddingTop: 6,
     fontSize: 8, color: COLORS.grijs,
   },
 
-
-  // Reviews
+  // ============ Reviews ============
   reviewsHero: {
     backgroundColor: COLORS.primary,
-    paddingHorizontal: 28,
-    paddingVertical: 22,
-    marginBottom: 22,
+    paddingHorizontal: 22,
+    paddingVertical: 16,
+    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
+  reviewsHeroLeft: { flex: 1, paddingRight: 14 },
   reviewsKicker: {
     fontFamily: 'RethinkSans',
     fontSize: 8,
     color: COLORS.white,
     letterSpacing: 2,
-    opacity: 0.75,
-    marginBottom: 6,
+    opacity: 0.8,
+    marginBottom: 5,
   },
   reviewsTitle: {
     fontFamily: 'SpaceGrotesk',
     fontWeight: 700,
-    fontSize: 24,
+    fontSize: 20,
     color: COLORS.white,
+    lineHeight: 1.15,
   },
-  reviewsScore: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    marginTop: 8,
-  },
-  reviewsScoreNum: {
-    fontFamily: 'SpaceGrotesk',
-    fontWeight: 700,
-    fontSize: 22,
-    color: COLORS.white,
-    marginRight: 8,
-  },
-  reviewsScoreSub: {
-    fontFamily: 'RethinkSans',
-    fontSize: 10,
+  reviewsLead: {
+    fontSize: 9,
     color: COLORS.white,
     opacity: 0.85,
+    marginTop: 6,
   },
-  reviewGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  reviewCard: {
-    width: '48%',
-    marginRight: '2%',
-    marginBottom: 12,
-    backgroundColor: COLORS.white,
+  reviewsScoreCard: {
+    backgroundColor: 'rgba(255,255,255,0.14)',
     borderWidth: 1,
-    borderColor: COLORS.lightGray,
-    padding: 12,
+    borderColor: 'rgba(255,255,255,0.3)',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    alignItems: 'center',
+    minWidth: 140,
   },
-  reviewTop: {
+  googleBadge: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 4,
   },
-  reviewStars: {
+  googleG: {
+    width: 16, height: 16,
+    borderRadius: 8,
+    backgroundColor: COLORS.white,
+    color: COLORS.primary,
     fontFamily: 'SpaceGrotesk',
     fontWeight: 700,
-    fontSize: 11,
-    color: COLORS.gold,
-    letterSpacing: 1,
+    fontSize: 10,
+    textAlign: 'center',
+    paddingTop: 2,
+    marginRight: 5,
   },
-  reviewTime: { fontSize: 8, color: COLORS.grijs },
+  googleBadgeText: {
+    fontSize: 8,
+    color: COLORS.white,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+  },
+  scoreBig: {
+    fontFamily: 'SpaceGrotesk',
+    fontWeight: 700,
+    fontSize: 28,
+    color: COLORS.white,
+    lineHeight: 1,
+  },
+  scoreStarsBig: {
+    fontFamily: 'SpaceGrotesk',
+    fontWeight: 700,
+    fontSize: 14,
+    color: COLORS.gold,
+    letterSpacing: 2,
+    marginTop: 4,
+  },
+  scoreSub: {
+    fontSize: 8,
+    color: COLORS.white,
+    opacity: 0.9,
+    marginTop: 4,
+    textAlign: 'center',
+  },
+
+  reviewGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginHorizontal: -4,
+  },
+  reviewCardWrap: {
+    width: '50%',
+    paddingHorizontal: 4,
+    marginBottom: 8,
+  },
+  reviewCard: {
+    backgroundColor: COLORS.white,
+    borderWidth: 1,
+    borderColor: COLORS.lightGray,
+    borderLeftWidth: 3,
+    borderLeftColor: COLORS.primary,
+    padding: 10,
+  },
+  reviewHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  reviewAvatar: {
+    width: 26, height: 26,
+    borderRadius: 13,
+    backgroundColor: COLORS.primary,
+    color: COLORS.white,
+    fontFamily: 'SpaceGrotesk',
+    fontWeight: 700,
+    fontSize: 10,
+    textAlign: 'center',
+    paddingTop: 7,
+    marginRight: 8,
+  },
+  reviewHeadInfo: { flex: 1 },
   reviewAuthor: {
     fontFamily: 'SpaceGrotesk',
     fontWeight: 700,
     fontSize: 10,
     color: COLORS.dark,
+  },
+  reviewTime: { fontSize: 7.5, color: COLORS.grijs, marginTop: 1 },
+  reviewStars: {
+    fontFamily: 'SpaceGrotesk',
+    fontWeight: 700,
+    fontSize: 12,
+    color: COLORS.gold,
+    letterSpacing: 1.5,
     marginBottom: 4,
   },
   reviewText: { fontSize: 9, color: COLORS.subtekst, lineHeight: 1.45 },
+
+  reviewSourceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 4,
+  },
   reviewSource: {
-    fontSize: 7,
+    fontSize: 7.5,
     color: COLORS.grijs,
-    marginTop: 6,
     fontStyle: 'italic',
+  },
+  reviewPowered: {
+    fontSize: 7.5,
+    color: COLORS.grijs,
   },
 });
 
 const truncate = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1).trimEnd() + '…' : s);
 const stars = (n: number) => '★'.repeat(Math.max(0, Math.min(5, Math.round(n)))) + '☆'.repeat(5 - Math.max(0, Math.min(5, Math.round(n))));
+const initials = (name: string) =>
+  name.trim().split(/\s+/).slice(0, 2).map(w => w[0]?.toUpperCase() || '').join('') || '?';
 
 export default function OffertebijlagePdf({ data }: { data: OffertebijlageData }) {
   const voorschot = data.bedragExcl * 0.30;
@@ -284,8 +360,9 @@ export default function OffertebijlagePdf({ data }: { data: OffertebijlageData }
   const totalInclBtw = data.bedragExcl * btwFactor;
 
   const klant = `${data.voornaam} ${data.achternaam}`.trim() || '—';
-  const reviews = (data.reviews || []).slice(0, 8);
+  const reviews = (data.reviews || []).slice(0, 6);
   const hasReviews = reviews.length > 0;
+  const rating = data.reviewsRating || 5;
 
   return (
     <Document>
@@ -293,11 +370,11 @@ export default function OffertebijlagePdf({ data }: { data: OffertebijlageData }
         {/* Header */}
         <View style={s.header}>
           <View>
-            <Text style={{ fontSize: 9, color: COLORS.primary, letterSpacing: 2, fontWeight: 700 }}>BIJLAGE BIJ DE OFFERTE</Text>
+            <Text style={{ fontSize: 8, color: COLORS.primary, letterSpacing: 2, fontWeight: 700 }}>BIJLAGE BIJ DE OFFERTE</Text>
             <Text style={s.title}>Facturatie & Planning</Text>
             <Text style={s.subtitle}>Transparante verdeling per fase en duidelijke tijdlijn van het project.</Text>
           </View>
-          <LogoPdf width={110} />
+          <LogoPdf width={100} />
         </View>
 
         {/* Meta */}
@@ -377,7 +454,7 @@ export default function OffertebijlagePdf({ data }: { data: OffertebijlageData }
                 Elke vrijdag verstuurd · betaalbaar binnen 7 dagen
               </Text>
             </View>
-            <Text style={s.weeklyAmount}>{fmtEur(perWeek)}<Text style={{ fontSize: 9, color: COLORS.subtekst, fontWeight: 400 }}> / week</Text></Text>
+            <Text style={s.weeklyAmount}>{fmtEur(perWeek)}<Text style={{ fontSize: 8, color: COLORS.subtekst, fontWeight: 400 }}> / week</Text></Text>
           </View>
 
           <Text style={s.btwNote}>
@@ -444,36 +521,50 @@ export default function OffertebijlagePdf({ data }: { data: OffertebijlageData }
         <Page size="A4" style={s.page}>
           {/* Hero */}
           <View style={s.reviewsHero}>
-            <Text style={s.reviewsKicker}>ERVARINGEN · GOOGLE REVIEWS</Text>
-            <Text style={s.reviewsTitle}>Wat klanten over ons zeggen</Text>
-            {(data.reviewsTotal || data.reviewsRating) ? (
-              <View style={s.reviewsScore}>
-                <Text style={s.reviewsScoreNum}>
-                  {(data.reviewsRating || 5).toFixed(1)} {stars(data.reviewsRating || 5)}
-                </Text>
-                <Text style={s.reviewsScoreSub}>
-                  op basis van {data.reviewsTotal || reviews.length} Google reviews
-                </Text>
+            <View style={s.reviewsHeroLeft}>
+              <Text style={s.reviewsKicker}>★  ERVARINGEN  ·  GOOGLE REVIEWS  ★</Text>
+              <Text style={s.reviewsTitle}>Wat klanten over ons zeggen</Text>
+              <Text style={s.reviewsLead}>
+                Echte verhalen van klanten die kozen voor Zolderpunt — opgehaald rechtstreeks bij Google.
+              </Text>
+            </View>
+            <View style={s.reviewsScoreCard}>
+              <View style={s.googleBadge}>
+                <Text style={s.googleG}>G</Text>
+                <Text style={s.googleBadgeText}>Google</Text>
               </View>
-            ) : null}
+              <Text style={s.scoreBig}>{rating.toFixed(1)}</Text>
+              <Text style={s.scoreStarsBig}>{stars(rating)}</Text>
+              <Text style={s.scoreSub}>
+                {data.reviewsTotal || reviews.length} reviews
+              </Text>
+            </View>
           </View>
 
           <View style={s.reviewGrid}>
             {reviews.map((r, i) => (
-              <View key={i} style={s.reviewCard} wrap={false}>
-                <View style={s.reviewTop}>
+              <View key={i} style={s.reviewCardWrap} wrap={false}>
+                <View style={s.reviewCard}>
+                  <View style={s.reviewHead}>
+                    <Text style={s.reviewAvatar}>{initials(r.author)}</Text>
+                    <View style={s.reviewHeadInfo}>
+                      <Text style={s.reviewAuthor}>{r.author}</Text>
+                      <Text style={s.reviewTime}>{r.relativeTime}</Text>
+                    </View>
+                  </View>
                   <Text style={s.reviewStars}>{stars(r.rating)}</Text>
-                  <Text style={s.reviewTime}>{r.relativeTime}</Text>
+                  <Text style={s.reviewText}>"{truncate((r.text || '').replace(/\s+/g, ' ').trim(), 280)}"</Text>
                 </View>
-                <Text style={s.reviewAuthor}>{r.author}</Text>
-                <Text style={s.reviewText}>"{truncate((r.text || '').replace(/\s+/g, ' ').trim(), 320)}"</Text>
               </View>
             ))}
           </View>
 
-          <Text style={s.reviewSource}>
-            Bron: Google Reviews · opgehaald op {formatDatum(new Date().toISOString().slice(0, 10))}
-          </Text>
+          <View style={s.reviewSourceRow}>
+            <Text style={s.reviewSource}>
+              Bron: Google Reviews · opgehaald op {formatDatum(new Date().toISOString().slice(0, 10))}
+            </Text>
+            <Text style={s.reviewPowered}>Powered by Google</Text>
+          </View>
 
           <View style={s.footer} fixed>
             <Text>Zolderpunt · {CONTACT_WEBSITE}</Text>
