@@ -191,6 +191,24 @@ export default function OffertebijlageDialog({ open, onClose, lead, onUpdate }: 
           </div>
         </div>
 
+        {/* Klantgegevens — bewerkbaar (vooral nuttig zonder dossier) */}
+        {!lead?.id && (
+          <div className="bg-card border border-dashed border-border p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div>
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Voornaam</Label>
+              <Input value={voornaam} onChange={e => setVoornaam(e.target.value)} className="mt-1" />
+            </div>
+            <div>
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Achternaam</Label>
+              <Input value={achternaam} onChange={e => setAchternaam(e.target.value)} className="mt-1" />
+            </div>
+            <div>
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Adres</Label>
+              <Input value={adres} onChange={e => setAdres(e.target.value)} className="mt-1" />
+            </div>
+          </div>
+        )}
+
         {/* Inputs */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="bg-card border-2 border-primary p-5">
