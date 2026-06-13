@@ -187,7 +187,7 @@ const s = StyleSheet.create({
     paddingTop: 8,
     fontSize: 8, color: COLORS.grijs,
   },
-});
+
 
   // Reviews
   reviewsHero: {
