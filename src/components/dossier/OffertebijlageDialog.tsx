@@ -270,6 +270,25 @@ export default function OffertebijlageDialog({ open, onClose, lead, onUpdate }: 
           <button onClick={() => setBtwPct(21)} className={`px-3 py-1 ${btwPct === 21 ? 'bg-primary text-white' : 'bg-muted'}`}>21%</button>
         </div>
 
+        {/* Google reviews-blad toggle */}
+        <label className="flex items-center gap-2 bg-card border border-border p-3 cursor-pointer">
+          <Checkbox
+            checked={includeReviews && !!reviewsData?.reviews?.length}
+            disabled={!reviewsData?.reviews?.length}
+            onCheckedChange={(v) => setIncludeReviews(!!v)}
+          />
+          <div className="flex-1">
+            <div className="text-sm font-headline font-semibold">Google reviews bijvoegen als laatste pagina</div>
+            <div className="text-[11px] text-muted-foreground">
+              {reviewsLoading
+                ? 'Reviews ophalen…'
+                : reviewsData?.reviews?.length
+                  ? `${reviewsData.reviews.length} reviews · gemiddelde ${reviewsData.rating?.toFixed(1)} ★ (${reviewsData.total} totaal)${reviewsData.stale ? ' · cache' : ''}`
+                  : 'Geen reviews beschikbaar'}
+            </div>
+          </div>
+        </label>
+
         {/* Live preview verdeling */}
         <div className="grid grid-cols-3 gap-2">
           <PreviewBlock label="Voorschot" pct="30%" bedrag={voorschot} />
