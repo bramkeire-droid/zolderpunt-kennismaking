@@ -1,18 +1,21 @@
 export type PreparedDownloadWindow = Window | null;
 
 const isBrowser = () => typeof window !== 'undefined' && typeof document !== 'undefined';
+const escapeHtml = (value: string) => value.replace(/[&<>"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[char] || char));
 
 export const openDownloadWindow = (filename: string): PreparedDownloadWindow => {
   if (!isBrowser()) return null;
 
-  const popup = window.open('', '_blank', 'noopener,noreferrer');
+  const popup = window.open('', '_blank');
   if (!popup) return null;
+  popup.opener = null;
+  const safeFilename = escapeHtml(filename);
 
   popup.document.write(`<!doctype html>
     <html lang="nl">
       <head>
         <meta charset="utf-8" />
-        <title>${filename}</title>
+        <title>${safeFilename}</title>
         <style>
           body { margin: 0; min-height: 100vh; display: grid; place-items: center; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #0f172a; background: #f8fafc; }
           main { text-align: center; max-width: 520px; padding: 32px; }
@@ -20,7 +23,7 @@ export const openDownloadWindow = (filename: string): PreparedDownloadWindow => 
           span { color: #475569; }
         </style>
       </head>
-      <body><main><strong>PDF wordt gemaakt…</strong><span>${filename}</span></main></body>
+      <body><main><strong>PDF wordt gemaakt…</strong><span>${safeFilename}</span></main></body>
     </html>`);
   popup.document.close();
   return popup;
@@ -43,19 +46,37 @@ export const downloadBlob = async (blob: Blob, filename: string, preparedWindow?
     anchor.click();
 
     if (preparedWindow && !preparedWindow.closed) {
-      window.setTimeout(() => {
-        try {
-          preparedWindow.location.href = url;
-        } catch {
-          window.open(url, '_blank', 'noopener,noreferrer');
-        }
-      }, 350);
+      const safeFilename = escapeHtml(filename);
+      preparedWindow.document.open();
+      preparedWindow.document.write(`<!doctype html>
+        <html lang="nl">
+          <head>
+            <meta charset="utf-8" />
+            <title>${safeFilename}</title>
+            <style>
+              body { margin: 0; min-height: 100vh; display: grid; place-items: center; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #0f172a; background: #f8fafc; }
+              main { text-align: center; max-width: 560px; padding: 32px; }
+              strong { display: block; font-size: 22px; margin-bottom: 10px; }
+              p { color: #475569; line-height: 1.5; }
+              a { display: inline-block; margin-top: 18px; padding: 12px 18px; color: #ffffff; background: #008CFF; text-decoration: none; font-weight: 700; }
+            </style>
+          </head>
+          <body>
+            <main>
+              <strong>PDF is klaar</strong>
+              <p>Als de download niet automatisch startte, klik hieronder. Het document opent ook in dit venster zodat je het altijd kan bewaren.</p>
+              <a id="download-link" href="${url}" download="${safeFilename}">PDF downloaden</a>
+            </main>
+            <script>setTimeout(function(){ document.getElementById('download-link').click(); }, 100);</script>
+          </body>
+        </html>`);
+      preparedWindow.document.close();
     }
   } finally {
     window.setTimeout(() => {
       anchor.remove();
       URL.revokeObjectURL(url);
-    }, 60_000);
+    }, preparedWindow ? 300_000 : 60_000);
   }
 };
 
