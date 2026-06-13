@@ -456,22 +456,22 @@ export default function OffertebijlagePdf({ data }: { data: OffertebijlageData }
 
           {/* Uitleg-blok */}
           <View style={s.explainWrap}>
-            <Text style={s.sectionLabel}>Zo werken we — zekerheid voor jou</Text>
+            <Text style={s.sectionLabel}>Waarom we zo factureren</Text>
             <Text style={s.explainLead}>
-              Transparant en zonder verrassingen: je betaalt mee met het tempo van de werf — een beperkt voorschot, daarna wekelijks exact de uitgevoerde week, en het saldo pas bij oplevering.
+              Je betaalt mee met het tempo van de werf — nooit voor werk dat nog niet is uitgevoerd.
             </Text>
             <View style={s.explainCols}>
               <View style={s.explainCard}>
                 <Text style={s.explainTitle}>Beperkt voorschot · 30%</Text>
-                <Text style={s.explainText}>Bij ondertekening, om je materialen te bestellen en je plek in de planning vast te zetten. Geen grote brok vooraf.</Text>
+                <Text style={s.explainText}>Bij ondertekening, om je materialen te bestellen en je plek in de planning vast te zetten. Geen grote som vóór er één plank ligt.</Text>
               </View>
               <View style={s.explainCard}>
                 <Text style={s.explainTitle}>Wekelijks meebetalen · 60%</Text>
-                <Text style={s.explainText}>Elke vrijdag één factuur voor de uitgevoerde week, betaalbaar binnen 7 dagen. Werk en factuur lopen gelijk.</Text>
+                <Text style={s.explainText}>Elke vrijdag één vaste weekfactuur, betaalbaar binnen 7 dagen. Voorspelbare schijven — werk en factuur lopen gelijk. Geen grote eindafrekening.</Text>
               </View>
               <View style={[s.explainCard, s.explainCardLast]}>
                 <Text style={s.explainTitle}>Saldo bij oplevering · 10%</Text>
-                <Text style={s.explainText}>Pas na jouw goedkeuring. Dat is jouw garantie dat we afwerken tot in de puntjes.</Text>
+                <Text style={s.explainText}>Pas na jouw goedkeuring van de afgewerkte zolder. Wij krijgen het saldo pas als alles tot in de puntjes klopt.</Text>
               </View>
             </View>
           </View>
@@ -536,7 +536,7 @@ export default function OffertebijlagePdf({ data }: { data: OffertebijlageData }
           {/* Hero */}
           <View style={s.reviewsHero}>
             <View style={s.reviewsHeroLeft}>
-              <Text style={s.reviewsKicker}>★  ERVARINGEN  ·  GOOGLE REVIEWS  ★</Text>
+              <Text style={s.reviewsKicker}>★  GEVERIFIEERDE GOOGLE-REVIEWS  ★</Text>
               <Text style={s.reviewsTitle}>Wat klanten over ons zeggen</Text>
               <Text style={s.reviewsLead}>
                 Echte verhalen van klanten die kozen voor Zolderpunt — opgehaald rechtstreeks bij Google.
