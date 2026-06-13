@@ -30,6 +30,9 @@ export default function OffertebijlageDialog({ open, onClose, lead, onUpdate }: 
   const [weken, setWeken] = useState<number>(initialSettings.weken || 5);
   const [trapgat, setTrapgat] = useState<boolean>(initialSettings.trapgat ?? !!lead?.technisch?.trap);
   const [btwPct, setBtwPct] = useState<6 | 21>((lead?.btw_percentage === 21 ? 21 : 6) as 6 | 21);
+  const [voornaam, setVoornaam] = useState<string>(lead?.voornaam || '');
+  const [achternaam, setAchternaam] = useState<string>(lead?.achternaam || '');
+  const [adres, setAdres] = useState<string>(lead?.adres || '');
   const [saving, setSaving] = useState(false);
   const [generating, setGenerating] = useState(false);
 
@@ -41,6 +44,9 @@ export default function OffertebijlageDialog({ open, onClose, lead, onUpdate }: 
     setWeken(lead?.offerte_bijlage_settings?.weken || 5);
     setTrapgat(lead?.offerte_bijlage_settings?.trapgat ?? !!lead?.technisch?.trap);
     setBtwPct((lead?.btw_percentage === 21 ? 21 : 6) as 6 | 21);
+    setVoornaam(lead?.voornaam || '');
+    setAchternaam(lead?.achternaam || '');
+    setAdres(lead?.adres || '');
   }, [open, lead?.id]);
 
   // Vergelijking met intake-range (excl. BTW). Fallback op budget_min/max indien geen excl beschikbaar.
@@ -93,9 +99,9 @@ export default function OffertebijlageDialog({ open, onClose, lead, onUpdate }: 
       const blob = await pdf(
         <OffertebijlagePdf
           data={{
-            voornaam: lead?.voornaam || '',
-            achternaam: lead?.achternaam || '',
-            adres: lead?.adres || '',
+            voornaam: voornaam || '',
+            achternaam: achternaam || '',
+            adres: adres || '',
             datum: offerteDatum,
             offerteNummer: offerteNummer.trim(),
             bedragExcl: bedrag,
@@ -108,7 +114,7 @@ export default function OffertebijlageDialog({ open, onClose, lead, onUpdate }: 
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `Zolderpunt_Offertebijlage_${slug(offerteNummer.trim())}_${slug(lead?.achternaam || 'Klant')}.pdf`;
+      a.download = `Zolderpunt_Offertebijlage_${slug(offerteNummer.trim())}_${slug(achternaam || 'Klant')}.pdf`;
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
       URL.revokeObjectURL(url);
       toast.success('Offertebijlage gedownload');
@@ -185,6 +191,24 @@ export default function OffertebijlageDialog({ open, onClose, lead, onUpdate }: 
           </div>
         </div>
 
+        {/* Klantgegevens — bewerkbaar (vooral nuttig zonder dossier) */}
+        {!lead?.id && (
+          <div className="bg-card border border-dashed border-border p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div>
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Voornaam</Label>
+              <Input value={voornaam} onChange={e => setVoornaam(e.target.value)} className="mt-1" />
+            </div>
+            <div>
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Achternaam</Label>
+              <Input value={achternaam} onChange={e => setAchternaam(e.target.value)} className="mt-1" />
+            </div>
+            <div>
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Adres</Label>
+              <Input value={adres} onChange={e => setAdres(e.target.value)} className="mt-1" />
+            </div>
+          </div>
+        )}
+
         {/* Inputs */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="bg-card border-2 border-primary p-5">
@@ -243,10 +267,12 @@ export default function OffertebijlageDialog({ open, onClose, lead, onUpdate }: 
 
         <div className="flex justify-end gap-2 pt-2">
           <Button variant="outline" onClick={onClose}>Sluiten</Button>
-          <Button variant="outline" onClick={handleSave} disabled={saving || !lead?.id}>
-            {saving ? 'Opslaan…' : 'Enkel opslaan'}
-          </Button>
-          <Button onClick={handleDownload} disabled={generating || !lead?.id} className="gap-2">
+          {lead?.id && (
+            <Button variant="outline" onClick={handleSave} disabled={saving}>
+              {saving ? 'Opslaan…' : 'Enkel opslaan'}
+            </Button>
+          )}
+          <Button onClick={handleDownload} disabled={generating} className="gap-2">
             <Download className="h-4 w-4" />
             {generating ? 'Bezig…' : 'Bijlage downloaden'}
           </Button>
