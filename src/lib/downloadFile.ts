@@ -2,6 +2,29 @@ export type PreparedDownloadWindow = Window | null;
 
 const isBrowser = () => typeof window !== 'undefined' && typeof document !== 'undefined';
 const escapeHtml = (value: string) => value.replace(/[&<>"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[char] || char));
+const bytesToBase64 = (bytes: Uint8Array) => {
+  let binary = '';
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+  return btoa(binary);
+};
+
+const forceAnchorDownload = (blob: Blob, filename: string) => {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.rel = 'noopener';
+  anchor.style.display = 'none';
+  document.body.appendChild(anchor);
+  anchor.click();
+  window.setTimeout(() => {
+    anchor.remove();
+    URL.revokeObjectURL(url);
+  }, 60_000);
+};
 
 export const openDownloadWindow = (filename: string): PreparedDownloadWindow => {
   if (!isBrowser()) return null;
@@ -33,20 +56,17 @@ export const downloadBlob = async (blob: Blob, filename: string, preparedWindow?
   if (!isBrowser()) throw new Error('Downloaden kan alleen in de browser.');
   if (!(blob instanceof Blob) || blob.size === 0) throw new Error('PDF is leeg en werd niet gedownload.');
 
-  const pdfBlob = blob.type === 'application/pdf' ? blob : new Blob([await blob.arrayBuffer()], { type: 'application/pdf' });
-  const url = URL.createObjectURL(pdfBlob);
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = filename;
-  anchor.rel = 'noopener';
-  anchor.style.display = 'none';
-  document.body.appendChild(anchor);
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  const downloadBlob = new Blob([bytes as BlobPart], { type: 'application/octet-stream' });
+  const previewBlob = new Blob([bytes as BlobPart], { type: 'application/pdf' });
+  const base64 = bytesToBase64(bytes);
 
   try {
-    anchor.click();
+    forceAnchorDownload(downloadBlob, filename);
 
     if (preparedWindow && !preparedWindow.closed) {
       const safeFilename = escapeHtml(filename);
+      const previewUrl = URL.createObjectURL(previewBlob);
       preparedWindow.document.open();
       preparedWindow.document.write(`<!doctype html>
         <html lang="nl">
@@ -58,28 +78,56 @@ export const downloadBlob = async (blob: Blob, filename: string, preparedWindow?
               main { text-align: center; max-width: 560px; padding: 32px; }
               strong { display: block; font-size: 22px; margin-bottom: 10px; }
               p { color: #475569; line-height: 1.5; }
-              a { display: inline-block; margin-top: 18px; padding: 12px 18px; color: #ffffff; background: #008CFF; text-decoration: none; font-weight: 700; }
+              button, a { display: inline-block; margin: 10px 6px 0; padding: 12px 18px; border: 0; color: #ffffff; background: #008CFF; text-decoration: none; font-weight: 700; font: inherit; cursor: pointer; }
+              a.secondary { color: #008CFF; background: transparent; }
             </style>
           </head>
           <body>
             <main>
               <strong>PDF is klaar</strong>
-              <p>Als de download niet automatisch startte, klik hieronder. Openen kan apart, maar deze pagina blijft beschikbaar om te downloaden.</p>
-              <a id="download-link" href="${url}" download="${safeFilename}">PDF downloaden</a>
-              <p><a href="${url}" target="_blank" rel="noopener">PDF openen</a></p>
+              <p>Als de download niet automatisch startte, klik op downloaden. Deze knop schrijft het bestand opnieuw weg als echte download, niet als viewer-link.</p>
+              <button id="download-link" type="button">PDF downloaden</button>
+              <a class="secondary" href="${previewUrl}" target="_blank" rel="noopener">PDF bekijken</a>
             </main>
             <script>
-              setTimeout(function(){ document.getElementById('download-link').click(); }, 100);
+              const filename = ${JSON.stringify(filename)};
+              const base64 = '${base64}';
+              function toBytes(value) {
+                const binary = atob(value);
+                const bytes = new Uint8Array(binary.length);
+                for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+                return bytes;
+              }
+              async function savePdf() {
+                const bytes = toBytes(base64);
+                if (window.showSaveFilePicker) {
+                  try {
+                    const handle = await window.showSaveFilePicker({ suggestedName: filename, types: [{ description: 'PDF', accept: { 'application/pdf': ['.pdf'] } }] });
+                    const writable = await handle.createWritable();
+                    await writable.write(new Blob([bytes], { type: 'application/pdf' }));
+                    await writable.close();
+                    return;
+                  } catch (error) {
+                    if (error && error.name === 'AbortError') return;
+                  }
+                }
+                const url = URL.createObjectURL(new Blob([bytes], { type: 'application/octet-stream' }));
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                setTimeout(function(){ URL.revokeObjectURL(url); }, 60000);
+              }
+              document.getElementById('download-link').addEventListener('click', savePdf);
             </script>
           </body>
         </html>`);
       preparedWindow.document.close();
     }
   } finally {
-    window.setTimeout(() => {
-      anchor.remove();
-      URL.revokeObjectURL(url);
-    }, preparedWindow ? 900_000 : 60_000);
+    // Object URLs created for the fallback preview must remain valid while the download window is open.
   }
 };
 
