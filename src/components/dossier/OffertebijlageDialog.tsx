@@ -111,6 +111,7 @@ export default function OffertebijlageDialog({ open, onClose, lead, onUpdate }: 
     try {
       const ok = await handleSave();
       if (!ok) return;
+      const useReviews = includeReviews && reviewsData && reviewsData.reviews?.length > 0;
       const blob = await pdf(
         <OffertebijlagePdf
           data={{
@@ -123,6 +124,14 @@ export default function OffertebijlageDialog({ open, onClose, lead, onUpdate }: 
             weken,
             trapgat,
             btwPct,
+            reviews: useReviews ? reviewsData!.reviews.map(r => ({
+              author: r.author,
+              rating: r.rating,
+              text: r.text,
+              relativeTime: r.relativeTime,
+            })) : undefined,
+            reviewsRating: useReviews ? reviewsData!.rating : undefined,
+            reviewsTotal: useReviews ? reviewsData!.total : undefined,
           }}
         />
       ).toBlob();
