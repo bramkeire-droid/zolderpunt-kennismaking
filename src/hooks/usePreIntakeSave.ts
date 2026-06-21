@@ -57,6 +57,8 @@ export function usePreIntakeSave() {
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   const lastSavedRef = useRef<string>('');
   const isSavingRef = useRef(false);
+  const dataRef = useRef<PreIntakeData>(data);
+  dataRef.current = data;
 
   const persistData = useCallback(async (d: PreIntakeData, showToast: boolean) => {
     if (!d.lead_id || !hasAnyData(d)) return;
@@ -106,19 +108,21 @@ export function usePreIntakeSave() {
   }, [update, toast]);
 
   const savePreIntake = useCallback(async () => {
-    await persistData(data, true);
-  }, [data, persistData]);
+    await persistData(dataRef.current, true);
+  }, [persistData]);
 
-  const flushSave = useCallback(async () => {
+  /** Flush onmiddellijk — accepteert optionele overrides die nog niet in React-state staan. */
+  const flushSave = useCallback(async (overrides?: Partial<PreIntakeData>) => {
     clearTimeout(debounceRef.current);
-    await persistData(data, false);
-  }, [data, persistData]);
+    const merged = overrides ? { ...dataRef.current, ...overrides } : dataRef.current;
+    await persistData(merged, false);
+  }, [persistData]);
 
   // Autosave every 5 seconds
   useEffect(() => {
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      persistData(data, false);
+      persistData(dataRef.current, false);
     }, 5000);
     return () => clearTimeout(debounceRef.current);
   }, [data, persistData]);
@@ -127,13 +131,14 @@ export function usePreIntakeSave() {
   useEffect(() => {
     const handleUnload = () => {
       clearTimeout(debounceRef.current);
-      if (hasAnyData(data)) {
-        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch {}
+      if (hasAnyData(dataRef.current)) {
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(dataRef.current)); } catch {}
       }
     };
     window.addEventListener('beforeunload', handleUnload);
     return () => window.removeEventListener('beforeunload', handleUnload);
-  }, [data]);
+  }, []);
 
   return { savePreIntake, flushSave };
 }
+
