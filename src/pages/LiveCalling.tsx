@@ -158,10 +158,18 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
   };
 
   const handleCloseCall = async () => {
-    update({ call_ended_at: new Date().toISOString(), call_duration_seconds: timer.elapsed });
+    const endedAt = new Date().toISOString();
+    const duration = timer.elapsed;
+    update({ call_ended_at: endedAt, call_duration_seconds: duration });
     timer.pause();
-    await ensureLeadRow();
-    await flushSave();
+    const leadId = await ensureLeadRow();
+    // Belangrijk: lead_id + tijden meegeven zodat de pre_intake-row meteen wegschrijft,
+    // zonder te wachten op een React re-render.
+    await flushSave({
+      lead_id: leadId ?? data.lead_id,
+      call_ended_at: endedAt,
+      call_duration_seconds: duration,
+    });
     setShowCloseDialog(false);
     setStep('wrap-up');
   };
@@ -172,8 +180,9 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
     if (leadId) {
       await supabase.from('leads').update({ status: 'telefoongesprek' }).eq('id', leadId);
     }
-    update({ locked_at: new Date().toISOString() });
-    await flushSave();
+    const lockedAt = new Date().toISOString();
+    update({ locked_at: lockedAt });
+    await flushSave({ lead_id: leadId ?? data.lead_id, locked_at: lockedAt });
     toast.success('Dossier opgeslagen');
     if (leadId && data.id) {
       onOpenValidation(leadId, data.id);
@@ -194,12 +203,13 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
   };
 
   const confirmBackSave = async () => {
-    await ensureLeadRow();
-    await flushSave();
+    const leadId = await ensureLeadRow();
+    await flushSave({ lead_id: leadId ?? data.lead_id });
     toast.success('Dossier bewaard');
     setShowBackConfirm(false);
     onGoDossiers();
   };
+
 
   const confirmBackDiscard = () => {
     setShowBackConfirm(false);
