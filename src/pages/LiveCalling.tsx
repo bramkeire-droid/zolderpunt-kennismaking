@@ -266,22 +266,29 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
 
     return (
       <div className="h-screen flex flex-col bg-[#F8F3EB]">
-        <div className="h-14 bg-white border-b border-[#DDD5C5] flex items-center px-6 shrink-0 gap-3">
-          <button onClick={handleBackToDossiers} className="flex items-center gap-2 text-sm font-dm text-[#5B6470] hover:text-[#0F1419]">
-            <ArrowLeft className="h-4 w-4" /> Naar dossiers
-          </button>
-          <div className="w-px h-5 bg-[#DDD5C5]" />
-          <button onClick={() => setStep('calling')} className="flex items-center gap-2 text-sm font-dm font-semibold text-[#008CFF] hover:text-[#0070CC]" title="Terug naar live invulscherm">
-            <ArrowLeft className="h-4 w-4" /> Terug naar gesprek
-          </button>
-          <div className="w-px h-5 bg-[#DDD5C5]" />
-          <h1 className="text-base font-dm font-bold text-[#0F1419]">Gesprek afwerken</h1>
-          <span className="text-xs font-body text-[#5B6470] ml-3">
-            {leadVoornaam} {leadAchternaam} — {Math.floor((data.call_duration_seconds || 0) / 60)} min
-          </span>
-          <button onClick={signOut} className="ml-auto p-2 text-[#5B6470] hover:text-[#0F1419] transition-colors" title="Uitloggen">
-            <LogOut className="h-4 w-4" />
-          </button>
+        <div className="shrink-0 bg-white border-b border-[#DDD5C5] px-6 py-3 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <span className="font-dm font-extrabold text-[18px] text-[#008CFF] tracking-[-0.02em]">zolderpunt.</span>
+            <div className="w-px h-5 bg-[#DDD5C5]" />
+            <h1 className="font-dm font-bold text-[14px] text-[#0F1419]">Gesprek afwerken</h1>
+            <span className="text-[12px] font-body text-[#5B6470]">
+              {leadVoornaam} {leadAchternaam} — {Math.floor((data.call_duration_seconds || 0) / 60)} min
+            </span>
+          </div>
+          <div className="flex items-center gap-3">
+            <button onClick={handleBackToDossiers}
+              className="h-11 bg-white text-[#0F1419] border-2 border-[#DDD5C5] px-5 font-dm font-semibold text-[14px] tracking-[0.02em] cursor-pointer hover:border-[#0F1419] transition-colors flex items-center gap-1.5">
+              <ArrowLeft className="h-4 w-4" /> Naar dossiers
+            </button>
+            <button onClick={() => setStep('calling')}
+              className="h-11 bg-[#008CFF] text-white border-none px-6 font-dm font-semibold text-[14px] tracking-[0.02em] cursor-pointer hover:bg-[#0070CC] transition-colors flex items-center gap-1.5"
+              title="Terug naar live invulscherm">
+              <ArrowLeft className="h-4 w-4" /> Terug naar gesprek
+            </button>
+            <button onClick={signOut} className="p-2 text-[#5B6470] hover:text-[#0F1419] transition-colors" title="Uitloggen">
+              <LogOut className="h-4 w-4" />
+            </button>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto">
@@ -418,15 +425,16 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
       {/* ═══ TOPBAR ═══ */}
       <div className="shrink-0 bg-white border-b border-[#DDD5C5] px-6 py-3 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <button onClick={handleBackToDossiers} className="flex items-center gap-1.5 text-[13px] font-dm text-[#5B6470] hover:text-[#0F1419]">
-            <ArrowLeft className="h-4 w-4" /> Naar dossiers
-          </button>
-          <div className="w-px h-5 bg-[#DDD5C5]" />
           <span className="font-dm font-extrabold text-[18px] text-[#008CFF] tracking-[-0.02em]">zolderpunt.</span>
-        </div>
-        <div className="flex items-center gap-3">
+          <div className="w-px h-5 bg-[#DDD5C5]" />
           <span className="font-dm text-[14px] text-[#5B6470] font-semibold tabular-nums">⏱ {timer.formatted}</span>
           <span className="text-[12px] text-[#5B6470] font-dm">Opgeslagen ·</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <button onClick={handleBackToDossiers}
+            className="h-11 bg-white text-[#0F1419] border-2 border-[#DDD5C5] px-5 font-dm font-semibold text-[14px] tracking-[0.02em] cursor-pointer hover:border-[#0F1419] transition-colors flex items-center gap-1.5">
+            <ArrowLeft className="h-4 w-4" /> Naar dossiers
+          </button>
           <button onClick={handleCloseCall}
             className="h-11 bg-[#008CFF] text-white border-none px-6 font-dm font-semibold text-[14px] tracking-[0.02em] cursor-pointer hover:bg-[#0070CC] transition-colors flex items-center gap-1.5">
             Afwerken <ArrowRight className="h-4 w-4" />
