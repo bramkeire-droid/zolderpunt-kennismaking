@@ -51,11 +51,15 @@ export default function IntakeBriefing({ lead, onStart, onBack }: Props) {
 
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-background">
-        <p className="text-muted-foreground font-body">Briefing laden…</p>
+      <div className="h-screen flex flex-col bg-[#F8F3EB]">
+        <AppTopBar title="Briefing intakegesprek" onBackToDossiers={onBack} />
+        <div className="flex-1 flex items-center justify-center">
+          <p className="text-muted-foreground font-body">Briefing laden…</p>
+        </div>
       </div>
     );
   }
+
 
   const naam = `${lead.voornaam} ${lead.achternaam}`.trim() || 'Naamloos dossier';
   const heeftPreIntake = !!preIntake;
