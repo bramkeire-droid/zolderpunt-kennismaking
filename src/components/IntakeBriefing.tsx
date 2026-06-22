@@ -3,6 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, ArrowLeft, Phone, Bot, MapPin, User, Calendar, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
 import type { LeadData } from '@/contexts/SessionContext';
+import AppTopBar from '@/components/AppTopBar';
+
 
 const QUESTION_LABELS: Record<string, string> = {
   budget: 'Budget',
@@ -49,11 +51,15 @@ export default function IntakeBriefing({ lead, onStart, onBack }: Props) {
 
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-background">
-        <p className="text-muted-foreground font-body">Briefing laden…</p>
+      <div className="h-screen flex flex-col bg-[#F8F3EB]">
+        <AppTopBar title="Briefing intakegesprek" onBackToDossiers={onBack} />
+        <div className="flex-1 flex items-center justify-center">
+          <p className="text-muted-foreground font-body">Briefing laden…</p>
+        </div>
       </div>
     );
   }
+
 
   const naam = `${lead.voornaam} ${lead.achternaam}`.trim() || 'Naamloos dossier';
   const heeftPreIntake = !!preIntake;
@@ -76,14 +82,19 @@ export default function IntakeBriefing({ lead, onStart, onBack }: Props) {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto bg-background">
-      <div className="max-w-4xl mx-auto p-8 lg:p-12">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-2">
-          <button onClick={onBack} className="text-sm font-body text-muted-foreground hover:text-foreground flex items-center gap-2">
-            <ArrowLeft className="h-4 w-4" /> Dossiers
-          </button>
+    <div className="h-screen flex flex-col bg-[#F8F3EB]">
+      <AppTopBar
+        title="Briefing intakegesprek"
+        subtitle={naam}
+        onBackToDossiers={onBack}
+        primary={{ label: 'Start intakegesprek', onClick: onStart, icon: <ArrowRight className="h-4 w-4" />, iconPosition: 'right' }}
+      />
+      <div className="flex-1 overflow-y-auto bg-background">
+        <div className="max-w-4xl mx-auto p-8 lg:p-12">
+          {/* Header badges */}
+          <div className="flex items-center justify-end mb-2">
           <div className="flex gap-2">
+
             {heeftPreIntake && (
               <span className="inline-flex items-center gap-1 text-[0.65rem] font-bold tracking-wider uppercase px-2 py-1 bg-primary/10 text-primary">
                 <Phone className="h-3 w-3" /> Telefoongesprek
@@ -242,20 +253,12 @@ export default function IntakeBriefing({ lead, onStart, onBack }: Props) {
           </Section>
         )}
 
-        {/* CTA */}
-        <div className="sticky bottom-0 bg-background pt-6 pb-2 mt-8 flex justify-between gap-3 border-t border-border">
-          <Button variant="outline" onClick={onBack} className="font-headline">
-            <ArrowLeft className="h-4 w-4 mr-2" /> Terug
-          </Button>
-          <Button onClick={onStart} className="font-headline bg-primary text-primary-foreground hover:bg-secondary gap-2">
-            Start intakegesprek
-            <ArrowRight className="h-4 w-4" />
-          </Button>
         </div>
       </div>
     </div>
   );
 }
+
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (

@@ -1,9 +1,8 @@
 import { useState } from 'react';
-import { ArrowLeft } from 'lucide-react';
+import AppTopBar from '@/components/AppTopBar';
 import TranscriptUpload from '@/components/validation/TranscriptUpload';
 import ComparisonView from '@/components/validation/ComparisonView';
 import { useTranscriptAnalysis } from '@/hooks/useTranscriptAnalysis';
-import type { TranscriptAnalysis as TA } from '@/types/preIntake';
 
 interface TranscriptValidationProps {
   leadId: string | null;
@@ -23,13 +22,8 @@ export default function TranscriptValidation({ leadId, preIntakeId, onBack }: Tr
 
   if (!leadId || !preIntakeId) {
     return (
-      <div className="h-screen flex flex-col bg-background">
-        <header className="flex items-center gap-3 px-6 py-4 border-b border-border bg-card">
-          <button onClick={onBack} className="p-2 hover:bg-muted transition-colors">
-            <ArrowLeft className="h-5 w-5 text-foreground" />
-          </button>
-          <h1 className="text-lg font-headline font-bold text-foreground">Transcript validatie</h1>
-        </header>
+      <div className="h-screen flex flex-col bg-[#F8F3EB]">
+        <AppTopBar title="Transcript validatie" onBackToDossiers={onBack} />
         <div className="flex-1 flex items-center justify-center">
           <p className="text-sm text-muted-foreground font-body">
             Geen dossier geselecteerd. Ga terug naar dossiers en selecteer een gesprek met pre-intake.
@@ -40,13 +34,8 @@ export default function TranscriptValidation({ leadId, preIntakeId, onBack }: Tr
   }
 
   return (
-    <div className="h-screen flex flex-col bg-background">
-      <header className="flex items-center gap-3 px-6 py-4 border-b border-border bg-card">
-        <button onClick={onBack} className="p-2 hover:bg-muted transition-colors">
-          <ArrowLeft className="h-5 w-5 text-foreground" />
-        </button>
-        <h1 className="text-lg font-headline font-bold text-foreground">Transcript validatie</h1>
-      </header>
+    <div className="h-screen flex flex-col bg-[#F8F3EB]">
+      <AppTopBar title="Transcript validatie" onBackToDossiers={onBack} />
 
       <div className="flex-1 overflow-y-auto p-6">
         {!submitted || error ? (
