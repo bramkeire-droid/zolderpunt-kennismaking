@@ -253,20 +253,12 @@ export default function IntakeBriefing({ lead, onStart, onBack }: Props) {
           </Section>
         )}
 
-        {/* CTA */}
-        <div className="sticky bottom-0 bg-background pt-6 pb-2 mt-8 flex justify-between gap-3 border-t border-border">
-          <Button variant="outline" onClick={onBack} className="font-headline">
-            <ArrowLeft className="h-4 w-4 mr-2" /> Terug
-          </Button>
-          <Button onClick={onStart} className="font-headline bg-primary text-primary-foreground hover:bg-secondary gap-2">
-            Start intakegesprek
-            <ArrowRight className="h-4 w-4" />
-          </Button>
         </div>
       </div>
     </div>
   );
 }
+
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
