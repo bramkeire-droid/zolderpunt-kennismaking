@@ -3,6 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, ArrowLeft, Phone, Bot, MapPin, User, Calendar, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
 import type { LeadData } from '@/contexts/SessionContext';
+import AppTopBar from '@/components/AppTopBar';
+
 
 const QUESTION_LABELS: Record<string, string> = {
   budget: 'Budget',
