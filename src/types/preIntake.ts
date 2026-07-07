@@ -107,6 +107,8 @@ export const defaultPreIntake: PreIntakeData = {
   google_meet_link: '',
   quick_notes: '',
   wat_tags: [],
+  waarom_nu_timing: '',
+
   videocall_planned: false,
   plaatsbezoek_planned: false,
   locked_at: null,
