@@ -1,0 +1,1 @@
+ALTER TABLE public.pre_intake ADD COLUMN IF NOT EXISTS box_notes jsonb NOT NULL DEFAULT '{"wat":[],"aannemer":[],"waarom":[],"budget":[]}'::jsonb;
