@@ -538,7 +538,16 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
             <BigQuestionBox n={2} label="WELKE AANNEMER?" placeholder="Welke samenwerking willen ze? Wat is belangrijk voor hen?"
               value={data.buying_committee} onChange={v => update({ buying_committee: v })} onEnterFlush={() => flushSave()} />
             <BigQuestionBox n={3} label="WAAROM NU?" placeholder="Trigger: waarom komt dit vandaag op tafel? Deadline, gezin, verhuis…"
-              value={data.trigger_text} onChange={v => update({ trigger_text: v })} onEnterFlush={() => flushSave()} />
+              value={data.trigger_text} onChange={v => update({ trigger_text: v })} onEnterFlush={() => flushSave()}
+              headerExtra={
+                <TimingChips selected={data.waarom_nu_timing}
+                  onSelect={val => {
+                    const next = data.waarom_nu_timing === val ? '' : val;
+                    update({ waarom_nu_timing: next });
+                    flushSave({ waarom_nu_timing: next });
+                  }} />
+              } />
+
             <BigQuestionBox n={4} label="WELK BUDGET?" placeholder="Verwachting? Range? Al iets berekend? Financiering rond?"
               value={data.quick_notes} onChange={v => update({ quick_notes: v })} onEnterFlush={() => flushSave()} />
           </div>
