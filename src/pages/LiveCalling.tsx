@@ -609,5 +609,30 @@ function FieldBlock({ label, hint, children }: { label: string; hint: string; ch
   );
 }
 
+function BigQuestionBox({ n, label, value, onChange, onEnterFlush, placeholder }: {
+  n: number; label: string; value: string; onChange: (v: string) => void; onEnterFlush: () => void; placeholder?: string;
+}) {
+  return (
+    <div className="flex flex-col min-h-0 bg-white border-2 border-[#DDD5C5] focus-within:border-[#008CFF] transition-colors">
+      <div className="flex items-baseline gap-2 px-3 pt-2 pb-1 border-b border-[#DDD5C5]/60 shrink-0">
+        <span className="font-dm font-extrabold text-[#008CFF] text-[clamp(16px,2.2vh,26px)] tabular-nums leading-none">{n}</span>
+        <span className="font-dm font-extrabold text-[#0F1419] text-[clamp(13px,1.8vh,20px)] uppercase tracking-[0.06em]">{label}</span>
+      </div>
+      <textarea
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        onKeyDown={e => {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            onEnterFlush();
+          }
+        }}
+        placeholder={placeholder}
+        className="w-full flex-1 min-h-0 px-3 py-2 bg-white text-[clamp(13px,1.7vh,20px)] font-body text-[#0F1419] placeholder:text-[#B0A898] resize-none focus:outline-none"
+      />
+    </div>
+  );
+}
+
 
 
