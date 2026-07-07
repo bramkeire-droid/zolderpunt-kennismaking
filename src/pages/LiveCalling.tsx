@@ -159,31 +159,23 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
   };
 
   const handleCloseCall = async () => {
+    // Wrap-up scherm is verwijderd → afronden = direct opslaan + naar dossiers/validatie.
     const endedAt = new Date().toISOString();
     const duration = timer.elapsed;
-    update({ call_ended_at: endedAt, call_duration_seconds: duration });
+    const lockedAt = endedAt;
+    update({ call_ended_at: endedAt, call_duration_seconds: duration, locked_at: lockedAt });
     timer.pause();
     const leadId = await ensureLeadRow();
-    // Belangrijk: lead_id + tijden meegeven zodat de pre_intake-row meteen wegschrijft,
-    // zonder te wachten op een React re-render.
+    if (leadId) {
+      await supabase.from('leads').update({ status: 'telefoongesprek' }).eq('id', leadId);
+    }
     await flushSave({
       lead_id: leadId ?? data.lead_id,
       call_ended_at: endedAt,
       call_duration_seconds: duration,
+      locked_at: lockedAt,
     });
     setShowCloseDialog(false);
-    setStep('wrap-up');
-  };
-
-  const handleFinishWrapUp = async () => {
-    const leadId = await ensureLeadRow();
-    // Wrap-up afronden = telefoongesprek is gevoerd → status 'telefoongesprek'
-    if (leadId) {
-      await supabase.from('leads').update({ status: 'telefoongesprek' }).eq('id', leadId);
-    }
-    const lockedAt = new Date().toISOString();
-    update({ locked_at: lockedAt });
-    await flushSave({ lead_id: leadId ?? data.lead_id, locked_at: lockedAt });
     toast.success('Dossier opgeslagen');
     if (leadId && data.id) {
       onOpenValidation(leadId, data.id);
@@ -191,6 +183,10 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
       onGoDossiers();
     }
   };
+
+  const handleFinishWrapUp = handleCloseCall;
+
+
 
   /** Terug-knop: bij ingevulde naam+email vraag om op te slaan, anders direct terug zonder lege rij. */
   const handleBackToDossiers = async () => {
