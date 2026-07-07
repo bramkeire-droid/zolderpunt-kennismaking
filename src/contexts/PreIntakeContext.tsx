@@ -103,8 +103,22 @@ export function PreIntakeProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const loadPreIntake = useCallback((preIntake: PreIntakeData) => {
-    setData(preIntake);
+    const merged: PreIntakeData = {
+      ...defaultPreIntake,
+      ...preIntake,
+      wat_tags: Array.isArray((preIntake as any).wat_tags) ? (preIntake as any).wat_tags : [],
+      waarom_nu_timing: (preIntake as any).waarom_nu_timing ?? '',
+      videocall_planned: !!(preIntake as any).videocall_planned,
+      plaatsbezoek_planned: !!(preIntake as any).plaatsbezoek_planned,
+      box_notes: {
+        wat: [], aannemer: [], waarom: [], budget: [],
+        ...((preIntake as any).box_notes || {}),
+      },
+      questions_raised: { ...defaultQuestionsRaised, ...(preIntake.questions_raised || {}) },
+    };
+    setData(merged);
   }, []);
+
 
   return (
     <PreIntakeContext.Provider value={{
