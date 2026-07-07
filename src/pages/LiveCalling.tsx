@@ -573,13 +573,17 @@ function BackConfirmDialog({ open, onCancel, onDiscard, onSave }: { open: boolea
 
 /* ───────────────────────── HELPER COMPONENTS ───────────────────────── */
 
-function FieldBlock({ label, hint, children }: { label: string; hint: string; children: React.ReactNode }) {
+const inputCls = "h-12 px-3 bg-white border-2 border-[#DDD5C5] text-base font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]";
+
+function Section({ eyebrow, hint, children }: { eyebrow: string; hint?: string; children: React.ReactNode }) {
   return (
-    <div>
-      <label className="font-dm text-[clamp(13px,1.6vh,20px)] font-semibold text-[#0F1419] block mb-[2px]">{label}</label>
-      <div className="text-[clamp(11px,1.3vh,15px)] text-[#5B6470] italic mb-1">{hint}</div>
+    <section className="bg-white border-2 border-[#DDD5C5] border-t-[3px] border-t-[#008CFF] p-4">
+      <div className="mb-3">
+        <div className="font-dm text-xs font-extrabold text-[#5B6470] uppercase tracking-[0.14em]">{eyebrow}</div>
+        {hint && <div className="text-xs italic text-[#5B6470] mt-0.5">{hint}</div>}
+      </div>
       {children}
-    </div>
+    </section>
   );
 }
 
@@ -587,13 +591,13 @@ function BigQuestionBox({ n, label, value, onChange, onEnterFlush, placeholder, 
   n: number; label: string; value: string; onChange: (v: string) => void; onEnterFlush: () => void; placeholder?: string; headerExtra?: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col min-h-0 bg-white border-2 border-[#DDD5C5] focus-within:border-[#008CFF] transition-colors">
-      <div className="flex items-baseline gap-2 px-3 pt-2 pb-1 border-b border-[#DDD5C5]/60 shrink-0">
-        <span className="font-dm font-extrabold text-[#008CFF] text-[clamp(16px,2.2vh,26px)] tabular-nums leading-none">{n}</span>
-        <span className="font-dm font-extrabold text-[#0F1419] text-[clamp(13px,1.8vh,20px)] uppercase tracking-[0.06em]">{label}</span>
+    <div className="flex flex-col min-h-0 bg-white border-2 border-[#DDD5C5] border-t-[3px] border-t-[#008CFF] focus-within:border-[#008CFF] transition-colors">
+      <div className="flex items-baseline gap-2 px-4 pt-3 pb-2 border-b border-[#DDD5C5]/60 shrink-0">
+        <span className="font-dm font-extrabold text-[#008CFF] text-3xl tabular-nums leading-none">{n}</span>
+        <span className="font-dm font-extrabold text-[#0F1419] text-sm uppercase tracking-[0.08em]">{label}</span>
       </div>
       {headerExtra && (
-        <div className="px-3 py-2 border-b border-[#DDD5C5]/60 shrink-0">
+        <div className="px-4 py-3 border-b border-[#DDD5C5]/60 shrink-0">
           {headerExtra}
         </div>
       )}
@@ -607,11 +611,12 @@ function BigQuestionBox({ n, label, value, onChange, onEnterFlush, placeholder, 
           }
         }}
         placeholder={placeholder}
-        className="w-full flex-1 min-h-0 px-3 py-2 bg-white text-[clamp(13px,1.7vh,20px)] font-body text-[#0F1419] placeholder:text-[#B0A898] resize-none focus:outline-none"
+        className="w-full flex-1 min-h-[140px] px-4 py-3 bg-white text-base leading-relaxed font-body text-[#0F1419] placeholder:text-[#B0A898] resize-none focus:outline-none"
       />
     </div>
   );
 }
+
 
 const WAT_TAG_OPTIONS = ['Vaste trap', 'Trapgat', 'Dakraam', 'Airco', 'Schilderwerken', 'Isolatie', 'Vloer uitpassen', 'Stabiliteitsonderzoek'];
 
