@@ -596,7 +596,7 @@ const WAT_TAG_OPTIONS = ['Vaste trap', 'Trapgat', 'Dakraam', 'Airco', 'Schilderw
 
 function WatTagsChips({ selected, onToggle }: { selected: string[]; onToggle: (tag: string) => void }) {
   return (
-    <div className="flex flex-wrap gap-1.5">
+    <div className="grid grid-cols-4 gap-2">
       {WAT_TAG_OPTIONS.map(tag => {
         const active = selected.includes(tag);
         return (
@@ -604,7 +604,7 @@ function WatTagsChips({ selected, onToggle }: { selected: string[]; onToggle: (t
             key={tag}
             type="button"
             onClick={() => onToggle(tag)}
-            className={`h-8 px-3 text-[12px] font-dm font-semibold border-2 transition-colors ${active ? 'bg-[#008CFF] text-white border-[#008CFF]' : 'bg-white text-[#5B6470] border-[#DDD5C5] hover:border-[#008CFF]/50'}`}
+            className={`h-11 px-3 text-[14px] font-dm font-semibold border-2 transition-colors flex items-center justify-center text-center ${active ? 'bg-[#008CFF] text-white border-[#008CFF]' : 'bg-white text-[#0F1419] border-[#DDD5C5] hover:border-[#008CFF]/50'}`}
           >
             {tag}
           </button>
