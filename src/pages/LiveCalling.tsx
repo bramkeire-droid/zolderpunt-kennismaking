@@ -525,32 +525,48 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
 
           {/* ④ VIER VRAAGKADERS */}
           <div className="grid grid-cols-2 grid-rows-2 gap-3 min-h-[520px]">
-            <BigQuestionBox n={1} label="WAT?" placeholder="Wat wil de klant precies? Type ruimte, functie, gewenst resultaat…"
-              value={data.general_impression} onChange={v => update({ general_impression: v })} onEnterFlush={() => flushSave()}
-              headerExtra={
-                <WatTagsChips selected={data.wat_tags}
-                  onToggle={tag => {
-                    const next = data.wat_tags.includes(tag) ? data.wat_tags.filter(t => t !== tag) : [...data.wat_tags, tag];
-                    update({ wat_tags: next });
-                    flushSave({ wat_tags: next });
-                  }} />
-              } />
-            <BigQuestionBox n={2} label="WELKE AANNEMER?" placeholder="Welke samenwerking willen ze? Wat is belangrijk voor hen?"
-              value={data.buying_committee} onChange={v => update({ buying_committee: v })} onEnterFlush={() => flushSave()} />
-            <BigQuestionBox n={3} label="WAAROM NU EN TEGEN WANNEER?" placeholder="Trigger: waarom komt dit vandaag op tafel? Deadline, gezin, verhuis…"
-              value={data.trigger_text} onChange={v => update({ trigger_text: v })} onEnterFlush={() => flushSave()}
-              headerExtra={
-                <TimingChips selected={data.waarom_nu_timing}
-                  onSelect={val => {
-                    const next = data.waarom_nu_timing === val ? '' : val;
-                    update({ waarom_nu_timing: next });
-                    flushSave({ waarom_nu_timing: next });
-                  }} />
-              } />
-
-            <BigQuestionBox n={4} label="WELK BUDGET?" placeholder="Verwachting? Range? Al iets berekend? Financiering rond?"
-              value={data.quick_notes} onChange={v => update({ quick_notes: v })} onEnterFlush={() => flushSave()} />
+            {(() => {
+              const addEntry = (key: 'wat' | 'aannemer' | 'waarom' | 'budget') => (text: string) => {
+                const next = { ...data.box_notes, [key]: [...(data.box_notes[key] || []), text] };
+                update({ box_notes: next });
+                flushSave({ box_notes: next as any });
+              };
+              const removeEntry = (key: 'wat' | 'aannemer' | 'waarom' | 'budget') => (idx: number) => {
+                const next = { ...data.box_notes, [key]: data.box_notes[key].filter((_, i) => i !== idx) };
+                update({ box_notes: next });
+                flushSave({ box_notes: next as any });
+              };
+              return (
+                <>
+                  <BigQuestionBox n={1} label="WAT?" placeholder="Type en druk op Enter…"
+                    entries={data.box_notes.wat} onAddEntry={addEntry('wat')} onRemoveEntry={removeEntry('wat')}
+                    headerExtra={
+                      <WatTagsChips selected={data.wat_tags}
+                        onToggle={tag => {
+                          const next = data.wat_tags.includes(tag) ? data.wat_tags.filter(t => t !== tag) : [...data.wat_tags, tag];
+                          update({ wat_tags: next });
+                          flushSave({ wat_tags: next });
+                        }} />
+                    } />
+                  <BigQuestionBox n={2} label="WELKE AANNEMER?" placeholder="Type en druk op Enter…"
+                    entries={data.box_notes.aannemer} onAddEntry={addEntry('aannemer')} onRemoveEntry={removeEntry('aannemer')} />
+                  <BigQuestionBox n={3} label="WAAROM NU EN TEGEN WANNEER?" placeholder="Type en druk op Enter…"
+                    entries={data.box_notes.waarom} onAddEntry={addEntry('waarom')} onRemoveEntry={removeEntry('waarom')}
+                    headerExtra={
+                      <TimingChips selected={data.waarom_nu_timing}
+                        onSelect={val => {
+                          const next = data.waarom_nu_timing === val ? '' : val;
+                          update({ waarom_nu_timing: next });
+                          flushSave({ waarom_nu_timing: next });
+                        }} />
+                    } />
+                  <BigQuestionBox n={4} label="WELK BUDGET?" placeholder="Type en druk op Enter…"
+                    entries={data.box_notes.budget} onAddEntry={addEntry('budget')} onRemoveEntry={removeEntry('budget')} />
+                </>
+              );
+            })()}
           </div>
+
 
         </div>
       </div>
@@ -596,9 +612,17 @@ function Section({ eyebrow, hint, children }: { eyebrow: string; hint?: string; 
   );
 }
 
-function BigQuestionBox({ n, label, value, onChange, onEnterFlush, placeholder, headerExtra }: {
-  n: number; label: string; value: string; onChange: (v: string) => void; onEnterFlush: () => void; placeholder?: string; headerExtra?: React.ReactNode;
+function BigQuestionBox({ n, label, placeholder, headerExtra, entries, onAddEntry, onRemoveEntry }: {
+  n: number; label: string; placeholder?: string; headerExtra?: React.ReactNode;
+  entries: string[]; onAddEntry: (text: string) => void; onRemoveEntry: (idx: number) => void;
 }) {
+  const [input, setInput] = useState('');
+  const submit = () => {
+    const t = input.trim();
+    if (!t) return;
+    onAddEntry(t);
+    setInput('');
+  };
   return (
     <div className="flex flex-col min-h-0 bg-white border-2 border-[#DDD5C5] border-t-[3px] border-t-[#008CFF] focus-within:border-[#008CFF] transition-colors">
       <div className="flex items-baseline gap-2 px-4 pt-3 pb-2 border-b border-[#DDD5C5]/60 shrink-0">
@@ -611,20 +635,31 @@ function BigQuestionBox({ n, label, value, onChange, onEnterFlush, placeholder, 
         </div>
       )}
       <textarea
-        value={value}
-        onChange={e => onChange(e.target.value)}
+        value={input}
+        onChange={e => setInput(e.target.value)}
         onKeyDown={e => {
           if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
-            onEnterFlush();
+            submit();
           }
         }}
         placeholder={placeholder}
-        className="w-full flex-1 min-h-[140px] px-4 py-3 bg-white text-base leading-relaxed font-body text-[#0F1419] placeholder:text-[#B0A898] resize-none focus:outline-none"
+        className="w-full px-4 py-3 bg-white text-base leading-relaxed font-body text-[#0F1419] placeholder:text-[#B0A898] resize-none focus:outline-none min-h-[80px]"
       />
+      {entries.length > 0 && (
+        <div className="px-4 pb-3 pt-1 flex flex-wrap gap-2 border-t border-[#DDD5C5]/60">
+          {entries.map((e, i) => (
+            <span key={i} className="inline-flex items-center gap-2 bg-[#F8F3EB] border-2 border-[#DDD5C5] px-3 h-9 text-sm font-body text-[#0F1419]">
+              {e}
+              <button type="button" onClick={() => onRemoveEntry(i)} className="text-[#5B6470] hover:text-[#008CFF] font-bold" aria-label="Verwijder">×</button>
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
+
 
 
 const WAT_TAG_OPTIONS = ['Vaste trap', 'Trapgat', 'Dakraam', 'Airco', 'Schilderwerken', 'Isolatie', 'Vloer uitpassen', 'Stabiliteitsonderzoek'];

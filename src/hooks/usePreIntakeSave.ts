@@ -34,6 +34,8 @@ function dataToRow(d: PreIntakeData) {
     quick_notes: d.quick_notes,
     wat_tags: d.wat_tags,
     waarom_nu_timing: d.waarom_nu_timing,
+    box_notes: d.box_notes as any,
+
 
     videocall_planned: d.videocall_planned,
     plaatsbezoek_planned: d.plaatsbezoek_planned,

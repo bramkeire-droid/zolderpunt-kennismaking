@@ -67,6 +67,8 @@ export interface PreIntakeData {
   waarom_nu_timing: string;
   videocall_planned: boolean;
   plaatsbezoek_planned: boolean;
+  box_notes: { wat: string[]; aannemer: string[]; waarom: string[]; budget: string[] };
+
 
 
   locked_at: string | null;
@@ -108,6 +110,8 @@ export const defaultPreIntake: PreIntakeData = {
   quick_notes: '',
   wat_tags: [],
   waarom_nu_timing: '',
+  box_notes: { wat: [], aannemer: [], waarom: [], budget: [] },
+
 
   videocall_planned: false,
   plaatsbezoek_planned: false,

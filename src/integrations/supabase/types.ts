@@ -296,6 +296,7 @@ export type Database = {
       }
       pre_intake: {
         Row: {
+          box_notes: Json
           buying_committee: string | null
           call_duration_seconds: number | null
           call_ended_at: string | null
@@ -330,6 +331,7 @@ export type Database = {
           wat_tags: string[]
         }
         Insert: {
+          box_notes?: Json
           buying_committee?: string | null
           call_duration_seconds?: number | null
           call_ended_at?: string | null
@@ -364,6 +366,7 @@ export type Database = {
           wat_tags?: string[]
         }
         Update: {
+          box_notes?: Json
           buying_committee?: string | null
           call_duration_seconds?: number | null
           call_ended_at?: string | null
