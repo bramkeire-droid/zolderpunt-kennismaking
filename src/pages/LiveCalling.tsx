@@ -308,7 +308,7 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
   }
 
   /* ─── WRAP-UP SCREEN ─── */
-  if (step === 'wrap-up') {
+  if (false) {
     const CALLING_QUESTIONS = [
       { key: 'budget' as const, label: 'Budget' },
       { key: 'start_timing' as const, label: 'Starttiming' },
