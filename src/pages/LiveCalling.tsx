@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
 
-type CallingStep = 'select-lead' | 'calling' | 'wrap-up';
+type CallingStep = 'select-lead' | 'calling';
 
 interface LiveCallingProps {
   onGoHome: () => void;
