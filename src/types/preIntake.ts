@@ -107,6 +107,7 @@ export const defaultPreIntake: PreIntakeData = {
   deliverables_due_date: null,
   scenario_chosen: null,
   videocall_scheduled_at: null,
+  plaatsbezoek_scheduled_at: null,
   google_meet_link: '',
   quick_notes: '',
   wat_tags: [],
