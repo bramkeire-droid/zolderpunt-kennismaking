@@ -324,6 +324,7 @@ export type Database = {
           trigger_text: string | null
           updated_at: string | null
           videocall_scheduled_at: string | null
+          wat_tags: string[]
         }
         Insert: {
           buying_committee?: string | null
@@ -354,6 +355,7 @@ export type Database = {
           trigger_text?: string | null
           updated_at?: string | null
           videocall_scheduled_at?: string | null
+          wat_tags?: string[]
         }
         Update: {
           buying_committee?: string | null
@@ -384,6 +386,7 @@ export type Database = {
           trigger_text?: string | null
           updated_at?: string | null
           videocall_scheduled_at?: string | null
+          wat_tags?: string[]
         }
         Relationships: [
           {

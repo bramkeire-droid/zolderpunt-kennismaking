@@ -32,6 +32,7 @@ function dataToRow(d: PreIntakeData) {
     videocall_scheduled_at: d.videocall_scheduled_at,
     google_meet_link: d.google_meet_link,
     quick_notes: d.quick_notes,
+    wat_tags: d.wat_tags,
     locked_at: d.locked_at,
   };
 }
