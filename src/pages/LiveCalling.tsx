@@ -183,6 +183,7 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
   };
 
   const handleCloseCall = handleSaveDossier;
+  const handleFinishWrapUp = handleSaveDossier;
 
   const syncCalendly = async (source: 'auto' | 'manual' = 'manual') => {
     const email = leadEmail.trim();
