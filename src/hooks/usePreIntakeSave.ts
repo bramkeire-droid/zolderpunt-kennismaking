@@ -30,6 +30,7 @@ function dataToRow(d: PreIntakeData) {
     deliverables_due_date: d.deliverables_due_date,
     scenario_chosen: d.scenario_chosen,
     videocall_scheduled_at: d.videocall_scheduled_at,
+    plaatsbezoek_scheduled_at: d.plaatsbezoek_scheduled_at,
     google_meet_link: d.google_meet_link,
     quick_notes: d.quick_notes,
     wat_tags: d.wat_tags,
