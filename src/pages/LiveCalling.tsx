@@ -3,7 +3,7 @@ import { usePreIntake } from '@/contexts/PreIntakeContext';
 import { usePreIntakeSave } from '@/hooks/usePreIntakeSave';
 import { useCallTimer } from '@/hooks/useCallTimer';
 import { supabase } from '@/integrations/supabase/client';
-import ChipInput from '@/components/calling/ChipInput';
+
 import CloseCallDialog from '@/components/calling/CloseCallDialog';
 import { ArrowLeft, ArrowRight, LogOut } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -478,60 +478,39 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
                     className="h-[clamp(36px,4.5vh,56px)] px-3 bg-white border-2 border-[#DDD5C5] text-[clamp(13px,1.7vh,20px)] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
                 </div>
               </FieldBlock>
+
+              {/* Planningsknoppen */}
               {(() => {
                 const fullName = `${leadVoornaam} ${leadAchternaam}`.trim();
                 const params = new URLSearchParams();
                 if (fullName) params.set('name', fullName);
                 if (leadEmail.trim()) params.set('email', leadEmail.trim());
                 const qs = params.toString();
-                const url = `https://calendly.com/belhouse/zolderpunt-kennismaking-met-jouw-project${qs ? `?${qs}` : ''}`;
+                const videocallUrl = `https://calendly.com/belhouse/zolderpunt-kennismaking-met-jouw-project${qs ? `?${qs}` : ''}`;
+                const plaatsbezoekUrl = `https://calendly.com/belhouse/plaatsbezoek-zolderpunt${qs ? `?${qs}` : ''}`;
+                const btnCls = "w-full h-[clamp(44px,6vh,64px)] flex items-center justify-center gap-2 bg-[#008CFF] text-white font-dm font-extrabold text-[clamp(12px,1.6vh,18px)] tracking-[0.04em] uppercase hover:bg-[#0070CC] transition-colors";
                 return (
-                  <a href={url} target="_blank" rel="noopener noreferrer"
-                    className="w-full h-[clamp(48px,6.5vh,72px)] flex items-center justify-center gap-2 bg-[#008CFF] text-white font-dm font-extrabold text-[clamp(14px,1.9vh,20px)] tracking-[0.04em] uppercase hover:bg-[#0070CC] transition-colors">
-                    📅 Videocall inplannen agenda
-                  </a>
+                  <div className="grid grid-cols-2 gap-2">
+                    <a href={videocallUrl} target="_blank" rel="noopener noreferrer" className={btnCls}>
+                      📅 Videocall — Plannen
+                    </a>
+                    <a href={plaatsbezoekUrl} target="_blank" rel="noopener noreferrer" className={btnCls}>
+                      🏠 Plaatsbezoek — Plannen
+                    </a>
+                  </div>
                 );
               })()}
 
-              {/* Trigger */}
-              <FieldBlock label="De trigger" hint="Waarom belt de klant nu?">
-                <input type="text" value={data.trigger_text} onChange={e => update({ trigger_text: e.target.value })}
-                  placeholder="bv. oudste naar middelbaar in september"
-                  className="w-full h-[clamp(40px,5vh,60px)] px-4 bg-white border-2 border-[#DDD5C5] text-[clamp(14px,1.8vh,22px)] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
-              </FieldBlock>
-
-              {/* Citaten */}
-              <FieldBlock label="Letterlijke citaten" hint="Exacte woorden — tussen aanhalingstekens">
-                <div className="bg-white border-2 border-[#DDD5C5] p-3 min-h-[clamp(56px,7vh,90px)] focus-within:border-[#008CFF]">
-                  <ChipInput chips={data.emotional_keywords} onAdd={addEmotionalKeyword} onRemove={removeEmotionalKeyword}
-                    placeholder="typ een citaat en druk op +"
-                    accentColor="bg-[#F8F3EB] text-[#0F1419] border-[#DDD5C5] italic text-[clamp(12px,1.5vh,16px)]" />
-                </div>
-              </FieldBlock>
-
-              {/* Twijfels */}
-              <FieldBlock label="Twijfels en zorgen" hint="Angsten, slechte ervaringen — ook letterlijk">
-                <div className="bg-white border-2 border-[#DDD5C5] p-3 min-h-[clamp(56px,7vh,90px)] focus-within:border-[#008CFF]">
-                  <ChipInput chips={data.fomu_concerns} onAdd={addFomuConcern} onRemove={removeFomuConcern}
-                    placeholder="typ een zorg en druk op +"
-                    accentColor="bg-[#FFF6E5] text-[#0F1419] border-[#E89F3D] italic text-[clamp(12px,1.5vh,16px)]" />
-                </div>
-              </FieldBlock>
-
-              {/* Buying committee */}
-              <FieldBlock label="Wie beslist mee?" hint="Partner, ouders, familie?">
-                <textarea value={data.buying_committee} onChange={e => update({ buying_committee: e.target.value })}
-                  placeholder="bv. Joris belt — An moet 100% akkoord zijn over budget"
-                  className="w-full px-4 py-2 bg-white border-2 border-[#DDD5C5] text-[clamp(13px,1.6vh,20px)] font-body text-[#0F1419] placeholder:text-[#B0A898] resize-none h-[clamp(60px,8vh,110px)] focus:outline-none focus:border-[#008CFF]" />
-              </FieldBlock>
-
-              {/* Indruk — vult resterende ruimte */}
-              <div className="flex flex-col flex-1 min-h-0">
-                <label className="font-dm text-[clamp(13px,1.6vh,20px)] font-semibold text-[#0F1419] block mb-[2px]">Algemene indruk</label>
-                <div className="text-[clamp(11px,1.3vh,15px)] text-[#5B6470] italic mb-1">Gehaast, rustig, sceptisch, enthousiast?</div>
-                <textarea value={data.general_impression} onChange={e => update({ general_impression: e.target.value })}
-                  placeholder="bv. klonk gehaast, lijkt veel op het bord te hebben"
-                  className="w-full flex-1 min-h-0 px-4 py-2 bg-white border-2 border-[#DDD5C5] text-[clamp(13px,1.6vh,20px)] font-body text-[#0F1419] placeholder:text-[#B0A898] resize-none focus:outline-none focus:border-[#008CFF]" />
+              {/* Vier grote vraagkaders */}
+              <div className="grid grid-rows-4 gap-2 flex-1 min-h-0">
+                <BigQuestionBox n={1} label="WAT?" placeholder="Wat wil de klant precies? Type ruimte, functie, gewenst resultaat…"
+                  value={data.general_impression} onChange={v => update({ general_impression: v })} onEnterFlush={() => flushSave()} />
+                <BigQuestionBox n={2} label="WELKE AANNEMER?" placeholder="Wie hebben ze al gecontacteerd? Offertes ontvangen? Ervaringen?"
+                  value={data.buying_committee} onChange={v => update({ buying_committee: v })} onEnterFlush={() => flushSave()} />
+                <BigQuestionBox n={3} label="WAAROM NU?" placeholder="Trigger: waarom komt dit vandaag op tafel? Deadline, gezin, verhuis…"
+                  value={data.trigger_text} onChange={v => update({ trigger_text: v })} onEnterFlush={() => flushSave()} />
+                <BigQuestionBox n={4} label="WELK BUDGET?" placeholder="Verwachting? Range? Al iets berekend? Financiering rond?"
+                  value={data.quick_notes} onChange={v => update({ quick_notes: v })} onEnterFlush={() => flushSave()} />
               </div>
 
             </div>
@@ -626,6 +605,31 @@ function FieldBlock({ label, hint, children }: { label: string; hint: string; ch
       <label className="font-dm text-[clamp(13px,1.6vh,20px)] font-semibold text-[#0F1419] block mb-[2px]">{label}</label>
       <div className="text-[clamp(11px,1.3vh,15px)] text-[#5B6470] italic mb-1">{hint}</div>
       {children}
+    </div>
+  );
+}
+
+function BigQuestionBox({ n, label, value, onChange, onEnterFlush, placeholder }: {
+  n: number; label: string; value: string; onChange: (v: string) => void; onEnterFlush: () => void; placeholder?: string;
+}) {
+  return (
+    <div className="flex flex-col min-h-0 bg-white border-2 border-[#DDD5C5] focus-within:border-[#008CFF] transition-colors">
+      <div className="flex items-baseline gap-2 px-3 pt-2 pb-1 border-b border-[#DDD5C5]/60 shrink-0">
+        <span className="font-dm font-extrabold text-[#008CFF] text-[clamp(16px,2.2vh,26px)] tabular-nums leading-none">{n}</span>
+        <span className="font-dm font-extrabold text-[#0F1419] text-[clamp(13px,1.8vh,20px)] uppercase tracking-[0.06em]">{label}</span>
+      </div>
+      <textarea
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        onKeyDown={e => {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            onEnterFlush();
+          }
+        }}
+        placeholder={placeholder}
+        className="w-full flex-1 min-h-0 px-3 py-2 bg-white text-[clamp(13px,1.7vh,20px)] font-body text-[#0F1419] placeholder:text-[#B0A898] resize-none focus:outline-none"
+      />
     </div>
   );
 }
