@@ -67,6 +67,8 @@ export interface PreIntakeData {
   waarom_nu_timing: string;
   videocall_planned: boolean;
   plaatsbezoek_planned: boolean;
+  box_notes: { wat: string[]; aannemer: string[]; waarom: string[]; budget: string[] };
+
 
 
   locked_at: string | null;
