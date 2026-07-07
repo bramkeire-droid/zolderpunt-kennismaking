@@ -644,7 +644,25 @@ function PlanCheck({ checked, label, onToggle }: { checked: boolean; label: stri
   );
 }
 
+function TimingChips({ selected, onSelect }: { selected: string; onSelect: (val: string) => void }) {
+  const options = ['Binnen 3 maanden', 'Binnen 6 maanden', 'Ik weet nog niet'];
+  return (
+    <div className="grid grid-cols-3 gap-2">
+      {options.map(opt => {
+        const active = selected === opt;
+        return (
+          <button key={opt} type="button" onClick={() => onSelect(opt)}
+            className={`h-11 px-3 text-sm font-dm font-semibold border-2 transition-colors flex items-center justify-center text-center ${active ? 'bg-[#008CFF] text-white border-[#008CFF]' : 'bg-white text-[#0F1419] border-[#DDD5C5] hover:border-[#008CFF]/50'}`}>
+            {opt}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function WatTagsChips({ selected, onToggle }: { selected: string[]; onToggle: (tag: string) => void }) {
+
   return (
     <div className="grid grid-cols-4 gap-2">
       {WAT_TAG_OPTIONS.map(tag => {
