@@ -501,7 +501,19 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
             {/* Vier grote vraagkaders — 2x2 */}
             <div className="grid grid-cols-2 grid-rows-2 gap-3 flex-1 min-h-0">
               <BigQuestionBox n={1} label="WAT?" placeholder="Wat wil de klant precies? Type ruimte, functie, gewenst resultaat…"
-                value={data.general_impression} onChange={v => update({ general_impression: v })} onEnterFlush={() => flushSave()} />
+                value={data.general_impression} onChange={v => update({ general_impression: v })} onEnterFlush={() => flushSave()}
+                headerExtra={
+                  <WatTagsChips
+                    selected={data.wat_tags}
+                    onToggle={tag => {
+                      const next = data.wat_tags.includes(tag)
+                        ? data.wat_tags.filter(t => t !== tag)
+                        : [...data.wat_tags, tag];
+                      update({ wat_tags: next });
+                      flushSave({ wat_tags: next });
+                    }}
+                  />
+                } />
               <BigQuestionBox n={2} label="WELKE AANNEMER?" placeholder="Welke samenwerking willen ze? Wat is belangrijk voor hen?"
                 value={data.buying_committee} onChange={v => update({ buying_committee: v })} onEnterFlush={() => flushSave()} />
               <BigQuestionBox n={3} label="WAAROM NU?" placeholder="Trigger: waarom komt dit vandaag op tafel? Deadline, gezin, verhuis…"
