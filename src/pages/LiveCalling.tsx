@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { usePreIntake } from '@/contexts/PreIntakeContext';
 import { usePreIntakeSave } from '@/hooks/usePreIntakeSave';
 import { useCallTimer } from '@/hooks/useCallTimer';
@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import AddressAutocomplete from '@/components/AddressAutocomplete';
 
 import CloseCallDialog from '@/components/calling/CloseCallDialog';
-import { ArrowLeft, ArrowRight, LogOut } from 'lucide-react';
+import { ArrowLeft, ArrowRight, LogOut, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -44,6 +44,8 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
   const [leadEmail, setLeadEmail] = useState('');
   const [followupType, setFollowupType] = useState<'videocall' | 'klant_terug' | null>(null);
   const [klantTerugNotitie, setKlantTerugNotitie] = useState('');
+  const [calendlySyncing, setCalendlySyncing] = useState(false);
+  const lastCalendlyAutoSyncRef = useRef('');
 
   const {
     data, update, resetPreIntake, loadPreIntake,
@@ -77,8 +79,7 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
       const { data: pi } = await supabase.from('pre_intake' as any).select('*').eq('lead_id', initialLeadId).order('updated_at', { ascending: false }).limit(1).maybeSingle();
       if (pi) {
         loadPreIntake(pi as any);
-        if (initialStep === 'wrap-up' || (pi as any).locked_at) setStep('wrap-up');
-        else setStep('calling');
+        setStep('calling');
       } else {
         resetPreIntake(initialLeadId);
         setStep(initialStep ?? 'calling');
