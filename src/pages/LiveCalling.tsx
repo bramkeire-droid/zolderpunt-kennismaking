@@ -158,12 +158,10 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
     return newRow.id;
   };
 
-  const handleCloseCall = async () => {
-    // Wrap-up scherm is verwijderd → afronden = direct opslaan + naar dossiers/validatie.
+  const handleSaveDossier = async () => {
     const endedAt = new Date().toISOString();
     const duration = timer.elapsed;
-    const lockedAt = endedAt;
-    update({ call_ended_at: endedAt, call_duration_seconds: duration, locked_at: lockedAt });
+    update({ call_ended_at: endedAt, call_duration_seconds: duration });
     timer.pause();
     const leadId = await ensureLeadRow();
     if (leadId) {
@@ -173,7 +171,6 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
       lead_id: leadId ?? data.lead_id,
       call_ended_at: endedAt,
       call_duration_seconds: duration,
-      locked_at: lockedAt,
     });
     setShowCloseDialog(false);
     toast.success('Dossier opgeslagen');
@@ -184,7 +181,9 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
     }
   };
 
-  const handleFinishWrapUp = handleCloseCall;
+  const handleCloseCall = handleSaveDossier;
+  const handleFinishWrapUp = handleSaveDossier;
+
 
 
 
