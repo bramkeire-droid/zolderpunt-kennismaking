@@ -158,12 +158,10 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
     return newRow.id;
   };
 
-  const handleCloseCall = async () => {
-    // Wrap-up scherm is verwijderd → afronden = direct opslaan + naar dossiers/validatie.
+  const handleSaveDossier = async () => {
     const endedAt = new Date().toISOString();
     const duration = timer.elapsed;
-    const lockedAt = endedAt;
-    update({ call_ended_at: endedAt, call_duration_seconds: duration, locked_at: lockedAt });
+    update({ call_ended_at: endedAt, call_duration_seconds: duration });
     timer.pause();
     const leadId = await ensureLeadRow();
     if (leadId) {
@@ -173,7 +171,6 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
       lead_id: leadId ?? data.lead_id,
       call_ended_at: endedAt,
       call_duration_seconds: duration,
-      locked_at: lockedAt,
     });
     setShowCloseDialog(false);
     toast.success('Dossier opgeslagen');
@@ -184,7 +181,9 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
     }
   };
 
-  const handleFinishWrapUp = handleCloseCall;
+  const handleCloseCall = handleSaveDossier;
+  const handleFinishWrapUp = handleSaveDossier;
+
 
 
 
@@ -432,10 +431,11 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
             className="h-11 bg-white text-[#0F1419] border-2 border-[#DDD5C5] px-5 font-dm font-semibold text-[14px] tracking-[0.02em] cursor-pointer hover:border-[#0F1419] transition-colors flex items-center gap-1.5">
             <ArrowLeft className="h-4 w-4" /> Naar dossiers
           </button>
-          <button onClick={handleCloseCall}
+          <button onClick={handleSaveDossier}
             className="h-11 bg-[#008CFF] text-white border-none px-6 font-dm font-semibold text-[14px] tracking-[0.02em] cursor-pointer hover:bg-[#0070CC] transition-colors flex items-center gap-1.5">
-            Afwerken <ArrowRight className="h-4 w-4" />
+            Opslaan <ArrowRight className="h-4 w-4" />
           </button>
+
           <button onClick={signOut} className="p-2 text-[#5B6470] hover:text-[#0F1419] transition-colors" title="Uitloggen">
             <LogOut className="h-4 w-4" />
           </button>
