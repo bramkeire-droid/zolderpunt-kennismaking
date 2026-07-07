@@ -3,6 +3,7 @@ import { usePreIntake } from '@/contexts/PreIntakeContext';
 import { usePreIntakeSave } from '@/hooks/usePreIntakeSave';
 import { useCallTimer } from '@/hooks/useCallTimer';
 import { supabase } from '@/integrations/supabase/client';
+import AddressAutocomplete from '@/components/AddressAutocomplete';
 
 import CloseCallDialog from '@/components/calling/CloseCallDialog';
 import { ArrowLeft, ArrowRight, LogOut } from 'lucide-react';
