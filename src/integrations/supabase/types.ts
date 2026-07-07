@@ -313,6 +313,7 @@ export type Database = {
           locked_at: string | null
           measurement_promised: boolean | null
           photos_promised: boolean | null
+          plaatsbezoek_planned: boolean
           qual_in_region: boolean | null
           qual_is_decision_maker: boolean | null
           qual_is_owner: boolean | null
@@ -323,6 +324,7 @@ export type Database = {
           scenario_chosen: string | null
           trigger_text: string | null
           updated_at: string | null
+          videocall_planned: boolean
           videocall_scheduled_at: string | null
           wat_tags: string[]
         }
@@ -344,6 +346,7 @@ export type Database = {
           locked_at?: string | null
           measurement_promised?: boolean | null
           photos_promised?: boolean | null
+          plaatsbezoek_planned?: boolean
           qual_in_region?: boolean | null
           qual_is_decision_maker?: boolean | null
           qual_is_owner?: boolean | null
@@ -354,6 +357,7 @@ export type Database = {
           scenario_chosen?: string | null
           trigger_text?: string | null
           updated_at?: string | null
+          videocall_planned?: boolean
           videocall_scheduled_at?: string | null
           wat_tags?: string[]
         }
@@ -375,6 +379,7 @@ export type Database = {
           locked_at?: string | null
           measurement_promised?: boolean | null
           photos_promised?: boolean | null
+          plaatsbezoek_planned?: boolean
           qual_in_region?: boolean | null
           qual_is_decision_maker?: boolean | null
           qual_is_owner?: boolean | null
@@ -385,6 +390,7 @@ export type Database = {
           scenario_chosen?: string | null
           trigger_text?: string | null
           updated_at?: string | null
+          videocall_planned?: boolean
           videocall_scheduled_at?: string | null
           wat_tags?: string[]
         }
