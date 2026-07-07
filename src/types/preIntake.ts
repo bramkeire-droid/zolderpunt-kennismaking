@@ -110,6 +110,8 @@ export const defaultPreIntake: PreIntakeData = {
   quick_notes: '',
   wat_tags: [],
   waarom_nu_timing: '',
+  box_notes: { wat: [], aannemer: [], waarom: [], budget: [] },
+
 
   videocall_planned: false,
   plaatsbezoek_planned: false,
