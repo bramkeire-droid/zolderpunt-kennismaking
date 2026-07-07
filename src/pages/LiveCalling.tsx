@@ -482,16 +482,39 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
               const plaatsbezoekUrl = `https://calendly.com/belhouse/plaatsbezoek-zolderpunt${qs ? `?${qs}` : ''}`;
               const btnCls = "w-full h-14 flex items-center justify-center gap-2 bg-[#008CFF] text-white font-dm font-extrabold text-sm tracking-[0.04em] uppercase hover:bg-[#0070CC] transition-colors";
               return (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-2">
                     <a href={videocallUrl} target="_blank" rel="noopener noreferrer" className={btnCls}>📅 Videocall — Plannen</a>
                     <a href={plaatsbezoekUrl} target="_blank" rel="noopener noreferrer" className={btnCls}>🏠 Plaatsbezoek — Plannen</a>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <PlanCheck checked={data.videocall_planned} label="Videocall ingepland"
-                      onToggle={() => { const next = !data.videocall_planned; update({ videocall_planned: next }); flushSave({ videocall_planned: next }); }} />
-                    <PlanCheck checked={data.plaatsbezoek_planned} label="Plaatsbezoek ingepland"
-                      onToggle={() => { const next = !data.plaatsbezoek_planned; update({ plaatsbezoek_planned: next }); flushSave({ plaatsbezoek_planned: next }); }} />
+                  <div className="grid grid-cols-2 gap-2 items-start">
+                    <div className="space-y-2">
+                      <PlanCheck checked={data.videocall_planned} label="Videocall ingepland"
+                        onToggle={() => { const next = !data.videocall_planned; update({ videocall_planned: next }); flushSave({ videocall_planned: next }); }} />
+                      {data.videocall_planned && (
+                        <ConfirmMailBlock
+                          type="videocall"
+                          scheduledAt={data.videocall_scheduled_at}
+                          onChangeScheduled={(v) => { update({ videocall_scheduled_at: v }); flushSave({ videocall_scheduled_at: v }); }}
+                          leadEmail={leadEmail}
+                          leadVoornaam={leadVoornaam}
+                          meetLink={data.google_meet_link}
+                        />
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <PlanCheck checked={data.plaatsbezoek_planned} label="Plaatsbezoek ingepland"
+                        onToggle={() => { const next = !data.plaatsbezoek_planned; update({ plaatsbezoek_planned: next }); flushSave({ plaatsbezoek_planned: next }); }} />
+                      {data.plaatsbezoek_planned && (
+                        <ConfirmMailBlock
+                          type="plaatsbezoek"
+                          scheduledAt={data.plaatsbezoek_scheduled_at}
+                          onChangeScheduled={(v) => { update({ plaatsbezoek_scheduled_at: v }); flushSave({ plaatsbezoek_scheduled_at: v }); }}
+                          leadEmail={leadEmail}
+                          leadVoornaam={leadVoornaam}
+                        />
+                      )}
+                    </div>
                   </div>
                 </div>
               );
