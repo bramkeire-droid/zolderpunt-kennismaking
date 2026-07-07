@@ -33,6 +33,8 @@ function dataToRow(d: PreIntakeData) {
     google_meet_link: d.google_meet_link,
     quick_notes: d.quick_notes,
     wat_tags: d.wat_tags,
+    videocall_planned: d.videocall_planned,
+    plaatsbezoek_planned: d.plaatsbezoek_planned,
     locked_at: d.locked_at,
   };
 }

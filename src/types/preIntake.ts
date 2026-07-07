@@ -64,6 +64,8 @@ export interface PreIntakeData {
   quick_notes: string;
 
   wat_tags: string[];
+  videocall_planned: boolean;
+  plaatsbezoek_planned: boolean;
 
   locked_at: string | null;
 }
@@ -103,6 +105,8 @@ export const defaultPreIntake: PreIntakeData = {
   google_meet_link: '',
   quick_notes: '',
   wat_tags: [],
+  videocall_planned: false,
+  plaatsbezoek_planned: false,
   locked_at: null,
 };
 

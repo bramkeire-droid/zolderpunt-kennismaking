@@ -159,31 +159,23 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
   };
 
   const handleCloseCall = async () => {
+    // Wrap-up scherm is verwijderd → afronden = direct opslaan + naar dossiers/validatie.
     const endedAt = new Date().toISOString();
     const duration = timer.elapsed;
-    update({ call_ended_at: endedAt, call_duration_seconds: duration });
+    const lockedAt = endedAt;
+    update({ call_ended_at: endedAt, call_duration_seconds: duration, locked_at: lockedAt });
     timer.pause();
     const leadId = await ensureLeadRow();
-    // Belangrijk: lead_id + tijden meegeven zodat de pre_intake-row meteen wegschrijft,
-    // zonder te wachten op een React re-render.
+    if (leadId) {
+      await supabase.from('leads').update({ status: 'telefoongesprek' }).eq('id', leadId);
+    }
     await flushSave({
       lead_id: leadId ?? data.lead_id,
       call_ended_at: endedAt,
       call_duration_seconds: duration,
+      locked_at: lockedAt,
     });
     setShowCloseDialog(false);
-    setStep('wrap-up');
-  };
-
-  const handleFinishWrapUp = async () => {
-    const leadId = await ensureLeadRow();
-    // Wrap-up afronden = telefoongesprek is gevoerd → status 'telefoongesprek'
-    if (leadId) {
-      await supabase.from('leads').update({ status: 'telefoongesprek' }).eq('id', leadId);
-    }
-    const lockedAt = new Date().toISOString();
-    update({ locked_at: lockedAt });
-    await flushSave({ lead_id: leadId ?? data.lead_id, locked_at: lockedAt });
     toast.success('Dossier opgeslagen');
     if (leadId && data.id) {
       onOpenValidation(leadId, data.id);
@@ -191,6 +183,10 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
       onGoDossiers();
     }
   };
+
+  const handleFinishWrapUp = handleCloseCall;
+
+
 
   /** Terug-knop: bij ingevulde naam+email vraag om op te slaan, anders direct terug zonder lege rij. */
   const handleBackToDossiers = async () => {
@@ -488,16 +484,64 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
               const plaatsbezoekUrl = `https://calendly.com/belhouse/plaatsbezoek-zolderpunt${qs ? `?${qs}` : ''}`;
               const btnCls = "w-full h-[clamp(44px,6vh,64px)] flex items-center justify-center gap-2 bg-[#008CFF] text-white font-dm font-extrabold text-[clamp(12px,1.6vh,18px)] tracking-[0.04em] uppercase hover:bg-[#0070CC] transition-colors";
               return (
-                <div className="grid grid-cols-2 gap-2">
-                  <a href={videocallUrl} target="_blank" rel="noopener noreferrer" className={btnCls}>
-                    📅 Videocall — Plannen
-                  </a>
-                  <a href={plaatsbezoekUrl} target="_blank" rel="noopener noreferrer" className={btnCls}>
-                    🏠 Plaatsbezoek — Plannen
-                  </a>
+                <div className="space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <a href={videocallUrl} target="_blank" rel="noopener noreferrer" className={btnCls}>
+                      📅 Videocall — Plannen
+                    </a>
+                    <a href={plaatsbezoekUrl} target="_blank" rel="noopener noreferrer" className={btnCls}>
+                      🏠 Plaatsbezoek — Plannen
+                    </a>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <PlanCheck
+                      checked={data.videocall_planned}
+                      label="Videocall ingepland"
+                      onToggle={() => {
+                        const next = !data.videocall_planned;
+                        update({ videocall_planned: next });
+                        flushSave({ videocall_planned: next });
+                      }}
+                    />
+                    <PlanCheck
+                      checked={data.plaatsbezoek_planned}
+                      label="Plaatsbezoek ingepland"
+                      onToggle={() => {
+                        const next = !data.plaatsbezoek_planned;
+                        update({ plaatsbezoek_planned: next });
+                        flushSave({ plaatsbezoek_planned: next });
+                      }}
+                    />
+                  </div>
                 </div>
               );
             })()}
+
+            {/* Wat kwam er aan bod — klantvragen chips */}
+            <div className="space-y-2 shrink-0">
+              <div className="font-dm text-[clamp(11px,1.4vh,15px)] font-bold text-[#5B6470] uppercase tracking-[0.14em]">Wat kwam er aan bod?</div>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { key: 'budget' as const, label: 'Budget' },
+                  { key: 'start_timing' as const, label: 'Starttiming' },
+                  { key: 'duration' as const, label: 'Doorlooptijd' },
+                  { key: 'daily_impact' as const, label: 'Impact dagelijks leven' },
+                  { key: 'overlast' as const, label: 'Overlast' },
+                  { key: 'feasibility_idea' as const, label: 'Haalbaarheid idee' },
+                  { key: 'attic_condition' as const, label: 'Staat zolder' },
+                  { key: 'company_approach' as const, label: 'Werkwijze bedrijf' },
+                ].map(q => {
+                  const raised = data.questions_raised[q.key]?.raised;
+                  return (
+                    <button key={q.key} type="button"
+                      onClick={() => { toggleQuestion(q.key); flushSave(); }}
+                      className={`h-10 px-4 text-[13px] font-body font-medium transition-colors border-2 ${raised ? 'bg-[#008CFF] text-white border-[#008CFF]' : 'bg-white text-[#5B6470] border-[#DDD5C5] hover:border-[#008CFF]/50'}`}>
+                      {q.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
 
             {/* Vier grote vraagkaders — 2x2 */}
             <div className="grid grid-cols-2 grid-rows-2 gap-3 flex-1 min-h-0">
@@ -594,6 +638,21 @@ function BigQuestionBox({ n, label, value, onChange, onEnterFlush, placeholder, 
 }
 
 const WAT_TAG_OPTIONS = ['Vaste trap', 'Trapgat', 'Dakraam', 'Airco', 'Schilderwerken', 'Isolatie', 'Vloer uitpassen', 'Stabiliteitsonderzoek'];
+
+function PlanCheck({ checked, label, onToggle }: { checked: boolean; label: string; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className={`h-11 px-4 flex items-center gap-3 border-2 font-dm font-semibold text-[14px] transition-colors ${checked ? 'bg-[#008CFF]/10 border-[#008CFF] text-[#0F1419]' : 'bg-white border-[#DDD5C5] text-[#5B6470] hover:border-[#008CFF]/50'}`}
+    >
+      <span className={`w-5 h-5 border-2 flex items-center justify-center shrink-0 ${checked ? 'bg-[#008CFF] border-[#008CFF] text-white' : 'bg-white border-[#DDD5C5]'}`}>
+        {checked ? '✓' : ''}
+      </span>
+      {label}
+    </button>
+  );
+}
 
 function WatTagsChips({ selected, onToggle }: { selected: string[]; onToggle: (tag: string) => void }) {
   return (
