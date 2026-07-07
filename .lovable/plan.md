@@ -1,78 +1,55 @@
-
 ## Doel
 
-Aanpassingen aan `src/components/dossier/OffertebijlagePdf.tsx`:
+De linkerkolom van het live-belscherm (`LiveCalling.tsx`, step `calling`) vereenvoudigen tot: klantgegevens + 2 planningsknoppen + 4 grote genummerde vraagblokken die autosaven en 1-op-1 gelinkt zijn aan bestaande `pre_intake`-kolommen. Rechterkolom (zwarte spiekkaart) en topbar blijven ongewijzigd. Wrap-up scherm blijft ongewijzigd.
 
-1. **Pagina 1 — Facturatie & Planning samen op één A4** (geen page break meer tussen).
-2. **Pagina 2 — Reviews** herontwerpen: dichter, herkenbaarder als Google reviews, met Zolderpunt-huisstijl.
+## Wijzigingen
 
----
+### 1. Klantgegevens-blok (behouden)
+Blijft exact zoals nu: voornaam, achternaam, e-mail, telefoon, partner, adres. Autosave zoals vandaag (via `usePreIntakeSave` + `ensureLeadRow` bij afwerken).
 
-## 1. Facturatie & Planning compacteren
+### 2. Twee planningsknoppen naast elkaar
+Vervangt de huidige volle-breedte "Videocall inplannen agenda"-knop door een grid van 2 gelijke knoppen:
 
-Doel: alles past op één A4 zonder visuele rommel.
+- **Videocall — Plannen** → bestaande Calendly-URL (`belhouse/zolderpunt-kennismaking-met-jouw-project`), incl. huidige prefill van `name` en `email`.
+- **Plaatsbezoek — Plannen** → `https://calendly.com/belhouse/plaatsbezoek-zolderpunt`, zelfde prefill.
 
-- `page.padding` 40 → 32, `section.marginBottom` 26 → 14.
-- Header: `marginBottom` 24 → 14, `paddingBottom` 16 → 10, titel 22 → 18.
-- Meta-row: `marginBottom` 18 → 10, `metaValue` fontSize 11 → 10.
-- `sectionTitle` 16 → 13, `marginBottom` 14 → 8; `sectionLabel.marginBottom` 10 → 5.
-- Faserows: `padding` 12 → 8, `marginBottom` 8 → 5, faseNr 28×28 → 22×22, faseBedrag 14 → 12.
-- `totalRow` padding verkleind (Vert 10 → 7).
-- `weeklyCallout`: `padding` 14 → 9, `marginTop` 14 → 8, badge en bedrag iets kleiner (weeklyAmount 18 → 14).
-- `btwNote.marginTop` 8 → 4.
-- Tijdlijn: `timelineWrap.padding` 16 → 10, `tlBlock.minHeight` 50 → 38, `padding` 6 → 4, legendRow `marginTop` 14 → 8.
-- Sectie-titel "Planning" en "Facturatie" blijven gescheiden, alleen marges krimpen.
+Zelfde stijl als huidige blauwe knop (`bg-[#008CFF]`, uppercase, scherpe hoeken).
 
-Resultaat: één compacte A4 — geen page break meer tussen facturatie en planning.
+### 3. Vier grote vraagkaders (vervangt trigger, citaten, twijfels, buying committee, algemene indruk)
+Elk kader = grote label met nummer + `textarea` die autosavet naar een bestaand `pre_intake`-veld (hergebruik zoals gekozen):
 
----
+| # | Label            | pre_intake kolom     |
+|---|------------------|----------------------|
+| 1 | WAT?             | `general_impression` |
+| 2 | WELKE AANNEMER?  | `buying_committee`   |
+| 3 | WAAROM NU?       | `trigger_text`       |
+| 4 | WELK BUDGET?     | `quick_notes`        |
 
-## 2. Reviews-pagina herontwerpen
+**Autosave-gedrag:** typen updatet React state (via `update({...})`) → bestaande 5s-debounce in `usePreIntakeSave` schrijft naar DB. Extra: **Enter → onmiddellijke `flushSave()`** (Shift+Enter = nieuwe regel). Zo voelt Enter als "bevestigd/opgeslagen".
 
-### Visuele richting
+Kaders vullen samen de resterende hoogte, gelijk verdeeld in een `grid-rows-4` binnen `flex-1`. Groot font voor labels (Space Grotesk, uppercase, blauw nummer ervoor), body font in de textarea (Rethink Sans). Scherpe hoeken, `border-2 border-[#DDD5C5]`, focus `#008CFF`.
 
-Combinatie Zolderpunt-blauw (`COLORS.primary`) + herkenbare Google-review codes:
-- **Gele 5-sterren** (Google-stijl) prominent in hero en in elke kaart.
-- **"G"-cirkel-badge** (multicolor onmogelijk in PDF zonder svg → eenvoudige blauwe cirkel met witte "G" volstaat) naast titel.
-- Semi-transparante overlay-blokken op de blauwe hero (witte boxes met opacity ~0.10/0.15) voor diepte zonder huisstijl te verliezen.
-- Minder witruimte: kaarten dichter op elkaar (gap 6pt), 2 kolommen, dichter padding.
-- Subtiele blauwe accent-strook links van elke kaart (3pt) — "ervaringen-bar".
+### 4. Verwijderd uit linkerkolom
+- Trigger-input (los)
+- ChipInput voor citaten (`emotional_keywords`)
+- ChipInput voor twijfels (`fomu_concerns`)
+- Buying-committee textarea (los)
+- Algemene-indruk textarea (los)
 
-### Hero (compacter, rijker)
+Data in `emotional_keywords` / `fomu_concerns` blijft in het datamodel bestaan (wrap-up en AI-analyse gebruiken ze) — enkel niet meer bewerkbaar op dit scherm. Bestaande waarden gaan niet verloren.
 
-- Blauwe band krimpt: `paddingVertical` 22 → 16, `marginBottom` 22 → 14.
-- Layout: links titel/score, rechts een semi-transparante kaart met "Google" badge + grote 5.0 + 5 gele sterren + "9 reviews".
-- Kicker met sterretjes-icoontjes ipv enkel tekst: "★ ERVARINGEN · GOOGLE REVIEWS ★".
-- Score-blok rechts: witte half-transparante achtergrond (`rgba(255,255,255,0.12)`), border `rgba(255,255,255,0.25)`, padding 10, met:
-  - "G" badge (cirkel, wit op blauw of multicolor benadering)
-  - "5.0" groot (28pt)
-  - 5 gele sterren onder elkaar
-  - "op basis van 9 Google reviews" klein wit/85% opacity
+### 5. Wat NIET verandert
+- Topbar (zolderpunt-logo, timer, Naar dossiers, Afwerken, uitloggen).
+- Rechterkolom met 5-fases spiekkaart.
+- `wrap-up` scherm en alle wrap-up velden.
+- `select-lead` scherm.
+- Datamodel `PreIntakeData`, edge functions, DB-schema.
+- Autosave-mechaniek in `usePreIntakeSave` (5s debounce blijft; we roepen extra `flushSave` op Enter).
 
-### Review-kaarten
+## Technisch (1 bestand)
 
-- 2 kolommen, `gap` ipv `marginRight` voor strakkere rasters.
-- `reviewCard`: `padding` 12 → 10, `marginBottom` 12 → 8.
-- Linkse 3pt blauwe accent-strook (`borderLeftWidth: 3, borderLeftColor: COLORS.primary`).
-- `reviewTop`: avatar-cirkel (initialen op blauw) links + author + datum stacked rechts.
-- Sterren in **goud** (al gebeurt), iets groter (11 → 12) en eronder de tekst.
-- Subtiele blauwe achtergrond-tint (`#F4F8FF` of `COLORS.primary` met opacity via `rgba`) op `reviewTop` voor contrast.
-- Citaat: behoud quote, fontSize 9 → 9.5.
+Enkel `src/pages/LiveCalling.tsx` bewerken. Nieuwe kleine helper-component `BigQuestionBox` binnen hetzelfde bestand met props `n`, `label`, `value`, `onChange`, `onEnterFlush`, `placeholder`. `flushSave` uit `usePreIntakeSave` wordt aangeroepen bij Enter (zonder Shift). Geen nieuwe dependencies, geen nieuwe files, geen migratie.
 
-### Footer/source
-
-- `reviewSource` blijft, maar voeg ernaast een mini "Powered by Google" tekst toe.
-
----
-
-## Bestanden
-
-- `src/components/dossier/OffertebijlagePdf.tsx` — enige wijziging.
-
-Geen wijzigingen aan data-fetch, edge function of dialog. Geen nieuwe dependencies.
-
----
-
-## QA
-
-Na implementatie: PDF genereren via Dossiers → Offertebijlage downloaden, beide pagina's visueel controleren (geen overlap, geen overflow, kaarten symmetrisch, sterren goud zichtbaar).
+## Validatie
+- Typecheck via automatische build.
+- Manueel: openen live-belscherm, controleren dat 2 knoppen tonen, 4 kaders zichtbaar, Enter in een kader → toast/opslag, waarde zichtbaar bij herladen dossier.
