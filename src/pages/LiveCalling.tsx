@@ -547,10 +547,19 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
                     <a href={videocallUrl} target="_blank" rel="noopener noreferrer" className={btnCls}>📅 Videocall — Plannen</a>
                     <a href={plaatsbezoekUrl} target="_blank" rel="noopener noreferrer" className={btnCls}>🏠 Plaatsbezoek — Plannen</a>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => syncCalendly('manual')}
+                    disabled={!leadEmail.trim() || calendlySyncing}
+                    className="h-10 w-full flex items-center justify-center gap-2 bg-white border-2 border-[#DDD5C5] text-[#0F1419] disabled:text-[#B0A898] disabled:bg-[#F2EDE4] font-dm font-semibold text-[13px] hover:border-[#008CFF]/60 transition-colors"
+                  >
+                    <RefreshCw className={`h-4 w-4 ${calendlySyncing ? 'animate-spin' : ''}`} />
+                    Calendly verversen
+                  </button>
                   <div className="grid grid-cols-2 gap-2 items-start">
                     <div className="space-y-2">
                       <PlanCheck checked={data.videocall_planned} label="Videocall ingepland"
-                        onToggle={() => { const next = !data.videocall_planned; update({ videocall_planned: next }); flushSave({ videocall_planned: next }); }} />
+                        onToggle={() => { const next = !data.videocall_planned; update({ videocall_planned: next }); flushSave({ videocall_planned: next }); if (next) void syncCalendly('manual'); }} />
                       {data.videocall_planned && (
                         <ConfirmMailBlock
                           type="videocall"
@@ -564,7 +573,7 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
                     </div>
                     <div className="space-y-2">
                       <PlanCheck checked={data.plaatsbezoek_planned} label="Plaatsbezoek ingepland"
-                        onToggle={() => { const next = !data.plaatsbezoek_planned; update({ plaatsbezoek_planned: next }); flushSave({ plaatsbezoek_planned: next }); }} />
+                        onToggle={() => { const next = !data.plaatsbezoek_planned; update({ plaatsbezoek_planned: next }); flushSave({ plaatsbezoek_planned: next }); if (next) void syncCalendly('manual'); }} />
                       {data.plaatsbezoek_planned && (
                         <ConfirmMailBlock
                           type="plaatsbezoek"
