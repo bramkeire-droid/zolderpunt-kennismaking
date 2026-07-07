@@ -471,8 +471,8 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
                   className="h-[clamp(36px,4.5vh,56px)] px-3 bg-white border-2 border-[#DDD5C5] text-[clamp(13px,1.7vh,20px)] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
                 <input type="text" value={leadPartnerNaam} onChange={e => setLeadPartnerNaam(e.target.value)} placeholder="Partner"
                   className="h-[clamp(36px,4.5vh,56px)] px-3 bg-white border-2 border-[#DDD5C5] text-[clamp(13px,1.7vh,20px)] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
-                <input type="text" value={leadAdres} onChange={e => setLeadAdres(e.target.value)} placeholder="Adres"
-                  className="h-[clamp(36px,4.5vh,56px)] px-3 bg-white border-2 border-[#DDD5C5] text-[clamp(13px,1.7vh,20px)] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
+                <AddressAutocomplete value={leadAdres} onChange={setLeadAdres} placeholder="Adres"
+                  className="!h-[clamp(36px,4.5vh,56px)] !px-3 !bg-white !border-2 !border-[#DDD5C5] !text-[clamp(13px,1.7vh,20px)] !font-body !font-medium !text-[#0F1419] placeholder:!text-[#B0A898] focus:!outline-none focus-visible:!ring-0 focus-visible:!ring-offset-0 focus:!border-[#008CFF] !rounded-none" />
               </div>
             </FieldBlock>
 
