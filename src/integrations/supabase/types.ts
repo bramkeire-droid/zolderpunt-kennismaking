@@ -315,6 +315,7 @@ export type Database = {
           measurement_promised: boolean | null
           photos_promised: boolean | null
           plaatsbezoek_planned: boolean
+          plaatsbezoek_scheduled_at: string | null
           qual_in_region: boolean | null
           qual_is_decision_maker: boolean | null
           qual_is_owner: boolean | null
@@ -350,6 +351,7 @@ export type Database = {
           measurement_promised?: boolean | null
           photos_promised?: boolean | null
           plaatsbezoek_planned?: boolean
+          plaatsbezoek_scheduled_at?: string | null
           qual_in_region?: boolean | null
           qual_is_decision_maker?: boolean | null
           qual_is_owner?: boolean | null
@@ -385,6 +387,7 @@ export type Database = {
           measurement_promised?: boolean | null
           photos_promised?: boolean | null
           plaatsbezoek_planned?: boolean
+          plaatsbezoek_scheduled_at?: string | null
           qual_in_region?: boolean | null
           qual_is_decision_maker?: boolean | null
           qual_is_owner?: boolean | null
