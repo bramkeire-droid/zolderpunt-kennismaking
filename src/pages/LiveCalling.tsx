@@ -482,16 +482,39 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
               const plaatsbezoekUrl = `https://calendly.com/belhouse/plaatsbezoek-zolderpunt${qs ? `?${qs}` : ''}`;
               const btnCls = "w-full h-14 flex items-center justify-center gap-2 bg-[#008CFF] text-white font-dm font-extrabold text-sm tracking-[0.04em] uppercase hover:bg-[#0070CC] transition-colors";
               return (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-2">
                     <a href={videocallUrl} target="_blank" rel="noopener noreferrer" className={btnCls}>📅 Videocall — Plannen</a>
                     <a href={plaatsbezoekUrl} target="_blank" rel="noopener noreferrer" className={btnCls}>🏠 Plaatsbezoek — Plannen</a>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <PlanCheck checked={data.videocall_planned} label="Videocall ingepland"
-                      onToggle={() => { const next = !data.videocall_planned; update({ videocall_planned: next }); flushSave({ videocall_planned: next }); }} />
-                    <PlanCheck checked={data.plaatsbezoek_planned} label="Plaatsbezoek ingepland"
-                      onToggle={() => { const next = !data.plaatsbezoek_planned; update({ plaatsbezoek_planned: next }); flushSave({ plaatsbezoek_planned: next }); }} />
+                  <div className="grid grid-cols-2 gap-2 items-start">
+                    <div className="space-y-2">
+                      <PlanCheck checked={data.videocall_planned} label="Videocall ingepland"
+                        onToggle={() => { const next = !data.videocall_planned; update({ videocall_planned: next }); flushSave({ videocall_planned: next }); }} />
+                      {data.videocall_planned && (
+                        <ConfirmMailBlock
+                          type="videocall"
+                          scheduledAt={data.videocall_scheduled_at}
+                          onChangeScheduled={(v) => { update({ videocall_scheduled_at: v }); flushSave({ videocall_scheduled_at: v }); }}
+                          leadEmail={leadEmail}
+                          leadVoornaam={leadVoornaam}
+                          meetLink={data.google_meet_link}
+                        />
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <PlanCheck checked={data.plaatsbezoek_planned} label="Plaatsbezoek ingepland"
+                        onToggle={() => { const next = !data.plaatsbezoek_planned; update({ plaatsbezoek_planned: next }); flushSave({ plaatsbezoek_planned: next }); }} />
+                      {data.plaatsbezoek_planned && (
+                        <ConfirmMailBlock
+                          type="plaatsbezoek"
+                          scheduledAt={data.plaatsbezoek_scheduled_at}
+                          onChangeScheduled={(v) => { update({ plaatsbezoek_scheduled_at: v }); flushSave({ plaatsbezoek_scheduled_at: v }); }}
+                          leadEmail={leadEmail}
+                          leadVoornaam={leadVoornaam}
+                        />
+                      )}
+                    </div>
                   </div>
                 </div>
               );
@@ -716,6 +739,79 @@ function WatTagsChips({ selected, onToggle }: { selected: string[]; onToggle: (t
     </div>
   );
 }
+
+function ConfirmMailBlock({
+  type, scheduledAt, onChangeScheduled, leadEmail, leadVoornaam, meetLink,
+}: {
+  type: 'videocall' | 'plaatsbezoek';
+  scheduledAt: string | null;
+  onChangeScheduled: (val: string | null) => void;
+  leadEmail: string;
+  leadVoornaam: string;
+  meetLink?: string;
+}) {
+  const datePart = scheduledAt ? scheduledAt.split('T')[0] : '';
+  const timePart = scheduledAt ? (scheduledAt.split('T')[1]?.substring(0, 5) || '10:00') : '';
+
+  const setDate = (d: string) => {
+    if (!d) { onChangeScheduled(null); return; }
+    onChangeScheduled(`${d}T${timePart || '10:00'}`);
+  };
+  const setTime = (t: string) => {
+    const base = datePart || new Date().toISOString().split('T')[0];
+    onChangeScheduled(`${base}T${t || '10:00'}`);
+  };
+
+  const canMail = !!scheduledAt && !!leadEmail;
+  const naam = leadVoornaam || 'daar';
+
+  let mailto = '#';
+  if (canMail) {
+    const dt = new Date(scheduledAt!);
+    const dag = dt.toLocaleDateString('nl-BE', { weekday: 'long', day: 'numeric', month: 'long' });
+    const uur = dt.toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' });
+    const commonAsks =
+      `Om ${type === 'videocall' ? 'ons gesprek goed te kunnen voorbereiden' : 'het bezoek zo vlot mogelijk te laten verlopen'}, mogen jullie mij vooraf gerust al even volgende zaken bezorgen:\n\n` +
+      `• Enkele foto's die de huidige toestand van de zolder goed weergeven\n` +
+      `• Een ruwe inschatting van de oppervlakte van de zolder\n` +
+      `• Indien er een nieuwe vaste trap naar de zolder nodig is: graag ook enkele foto's of een korte toelichting van de verdieping onder de zolder. Zo krijgen we een beter beeld van waar jullie de trap eventueel zien komen, via welke ruimte dit zou gebeuren en welke ruimte daarvoor mogelijk opgeofferd wordt.\n\n` +
+      `De foto's en informatie mogen eenvoudig doorgestuurd worden via WhatsApp of mail, afhankelijk van wat voor jullie het gemakkelijkst werkt.\n+32 492 400 954`;
+
+    let subject = '';
+    let body = '';
+    if (type === 'videocall') {
+      const meetLine = meetLink ? `\n\nDe videocall vindt plaats via deze link: ${meetLink}\n` : '\n';
+      subject = `Bevestiging videocall ${dag} om ${uur} — Zolderpunt`;
+      body = `Hi ${naam},\n\nBij deze bevestig ik graag onze videocall op ${dag} om ${uur}.${meetLine}\n${commonAsks}\n\nIk kijk ernaar uit om jullie project verder samen te bekijken. Tot dan!\n\nPositieve groeten,\nBram — Zolderpunt`;
+    } else {
+      subject = `Bevestiging plaatsbezoek ${dag} om ${uur} — Zolderpunt`;
+      body = `Hi ${naam},\n\nBij deze bevestig ik graag ons plaatsbezoek op ${dag} om ${uur}.\nReken op een aanwezigheid van ongeveer een uur. Gelieve ons tijdig te verwittigen als de afspraak niet kan doorgaan.\n\n${commonAsks}\n\nIk kijk ernaar uit om jullie project ter plaatse te bekijken. Tot dan!\n\nPositieve groeten,\nBram — Zolderpunt`;
+    }
+    mailto = `mailto:${leadEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  }
+
+  return (
+    <div className="border border-[#DDD5C5] bg-[#FAF7F1] p-2 space-y-2">
+      <div className="grid grid-cols-2 gap-2">
+        <input type="date" value={datePart} onChange={(e) => setDate(e.target.value)}
+          className="h-10 px-2 border-2 border-[#DDD5C5] bg-white text-sm font-dm" />
+        <input type="time" value={timePart} onChange={(e) => setTime(e.target.value)}
+          className="h-10 px-2 border-2 border-[#DDD5C5] bg-white text-sm font-dm" />
+      </div>
+      {canMail ? (
+        <a href={mailto}
+          className="w-full h-11 flex items-center justify-center gap-2 bg-[#0F1419] text-white font-dm font-extrabold text-[13px] tracking-[0.04em] uppercase hover:bg-[#008CFF] transition-colors">
+          📧 Bevestigingsmail
+        </a>
+      ) : (
+        <div className="w-full h-11 flex items-center justify-center gap-2 bg-[#E8E3D8] text-[#8B8578] font-dm font-extrabold text-[13px] tracking-[0.04em] uppercase">
+          {!leadEmail ? 'E-mail ontbreekt' : 'Kies datum + tijd'}
+        </div>
+      )}
+    </div>
+  );
+}
+
 
 
 

@@ -108,6 +108,7 @@ export function PreIntakeProvider({ children }: { children: React.ReactNode }) {
       ...preIntake,
       wat_tags: Array.isArray((preIntake as any).wat_tags) ? (preIntake as any).wat_tags : [],
       waarom_nu_timing: (preIntake as any).waarom_nu_timing ?? '',
+      plaatsbezoek_scheduled_at: (preIntake as any).plaatsbezoek_scheduled_at ?? null,
       videocall_planned: !!(preIntake as any).videocall_planned,
       plaatsbezoek_planned: !!(preIntake as any).plaatsbezoek_planned,
       box_notes: {

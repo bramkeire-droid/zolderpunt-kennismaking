@@ -1,0 +1,1 @@
+ALTER TABLE public.pre_intake ADD COLUMN IF NOT EXISTS plaatsbezoek_scheduled_at timestamptz;
