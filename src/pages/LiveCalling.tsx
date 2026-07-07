@@ -596,9 +596,17 @@ function Section({ eyebrow, hint, children }: { eyebrow: string; hint?: string; 
   );
 }
 
-function BigQuestionBox({ n, label, value, onChange, onEnterFlush, placeholder, headerExtra }: {
-  n: number; label: string; value: string; onChange: (v: string) => void; onEnterFlush: () => void; placeholder?: string; headerExtra?: React.ReactNode;
+function BigQuestionBox({ n, label, placeholder, headerExtra, entries, onAddEntry, onRemoveEntry }: {
+  n: number; label: string; placeholder?: string; headerExtra?: React.ReactNode;
+  entries: string[]; onAddEntry: (text: string) => void; onRemoveEntry: (idx: number) => void;
 }) {
+  const [input, setInput] = useState('');
+  const submit = () => {
+    const t = input.trim();
+    if (!t) return;
+    onAddEntry(t);
+    setInput('');
+  };
   return (
     <div className="flex flex-col min-h-0 bg-white border-2 border-[#DDD5C5] border-t-[3px] border-t-[#008CFF] focus-within:border-[#008CFF] transition-colors">
       <div className="flex items-baseline gap-2 px-4 pt-3 pb-2 border-b border-[#DDD5C5]/60 shrink-0">
@@ -611,20 +619,31 @@ function BigQuestionBox({ n, label, value, onChange, onEnterFlush, placeholder, 
         </div>
       )}
       <textarea
-        value={value}
-        onChange={e => onChange(e.target.value)}
+        value={input}
+        onChange={e => setInput(e.target.value)}
         onKeyDown={e => {
           if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
-            onEnterFlush();
+            submit();
           }
         }}
         placeholder={placeholder}
-        className="w-full flex-1 min-h-[140px] px-4 py-3 bg-white text-base leading-relaxed font-body text-[#0F1419] placeholder:text-[#B0A898] resize-none focus:outline-none"
+        className="w-full px-4 py-3 bg-white text-base leading-relaxed font-body text-[#0F1419] placeholder:text-[#B0A898] resize-none focus:outline-none min-h-[80px]"
       />
+      {entries.length > 0 && (
+        <div className="px-4 pb-3 pt-1 flex flex-wrap gap-2 border-t border-[#DDD5C5]/60">
+          {entries.map((e, i) => (
+            <span key={i} className="inline-flex items-center gap-2 bg-[#F8F3EB] border-2 border-[#DDD5C5] px-3 h-9 text-sm font-body text-[#0F1419]">
+              {e}
+              <button type="button" onClick={() => onRemoveEntry(i)} className="text-[#5B6470] hover:text-[#008CFF] font-bold" aria-label="Verwijder">×</button>
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
+
 
 
 const WAT_TAG_OPTIONS = ['Vaste trap', 'Trapgat', 'Dakraam', 'Airco', 'Schilderwerken', 'Isolatie', 'Vloer uitpassen', 'Stabiliteitsonderzoek'];
