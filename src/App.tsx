@@ -138,10 +138,10 @@ function AppContent() {
         <DecorativeAngle position="bottom-left" color="secondary" size={250} />
         <div className="flex-1 flex flex-col items-center justify-center relative z-10">
           <img src={logoBlauw} alt="Zolderpunt" className="h-14 mb-12" />
-          <div className="space-y-4 flex flex-col items-center">
+          <div className="w-full max-w-sm flex flex-col gap-3 px-6">
             <Button
               onClick={handleNewCall}
-              className="bg-primary text-primary-foreground hover:bg-secondary font-headline text-lg px-8 py-6 gap-3"
+              className="w-full h-14 bg-primary text-primary-foreground hover:bg-secondary font-headline text-base gap-3 justify-center"
             >
               <Phone className="h-5 w-5" />
               Nieuw telefoongesprek
@@ -149,15 +149,15 @@ function AppContent() {
             <Button
               onClick={handleNewIntake}
               variant="outline"
-              className="font-headline text-base px-8 py-5 gap-3"
+              className="w-full h-14 font-headline text-base gap-3 justify-center"
             >
-              Nieuw intakegesprek starten
               <ArrowRight className="h-5 w-5" />
+              Nieuw intakegesprek starten
             </Button>
             <Button
               variant="outline"
               onClick={handleGoDossiers}
-              className="font-headline text-base px-8 py-5 gap-3"
+              className="w-full h-14 font-headline text-base gap-3 justify-center"
             >
               <FolderOpen className="h-5 w-5" />
               Dossiers bekijken
