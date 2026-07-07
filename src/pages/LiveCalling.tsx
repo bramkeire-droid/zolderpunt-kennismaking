@@ -525,32 +525,48 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
 
           {/* ④ VIER VRAAGKADERS */}
           <div className="grid grid-cols-2 grid-rows-2 gap-3 min-h-[520px]">
-            <BigQuestionBox n={1} label="WAT?" placeholder="Wat wil de klant precies? Type ruimte, functie, gewenst resultaat…"
-              value={data.general_impression} onChange={v => update({ general_impression: v })} onEnterFlush={() => flushSave()}
-              headerExtra={
-                <WatTagsChips selected={data.wat_tags}
-                  onToggle={tag => {
-                    const next = data.wat_tags.includes(tag) ? data.wat_tags.filter(t => t !== tag) : [...data.wat_tags, tag];
-                    update({ wat_tags: next });
-                    flushSave({ wat_tags: next });
-                  }} />
-              } />
-            <BigQuestionBox n={2} label="WELKE AANNEMER?" placeholder="Welke samenwerking willen ze? Wat is belangrijk voor hen?"
-              value={data.buying_committee} onChange={v => update({ buying_committee: v })} onEnterFlush={() => flushSave()} />
-            <BigQuestionBox n={3} label="WAAROM NU EN TEGEN WANNEER?" placeholder="Trigger: waarom komt dit vandaag op tafel? Deadline, gezin, verhuis…"
-              value={data.trigger_text} onChange={v => update({ trigger_text: v })} onEnterFlush={() => flushSave()}
-              headerExtra={
-                <TimingChips selected={data.waarom_nu_timing}
-                  onSelect={val => {
-                    const next = data.waarom_nu_timing === val ? '' : val;
-                    update({ waarom_nu_timing: next });
-                    flushSave({ waarom_nu_timing: next });
-                  }} />
-              } />
-
-            <BigQuestionBox n={4} label="WELK BUDGET?" placeholder="Verwachting? Range? Al iets berekend? Financiering rond?"
-              value={data.quick_notes} onChange={v => update({ quick_notes: v })} onEnterFlush={() => flushSave()} />
+            {(() => {
+              const addEntry = (key: 'wat' | 'aannemer' | 'waarom' | 'budget') => (text: string) => {
+                const next = { ...data.box_notes, [key]: [...(data.box_notes[key] || []), text] };
+                update({ box_notes: next });
+                flushSave({ box_notes: next as any });
+              };
+              const removeEntry = (key: 'wat' | 'aannemer' | 'waarom' | 'budget') => (idx: number) => {
+                const next = { ...data.box_notes, [key]: data.box_notes[key].filter((_, i) => i !== idx) };
+                update({ box_notes: next });
+                flushSave({ box_notes: next as any });
+              };
+              return (
+                <>
+                  <BigQuestionBox n={1} label="WAT?" placeholder="Type en druk op Enter…"
+                    entries={data.box_notes.wat} onAddEntry={addEntry('wat')} onRemoveEntry={removeEntry('wat')}
+                    headerExtra={
+                      <WatTagsChips selected={data.wat_tags}
+                        onToggle={tag => {
+                          const next = data.wat_tags.includes(tag) ? data.wat_tags.filter(t => t !== tag) : [...data.wat_tags, tag];
+                          update({ wat_tags: next });
+                          flushSave({ wat_tags: next });
+                        }} />
+                    } />
+                  <BigQuestionBox n={2} label="WELKE AANNEMER?" placeholder="Type en druk op Enter…"
+                    entries={data.box_notes.aannemer} onAddEntry={addEntry('aannemer')} onRemoveEntry={removeEntry('aannemer')} />
+                  <BigQuestionBox n={3} label="WAAROM NU EN TEGEN WANNEER?" placeholder="Type en druk op Enter…"
+                    entries={data.box_notes.waarom} onAddEntry={addEntry('waarom')} onRemoveEntry={removeEntry('waarom')}
+                    headerExtra={
+                      <TimingChips selected={data.waarom_nu_timing}
+                        onSelect={val => {
+                          const next = data.waarom_nu_timing === val ? '' : val;
+                          update({ waarom_nu_timing: next });
+                          flushSave({ waarom_nu_timing: next });
+                        }} />
+                    } />
+                  <BigQuestionBox n={4} label="WELK BUDGET?" placeholder="Type en druk op Enter…"
+                    entries={data.box_notes.budget} onAddEntry={addEntry('budget')} onRemoveEntry={removeEntry('budget')} />
+                </>
+              );
+            })()}
           </div>
+
 
         </div>
       </div>
