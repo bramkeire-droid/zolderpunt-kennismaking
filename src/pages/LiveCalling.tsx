@@ -445,131 +445,72 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
         </div>
       </div>
 
-      {/* ═══ TWO-COLUMN WORKSPACE ═══ */}
-      <div className="flex-1 grid grid-cols-[1.85fr_1fr] min-h-0">
+      {/* ═══ WORKSPACE — single centered column ═══ */}
+      <div className="flex-1 min-h-0 bg-[#FFFCF5] overflow-hidden">
+        <div className="px-8 py-4 max-w-[1600px] mx-auto h-full flex flex-col min-h-0">
 
-        {/* ─────── LEFT: NOTITIEBLOK (hoofdwerkvlak) — past binnen viewport ─────── */}
-        <div className="overflow-hidden bg-[#FFFCF5] border-r-2 border-[#DDD5C5] min-h-0">
-          <div className="px-6 py-4 max-w-[1100px] mx-auto h-full flex flex-col min-h-0">
-
-            <div className="flex items-baseline gap-3 mb-1 shrink-0">
-              <span className="text-[clamp(14px,1.8vh,22px)]">📝</span>
-              <h2 className="font-dm text-[clamp(16px,2.4vh,28px)] font-bold text-[#0F1419] tracking-[-0.01em]">Notitieblok</h2>
-              <span className="text-[clamp(11px,1.4vh,16px)] text-[#5B6470] italic">Wat onthou ik uit dit gesprek?</span>
-            </div>
-            <p className="text-[clamp(11px,1.3vh,15px)] text-[#5B6470] mb-3 shrink-0">De essentie om straks naar Bram door te geven. <strong>Hier ligt je focus tijdens het gesprek.</strong></p>
-
-            <div className="flex flex-col gap-3 flex-1 min-h-0">
-
-              {/* Klantgegevens */}
-              <FieldBlock label="Klantgegevens" hint="Vul aan tijdens of vlak na het gesprek">
-                <div className="grid grid-cols-2 gap-2">
-                  <input type="text" value={leadVoornaam} onChange={e => setLeadVoornaam(e.target.value)} placeholder="Voornaam"
-                    className="h-[clamp(36px,4.5vh,56px)] px-3 bg-white border-2 border-[#DDD5C5] text-[clamp(13px,1.7vh,20px)] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
-                  <input type="text" value={leadAchternaam} onChange={e => setLeadAchternaam(e.target.value)} placeholder="Achternaam"
-                    className="h-[clamp(36px,4.5vh,56px)] px-3 bg-white border-2 border-[#DDD5C5] text-[clamp(13px,1.7vh,20px)] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
-                  <input type="email" value={leadEmail} onChange={e => setLeadEmail(e.target.value)} placeholder="E-mailadres"
-                    className="h-[clamp(36px,4.5vh,56px)] px-3 bg-white border-2 border-[#DDD5C5] text-[clamp(13px,1.7vh,20px)] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
-                  <input type="text" value={leadTelefoon} onChange={e => setLeadTelefoon(e.target.value)} placeholder="Telefoon"
-                    className="h-[clamp(36px,4.5vh,56px)] px-3 bg-white border-2 border-[#DDD5C5] text-[clamp(13px,1.7vh,20px)] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
-                  <input type="text" value={leadPartnerNaam} onChange={e => setLeadPartnerNaam(e.target.value)} placeholder="Partner"
-                    className="h-[clamp(36px,4.5vh,56px)] px-3 bg-white border-2 border-[#DDD5C5] text-[clamp(13px,1.7vh,20px)] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
-                  <input type="text" value={leadAdres} onChange={e => setLeadAdres(e.target.value)} placeholder="Adres"
-                    className="h-[clamp(36px,4.5vh,56px)] px-3 bg-white border-2 border-[#DDD5C5] text-[clamp(13px,1.7vh,20px)] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
-                </div>
-              </FieldBlock>
-
-              {/* Planningsknoppen */}
-              {(() => {
-                const fullName = `${leadVoornaam} ${leadAchternaam}`.trim();
-                const params = new URLSearchParams();
-                if (fullName) params.set('name', fullName);
-                if (leadEmail.trim()) params.set('email', leadEmail.trim());
-                const qs = params.toString();
-                const videocallUrl = `https://calendly.com/belhouse/zolderpunt-kennismaking-met-jouw-project${qs ? `?${qs}` : ''}`;
-                const plaatsbezoekUrl = `https://calendly.com/belhouse/plaatsbezoek-zolderpunt${qs ? `?${qs}` : ''}`;
-                const btnCls = "w-full h-[clamp(44px,6vh,64px)] flex items-center justify-center gap-2 bg-[#008CFF] text-white font-dm font-extrabold text-[clamp(12px,1.6vh,18px)] tracking-[0.04em] uppercase hover:bg-[#0070CC] transition-colors";
-                return (
-                  <div className="grid grid-cols-2 gap-2">
-                    <a href={videocallUrl} target="_blank" rel="noopener noreferrer" className={btnCls}>
-                      📅 Videocall — Plannen
-                    </a>
-                    <a href={plaatsbezoekUrl} target="_blank" rel="noopener noreferrer" className={btnCls}>
-                      🏠 Plaatsbezoek — Plannen
-                    </a>
-                  </div>
-                );
-              })()}
-
-              {/* Vier grote vraagkaders */}
-              <div className="grid grid-rows-4 gap-2 flex-1 min-h-0">
-                <BigQuestionBox n={1} label="WAT?" placeholder="Wat wil de klant precies? Type ruimte, functie, gewenst resultaat…"
-                  value={data.general_impression} onChange={v => update({ general_impression: v })} onEnterFlush={() => flushSave()} />
-                <BigQuestionBox n={2} label="WELKE AANNEMER?" placeholder="Welke samenwerking willen ze? Wat is belangrijk voor hen?"
-                  value={data.buying_committee} onChange={v => update({ buying_committee: v })} onEnterFlush={() => flushSave()} />
-                <BigQuestionBox n={3} label="WAAROM NU?" placeholder="Trigger: waarom komt dit vandaag op tafel? Deadline, gezin, verhuis…"
-                  value={data.trigger_text} onChange={v => update({ trigger_text: v })} onEnterFlush={() => flushSave()} />
-                <BigQuestionBox n={4} label="WELK BUDGET?" placeholder="Verwachting? Range? Al iets berekend? Financiering rond?"
-                  value={data.quick_notes} onChange={v => update({ quick_notes: v })} onEnterFlush={() => flushSave()} />
-              </div>
-
-            </div>
+          <div className="flex items-baseline gap-3 mb-1 shrink-0">
+            <span className="text-[clamp(14px,1.8vh,22px)]">📝</span>
+            <h2 className="font-dm text-[clamp(16px,2.4vh,28px)] font-bold text-[#0F1419] tracking-[-0.01em]">Notitieblok</h2>
+            <span className="text-[clamp(11px,1.4vh,16px)] text-[#5B6470] italic">Wat onthou ik uit dit gesprek?</span>
           </div>
-        </div>
+          <p className="text-[clamp(11px,1.3vh,15px)] text-[#5B6470] mb-3 shrink-0">De essentie om straks naar Bram door te geven. <strong>Hier ligt je focus tijdens het gesprek.</strong></p>
 
-        {/* ─────── RIGHT: STATISCHE SPIEKKAART — 5 fases, geen scroll ─────── */}
-        <div className="bg-[#0F1419] h-full flex flex-col overflow-hidden">
-          {[
-            {
-              n: 1, titel: 'Motivatie blootleggen',
-              tekst: 'Laat de klant zelf vertellen wat hem vandaag doet bellen.',
-              extra: 'Open vraag: "Waar liep je tegenaan waardoor je dacht: nu is het tijd?" Warm en nieuwsgierig — herhaal sleutelwoorden zacht en zwijg.',
-            },
-            {
-              n: 2, titel: 'Doorvragen op de pijn',
-              tekst: 'Laat de klant de urgentie van zijn eigen probleem voelen.',
-              extra: 'Vraag naar duur, impact op het dagelijks leven en wat de oplossing zou betekenen. Noteer letterlijk citaten en zorgen.',
-            },
-            {
-              n: 3, titel: 'Videocall framen',
-              tekst: 'Positioneer Bram als expert en vraag foto\u2019s en oppervlakte.',
-              extra: 'Videocall = bespaart hun tijd, geen verkooppraatje. Foto\u2019s van de huidige toestand (niet opruimen) + ruwe m\u00B2. Vlecht gemeente / eigenaar / type woning terloops door.',
-            },
-            {
-              n: 4, titel: 'Inplannen + afsluiten',
-              tekst: 'Zet de afspraak in de agenda en stel daarna de guard-down vraag.',
-              extra: 'Prik nu een moment — "verzetten kan altijd". Na het prikken: "Wat wilden jij en je partner zeker nog doornemen?" Daar komt het echte bezwaar.',
-            },
-            {
-              n: 5, titel: 'Bij weerstand',
-              tekst: 'Verwijs alles over prijs, timing of haalbaarheid naar de videocall.',
-              amber: true,
-              extra: '"Logische vraag — daar geeft Bram in de call concreet antwoord op." Geen cijfers of data aan de telefoon. Bevestig de zorg, parkeer ze naar de call.',
-            },
-          ].map((f, i) => (
-            <div
-              key={f.n}
-              className={`flex-1 min-h-0 flex items-center gap-5 px-7 ${i > 0 ? 'border-t border-white/10' : ''} ${f.amber ? 'bg-[#3a2a10]' : ''}`}
-            >
-              <div
-                className={`font-dm font-extrabold tabular-nums leading-none shrink-0 text-[clamp(44px,8vh,100px)] ${f.amber ? 'text-[#E89F3D]' : 'text-[#008CFF]'}`}
-              >
-                {f.n}
+          <div className="flex flex-col gap-3 flex-1 min-h-0">
+
+            {/* Klantgegevens */}
+            <FieldBlock label="Klantgegevens" hint="Vul aan tijdens of vlak na het gesprek">
+              <div className="grid grid-cols-3 gap-2">
+                <input type="text" value={leadVoornaam} onChange={e => setLeadVoornaam(e.target.value)} placeholder="Voornaam"
+                  className="h-[clamp(36px,4.5vh,56px)] px-3 bg-white border-2 border-[#DDD5C5] text-[clamp(13px,1.7vh,20px)] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
+                <input type="text" value={leadAchternaam} onChange={e => setLeadAchternaam(e.target.value)} placeholder="Achternaam"
+                  className="h-[clamp(36px,4.5vh,56px)] px-3 bg-white border-2 border-[#DDD5C5] text-[clamp(13px,1.7vh,20px)] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
+                <input type="email" value={leadEmail} onChange={e => setLeadEmail(e.target.value)} placeholder="E-mailadres"
+                  className="h-[clamp(36px,4.5vh,56px)] px-3 bg-white border-2 border-[#DDD5C5] text-[clamp(13px,1.7vh,20px)] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
+                <input type="text" value={leadTelefoon} onChange={e => setLeadTelefoon(e.target.value)} placeholder="Telefoon"
+                  className="h-[clamp(36px,4.5vh,56px)] px-3 bg-white border-2 border-[#DDD5C5] text-[clamp(13px,1.7vh,20px)] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
+                <input type="text" value={leadPartnerNaam} onChange={e => setLeadPartnerNaam(e.target.value)} placeholder="Partner"
+                  className="h-[clamp(36px,4.5vh,56px)] px-3 bg-white border-2 border-[#DDD5C5] text-[clamp(13px,1.7vh,20px)] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
+                <input type="text" value={leadAdres} onChange={e => setLeadAdres(e.target.value)} placeholder="Adres"
+                  className="h-[clamp(36px,4.5vh,56px)] px-3 bg-white border-2 border-[#DDD5C5] text-[clamp(13px,1.7vh,20px)] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="font-dm font-extrabold text-white text-[clamp(18px,2.6vh,32px)] leading-[1.1] tracking-[-0.01em]">
-                  {f.titel}
+            </FieldBlock>
+
+            {/* Planningsknoppen */}
+            {(() => {
+              const fullName = `${leadVoornaam} ${leadAchternaam}`.trim();
+              const params = new URLSearchParams();
+              if (fullName) params.set('name', fullName);
+              if (leadEmail.trim()) params.set('email', leadEmail.trim());
+              const qs = params.toString();
+              const videocallUrl = `https://calendly.com/belhouse/zolderpunt-kennismaking-met-jouw-project${qs ? `?${qs}` : ''}`;
+              const plaatsbezoekUrl = `https://calendly.com/belhouse/plaatsbezoek-zolderpunt${qs ? `?${qs}` : ''}`;
+              const btnCls = "w-full h-[clamp(44px,6vh,64px)] flex items-center justify-center gap-2 bg-[#008CFF] text-white font-dm font-extrabold text-[clamp(12px,1.6vh,18px)] tracking-[0.04em] uppercase hover:bg-[#0070CC] transition-colors";
+              return (
+                <div className="grid grid-cols-2 gap-2">
+                  <a href={videocallUrl} target="_blank" rel="noopener noreferrer" className={btnCls}>
+                    📅 Videocall — Plannen
+                  </a>
+                  <a href={plaatsbezoekUrl} target="_blank" rel="noopener noreferrer" className={btnCls}>
+                    🏠 Plaatsbezoek — Plannen
+                  </a>
                 </div>
-                <div className="font-body text-white text-[clamp(13px,1.7vh,20px)] leading-[1.3] mt-[6px]">
-                  {f.tekst}
-                </div>
-                <div className="font-body text-white/65 text-[clamp(11px,1.45vh,17px)] leading-[1.35] mt-[6px]">
-                  {f.extra}
-                </div>
-              </div>
+              );
+            })()}
+
+            {/* Vier grote vraagkaders — 2x2 */}
+            <div className="grid grid-cols-2 grid-rows-2 gap-3 flex-1 min-h-0">
+              <BigQuestionBox n={1} label="WAT?" placeholder="Wat wil de klant precies? Type ruimte, functie, gewenst resultaat…"
+                value={data.general_impression} onChange={v => update({ general_impression: v })} onEnterFlush={() => flushSave()} />
+              <BigQuestionBox n={2} label="WELKE AANNEMER?" placeholder="Welke samenwerking willen ze? Wat is belangrijk voor hen?"
+                value={data.buying_committee} onChange={v => update({ buying_committee: v })} onEnterFlush={() => flushSave()} />
+              <BigQuestionBox n={3} label="WAAROM NU?" placeholder="Trigger: waarom komt dit vandaag op tafel? Deadline, gezin, verhuis…"
+                value={data.trigger_text} onChange={v => update({ trigger_text: v })} onEnterFlush={() => flushSave()} />
+              <BigQuestionBox n={4} label="WELK BUDGET?" placeholder="Verwachting? Range? Al iets berekend? Financiering rond?"
+                value={data.quick_notes} onChange={v => update({ quick_notes: v })} onEnterFlush={() => flushSave()} />
             </div>
-          ))}
 
+          </div>
         </div>
       </div>
 
