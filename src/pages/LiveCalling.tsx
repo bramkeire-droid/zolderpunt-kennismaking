@@ -639,6 +639,21 @@ function BigQuestionBox({ n, label, value, onChange, onEnterFlush, placeholder, 
 
 const WAT_TAG_OPTIONS = ['Vaste trap', 'Trapgat', 'Dakraam', 'Airco', 'Schilderwerken', 'Isolatie', 'Vloer uitpassen', 'Stabiliteitsonderzoek'];
 
+function PlanCheck({ checked, label, onToggle }: { checked: boolean; label: string; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className={`h-11 px-4 flex items-center gap-3 border-2 font-dm font-semibold text-[14px] transition-colors ${checked ? 'bg-[#008CFF]/10 border-[#008CFF] text-[#0F1419]' : 'bg-white border-[#DDD5C5] text-[#5B6470] hover:border-[#008CFF]/50'}`}
+    >
+      <span className={`w-5 h-5 border-2 flex items-center justify-center shrink-0 ${checked ? 'bg-[#008CFF] border-[#008CFF] text-white' : 'bg-white border-[#DDD5C5]'}`}>
+        {checked ? '✓' : ''}
+      </span>
+      {label}
+    </button>
+  );
+}
+
 function WatTagsChips({ selected, onToggle }: { selected: string[]; onToggle: (tag: string) => void }) {
   return (
     <div className="grid grid-cols-4 gap-2">
