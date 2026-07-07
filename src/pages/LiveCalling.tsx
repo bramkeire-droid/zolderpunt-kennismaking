@@ -488,16 +488,64 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
               const plaatsbezoekUrl = `https://calendly.com/belhouse/plaatsbezoek-zolderpunt${qs ? `?${qs}` : ''}`;
               const btnCls = "w-full h-[clamp(44px,6vh,64px)] flex items-center justify-center gap-2 bg-[#008CFF] text-white font-dm font-extrabold text-[clamp(12px,1.6vh,18px)] tracking-[0.04em] uppercase hover:bg-[#0070CC] transition-colors";
               return (
-                <div className="grid grid-cols-2 gap-2">
-                  <a href={videocallUrl} target="_blank" rel="noopener noreferrer" className={btnCls}>
-                    📅 Videocall — Plannen
-                  </a>
-                  <a href={plaatsbezoekUrl} target="_blank" rel="noopener noreferrer" className={btnCls}>
-                    🏠 Plaatsbezoek — Plannen
-                  </a>
+                <div className="space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <a href={videocallUrl} target="_blank" rel="noopener noreferrer" className={btnCls}>
+                      📅 Videocall — Plannen
+                    </a>
+                    <a href={plaatsbezoekUrl} target="_blank" rel="noopener noreferrer" className={btnCls}>
+                      🏠 Plaatsbezoek — Plannen
+                    </a>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <PlanCheck
+                      checked={data.videocall_planned}
+                      label="Videocall ingepland"
+                      onToggle={() => {
+                        const next = !data.videocall_planned;
+                        update({ videocall_planned: next });
+                        flushSave({ videocall_planned: next });
+                      }}
+                    />
+                    <PlanCheck
+                      checked={data.plaatsbezoek_planned}
+                      label="Plaatsbezoek ingepland"
+                      onToggle={() => {
+                        const next = !data.plaatsbezoek_planned;
+                        update({ plaatsbezoek_planned: next });
+                        flushSave({ plaatsbezoek_planned: next });
+                      }}
+                    />
+                  </div>
                 </div>
               );
             })()}
+
+            {/* Wat kwam er aan bod — klantvragen chips */}
+            <div className="space-y-2 shrink-0">
+              <div className="font-dm text-[clamp(11px,1.4vh,15px)] font-bold text-[#5B6470] uppercase tracking-[0.14em]">Wat kwam er aan bod?</div>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { key: 'budget' as const, label: 'Budget' },
+                  { key: 'start_timing' as const, label: 'Starttiming' },
+                  { key: 'duration' as const, label: 'Doorlooptijd' },
+                  { key: 'daily_impact' as const, label: 'Impact dagelijks leven' },
+                  { key: 'overlast' as const, label: 'Overlast' },
+                  { key: 'feasibility_idea' as const, label: 'Haalbaarheid idee' },
+                  { key: 'attic_condition' as const, label: 'Staat zolder' },
+                  { key: 'company_approach' as const, label: 'Werkwijze bedrijf' },
+                ].map(q => {
+                  const raised = data.questions_raised[q.key]?.raised;
+                  return (
+                    <button key={q.key} type="button"
+                      onClick={() => { toggleQuestion(q.key); flushSave(); }}
+                      className={`h-10 px-4 text-[13px] font-body font-medium transition-colors border-2 ${raised ? 'bg-[#008CFF] text-white border-[#008CFF]' : 'bg-white text-[#5B6470] border-[#DDD5C5] hover:border-[#008CFF]/50'}`}>
+                      {q.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
 
             {/* Vier grote vraagkaders — 2x2 */}
             <div className="grid grid-cols-2 grid-rows-2 gap-3 flex-1 min-h-0">
