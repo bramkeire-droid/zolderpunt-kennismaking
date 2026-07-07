@@ -443,37 +443,35 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
       </div>
 
       {/* ═══ WORKSPACE — single centered column ═══ */}
-      <div className="flex-1 min-h-0 bg-[#FFFCF5] overflow-hidden">
-        <div className="px-8 py-4 max-w-[1600px] mx-auto h-full flex flex-col min-h-0">
+      <div className="flex-1 min-h-0 bg-[#FFFCF5] overflow-auto">
+        <div className="px-8 py-5 max-w-[1600px] mx-auto flex flex-col gap-4">
 
-          <div className="flex items-baseline gap-3 mb-1 shrink-0">
-            <span className="text-[clamp(14px,1.8vh,22px)]">📝</span>
-            <h2 className="font-dm text-[clamp(16px,2.4vh,28px)] font-bold text-[#0F1419] tracking-[-0.01em]">Notitieblok</h2>
-            <span className="text-[clamp(11px,1.4vh,16px)] text-[#5B6470] italic">Wat onthou ik uit dit gesprek?</span>
+          {/* Header */}
+          <div className="shrink-0">
+            <div className="flex items-baseline gap-3">
+              <span className="text-2xl">📝</span>
+              <h2 className="font-dm text-2xl font-bold text-[#0F1419] tracking-[-0.01em]">Notitieblok</h2>
+            </div>
+            <p className="text-sm text-[#5B6470] mt-1">
+              De essentie om straks naar Bram door te geven. <strong className="text-[#0F1419]">Hier ligt je focus tijdens het gesprek.</strong>
+            </p>
           </div>
-          <p className="text-[clamp(11px,1.3vh,15px)] text-[#5B6470] mb-3 shrink-0">De essentie om straks naar Bram door te geven. <strong>Hier ligt je focus tijdens het gesprek.</strong></p>
 
-          <div className="flex flex-col gap-3 flex-1 min-h-0">
+          {/* ① KLANTGEGEVENS */}
+          <Section eyebrow="Klantgegevens" hint="Vul aan tijdens of vlak na het gesprek">
+            <div className="grid grid-cols-3 gap-2">
+              <input type="text" value={leadVoornaam} onChange={e => setLeadVoornaam(e.target.value)} placeholder="Voornaam" className={inputCls} />
+              <input type="text" value={leadAchternaam} onChange={e => setLeadAchternaam(e.target.value)} placeholder="Achternaam" className={inputCls} />
+              <input type="email" value={leadEmail} onChange={e => setLeadEmail(e.target.value)} placeholder="E-mailadres" className={inputCls} />
+              <input type="text" value={leadTelefoon} onChange={e => setLeadTelefoon(e.target.value)} placeholder="Telefoon" className={inputCls} />
+              <input type="text" value={leadPartnerNaam} onChange={e => setLeadPartnerNaam(e.target.value)} placeholder="Partner" className={inputCls} />
+              <AddressAutocomplete value={leadAdres} onChange={setLeadAdres} placeholder="Adres"
+                className="!h-12 !px-3 !bg-white !border-2 !border-[#DDD5C5] !text-base !font-body !font-medium !text-[#0F1419] placeholder:!text-[#B0A898] focus:!outline-none focus-visible:!ring-0 focus-visible:!ring-offset-0 focus:!border-[#008CFF] !rounded-none" />
+            </div>
+          </Section>
 
-            {/* Klantgegevens */}
-            <FieldBlock label="Klantgegevens" hint="Vul aan tijdens of vlak na het gesprek">
-              <div className="grid grid-cols-3 gap-2">
-                <input type="text" value={leadVoornaam} onChange={e => setLeadVoornaam(e.target.value)} placeholder="Voornaam"
-                  className="h-[clamp(36px,4.5vh,56px)] px-3 bg-white border-2 border-[#DDD5C5] text-[clamp(13px,1.7vh,20px)] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
-                <input type="text" value={leadAchternaam} onChange={e => setLeadAchternaam(e.target.value)} placeholder="Achternaam"
-                  className="h-[clamp(36px,4.5vh,56px)] px-3 bg-white border-2 border-[#DDD5C5] text-[clamp(13px,1.7vh,20px)] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
-                <input type="email" value={leadEmail} onChange={e => setLeadEmail(e.target.value)} placeholder="E-mailadres"
-                  className="h-[clamp(36px,4.5vh,56px)] px-3 bg-white border-2 border-[#DDD5C5] text-[clamp(13px,1.7vh,20px)] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
-                <input type="text" value={leadTelefoon} onChange={e => setLeadTelefoon(e.target.value)} placeholder="Telefoon"
-                  className="h-[clamp(36px,4.5vh,56px)] px-3 bg-white border-2 border-[#DDD5C5] text-[clamp(13px,1.7vh,20px)] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
-                <input type="text" value={leadPartnerNaam} onChange={e => setLeadPartnerNaam(e.target.value)} placeholder="Partner"
-                  className="h-[clamp(36px,4.5vh,56px)] px-3 bg-white border-2 border-[#DDD5C5] text-[clamp(13px,1.7vh,20px)] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
-                <AddressAutocomplete value={leadAdres} onChange={setLeadAdres} placeholder="Adres"
-                  className="!h-[clamp(36px,4.5vh,56px)] !px-3 !bg-white !border-2 !border-[#DDD5C5] !text-[clamp(13px,1.7vh,20px)] !font-body !font-medium !text-[#0F1419] placeholder:!text-[#B0A898] focus:!outline-none focus-visible:!ring-0 focus-visible:!ring-offset-0 focus:!border-[#008CFF] !rounded-none" />
-              </div>
-            </FieldBlock>
-
-            {/* Planningsknoppen */}
+          {/* ② PLANNING */}
+          <Section eyebrow="Planning" hint="Boek meteen tijdens het gesprek en vink aan wanneer bevestigd">
             {(() => {
               const fullName = `${leadVoornaam} ${leadAchternaam}`.trim();
               const params = new URLSearchParams();
@@ -482,94 +480,72 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
               const qs = params.toString();
               const videocallUrl = `https://calendly.com/belhouse/zolderpunt-kennismaking-met-jouw-project${qs ? `?${qs}` : ''}`;
               const plaatsbezoekUrl = `https://calendly.com/belhouse/plaatsbezoek-zolderpunt${qs ? `?${qs}` : ''}`;
-              const btnCls = "w-full h-[clamp(44px,6vh,64px)] flex items-center justify-center gap-2 bg-[#008CFF] text-white font-dm font-extrabold text-[clamp(12px,1.6vh,18px)] tracking-[0.04em] uppercase hover:bg-[#0070CC] transition-colors";
+              const btnCls = "w-full h-14 flex items-center justify-center gap-2 bg-[#008CFF] text-white font-dm font-extrabold text-sm tracking-[0.04em] uppercase hover:bg-[#0070CC] transition-colors";
               return (
                 <div className="space-y-2">
                   <div className="grid grid-cols-2 gap-2">
-                    <a href={videocallUrl} target="_blank" rel="noopener noreferrer" className={btnCls}>
-                      📅 Videocall — Plannen
-                    </a>
-                    <a href={plaatsbezoekUrl} target="_blank" rel="noopener noreferrer" className={btnCls}>
-                      🏠 Plaatsbezoek — Plannen
-                    </a>
+                    <a href={videocallUrl} target="_blank" rel="noopener noreferrer" className={btnCls}>📅 Videocall — Plannen</a>
+                    <a href={plaatsbezoekUrl} target="_blank" rel="noopener noreferrer" className={btnCls}>🏠 Plaatsbezoek — Plannen</a>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
-                    <PlanCheck
-                      checked={data.videocall_planned}
-                      label="Videocall ingepland"
-                      onToggle={() => {
-                        const next = !data.videocall_planned;
-                        update({ videocall_planned: next });
-                        flushSave({ videocall_planned: next });
-                      }}
-                    />
-                    <PlanCheck
-                      checked={data.plaatsbezoek_planned}
-                      label="Plaatsbezoek ingepland"
-                      onToggle={() => {
-                        const next = !data.plaatsbezoek_planned;
-                        update({ plaatsbezoek_planned: next });
-                        flushSave({ plaatsbezoek_planned: next });
-                      }}
-                    />
+                    <PlanCheck checked={data.videocall_planned} label="Videocall ingepland"
+                      onToggle={() => { const next = !data.videocall_planned; update({ videocall_planned: next }); flushSave({ videocall_planned: next }); }} />
+                    <PlanCheck checked={data.plaatsbezoek_planned} label="Plaatsbezoek ingepland"
+                      onToggle={() => { const next = !data.plaatsbezoek_planned; update({ plaatsbezoek_planned: next }); flushSave({ plaatsbezoek_planned: next }); }} />
                   </div>
                 </div>
               );
             })()}
+          </Section>
 
-            {/* Wat kwam er aan bod — klantvragen chips */}
-            <div className="space-y-2 shrink-0">
-              <div className="font-dm text-[clamp(11px,1.4vh,15px)] font-bold text-[#5B6470] uppercase tracking-[0.14em]">Wat kwam er aan bod?</div>
-              <div className="flex flex-wrap gap-2">
-                {[
-                  { key: 'budget' as const, label: 'Budget' },
-                  { key: 'start_timing' as const, label: 'Starttiming' },
-                  { key: 'duration' as const, label: 'Doorlooptijd' },
-                  { key: 'daily_impact' as const, label: 'Impact dagelijks leven' },
-                  { key: 'overlast' as const, label: 'Overlast' },
-                  { key: 'feasibility_idea' as const, label: 'Haalbaarheid idee' },
-                  { key: 'attic_condition' as const, label: 'Staat zolder' },
-                  { key: 'company_approach' as const, label: 'Werkwijze bedrijf' },
-                ].map(q => {
-                  const raised = data.questions_raised[q.key]?.raised;
-                  return (
-                    <button key={q.key} type="button"
-                      onClick={() => { toggleQuestion(q.key); flushSave(); }}
-                      className={`h-10 px-4 text-[13px] font-body font-medium transition-colors border-2 ${raised ? 'bg-[#008CFF] text-white border-[#008CFF]' : 'bg-white text-[#5B6470] border-[#DDD5C5] hover:border-[#008CFF]/50'}`}>
-                      {q.label}
-                    </button>
-                  );
-                })}
-              </div>
+          {/* ③ WAT KWAM AAN BOD */}
+          <Section eyebrow="Wat kwam er aan bod?" hint="Vink aan welke onderwerpen de klant zelf heeft aangeraakt">
+            <div className="grid grid-cols-4 gap-2">
+              {[
+                { key: 'budget' as const, label: 'Budget' },
+                { key: 'start_timing' as const, label: 'Starttiming' },
+                { key: 'duration' as const, label: 'Doorlooptijd' },
+                { key: 'daily_impact' as const, label: 'Impact dagelijks leven' },
+                { key: 'overlast' as const, label: 'Overlast' },
+                { key: 'feasibility_idea' as const, label: 'Haalbaarheid idee' },
+                { key: 'attic_condition' as const, label: 'Staat zolder' },
+                { key: 'company_approach' as const, label: 'Werkwijze bedrijf' },
+              ].map(q => {
+                const raised = data.questions_raised[q.key]?.raised;
+                return (
+                  <button key={q.key} type="button"
+                    onClick={() => { toggleQuestion(q.key); flushSave(); }}
+                    className={`h-11 px-3 text-sm font-dm font-semibold border-2 transition-colors flex items-center justify-center text-center ${raised ? 'bg-[#008CFF] text-white border-[#008CFF]' : 'bg-white text-[#0F1419] border-[#DDD5C5] hover:border-[#008CFF]/50'}`}>
+                    {q.label}
+                  </button>
+                );
+              })}
             </div>
+          </Section>
 
-            {/* Vier grote vraagkaders — 2x2 */}
-            <div className="grid grid-cols-2 grid-rows-2 gap-3 flex-1 min-h-0">
-              <BigQuestionBox n={1} label="WAT?" placeholder="Wat wil de klant precies? Type ruimte, functie, gewenst resultaat…"
-                value={data.general_impression} onChange={v => update({ general_impression: v })} onEnterFlush={() => flushSave()}
-                headerExtra={
-                  <WatTagsChips
-                    selected={data.wat_tags}
-                    onToggle={tag => {
-                      const next = data.wat_tags.includes(tag)
-                        ? data.wat_tags.filter(t => t !== tag)
-                        : [...data.wat_tags, tag];
-                      update({ wat_tags: next });
-                      flushSave({ wat_tags: next });
-                    }}
-                  />
-                } />
-              <BigQuestionBox n={2} label="WELKE AANNEMER?" placeholder="Welke samenwerking willen ze? Wat is belangrijk voor hen?"
-                value={data.buying_committee} onChange={v => update({ buying_committee: v })} onEnterFlush={() => flushSave()} />
-              <BigQuestionBox n={3} label="WAAROM NU?" placeholder="Trigger: waarom komt dit vandaag op tafel? Deadline, gezin, verhuis…"
-                value={data.trigger_text} onChange={v => update({ trigger_text: v })} onEnterFlush={() => flushSave()} />
-              <BigQuestionBox n={4} label="WELK BUDGET?" placeholder="Verwachting? Range? Al iets berekend? Financiering rond?"
-                value={data.quick_notes} onChange={v => update({ quick_notes: v })} onEnterFlush={() => flushSave()} />
-            </div>
-
+          {/* ④ VIER VRAAGKADERS */}
+          <div className="grid grid-cols-2 grid-rows-2 gap-3 min-h-[520px]">
+            <BigQuestionBox n={1} label="WAT?" placeholder="Wat wil de klant precies? Type ruimte, functie, gewenst resultaat…"
+              value={data.general_impression} onChange={v => update({ general_impression: v })} onEnterFlush={() => flushSave()}
+              headerExtra={
+                <WatTagsChips selected={data.wat_tags}
+                  onToggle={tag => {
+                    const next = data.wat_tags.includes(tag) ? data.wat_tags.filter(t => t !== tag) : [...data.wat_tags, tag];
+                    update({ wat_tags: next });
+                    flushSave({ wat_tags: next });
+                  }} />
+              } />
+            <BigQuestionBox n={2} label="WELKE AANNEMER?" placeholder="Welke samenwerking willen ze? Wat is belangrijk voor hen?"
+              value={data.buying_committee} onChange={v => update({ buying_committee: v })} onEnterFlush={() => flushSave()} />
+            <BigQuestionBox n={3} label="WAAROM NU?" placeholder="Trigger: waarom komt dit vandaag op tafel? Deadline, gezin, verhuis…"
+              value={data.trigger_text} onChange={v => update({ trigger_text: v })} onEnterFlush={() => flushSave()} />
+            <BigQuestionBox n={4} label="WELK BUDGET?" placeholder="Verwachting? Range? Al iets berekend? Financiering rond?"
+              value={data.quick_notes} onChange={v => update({ quick_notes: v })} onEnterFlush={() => flushSave()} />
           </div>
+
         </div>
       </div>
+
 
       <CloseCallDialog open={showCloseDialog} onClose={() => setShowCloseDialog(false)} onConfirm={handleCloseCall} />
       <BackConfirmDialog open={showBackConfirm} onCancel={() => setShowBackConfirm(false)} onDiscard={confirmBackDiscard} onSave={confirmBackSave} />
@@ -597,13 +573,17 @@ function BackConfirmDialog({ open, onCancel, onDiscard, onSave }: { open: boolea
 
 /* ───────────────────────── HELPER COMPONENTS ───────────────────────── */
 
-function FieldBlock({ label, hint, children }: { label: string; hint: string; children: React.ReactNode }) {
+const inputCls = "h-12 px-3 bg-white border-2 border-[#DDD5C5] text-base font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]";
+
+function Section({ eyebrow, hint, children }: { eyebrow: string; hint?: string; children: React.ReactNode }) {
   return (
-    <div>
-      <label className="font-dm text-[clamp(13px,1.6vh,20px)] font-semibold text-[#0F1419] block mb-[2px]">{label}</label>
-      <div className="text-[clamp(11px,1.3vh,15px)] text-[#5B6470] italic mb-1">{hint}</div>
+    <section className="bg-white border-2 border-[#DDD5C5] border-t-[3px] border-t-[#008CFF] p-4">
+      <div className="mb-3">
+        <div className="font-dm text-xs font-extrabold text-[#5B6470] uppercase tracking-[0.14em]">{eyebrow}</div>
+        {hint && <div className="text-xs italic text-[#5B6470] mt-0.5">{hint}</div>}
+      </div>
       {children}
-    </div>
+    </section>
   );
 }
 
@@ -611,13 +591,13 @@ function BigQuestionBox({ n, label, value, onChange, onEnterFlush, placeholder, 
   n: number; label: string; value: string; onChange: (v: string) => void; onEnterFlush: () => void; placeholder?: string; headerExtra?: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col min-h-0 bg-white border-2 border-[#DDD5C5] focus-within:border-[#008CFF] transition-colors">
-      <div className="flex items-baseline gap-2 px-3 pt-2 pb-1 border-b border-[#DDD5C5]/60 shrink-0">
-        <span className="font-dm font-extrabold text-[#008CFF] text-[clamp(16px,2.2vh,26px)] tabular-nums leading-none">{n}</span>
-        <span className="font-dm font-extrabold text-[#0F1419] text-[clamp(13px,1.8vh,20px)] uppercase tracking-[0.06em]">{label}</span>
+    <div className="flex flex-col min-h-0 bg-white border-2 border-[#DDD5C5] border-t-[3px] border-t-[#008CFF] focus-within:border-[#008CFF] transition-colors">
+      <div className="flex items-baseline gap-2 px-4 pt-3 pb-2 border-b border-[#DDD5C5]/60 shrink-0">
+        <span className="font-dm font-extrabold text-[#008CFF] text-3xl tabular-nums leading-none">{n}</span>
+        <span className="font-dm font-extrabold text-[#0F1419] text-sm uppercase tracking-[0.08em]">{label}</span>
       </div>
       {headerExtra && (
-        <div className="px-3 py-2 border-b border-[#DDD5C5]/60 shrink-0">
+        <div className="px-4 py-3 border-b border-[#DDD5C5]/60 shrink-0">
           {headerExtra}
         </div>
       )}
@@ -631,11 +611,12 @@ function BigQuestionBox({ n, label, value, onChange, onEnterFlush, placeholder, 
           }
         }}
         placeholder={placeholder}
-        className="w-full flex-1 min-h-0 px-3 py-2 bg-white text-[clamp(13px,1.7vh,20px)] font-body text-[#0F1419] placeholder:text-[#B0A898] resize-none focus:outline-none"
+        className="w-full flex-1 min-h-[140px] px-4 py-3 bg-white text-base leading-relaxed font-body text-[#0F1419] placeholder:text-[#B0A898] resize-none focus:outline-none"
       />
     </div>
   );
 }
+
 
 const WAT_TAG_OPTIONS = ['Vaste trap', 'Trapgat', 'Dakraam', 'Airco', 'Schilderwerken', 'Isolatie', 'Vloer uitpassen', 'Stabiliteitsonderzoek'];
 
