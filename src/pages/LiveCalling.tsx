@@ -550,8 +550,8 @@ function FieldBlock({ label, hint, children }: { label: string; hint: string; ch
   );
 }
 
-function BigQuestionBox({ n, label, value, onChange, onEnterFlush, placeholder }: {
-  n: number; label: string; value: string; onChange: (v: string) => void; onEnterFlush: () => void; placeholder?: string;
+function BigQuestionBox({ n, label, value, onChange, onEnterFlush, placeholder, headerExtra }: {
+  n: number; label: string; value: string; onChange: (v: string) => void; onEnterFlush: () => void; placeholder?: string; headerExtra?: React.ReactNode;
 }) {
   return (
     <div className="flex flex-col min-h-0 bg-white border-2 border-[#DDD5C5] focus-within:border-[#008CFF] transition-colors">
@@ -559,6 +559,11 @@ function BigQuestionBox({ n, label, value, onChange, onEnterFlush, placeholder }
         <span className="font-dm font-extrabold text-[#008CFF] text-[clamp(16px,2.2vh,26px)] tabular-nums leading-none">{n}</span>
         <span className="font-dm font-extrabold text-[#0F1419] text-[clamp(13px,1.8vh,20px)] uppercase tracking-[0.06em]">{label}</span>
       </div>
+      {headerExtra && (
+        <div className="px-3 py-2 border-b border-[#DDD5C5]/60 shrink-0">
+          {headerExtra}
+        </div>
+      )}
       <textarea
         value={value}
         onChange={e => onChange(e.target.value)}
@@ -571,6 +576,28 @@ function BigQuestionBox({ n, label, value, onChange, onEnterFlush, placeholder }
         placeholder={placeholder}
         className="w-full flex-1 min-h-0 px-3 py-2 bg-white text-[clamp(13px,1.7vh,20px)] font-body text-[#0F1419] placeholder:text-[#B0A898] resize-none focus:outline-none"
       />
+    </div>
+  );
+}
+
+const WAT_TAG_OPTIONS = ['Vaste trap', 'Trapgat', 'Dakraam', 'Airco', 'Schilderwerken', 'Isolatie', 'Vloer uitpassen', 'Stabiliteitsonderzoek'];
+
+function WatTagsChips({ selected, onToggle }: { selected: string[]; onToggle: (tag: string) => void }) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {WAT_TAG_OPTIONS.map(tag => {
+        const active = selected.includes(tag);
+        return (
+          <button
+            key={tag}
+            type="button"
+            onClick={() => onToggle(tag)}
+            className={`h-8 px-3 text-[12px] font-dm font-semibold border-2 transition-colors ${active ? 'bg-[#008CFF] text-white border-[#008CFF]' : 'bg-white text-[#5B6470] border-[#DDD5C5] hover:border-[#008CFF]/50'}`}
+          >
+            {tag}
+          </button>
+        );
+      })}
     </div>
   );
 }
