@@ -58,7 +58,7 @@ function AppContent() {
   const [validationPreIntakeId, setValidationPreIntakeId] = useState<string | null>(null);
   const [briefingLead, setBriefingLead] = useState<LeadData | null>(null);
   const [callingLeadId, setCallingLeadId] = useState<string | null>(null);
-  const [callingInitialStep, setCallingInitialStep] = useState<'calling' | 'wrap-up' | 'select-lead'>('select-lead');
+  const [callingInitialStep, setCallingInitialStep] = useState<'calling' | 'select-lead'>('select-lead');
   const { currentMode, currentSlide, resetSession, setCurrentMode, loadLead } = useSession();
   const { flushSave } = useLeadSave();
 
@@ -112,10 +112,10 @@ function AppContent() {
     setView('calling');
   };
 
-  const handleOpenCall = async (leadId: string, step: 'calling' | 'wrap-up' = 'calling') => {
+  const handleOpenCall = async (leadId: string) => {
     if (view === 'slides') await flushSave();
     setCallingLeadId(leadId);
-    setCallingInitialStep(step);
+    setCallingInitialStep('calling');
     setView('calling');
   };
 
