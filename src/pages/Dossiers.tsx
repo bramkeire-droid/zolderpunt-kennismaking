@@ -95,7 +95,7 @@ function rowToLead(row: any): LeadData {
 interface DossiersProps {
   onOpenLead?: (lead: LeadData) => void;
   onOpenValidation?: (leadId: string, preIntakeId: string) => void;
-  onOpenCall?: (leadId: string, step?: 'calling' | 'wrap-up') => void;
+  onOpenCall?: (leadId: string) => void;
 }
 
 export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: DossiersProps) {
@@ -141,7 +141,7 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
     const fetchPreIntakes = async () => {
       const { data: piRows } = await supabase
         .from('pre_intake' as any)
-        .select('id, lead_id, locked_at, videocall_scheduled_at, google_meet_link, scenario_chosen');
+        .select('id, lead_id, locked_at, videocall_scheduled_at, plaatsbezoek_scheduled_at, google_meet_link, scenario_chosen');
       if (piRows) {
         const map: Record<string, any> = {};
         (piRows as any[]).forEach(row => { map[row.lead_id] = row; });
@@ -406,6 +406,15 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
                                 {formatDatum(preIntakeMap[lead.id].videocall_scheduled_at)} · {new Date(preIntakeMap[lead.id].videocall_scheduled_at).toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' })}
                               </span>
                             </div>
+                          ) : preIntakeMap[lead.id]?.plaatsbezoek_scheduled_at ? (
+                            <div className="flex flex-col">
+                              <span className="inline-flex items-center gap-1 text-[0.65rem] font-bold tracking-wider uppercase px-2 py-0.5 bg-indigo-100 text-indigo-700 w-fit">
+                                Plaatsbezoek
+                              </span>
+                              <span className="text-xs text-muted-foreground mt-0.5">
+                                {formatDatum(preIntakeMap[lead.id].plaatsbezoek_scheduled_at)} · {new Date(preIntakeMap[lead.id].plaatsbezoek_scheduled_at).toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
                           ) : (lead.volgende_stap || '—')}
                         </TableCell>
                         <TableCell onClick={(e) => e.stopPropagation()}>
@@ -421,7 +430,7 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
                               <DropdownMenuItem onClick={() => handleOpen(lead)}>
                                 <FolderOpen className="h-4 w-4 mr-2" /> Dossier openen
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => onOpenCall?.(lead.id, preIntakeMap[lead.id] ? 'wrap-up' : 'calling')}>
+                              <DropdownMenuItem onClick={() => onOpenCall?.(lead.id)}>
                                 <Phone className="h-4 w-4 mr-2 text-[#008CFF]" /> Telefoongesprek
                               </DropdownMenuItem>
 

@@ -1,19 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { usePreIntake } from '@/contexts/PreIntakeContext';
 import { usePreIntakeSave } from '@/hooks/usePreIntakeSave';
 import { useCallTimer } from '@/hooks/useCallTimer';
 import { supabase } from '@/integrations/supabase/client';
 import AddressAutocomplete from '@/components/AddressAutocomplete';
 
-import CloseCallDialog from '@/components/calling/CloseCallDialog';
-import { ArrowLeft, ArrowRight, LogOut } from 'lucide-react';
+import { ArrowLeft, ArrowRight, LogOut, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
 
-type CallingStep = 'select-lead' | 'calling' | 'wrap-up';
+type CallingStep = 'select-lead' | 'calling';
 
 interface LiveCallingProps {
   onGoHome: () => void;
@@ -34,7 +33,6 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
   const [search, setSearch] = useState('');
   const [leads, setLeads] = useState<any[]>([]);
   const [selectedLead, setSelectedLead] = useState<any>(null);
-  const [showCloseDialog, setShowCloseDialog] = useState(false);
   const [showBackConfirm, setShowBackConfirm] = useState(false);
   const [leadVoornaam, setLeadVoornaam] = useState('');
   const [leadAchternaam, setLeadAchternaam] = useState('');
@@ -42,8 +40,8 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
   const [leadAdres, setLeadAdres] = useState('');
   const [leadPartnerNaam, setLeadPartnerNaam] = useState('');
   const [leadEmail, setLeadEmail] = useState('');
-  const [followupType, setFollowupType] = useState<'videocall' | 'klant_terug' | null>(null);
-  const [klantTerugNotitie, setKlantTerugNotitie] = useState('');
+  const [calendlySyncing, setCalendlySyncing] = useState(false);
+  const lastCalendlyAutoSyncRef = useRef('');
 
   const {
     data, update, resetPreIntake, loadPreIntake,
@@ -77,8 +75,7 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
       const { data: pi } = await supabase.from('pre_intake' as any).select('*').eq('lead_id', initialLeadId).order('updated_at', { ascending: false }).limit(1).maybeSingle();
       if (pi) {
         loadPreIntake(pi as any);
-        if (initialStep === 'wrap-up' || (pi as any).locked_at) setStep('wrap-up');
-        else setStep('calling');
+        setStep('calling');
       } else {
         resetPreIntake(initialLeadId);
         setStep(initialStep ?? 'calling');
@@ -172,7 +169,6 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
       call_ended_at: endedAt,
       call_duration_seconds: duration,
     });
-    setShowCloseDialog(false);
     toast.success('Dossier opgeslagen');
     if (leadId && data.id) {
       onOpenValidation(leadId, data.id);
@@ -181,8 +177,64 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
     }
   };
 
-  const handleCloseCall = handleSaveDossier;
-  const handleFinishWrapUp = handleSaveDossier;
+  const syncCalendly = async (source: 'auto' | 'manual' = 'manual') => {
+    const email = leadEmail.trim();
+    if (!email || calendlySyncing) return;
+
+    setCalendlySyncing(true);
+    try {
+      const { data: result, error } = await supabase.functions.invoke('sync-calendly-event', {
+        body: { email },
+      });
+      if (error) throw error;
+
+      const events = (result as any)?.events || {};
+      const patch: Partial<typeof data> = {};
+
+      if (events.videocall?.scheduledAt) {
+        patch.videocall_planned = true;
+        patch.videocall_scheduled_at = events.videocall.scheduledAt;
+        if (events.videocall.meetLink) patch.google_meet_link = events.videocall.meetLink;
+      }
+      if (events.plaatsbezoek?.scheduledAt) {
+        patch.plaatsbezoek_planned = true;
+        patch.plaatsbezoek_scheduled_at = events.plaatsbezoek.scheduledAt;
+      }
+
+      if (Object.keys(patch).length > 0) {
+        update(patch);
+        await flushSave(patch);
+        if (source === 'manual') toast.success('Calendly-afspraak gekoppeld');
+      } else if (source === 'manual') {
+        toast.info('Geen actieve Calendly-afspraak gevonden voor dit e-mailadres');
+      }
+    } catch (err) {
+      console.error('Calendly sync error:', err);
+      if (source === 'manual') toast.error('Calendly koppelen mislukt');
+    } finally {
+      setCalendlySyncing(false);
+    }
+  };
+
+  useEffect(() => {
+    const email = leadEmail.trim().toLowerCase();
+    if (!email || step !== 'calling') return;
+    const key = `${selectedLead?.id || 'new'}:${email}`;
+    if (lastCalendlyAutoSyncRef.current === key) return;
+    lastCalendlyAutoSyncRef.current = key;
+    const timerId = window.setTimeout(() => { void syncCalendly('auto'); }, 600);
+    return () => window.clearTimeout(timerId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leadEmail, selectedLead?.id, step]);
+
+  useEffect(() => {
+    const handleFocus = () => {
+      if (leadEmail.trim() && step === 'calling') void syncCalendly('auto');
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leadEmail, step]);
 
 
 
@@ -243,173 +295,6 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
             </div>
           </div>
         </div>
-      </div>
-    );
-  }
-
-  /* ─── WRAP-UP SCREEN ─── */
-  if (step === 'wrap-up') {
-    const CALLING_QUESTIONS = [
-      { key: 'budget' as const, label: 'Budget' },
-      { key: 'start_timing' as const, label: 'Starttiming' },
-      { key: 'duration' as const, label: 'Doorlooptijd' },
-      { key: 'daily_impact' as const, label: 'Impact dagelijks leven' },
-      { key: 'overlast' as const, label: 'Overlast' },
-      { key: 'feasibility_idea' as const, label: 'Haalbaarheid idee' },
-      { key: 'attic_condition' as const, label: 'Staat zolder' },
-      { key: 'company_approach' as const, label: 'Werkwijze bedrijf' },
-    ];
-
-    return (
-      <div className="h-screen flex flex-col bg-[#F8F3EB]">
-        <div className="shrink-0 bg-white border-b border-[#DDD5C5] px-6 py-3 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <span className="font-dm font-extrabold text-[18px] text-[#008CFF] tracking-[-0.02em]">zolderpunt.</span>
-            <div className="w-px h-5 bg-[#DDD5C5]" />
-            <h1 className="font-dm font-bold text-[14px] text-[#0F1419]">Gesprek afwerken</h1>
-            <span className="text-[12px] font-body text-[#5B6470]">
-              {leadVoornaam} {leadAchternaam} — {Math.floor((data.call_duration_seconds || 0) / 60)} min
-            </span>
-          </div>
-          <div className="flex items-center gap-3">
-            <button onClick={handleBackToDossiers}
-              className="h-11 bg-white text-[#0F1419] border-2 border-[#DDD5C5] px-5 font-dm font-semibold text-[14px] tracking-[0.02em] cursor-pointer hover:border-[#0F1419] transition-colors flex items-center gap-1.5">
-              <ArrowLeft className="h-4 w-4" /> Naar dossiers
-            </button>
-            <button onClick={() => setStep('calling')}
-              className="h-11 bg-[#008CFF] text-white border-none px-6 font-dm font-semibold text-[14px] tracking-[0.02em] cursor-pointer hover:bg-[#0070CC] transition-colors flex items-center gap-1.5"
-              title="Terug naar live invulscherm">
-              <ArrowLeft className="h-4 w-4" /> Terug naar gesprek
-            </button>
-            <button onClick={signOut} className="p-2 text-[#5B6470] hover:text-[#0F1419] transition-colors" title="Uitloggen">
-              <LogOut className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-
-        <div className="flex-1 overflow-y-auto">
-          <div className="max-w-3xl mx-auto p-8 space-y-5">
-
-            {/* Klantgegevens — compact grid, inputs prominent */}
-            <section className="space-y-3">
-              <h2 className="font-dm text-[9px] font-bold text-[#5B6470] uppercase tracking-[0.14em]">Klantgegevens</h2>
-              <div className="grid grid-cols-[1fr_1fr_1.5fr] gap-3">
-                <input type="text" value={leadVoornaam} onChange={e => setLeadVoornaam(e.target.value)} placeholder="Voornaam"
-                  className="h-12 px-4 bg-white border-2 border-[#DDD5C5] text-[15px] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
-                <input type="text" value={leadAchternaam} onChange={e => setLeadAchternaam(e.target.value)} placeholder="Achternaam"
-                  className="h-12 px-4 bg-white border-2 border-[#DDD5C5] text-[15px] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
-                <input type="email" value={leadEmail} onChange={e => setLeadEmail(e.target.value)} placeholder="E-mailadres"
-                  className="h-12 px-4 bg-white border-2 border-[#DDD5C5] text-[15px] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
-              </div>
-              <input type="text" value={leadAdres} onChange={e => setLeadAdres(e.target.value)} placeholder="Volledig adres — bv. Kerkstraat 12, 9000 Gent"
-                className="w-full h-12 px-4 bg-white border-2 border-[#DDD5C5] text-[15px] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
-              <div className="grid grid-cols-2 gap-3">
-                <input type="text" value={leadPartnerNaam} onChange={e => setLeadPartnerNaam(e.target.value)} placeholder="Naam partner"
-                  className="h-12 px-4 bg-white border-2 border-[#DDD5C5] text-[15px] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
-                <input type="text" value={data.region_gemeente} onChange={e => update({ region_gemeente: e.target.value })} placeholder="Gemeente"
-                  className="h-12 px-4 bg-white border-2 border-[#DDD5C5] text-[15px] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
-              </div>
-            </section>
-
-            {/* Opvolging — kies scenario */}
-            <section className="space-y-3">
-              <h2 className="font-dm text-[9px] font-bold text-[#5B6470] uppercase tracking-[0.14em]">Opvolging</h2>
-              <div className="grid grid-cols-2 gap-3">
-                <button type="button" onClick={() => setFollowupType('videocall')}
-                  className={`h-14 px-4 border-2 font-dm font-bold text-[14px] transition-colors ${followupType === 'videocall' ? 'bg-[#008CFF] text-white border-[#008CFF]' : 'bg-white text-[#0F1419] border-[#DDD5C5] hover:border-[#008CFF]/50'}`}>
-                  📅 Videocall ingepland
-                </button>
-                <button type="button" onClick={() => { setFollowupType('klant_terug'); update({ videocall_scheduled_at: null }); }}
-                  className={`h-14 px-4 border-2 font-dm font-bold text-[14px] transition-colors ${followupType === 'klant_terug' ? 'bg-[#E89F3D] text-white border-[#E89F3D]' : 'bg-white text-[#0F1419] border-[#DDD5C5] hover:border-[#E89F3D]/50'}`}>
-                  📞 Klant neemt zelf contact op
-                </button>
-              </div>
-
-              {followupType === 'videocall' && (
-                <div className="space-y-3 pt-2">
-                  <div className="grid grid-cols-[1fr_1fr_2fr] gap-3">
-                    <input type="date" value={data.videocall_scheduled_at ? data.videocall_scheduled_at.split('T')[0] : ''}
-                      onChange={e => {
-                        const time = data.videocall_scheduled_at ? data.videocall_scheduled_at.split('T')[1] || '10:00' : '10:00';
-                        update({ videocall_scheduled_at: e.target.value ? `${e.target.value}T${time}` : null });
-                      }}
-                      className="h-12 px-4 bg-white border-2 border-[#DDD5C5] text-[15px] font-body font-medium text-[#0F1419] focus:outline-none focus:border-[#008CFF]" />
-                    <input type="time" value={data.videocall_scheduled_at ? data.videocall_scheduled_at.split('T')[1]?.substring(0, 5) || '10:00' : ''}
-                      onChange={e => {
-                        const date = data.videocall_scheduled_at ? data.videocall_scheduled_at.split('T')[0] : new Date().toISOString().split('T')[0];
-                        update({ videocall_scheduled_at: `${date}T${e.target.value}` });
-                      }}
-                      className="h-12 px-4 bg-white border-2 border-[#DDD5C5] text-[15px] font-body font-medium text-[#0F1419] focus:outline-none focus:border-[#008CFF]" />
-                    <input type="url" value={data.google_meet_link} onChange={e => update({ google_meet_link: e.target.value })} placeholder="Google Meet link"
-                      className="h-12 px-4 bg-white border-2 border-[#DDD5C5] text-[15px] font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]" />
-                  </div>
-                  {data.videocall_scheduled_at && leadEmail && (() => {
-                    const dt = new Date(data.videocall_scheduled_at!);
-                    const dag = dt.toLocaleDateString('nl-BE', { weekday: 'long', day: 'numeric', month: 'long' });
-                    const uur = dt.toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' });
-                    const meetLine = data.google_meet_link ? `\n${data.google_meet_link}\n` : '';
-                    const naam = leadPartnerNaam.trim() ? `${leadVoornaam} en ${leadPartnerNaam}` : leadVoornaam;
-                    const subject = `Bevestiging videocall ${dag} om ${uur} — Zolderpunt`;
-                    const body = `Hi ${naam},\n\nBij deze bevestig ik graag onze videocall op ${dag} om ${uur}.${meetLine}\nOm ons gesprek goed te kunnen voorbereiden, mogen jullie mij vooraf gerust al even volgende zaken bezorgen:\n\n• Enkele foto's die de huidige toestand van de zolder goed weergeven\n• Een ruwe inschatting van de oppervlakte van de zolder\n• Indien er een nieuwe vaste trap naar de zolder nodig is: graag ook enkele foto's of een korte toelichting van de verdieping onder de zolder. Zo krijgen we een beter beeld van waar jullie de trap eventueel zien komen, via welke ruimte dit zou gebeuren en welke ruimte daarvoor mogelijk opgeofferd wordt.\n\nDe foto's en informatie mogen eenvoudig doorgestuurd worden via WhatsApp of mail, afhankelijk van wat voor jullie het gemakkelijkst werkt.\n+32 492 400 954\n\nIk kijk ernaar uit om jullie project verder samen te bekijken. Tot dan!\n\nPositieve groeten,`;
-                    const mailto = `mailto:${leadEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-                    return (
-                      <a href={mailto} onClick={(e) => { e.preventDefault(); window.location.href = mailto; }}
-                        className="w-full h-12 flex items-center justify-center bg-[#2E7D38] text-white font-dm font-bold text-[14px] hover:bg-[#256B2E] transition-colors">
-                        Open bevestigingsmail
-                      </a>
-                    );
-                  })()}
-                  {data.videocall_scheduled_at && !leadEmail && (
-                    <p className="text-xs font-body text-[#E89F3D] italic">Vul een e-mailadres in om de bevestigingsmail te openen.</p>
-                  )}
-                </div>
-              )}
-
-              {followupType === 'klant_terug' && (
-                <textarea value={klantTerugNotitie} onChange={e => { setKlantTerugNotitie(e.target.value); update({ quick_notes: e.target.value }); }}
-                  placeholder="Wanneer + context — bv. klant belt volgende week vrijdag na overleg met partner"
-                  className="w-full h-24 px-4 py-3 bg-white border-2 border-[#DDD5C5] text-[14px] font-body text-[#0F1419] placeholder:text-[#B0A898] resize-none focus:outline-none focus:border-[#E89F3D]" />
-              )}
-            </section>
-
-
-            {/* Klantvragen — toggle chips */}
-            <section className="space-y-3">
-              <h2 className="font-dm text-[9px] font-bold text-[#5B6470] uppercase tracking-[0.14em]">Welke klantvragen kwamen aan bod?</h2>
-              <div className="flex flex-wrap gap-2">
-                {CALLING_QUESTIONS.map(q => {
-                  const raised = data.questions_raised[q.key]?.raised;
-                  return (
-                    <button key={q.key} type="button" onClick={() => toggleQuestion(q.key)}
-                      className={`h-10 px-4 text-[14px] font-body font-medium transition-colors ${raised ? 'bg-[#008CFF] text-white border-2 border-[#008CFF]' : 'bg-white text-[#5B6470] border-2 border-[#DDD5C5] hover:border-[#008CFF]/50'}`}>
-                      {q.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
-
-            {/* Validatie — compact inline */}
-            <section className="flex flex-wrap items-center gap-x-5 gap-y-1 py-3 border-t border-[#DDD5C5]">
-              {[
-                { label: 'Citaat', ok: data.emotional_keywords.length > 0 },
-                { label: 'Buying committee', ok: !!data.buying_committee.trim() },
-                { label: 'Scenario', ok: !!data.scenario_chosen },
-                { label: 'Videocall', ok: !!data.videocall_scheduled_at },
-                { label: 'Adres', ok: !!leadAdres.trim() },
-              ].map((c, i) => (
-                <span key={i} className={`text-[12px] font-body ${c.ok ? 'text-[#2E7D38]' : 'text-[#B0A898]'}`}>
-                  {c.ok ? '✓' : '○'} {c.label}
-                </span>
-              ))}
-            </section>
-
-            <button onClick={handleFinishWrapUp} className="w-full h-14 bg-[#008CFF] text-white font-dm font-bold text-[16px] hover:bg-[#0070CC] transition-colors">
-              Vergrendel dossier
-            </button>
-          </div>
-        </div>
-        <BackConfirmDialog open={showBackConfirm} onCancel={() => setShowBackConfirm(false)} onDiscard={confirmBackDiscard} onSave={confirmBackSave} />
       </div>
     );
   }
@@ -487,10 +372,19 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
                     <a href={videocallUrl} target="_blank" rel="noopener noreferrer" className={btnCls}>📅 Videocall — Plannen</a>
                     <a href={plaatsbezoekUrl} target="_blank" rel="noopener noreferrer" className={btnCls}>🏠 Plaatsbezoek — Plannen</a>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => syncCalendly('manual')}
+                    disabled={!leadEmail.trim() || calendlySyncing}
+                    className="h-10 w-full flex items-center justify-center gap-2 bg-white border-2 border-[#DDD5C5] text-[#0F1419] disabled:text-[#B0A898] disabled:bg-[#F2EDE4] font-dm font-semibold text-[13px] hover:border-[#008CFF]/60 transition-colors"
+                  >
+                    <RefreshCw className={`h-4 w-4 ${calendlySyncing ? 'animate-spin' : ''}`} />
+                    Calendly verversen
+                  </button>
                   <div className="grid grid-cols-2 gap-2 items-start">
                     <div className="space-y-2">
                       <PlanCheck checked={data.videocall_planned} label="Videocall ingepland"
-                        onToggle={() => { const next = !data.videocall_planned; update({ videocall_planned: next }); flushSave({ videocall_planned: next }); }} />
+                        onToggle={() => { const next = !data.videocall_planned; update({ videocall_planned: next }); flushSave({ videocall_planned: next }); if (next) void syncCalendly('manual'); }} />
                       {data.videocall_planned && (
                         <ConfirmMailBlock
                           type="videocall"
@@ -504,7 +398,7 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
                     </div>
                     <div className="space-y-2">
                       <PlanCheck checked={data.plaatsbezoek_planned} label="Plaatsbezoek ingepland"
-                        onToggle={() => { const next = !data.plaatsbezoek_planned; update({ plaatsbezoek_planned: next }); flushSave({ plaatsbezoek_planned: next }); }} />
+                        onToggle={() => { const next = !data.plaatsbezoek_planned; update({ plaatsbezoek_planned: next }); flushSave({ plaatsbezoek_planned: next }); if (next) void syncCalendly('manual'); }} />
                       {data.plaatsbezoek_planned && (
                         <ConfirmMailBlock
                           type="plaatsbezoek"
@@ -593,9 +487,6 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
 
         </div>
       </div>
-
-
-      <CloseCallDialog open={showCloseDialog} onClose={() => setShowCloseDialog(false)} onConfirm={handleCloseCall} />
       <BackConfirmDialog open={showBackConfirm} onCancel={() => setShowBackConfirm(false)} onDiscard={confirmBackDiscard} onSave={confirmBackSave} />
     </div>
 
