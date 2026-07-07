@@ -5,7 +5,6 @@ import { useCallTimer } from '@/hooks/useCallTimer';
 import { supabase } from '@/integrations/supabase/client';
 import AddressAutocomplete from '@/components/AddressAutocomplete';
 
-import CloseCallDialog from '@/components/calling/CloseCallDialog';
 import { ArrowLeft, ArrowRight, LogOut, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Input } from '@/components/ui/input';
@@ -34,7 +33,6 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
   const [search, setSearch] = useState('');
   const [leads, setLeads] = useState<any[]>([]);
   const [selectedLead, setSelectedLead] = useState<any>(null);
-  const [showCloseDialog, setShowCloseDialog] = useState(false);
   const [showBackConfirm, setShowBackConfirm] = useState(false);
   const [leadVoornaam, setLeadVoornaam] = useState('');
   const [leadAchternaam, setLeadAchternaam] = useState('');
@@ -42,8 +40,6 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
   const [leadAdres, setLeadAdres] = useState('');
   const [leadPartnerNaam, setLeadPartnerNaam] = useState('');
   const [leadEmail, setLeadEmail] = useState('');
-  const [followupType, setFollowupType] = useState<'videocall' | 'klant_terug' | null>(null);
-  const [klantTerugNotitie, setKlantTerugNotitie] = useState('');
   const [calendlySyncing, setCalendlySyncing] = useState(false);
   const lastCalendlyAutoSyncRef = useRef('');
 
@@ -173,7 +169,6 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
       call_ended_at: endedAt,
       call_duration_seconds: duration,
     });
-    setShowCloseDialog(false);
     toast.success('Dossier opgeslagen');
     if (leadId && data.id) {
       onOpenValidation(leadId, data.id);
@@ -181,9 +176,6 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
       onGoDossiers();
     }
   };
-
-  const handleCloseCall = handleSaveDossier;
-  const handleFinishWrapUp = handleSaveDossier;
 
   const syncCalendly = async (source: 'auto' | 'manual' = 'manual') => {
     const email = leadEmail.trim();
@@ -495,9 +487,6 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
 
         </div>
       </div>
-
-
-      <CloseCallDialog open={showCloseDialog} onClose={() => setShowCloseDialog(false)} onConfirm={handleCloseCall} />
       <BackConfirmDialog open={showBackConfirm} onCancel={() => setShowBackConfirm(false)} onDiscard={confirmBackDiscard} onSave={confirmBackSave} />
     </div>
 
