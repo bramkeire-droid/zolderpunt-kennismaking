@@ -326,6 +326,7 @@ export type Database = {
           updated_at: string | null
           videocall_planned: boolean
           videocall_scheduled_at: string | null
+          waarom_nu_timing: string | null
           wat_tags: string[]
         }
         Insert: {
@@ -359,6 +360,7 @@ export type Database = {
           updated_at?: string | null
           videocall_planned?: boolean
           videocall_scheduled_at?: string | null
+          waarom_nu_timing?: string | null
           wat_tags?: string[]
         }
         Update: {
@@ -392,6 +394,7 @@ export type Database = {
           updated_at?: string | null
           videocall_planned?: boolean
           videocall_scheduled_at?: string | null
+          waarom_nu_timing?: string | null
           wat_tags?: string[]
         }
         Relationships: [
