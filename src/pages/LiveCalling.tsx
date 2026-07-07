@@ -183,7 +183,65 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
   };
 
   const handleCloseCall = handleSaveDossier;
-  const handleFinishWrapUp = handleSaveDossier;
+
+  const syncCalendly = async (source: 'auto' | 'manual' = 'manual') => {
+    const email = leadEmail.trim();
+    if (!email || calendlySyncing) return;
+
+    setCalendlySyncing(true);
+    try {
+      const { data: result, error } = await supabase.functions.invoke('sync-calendly-event', {
+        body: { email },
+      });
+      if (error) throw error;
+
+      const events = (result as any)?.events || {};
+      const patch: Partial<typeof data> = {};
+
+      if (events.videocall?.scheduledAt) {
+        patch.videocall_planned = true;
+        patch.videocall_scheduled_at = events.videocall.scheduledAt;
+        if (events.videocall.meetLink) patch.google_meet_link = events.videocall.meetLink;
+      }
+      if (events.plaatsbezoek?.scheduledAt) {
+        patch.plaatsbezoek_planned = true;
+        patch.plaatsbezoek_scheduled_at = events.plaatsbezoek.scheduledAt;
+      }
+
+      if (Object.keys(patch).length > 0) {
+        update(patch);
+        await flushSave(patch);
+        if (source === 'manual') toast.success('Calendly-afspraak gekoppeld');
+      } else if (source === 'manual') {
+        toast.info('Geen actieve Calendly-afspraak gevonden voor dit e-mailadres');
+      }
+    } catch (err) {
+      console.error('Calendly sync error:', err);
+      if (source === 'manual') toast.error('Calendly koppelen mislukt');
+    } finally {
+      setCalendlySyncing(false);
+    }
+  };
+
+  useEffect(() => {
+    const email = leadEmail.trim().toLowerCase();
+    if (!email || step !== 'calling') return;
+    const key = `${selectedLead?.id || 'new'}:${email}`;
+    if (lastCalendlyAutoSyncRef.current === key) return;
+    lastCalendlyAutoSyncRef.current = key;
+    const timerId = window.setTimeout(() => { void syncCalendly('auto'); }, 600);
+    return () => window.clearTimeout(timerId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leadEmail, selectedLead?.id, step]);
+
+  useEffect(() => {
+    const handleFocus = () => {
+      if (leadEmail.trim() && step === 'calling') void syncCalendly('auto');
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leadEmail, step]);
 
 
 
