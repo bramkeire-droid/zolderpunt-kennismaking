@@ -59,6 +59,7 @@ export interface PreIntakeData {
 
   scenario_chosen: ScenarioType | null;
   videocall_scheduled_at: string | null;
+  plaatsbezoek_scheduled_at: string | null;
   google_meet_link: string;
 
   quick_notes: string;
