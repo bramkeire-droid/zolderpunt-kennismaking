@@ -40,6 +40,7 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
   const [leadAdres, setLeadAdres] = useState('');
   const [leadPartnerNaam, setLeadPartnerNaam] = useState('');
   const [leadEmail, setLeadEmail] = useState('');
+  const [websiteOmschrijving, setWebsiteOmschrijving] = useState('');
   const [calendlySyncing, setCalendlySyncing] = useState(false);
   const lastCalendlyAutoSyncRef = useRef('');
 
