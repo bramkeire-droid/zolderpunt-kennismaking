@@ -16,17 +16,22 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
 
-  const provided = (req.headers.get('x-webhook-secret') || '').trim();
-  const expected = (Deno.env.get('WEBSITE_LEAD_SECRET') || '').trim();
-  if (!expected || provided !== expected) {
-    return json({ error: 'Unauthorized' }, 401);
-  }
-
   let body: Record<string, unknown> = {};
   try {
     body = await req.json();
   } catch {
-    return json({ error: 'Invalid JSON body' }, 400);
+    body = {};
+  }
+
+  const provided = (
+    (req.headers.get('x-webhook-secret') ||
+      new URL(req.url).searchParams.get('secret') ||
+      body.secret ||
+      '') + ''
+  ).trim();
+  const expected = (Deno.env.get('WEBSITE_LEAD_SECRET') || '').trim();
+  if (!expected || provided !== expected) {
+    return json({ error: 'Unauthorized' }, 401);
   }
 
   const str = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
