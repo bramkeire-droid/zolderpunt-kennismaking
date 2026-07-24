@@ -16,9 +16,9 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
 
-  const provided = req.headers.get('x-webhook-secret');
-  const expected = Deno.env.get('WEBSITE_LEAD_SECRET');
-  if (!expected || !provided || provided !== expected) {
+  const provided = (req.headers.get('x-webhook-secret') || '').trim();
+  const expected = (Deno.env.get('WEBSITE_LEAD_SECRET') || '').trim();
+  if (!expected || provided !== expected) {
     return json({ error: 'Unauthorized' }, 401);
   }
 
