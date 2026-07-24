@@ -40,6 +40,7 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
   const [leadAdres, setLeadAdres] = useState('');
   const [leadPartnerNaam, setLeadPartnerNaam] = useState('');
   const [leadEmail, setLeadEmail] = useState('');
+  const [websiteOmschrijving, setWebsiteOmschrijving] = useState('');
   const [calendlySyncing, setCalendlySyncing] = useState(false);
   const lastCalendlyAutoSyncRef = useRef('');
 
@@ -72,6 +73,7 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
       setLeadAdres(lead.adres || '');
       setLeadPartnerNaam(lead.partner_naam || '');
       setLeadEmail(lead.email || '');
+      setWebsiteOmschrijving((lead as any).website_omschrijving || '');
       const { data: pi } = await supabase.from('pre_intake' as any).select('*').eq('lead_id', initialLeadId).order('updated_at', { ascending: false }).limit(1).maybeSingle();
       if (pi) {
         loadPreIntake(pi as any);
@@ -341,6 +343,15 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
               De essentie om straks naar Bram door te geven. <strong className="text-[#0F1419]">Hier ligt je focus tijdens het gesprek.</strong>
             </p>
           </div>
+
+          {/* ⓘ WEBSITE-AANVRAAG */}
+          {websiteOmschrijving.trim() && (
+            <Section eyebrow="📩 Aanvraag via website" hint="Bericht dat de klant zelf via het contactformulier stuurde">
+              <div className="whitespace-pre-wrap bg-[#F5F1E8] border-2 border-[#008CFF]/30 p-4 text-[15px] leading-relaxed text-[#0F1419] font-body">
+                {websiteOmschrijving}
+              </div>
+            </Section>
+          )}
 
           {/* ① KLANTGEGEVENS */}
           <Section eyebrow="Klantgegevens" hint="Vul aan tijdens of vlak na het gesprek">
