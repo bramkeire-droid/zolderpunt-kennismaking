@@ -1,0 +1,1 @@
+ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS website_omschrijving text NOT NULL DEFAULT '';

@@ -87,6 +87,7 @@ export type Database = {
           volgende_stap: string
           voornaam: string
           waarde_tekst_ai: string
+          website_omschrijving: string
         }
         Insert: {
           achternaam?: string
@@ -142,6 +143,7 @@ export type Database = {
           volgende_stap?: string
           voornaam?: string
           waarde_tekst_ai?: string
+          website_omschrijving?: string
         }
         Update: {
           achternaam?: string
@@ -197,6 +199,7 @@ export type Database = {
           volgende_stap?: string
           voornaam?: string
           waarde_tekst_ai?: string
+          website_omschrijving?: string
         }
         Relationships: []
       }
