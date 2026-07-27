@@ -64,7 +64,8 @@ function resolveCategory(lead: any, preIntake: any, hasAnalysis: boolean): Categ
   const override = lead.category_override as CategoryKey | null | undefined;
   if (override && CATEGORIES.some(c => c.key === override)) return override;
   const status = lead.status;
-  if (status === 'afgesloten' || status === 'uitvoering') return 'goedgekeurd';
+  if (status === 'afgesloten') return 'afgerond';
+  if (status === 'uitvoering') return 'goedgekeurd';
   if (status === 'verloren') return 'afgewezen';
   if (status === 'offerte' || lead.offerte_bedrag_excl != null) return 'offerte';
   const now = Date.now();
