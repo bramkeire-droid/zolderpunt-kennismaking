@@ -631,6 +631,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      search_leads_fuzzy: {
+        Args: { q: string }
+        Returns: {
+          id: string
+          label: string
+          score: number
+        }[]
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
     }
