@@ -385,7 +385,8 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
       pi = data;
       setPreIntakeMap(prev => ({ ...prev, [lead.id]: data }));
     }
-    onOpenValidation?.(lead.id, pi.id);
+    // Open het intakegesprek op de eerste pagina (niet direct transcript-upload)
+    onOpenCall?.(lead.id);
   };
 
 
