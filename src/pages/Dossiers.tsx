@@ -13,6 +13,16 @@ import SalesAnalysis from '@/components/SalesAnalysis';
 import PortalManageDialog from '@/components/portal/PortalManageDialog';
 import PortalPreview from '@/components/portal/PortalPreview';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from '@/components/ui/dropdown-menu';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+const NEXT_STEP_PRESETS = [
+  'Telefoongesprek inplannen',
+  'Videocall',
+  'Plaatsbezoek',
+  'Offerte opmaken',
+  'Project uitvoeren',
+] as const;
+const NEXT_STEP_OTHER = '__other__';
 import { pdf } from '@react-pdf/renderer';
 import ReportDocument from '@/components/report/ReportDocument';
 import type { ReportData, FeitjeItem } from '@/components/report/reportTypes';
@@ -149,6 +159,16 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
       setLeads(ls => ls.map(l => l.id === leadId ? { ...l, category_override: prev?.category_override ?? null } : l));
     } else {
       toast.success(key ? `Verplaatst naar "${CATEGORIES.find(c => c.key === key)?.label}"` : 'Automatische categorie hersteld');
+    }
+  };
+
+  const updateNextStep = async (leadId: string, value: string) => {
+    const prev = leads.find(l => l.id === leadId);
+    setLeads(ls => ls.map(l => l.id === leadId ? { ...l, volgende_stap: value } : l));
+    const { error } = await supabase.from('leads').update({ volgende_stap: value }).eq('id', leadId);
+    if (error) {
+      toast.error('Opslaan mislukt');
+      setLeads(ls => ls.map(l => l.id === leadId ? { ...l, volgende_stap: prev?.volgende_stap ?? '' } : l));
     }
   };
   type SortKey = 'naam' | 'gesprek_datum' | 'status' | 'budget' | 'portal' | 'volgende_stap';
@@ -462,22 +482,12 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
                   <TableCell>
                     <PortalStatusBadge status={lead.portal_status || 'draft'} />
                   </TableCell>
-                  <TableCell className="font-body">
-                    {preIntakeMap[lead.id]?.videocall_scheduled_at ? (
-                      <div className="flex flex-col">
-                        <span className="inline-flex items-center gap-1 text-[0.65rem] font-bold tracking-wider uppercase px-2 py-0.5 bg-primary/15 text-primary w-fit">Video call</span>
-                        <span className="text-xs text-muted-foreground mt-0.5">
-                          {formatDatum(preIntakeMap[lead.id].videocall_scheduled_at)} · {new Date(preIntakeMap[lead.id].videocall_scheduled_at).toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                      </div>
-                    ) : preIntakeMap[lead.id]?.plaatsbezoek_scheduled_at ? (
-                      <div className="flex flex-col">
-                        <span className="inline-flex items-center gap-1 text-[0.65rem] font-bold tracking-wider uppercase px-2 py-0.5 bg-indigo-100 text-indigo-700 w-fit">Plaatsbezoek</span>
-                        <span className="text-xs text-muted-foreground mt-0.5">
-                          {formatDatum(preIntakeMap[lead.id].plaatsbezoek_scheduled_at)} · {new Date(preIntakeMap[lead.id].plaatsbezoek_scheduled_at).toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                      </div>
-                    ) : (lead.volgende_stap || '—')}
+                  <TableCell className="font-body" onClick={(e) => e.stopPropagation()}>
+                    <NextStepCell
+                      value={lead.volgende_stap || ''}
+                      preIntake={preIntakeMap[lead.id]}
+                      onChange={(v) => updateNextStep(lead.id, v)}
+                    />
                   </TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu>
@@ -743,5 +753,80 @@ function StatusBadge({ status }: { status: string }) {
     <span className={`inline-block text-[0.7rem] font-bold tracking-wider uppercase px-2.5 py-1 ${config.bg} ${config.color}`}>
       {config.label}
     </span>
+  );
+}
+
+function NextStepCell({ value, preIntake, onChange }: { value: string; preIntake: any; onChange: (v: string) => void }) {
+  const now = Date.now();
+  const pb = preIntake?.plaatsbezoek_scheduled_at ? new Date(preIntake.plaatsbezoek_scheduled_at) : null;
+  const vc = preIntake?.videocall_scheduled_at ? new Date(preIntake.videocall_scheduled_at) : null;
+  const autoDetected: string | null =
+    pb && pb.getTime() >= now ? 'Plaatsbezoek'
+    : vc && vc.getTime() >= now ? 'Videocall'
+    : null;
+
+  const effective = value || autoDetected || '';
+  const isPreset = (NEXT_STEP_PRESETS as readonly string[]).includes(effective);
+  const isOther = !!effective && !isPreset;
+
+  const [editingOther, setEditingOther] = useState(isOther);
+  const [otherText, setOtherText] = useState(isOther ? effective : '');
+
+  useEffect(() => {
+    if (isOther) { setEditingOther(true); setOtherText(effective); }
+  }, [effective, isOther]);
+
+  const selectValue = editingOther ? NEXT_STEP_OTHER : (isPreset ? effective : '');
+
+  const scheduleBadge = autoDetected === 'Videocall' && vc ? (
+    <span className="text-[0.65rem] text-muted-foreground mt-1">
+      {formatDatum(vc.toISOString())} · {vc.toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' })}
+    </span>
+  ) : autoDetected === 'Plaatsbezoek' && pb ? (
+    <span className="text-[0.65rem] text-muted-foreground mt-1">
+      {formatDatum(pb.toISOString())} · {pb.toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' })}
+    </span>
+  ) : null;
+
+  return (
+    <div className="flex flex-col min-w-[170px]">
+      <Select
+        value={selectValue}
+        onValueChange={(v) => {
+          if (v === NEXT_STEP_OTHER) {
+            setEditingOther(true);
+            setOtherText('');
+          } else {
+            setEditingOther(false);
+            onChange(v);
+          }
+        }}
+      >
+        <SelectTrigger className="h-8 text-xs">
+          <SelectValue placeholder={autoDetected ? autoDetected : 'Kies volgende stap…'} />
+        </SelectTrigger>
+        <SelectContent>
+          {NEXT_STEP_PRESETS.map(p => (
+            <SelectItem key={p} value={p} className="text-xs">{p}</SelectItem>
+          ))}
+          <SelectItem value={NEXT_STEP_OTHER} className="text-xs">Andere…</SelectItem>
+        </SelectContent>
+      </Select>
+      {editingOther && (
+        <Input
+          autoFocus
+          value={otherText}
+          onChange={(e) => setOtherText(e.target.value)}
+          onBlur={() => { const t = otherText.trim(); if (t) onChange(t); else setEditingOther(false); }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') { const t = otherText.trim(); if (t) onChange(t); (e.target as HTMLInputElement).blur(); }
+            if (e.key === 'Escape') { setEditingOther(false); setOtherText(''); }
+          }}
+          placeholder="Beschrijf de volgende stap…"
+          className="h-7 mt-1 text-xs"
+        />
+      )}
+      {scheduleBadge}
+    </div>
   );
 }
