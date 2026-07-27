@@ -29,6 +29,8 @@ import type { ReportData, FeitjeItem } from '@/components/report/reportTypes';
 import OffertebijlageDialog from '@/components/dossier/OffertebijlageDialog';
 import StabiliteitVoorbladDialog from '@/components/dossier/StabiliteitVoorbladDialog';
 import GenericVoorbladDialog from '@/components/dossier/GenericVoorbladDialog';
+import PhotoUploadDialog from '@/components/dossier/PhotoUploadDialog';
+import { Image as ImageIcon } from 'lucide-react';
 import { formatDatum } from '@/components/report/reportConstants';
 import { downloadBlob, openDownloadWindow } from '@/lib/downloadFile';
 
@@ -147,6 +149,7 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
   const [offerteLead, setOfferteLead] = useState<any>(null);
   const [stabLead, setStabLead] = useState<any>(null);
   const [genericVoorblad, setGenericVoorblad] = useState<{ lead: any } | null>(null);
+  const [photoLead, setPhotoLead] = useState<any>(null);
   const [preIntakeMap, setPreIntakeMap] = useState<Record<string, any>>({});
   const [analysisMap, setAnalysisMap] = useState<Record<string, boolean>>({});
   const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -382,7 +385,8 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
       pi = data;
       setPreIntakeMap(prev => ({ ...prev, [lead.id]: data }));
     }
-    onOpenValidation?.(lead.id, pi.id);
+    // Open het intakegesprek op de eerste pagina (niet direct transcript-upload)
+    onOpenCall?.(lead.id);
   };
 
 
@@ -555,6 +559,12 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
                         <DropdownMenuItem onClick={() => handleStartVideocall(lead)}>
                           <Bot className="h-4 w-4 mr-2 text-primary" /> Videocall intake
                         </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setPhotoLead(lead)}>
+                          <ImageIcon className="h-4 w-4 mr-2 text-primary" /> Foto's uploaden
+                        </DropdownMenuItem>
+
+
+
 
 
                         <DropdownMenuSeparator />
@@ -738,6 +748,18 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
           open={!!genericVoorblad}
           onClose={() => setGenericVoorblad(null)}
           lead={genericVoorblad.lead}
+        />
+      )}
+
+      {photoLead && (
+        <PhotoUploadDialog
+          open={!!photoLead}
+          onClose={() => setPhotoLead(null)}
+          lead={photoLead}
+          onUpdate={(leadId, patch) => {
+            setLeads(prev => prev.map(l => l.id === leadId ? { ...l, ...patch } : l));
+            setPhotoLead((prev: any) => prev ? { ...prev, ...patch } : prev);
+          }}
         />
       )}
     </div>
