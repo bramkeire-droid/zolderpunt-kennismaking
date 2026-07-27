@@ -45,6 +45,7 @@ export type Database = {
           budget_max: number | null
           budget_min: number | null
           calculator_state: Json | null
+          category_override: string | null
           created_at: string
           email: string
           fotos: Json
@@ -101,6 +102,7 @@ export type Database = {
           budget_max?: number | null
           budget_min?: number | null
           calculator_state?: Json | null
+          category_override?: string | null
           created_at?: string
           email?: string
           fotos?: Json
@@ -157,6 +159,7 @@ export type Database = {
           budget_max?: number | null
           budget_min?: number | null
           calculator_state?: Json | null
+          category_override?: string | null
           created_at?: string
           email?: string
           fotos?: Json

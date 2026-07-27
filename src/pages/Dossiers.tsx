@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useState, useEffect, useMemo } from 'react';
-import { Search, FolderOpen, Users, TrendingUp, DollarSign, Eye, RefreshCw, Trash2, CheckCircle, Globe, Phone, Bot, FileDown, MoreVertical, ArrowUp, ArrowDown, ArrowUpDown, FileText, Receipt, Hammer } from 'lucide-react';
+import { Search, FolderOpen, Users, TrendingUp, DollarSign, Eye, RefreshCw, Trash2, CheckCircle, Globe, Phone, Bot, FileDown, MoreVertical, ArrowUp, ArrowDown, ArrowUpDown, FileText, Receipt, Hammer, ArrowRightLeft, ChevronDown, ChevronRight, GripVertical } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { defaultTechnisch } from '@/contexts/SessionContext';
 import type { LeadData } from '@/contexts/SessionContext';
@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import SalesAnalysis from '@/components/SalesAnalysis';
 import PortalManageDialog from '@/components/portal/PortalManageDialog';
 import PortalPreview from '@/components/portal/PortalPreview';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from '@/components/ui/dropdown-menu';
 import { pdf } from '@react-pdf/renderer';
 import ReportDocument from '@/components/report/ReportDocument';
 import type { ReportData, FeitjeItem } from '@/components/report/reportTypes';
@@ -36,6 +36,32 @@ const STATUS_CONFIG: Record<string, { label: string; bg: string; color: string }
   afgesloten:       { label: 'Afgesloten',       bg: 'bg-green-100',      color: 'text-green-700' },
   verloren:         { label: 'Verloren',         bg: 'bg-red-100',        color: 'text-red-700' },
 };
+
+type CategoryKey = 'nieuw' | 'telefoon' | 'video' | 'plaatsbezoek' | 'afgewezen' | 'goedgekeurd';
+
+const CATEGORIES: { key: CategoryKey; label: string; accent: string }[] = [
+  { key: 'nieuw',        label: 'Nieuwe lead',            accent: 'border-l-slate-400' },
+  { key: 'telefoon',     label: 'Telefoongesprek gehad',  accent: 'border-l-blue-500' },
+  { key: 'video',        label: 'Video intake gehad',     accent: 'border-l-primary' },
+  { key: 'plaatsbezoek', label: 'Plaatsbezoek gehad',     accent: 'border-l-indigo-500' },
+  { key: 'afgewezen',    label: 'Project afgewezen',      accent: 'border-l-red-500' },
+  { key: 'goedgekeurd',  label: 'Project goedgekeurd',    accent: 'border-l-green-500' },
+];
+
+function resolveCategory(lead: any, preIntake: any, hasAnalysis: boolean): CategoryKey {
+  const override = lead.category_override as CategoryKey | null | undefined;
+  if (override && CATEGORIES.some(c => c.key === override)) return override;
+  const status = lead.status;
+  if (status === 'afgesloten' || status === 'uitvoering') return 'goedgekeurd';
+  if (status === 'verloren') return 'afgewezen';
+  const now = Date.now();
+  const pb = preIntake?.plaatsbezoek_scheduled_at ? new Date(preIntake.plaatsbezoek_scheduled_at).getTime() : null;
+  if ((pb && pb <= now) || status === 'plaatsbezoek') return 'plaatsbezoek';
+  const vc = preIntake?.videocall_scheduled_at ? new Date(preIntake.videocall_scheduled_at).getTime() : null;
+  if ((vc && vc <= now) || preIntake?.locked_at || hasAnalysis || status === 'intake') return 'video';
+  if (preIntake || lead.gesprek_datum || status === 'telefoongesprek' || status === 'intake_gepland') return 'telefoon';
+  return 'nieuw';
+}
 
 function rowToLead(row: any): LeadData {
   return {
@@ -109,6 +135,22 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
   const [genericVoorblad, setGenericVoorblad] = useState<{ lead: any } | null>(null);
   const [preIntakeMap, setPreIntakeMap] = useState<Record<string, any>>({});
   const [analysisMap, setAnalysisMap] = useState<Record<string, boolean>>({});
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dragOverCat, setDragOverCat] = useState<CategoryKey | null>(null);
+  const [collapsed, setCollapsed] = useState<Record<CategoryKey, boolean>>({} as any);
+  const toggleCollapse = (k: CategoryKey) => setCollapsed(p => ({ ...p, [k]: !p[k] }));
+
+  const updateCategory = async (leadId: string, key: CategoryKey | null) => {
+    const prev = leads.find(l => l.id === leadId);
+    setLeads(ls => ls.map(l => l.id === leadId ? { ...l, category_override: key } : l));
+    const { error } = await supabase.from('leads').update({ category_override: key } as any).eq('id', leadId);
+    if (error) {
+      toast.error('Verplaatsen mislukt');
+      setLeads(ls => ls.map(l => l.id === leadId ? { ...l, category_override: prev?.category_override ?? null } : l));
+    } else {
+      toast.success(key ? `Verplaatst naar "${CATEGORIES.find(c => c.key === key)?.label}"` : 'Automatische categorie hersteld');
+    }
+  };
   type SortKey = 'naam' | 'gesprek_datum' | 'status' | 'budget' | 'portal' | 'volgende_stap';
   const [sortKey, setSortKey] = useState<SortKey>('gesprek_datum');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
@@ -182,6 +224,18 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
     });
     return sorted;
   }, [leads, search, sortKey, sortDir]);
+
+  const groupedByCategory = useMemo(() => {
+    const groups: Record<CategoryKey, any[]> = {
+      nieuw: [], telefoon: [], video: [], plaatsbezoek: [], afgewezen: [], goedgekeurd: [],
+    };
+    filtered.forEach(l => {
+      const cat = resolveCategory(l, preIntakeMap[l.id], !!analysisMap[l.id]);
+      groups[cat].push(l);
+    });
+    return groups;
+  }, [filtered, preIntakeMap, analysisMap]);
+
 
   const stats = useMemo(() => {
     const total = leads.length;
@@ -331,158 +385,243 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
               </div>
             </div>
 
-            {filtered.length > 0 ? (
-              <div className="bg-card border border-border overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead onClick={() => toggleSort('naam')} className="cursor-pointer select-none">Naam<SortIcon k="naam" /></TableHead>
-                      <TableHead></TableHead>
-                      <TableHead onClick={() => toggleSort('gesprek_datum')} className="cursor-pointer select-none">Datum<SortIcon k="gesprek_datum" /></TableHead>
-                      <TableHead onClick={() => toggleSort('status')} className="cursor-pointer select-none">Status<SortIcon k="status" /></TableHead>
-                      <TableHead onClick={() => toggleSort('budget')} className="cursor-pointer select-none">Budget<SortIcon k="budget" /></TableHead>
-                      <TableHead onClick={() => toggleSort('portal')} className="cursor-pointer select-none">Portaal<SortIcon k="portal" /></TableHead>
-                      <TableHead onClick={() => toggleSort('volgende_stap')} className="cursor-pointer select-none">Volgende stap<SortIcon k="volgende_stap" /></TableHead>
-                      <TableHead>Acties</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filtered.map((lead: any) => (
-                      <TableRow key={lead.id} className="cursor-pointer hover:bg-accent/50" onClick={() => handleOpen(lead)}>
-                        <TableCell className="font-medium font-headline">
-                          {lead.voornaam || lead.achternaam
-                            ? `${lead.voornaam} ${lead.achternaam}`.trim()
-                            : <span className="text-muted-foreground italic">Geen naam</span>
-                          }
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1.5">
-                            {preIntakeMap[lead.id] && (
-                              <button
-                                onClick={(e) => { e.stopPropagation(); onOpenValidation?.(lead.id, preIntakeMap[lead.id].id); }}
-                                className="inline-flex items-center gap-1 text-[0.6rem] font-bold tracking-wider uppercase px-1.5 py-0.5 bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-                                title="Open transcript validatie"
-                              >
-                                <Phone className="h-3 w-3" />
-                              </button>
-                            )}
-                            {analysisMap[lead.id] && (
-                              <button
-                                onClick={(e) => { e.stopPropagation(); onOpenValidation?.(lead.id, preIntakeMap[lead.id]?.id); }}
-                                className="inline-flex items-center gap-1 text-[0.6rem] font-bold tracking-wider uppercase px-1.5 py-0.5 bg-purple-100 text-purple-700 hover:bg-purple-200 transition-colors"
-                                title="Bekijk transcript analyse"
-                              >
-                                <Bot className="h-3 w-3" />
-                              </button>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-body">{formatDatum(lead.gesprek_datum)}</TableCell>
-                        <TableCell>
-                          <div className="flex flex-col gap-1">
-                            <StatusBadge status={lead.status} />
-                            {lead.offerte_bedrag_excl != null && (
-                              <OfferteCompareBadge
-                                bedrag={Number(lead.offerte_bedrag_excl)}
-                                min={Number(lead.budget_min) || 0}
-                                max={Number(lead.budget_max) || 0}
-                              />
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-body">
-                          {lead.budget_min ? `${fmt(lead.budget_min)} — ${fmt(lead.budget_max)}` : '—'}
-                        </TableCell>
-                        <TableCell>
-                          <PortalStatusBadge status={lead.portal_status || 'draft'} />
-                        </TableCell>
-                        <TableCell className="font-body">
-                          {preIntakeMap[lead.id]?.videocall_scheduled_at ? (
-                            <div className="flex flex-col">
-                              <span className="inline-flex items-center gap-1 text-[0.65rem] font-bold tracking-wider uppercase px-2 py-0.5 bg-primary/15 text-primary w-fit">
-                                Video call
-                              </span>
-                              <span className="text-xs text-muted-foreground mt-0.5">
-                                {formatDatum(preIntakeMap[lead.id].videocall_scheduled_at)} · {new Date(preIntakeMap[lead.id].videocall_scheduled_at).toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' })}
-                              </span>
-                            </div>
-                          ) : preIntakeMap[lead.id]?.plaatsbezoek_scheduled_at ? (
-                            <div className="flex flex-col">
-                              <span className="inline-flex items-center gap-1 text-[0.65rem] font-bold tracking-wider uppercase px-2 py-0.5 bg-indigo-100 text-indigo-700 w-fit">
-                                Plaatsbezoek
-                              </span>
-                              <span className="text-xs text-muted-foreground mt-0.5">
-                                {formatDatum(preIntakeMap[lead.id].plaatsbezoek_scheduled_at)} · {new Date(preIntakeMap[lead.id].plaatsbezoek_scheduled_at).toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' })}
-                              </span>
-                            </div>
-                          ) : (lead.volgende_stap || '—')}
-                        </TableCell>
-                        <TableCell onClick={(e) => e.stopPropagation()}>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button size="sm" variant="outline" className="gap-1 h-8">
-                                <span className="text-xs font-headline">Acties</span>
-                                <MoreVertical className="h-3.5 w-3.5" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-56">
-                              <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">Dossier</DropdownMenuLabel>
-                              <DropdownMenuItem onClick={() => handleOpen(lead)}>
-                                <FolderOpen className="h-4 w-4 mr-2" /> Dossier openen
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => onOpenCall?.(lead.id)}>
-                                <Phone className="h-4 w-4 mr-2 text-[#008CFF]" /> Telefoongesprek
-                              </DropdownMenuItem>
-
-                              <DropdownMenuSeparator />
-                              <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">Offerte & rapport</DropdownMenuLabel>
-                              <DropdownMenuItem onClick={() => setOfferteLead(lead)}>
-                                <Receipt className="h-4 w-4 mr-2 text-primary" /> Offerte & bijlage
-                              </DropdownMenuItem>
-                              {lead.rapport_gegenereerd_op && (
-                                <DropdownMenuItem onClick={(e) => handleDownloadPdf(e as any, lead)}>
-                                  <FileDown className="h-4 w-4 mr-2 text-[#2E7D38]" /> PDF rapport downloaden
-                                </DropdownMenuItem>
-                              )}
-                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setStabLead(lead); }}>
-                                <Hammer className="h-4 w-4 mr-2 text-primary" /> Stabiliteitsstudie (voorblad + merge)
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setGenericVoorblad({ lead }); }}>
-                                <FileText className="h-4 w-4 mr-2 text-primary" /> Generiek voorblad
-                              </DropdownMenuItem>
-
-                              <DropdownMenuSeparator />
-                              <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">Portaal & status</DropdownMenuLabel>
-                              <DropdownMenuItem onClick={() => setPortalLead(lead)}>
-                                <Globe className="h-4 w-4 mr-2 text-[#008CFF]" /> Portaal beheren
-                              </DropdownMenuItem>
-                              {lead.status !== 'afgesloten' && (
-                                <DropdownMenuItem onClick={(e) => handleConvert(e as any, lead)}>
-                                  <CheckCircle className="h-4 w-4 mr-2 text-green-600" /> Markeer afgesloten
-                                </DropdownMenuItem>
-                              )}
-
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={(e) => handleDelete(e as any, lead)} className="text-destructive focus:text-destructive">
-                                <Trash2 className="h-4 w-4 mr-2" /> Dossier verwijderen
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            ) : (
+            {loading && leads.length === 0 ? (
               <div className="bg-card border border-dashed border-border p-16 text-center">
                 <FolderOpen className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
-                <p className="text-muted-foreground font-body">
-                  {loading ? 'Dossiers laden...' : 'Nog geen dossiers. Start een nieuw intakegesprek om te beginnen.'}
-                </p>
+                <p className="text-muted-foreground font-body">Dossiers laden...</p>
               </div>
-            )}
+            ) : leads.length === 0 ? (
+              <div className="bg-card border border-dashed border-border p-16 text-center">
+                <FolderOpen className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
+                <p className="text-muted-foreground font-body">Nog geen dossiers. Start een nieuw intakegesprek om te beginnen.</p>
+              </div>
+            ) : (() => {
+              const renderRow = (lead: any) => (
+                <TableRow
+                  key={lead.id}
+                  draggable
+                  onDragStart={(e) => { setDraggingId(lead.id); e.dataTransfer.effectAllowed = 'move'; }}
+                  onDragEnd={() => { setDraggingId(null); setDragOverCat(null); }}
+                  className={`cursor-pointer hover:bg-accent/50 ${draggingId === lead.id ? 'opacity-40' : ''}`}
+                  onClick={() => handleOpen(lead)}
+                >
+                  <TableCell className="w-6 pr-0 text-muted-foreground/40" onClick={(e) => e.stopPropagation()}>
+                    <GripVertical className="h-4 w-4 cursor-grab active:cursor-grabbing" />
+                  </TableCell>
+                  <TableCell className="font-medium font-headline">
+                    {lead.voornaam || lead.achternaam
+                      ? `${lead.voornaam} ${lead.achternaam}`.trim()
+                      : <span className="text-muted-foreground italic">Geen naam</span>}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1.5">
+                      {preIntakeMap[lead.id] && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); onOpenValidation?.(lead.id, preIntakeMap[lead.id].id); }}
+                          className="inline-flex items-center gap-1 text-[0.6rem] font-bold tracking-wider uppercase px-1.5 py-0.5 bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                          title="Open transcript validatie"
+                        >
+                          <Phone className="h-3 w-3" />
+                        </button>
+                      )}
+                      {analysisMap[lead.id] && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); onOpenValidation?.(lead.id, preIntakeMap[lead.id]?.id); }}
+                          className="inline-flex items-center gap-1 text-[0.6rem] font-bold tracking-wider uppercase px-1.5 py-0.5 bg-purple-100 text-purple-700 hover:bg-purple-200 transition-colors"
+                          title="Bekijk transcript analyse"
+                        >
+                          <Bot className="h-3 w-3" />
+                        </button>
+                      )}
+                      {lead.category_override && (
+                        <span
+                          className="inline-flex items-center text-[0.6rem] font-bold tracking-wider uppercase px-1.5 py-0.5 bg-amber-100 text-amber-800"
+                          title="Categorie handmatig ingesteld"
+                        >
+                          M
+                        </span>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="font-body">{formatDatum(lead.gesprek_datum)}</TableCell>
+                  <TableCell>
+                    <div className="flex flex-col gap-1">
+                      <StatusBadge status={lead.status} />
+                      {lead.offerte_bedrag_excl != null && (
+                        <OfferteCompareBadge
+                          bedrag={Number(lead.offerte_bedrag_excl)}
+                          min={Number(lead.budget_min) || 0}
+                          max={Number(lead.budget_max) || 0}
+                        />
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="font-body">
+                    {lead.budget_min ? `${fmt(lead.budget_min)} — ${fmt(lead.budget_max)}` : '—'}
+                  </TableCell>
+                  <TableCell>
+                    <PortalStatusBadge status={lead.portal_status || 'draft'} />
+                  </TableCell>
+                  <TableCell className="font-body">
+                    {preIntakeMap[lead.id]?.videocall_scheduled_at ? (
+                      <div className="flex flex-col">
+                        <span className="inline-flex items-center gap-1 text-[0.65rem] font-bold tracking-wider uppercase px-2 py-0.5 bg-primary/15 text-primary w-fit">Video call</span>
+                        <span className="text-xs text-muted-foreground mt-0.5">
+                          {formatDatum(preIntakeMap[lead.id].videocall_scheduled_at)} · {new Date(preIntakeMap[lead.id].videocall_scheduled_at).toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                    ) : preIntakeMap[lead.id]?.plaatsbezoek_scheduled_at ? (
+                      <div className="flex flex-col">
+                        <span className="inline-flex items-center gap-1 text-[0.65rem] font-bold tracking-wider uppercase px-2 py-0.5 bg-indigo-100 text-indigo-700 w-fit">Plaatsbezoek</span>
+                        <span className="text-xs text-muted-foreground mt-0.5">
+                          {formatDatum(preIntakeMap[lead.id].plaatsbezoek_scheduled_at)} · {new Date(preIntakeMap[lead.id].plaatsbezoek_scheduled_at).toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                    ) : (lead.volgende_stap || '—')}
+                  </TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button size="sm" variant="outline" className="gap-1 h-8">
+                          <span className="text-xs font-headline">Acties</span>
+                          <MoreVertical className="h-3.5 w-3.5" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-56">
+                        <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">Dossier</DropdownMenuLabel>
+                        <DropdownMenuItem onClick={() => handleOpen(lead)}>
+                          <FolderOpen className="h-4 w-4 mr-2" /> Dossier openen
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onOpenCall?.(lead.id)}>
+                          <Phone className="h-4 w-4 mr-2 text-[#008CFF]" /> Telefoongesprek
+                        </DropdownMenuItem>
+
+                        <DropdownMenuSeparator />
+                        <DropdownMenuSub>
+                          <DropdownMenuSubTrigger>
+                            <ArrowRightLeft className="h-4 w-4 mr-2 text-primary" /> Verplaatsen naar…
+                          </DropdownMenuSubTrigger>
+                          <DropdownMenuSubContent className="w-56">
+                            {CATEGORIES.map(c => (
+                              <DropdownMenuItem key={c.key} onClick={() => updateCategory(lead.id, c.key)}>
+                                {c.label}
+                              </DropdownMenuItem>
+                            ))}
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => updateCategory(lead.id, null)}>
+                              Automatisch bepalen
+                            </DropdownMenuItem>
+                          </DropdownMenuSubContent>
+                        </DropdownMenuSub>
+
+                        <DropdownMenuSeparator />
+                        <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">Offerte & rapport</DropdownMenuLabel>
+                        <DropdownMenuItem onClick={() => setOfferteLead(lead)}>
+                          <Receipt className="h-4 w-4 mr-2 text-primary" /> Offerte & bijlage
+                        </DropdownMenuItem>
+                        {lead.rapport_gegenereerd_op && (
+                          <DropdownMenuItem onClick={(e) => handleDownloadPdf(e as any, lead)}>
+                            <FileDown className="h-4 w-4 mr-2 text-[#2E7D38]" /> PDF rapport downloaden
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setStabLead(lead); }}>
+                          <Hammer className="h-4 w-4 mr-2 text-primary" /> Stabiliteitsstudie (voorblad + merge)
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setGenericVoorblad({ lead }); }}>
+                          <FileText className="h-4 w-4 mr-2 text-primary" /> Generiek voorblad
+                        </DropdownMenuItem>
+
+                        <DropdownMenuSeparator />
+                        <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">Portaal & status</DropdownMenuLabel>
+                        <DropdownMenuItem onClick={() => setPortalLead(lead)}>
+                          <Globe className="h-4 w-4 mr-2 text-[#008CFF]" /> Portaal beheren
+                        </DropdownMenuItem>
+                        {lead.status !== 'afgesloten' && (
+                          <DropdownMenuItem onClick={(e) => handleConvert(e as any, lead)}>
+                            <CheckCircle className="h-4 w-4 mr-2 text-green-600" /> Markeer afgesloten
+                          </DropdownMenuItem>
+                        )}
+
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={(e) => handleDelete(e as any, lead)} className="text-destructive focus:text-destructive">
+                          <Trash2 className="h-4 w-4 mr-2" /> Dossier verwijderen
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              );
+
+              return (
+                <div className="space-y-4">
+                  {CATEGORIES.map(cat => {
+                    const rows = groupedByCategory[cat.key];
+                    const isOpen = !collapsed[cat.key];
+                    const isDragTarget = dragOverCat === cat.key;
+                    return (
+                      <div
+                        key={cat.key}
+                        onDragOver={(e) => { if (draggingId) { e.preventDefault(); setDragOverCat(cat.key); } }}
+                        onDragLeave={() => setDragOverCat(prev => prev === cat.key ? null : prev)}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          if (draggingId) {
+                            const current = leads.find(l => l.id === draggingId);
+                            const currentCat = current ? resolveCategory(current, preIntakeMap[draggingId], !!analysisMap[draggingId]) : null;
+                            if (currentCat !== cat.key) updateCategory(draggingId, cat.key);
+                          }
+                          setDraggingId(null);
+                          setDragOverCat(null);
+                        }}
+                        className={`bg-card border border-border border-l-4 ${cat.accent} overflow-hidden transition-colors ${isDragTarget ? 'ring-2 ring-primary/50 bg-primary/5' : ''}`}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => toggleCollapse(cat.key)}
+                          className="w-full flex items-center justify-between px-4 py-3 hover:bg-accent/30 transition-colors"
+                        >
+                          <div className="flex items-center gap-2">
+                            {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                            <span className="font-headline font-bold text-foreground">{cat.label}</span>
+                            <span className="text-xs font-bold px-2 py-0.5 bg-muted text-muted-foreground rounded-full">
+                              {rows.length}
+                            </span>
+                          </div>
+                        </button>
+                        {isOpen && (
+                          rows.length > 0 ? (
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead className="w-6"></TableHead>
+                                  <TableHead onClick={() => toggleSort('naam')} className="cursor-pointer select-none">Naam<SortIcon k="naam" /></TableHead>
+                                  <TableHead></TableHead>
+                                  <TableHead onClick={() => toggleSort('gesprek_datum')} className="cursor-pointer select-none">Datum<SortIcon k="gesprek_datum" /></TableHead>
+                                  <TableHead onClick={() => toggleSort('status')} className="cursor-pointer select-none">Status<SortIcon k="status" /></TableHead>
+                                  <TableHead onClick={() => toggleSort('budget')} className="cursor-pointer select-none">Budget<SortIcon k="budget" /></TableHead>
+                                  <TableHead onClick={() => toggleSort('portal')} className="cursor-pointer select-none">Portaal<SortIcon k="portal" /></TableHead>
+                                  <TableHead onClick={() => toggleSort('volgende_stap')} className="cursor-pointer select-none">Volgende stap<SortIcon k="volgende_stap" /></TableHead>
+                                  <TableHead>Acties</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {rows.map(renderRow)}
+                              </TableBody>
+                            </Table>
+                          ) : (
+                            <div className="px-4 py-6 text-center text-xs text-muted-foreground/70 italic border-t border-border/50">
+                              Geen dossiers in deze categorie{draggingId ? ' — sleep hier om te verplaatsen' : ''}.
+                            </div>
+                          )
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </TabsContent>
+
 
           <TabsContent value="statistieken">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
