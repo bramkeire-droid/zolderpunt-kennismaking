@@ -161,6 +161,16 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
       toast.success(key ? `Verplaatst naar "${CATEGORIES.find(c => c.key === key)?.label}"` : 'Automatische categorie hersteld');
     }
   };
+
+  const updateNextStep = async (leadId: string, value: string) => {
+    const prev = leads.find(l => l.id === leadId);
+    setLeads(ls => ls.map(l => l.id === leadId ? { ...l, volgende_stap: value } : l));
+    const { error } = await supabase.from('leads').update({ volgende_stap: value }).eq('id', leadId);
+    if (error) {
+      toast.error('Opslaan mislukt');
+      setLeads(ls => ls.map(l => l.id === leadId ? { ...l, volgende_stap: prev?.volgende_stap ?? '' } : l));
+    }
+  };
   type SortKey = 'naam' | 'gesprek_datum' | 'status' | 'budget' | 'portal' | 'volgende_stap';
   const [sortKey, setSortKey] = useState<SortKey>('gesprek_datum');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
