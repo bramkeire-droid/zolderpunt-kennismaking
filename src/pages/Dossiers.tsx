@@ -750,6 +750,18 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
           lead={genericVoorblad.lead}
         />
       )}
+
+      {photoLead && (
+        <PhotoUploadDialog
+          open={!!photoLead}
+          onClose={() => setPhotoLead(null)}
+          lead={photoLead}
+          onUpdate={(leadId, patch) => {
+            setLeads(prev => prev.map(l => l.id === leadId ? { ...l, ...patch } : l));
+            setPhotoLead((prev: any) => prev ? { ...prev, ...patch } : prev);
+          }}
+        />
+      )}
     </div>
   );
 }
