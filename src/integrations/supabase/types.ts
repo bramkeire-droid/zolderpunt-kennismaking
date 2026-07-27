@@ -32,6 +32,107 @@ export type Database = {
         }
         Relationships: []
       }
+      inbound_conversation_state: {
+        Row: {
+          expires_at: string
+          from_identifier: string
+          id: string
+          last_lead_id: string | null
+          source: string
+          updated_at: string
+        }
+        Insert: {
+          expires_at?: string
+          from_identifier: string
+          id?: string
+          last_lead_id?: string | null
+          source: string
+          updated_at?: string
+        }
+        Update: {
+          expires_at?: string
+          from_identifier?: string
+          id?: string
+          last_lead_id?: string | null
+          source?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inbound_conversation_state_last_lead_id_fkey"
+            columns: ["last_lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inbound_media_pending: {
+        Row: {
+          assigned_at: string | null
+          assigned_by: string | null
+          assigned_lead_id: string | null
+          body: string
+          created_at: string
+          from_display: string
+          from_identifier: string
+          id: string
+          match_reason: string
+          source: string
+          status: string
+          storage_paths: Json
+          subject: string
+          suggested_lead_id: string | null
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          assigned_lead_id?: string | null
+          body?: string
+          created_at?: string
+          from_display?: string
+          from_identifier: string
+          id?: string
+          match_reason?: string
+          source: string
+          status?: string
+          storage_paths?: Json
+          subject?: string
+          suggested_lead_id?: string | null
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          assigned_lead_id?: string | null
+          body?: string
+          created_at?: string
+          from_display?: string
+          from_identifier?: string
+          id?: string
+          match_reason?: string
+          source?: string
+          status?: string
+          storage_paths?: Json
+          subject?: string
+          suggested_lead_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inbound_media_pending_assigned_lead_id_fkey"
+            columns: ["assigned_lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbound_media_pending_suggested_lead_id_fkey"
+            columns: ["suggested_lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leads: {
         Row: {
           achternaam: string
@@ -530,6 +631,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
     }
     Enums: {
       app_role: "admin" | "user"
