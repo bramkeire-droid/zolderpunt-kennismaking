@@ -135,6 +135,22 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
   const [genericVoorblad, setGenericVoorblad] = useState<{ lead: any } | null>(null);
   const [preIntakeMap, setPreIntakeMap] = useState<Record<string, any>>({});
   const [analysisMap, setAnalysisMap] = useState<Record<string, boolean>>({});
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dragOverCat, setDragOverCat] = useState<CategoryKey | null>(null);
+  const [collapsed, setCollapsed] = useState<Record<CategoryKey, boolean>>({} as any);
+  const toggleCollapse = (k: CategoryKey) => setCollapsed(p => ({ ...p, [k]: !p[k] }));
+
+  const updateCategory = async (leadId: string, key: CategoryKey | null) => {
+    const prev = leads.find(l => l.id === leadId);
+    setLeads(ls => ls.map(l => l.id === leadId ? { ...l, category_override: key } : l));
+    const { error } = await supabase.from('leads').update({ category_override: key } as any).eq('id', leadId);
+    if (error) {
+      toast.error('Verplaatsen mislukt');
+      setLeads(ls => ls.map(l => l.id === leadId ? { ...l, category_override: prev?.category_override ?? null } : l));
+    } else {
+      toast.success(key ? `Verplaatst naar "${CATEGORIES.find(c => c.key === key)?.label}"` : 'Automatische categorie hersteld');
+    }
+  };
   type SortKey = 'naam' | 'gesprek_datum' | 'status' | 'budget' | 'portal' | 'volgende_stap';
   const [sortKey, setSortKey] = useState<SortKey>('gesprek_datum');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
