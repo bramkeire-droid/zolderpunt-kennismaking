@@ -536,6 +536,10 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
                         <DropdownMenuItem onClick={() => onOpenCall?.(lead.id)}>
                           <Phone className="h-4 w-4 mr-2 text-[#008CFF]" /> Telefoongesprek
                         </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleStartVideocall(lead)}>
+                          <Bot className="h-4 w-4 mr-2 text-primary" /> Videocall intake
+                        </DropdownMenuItem>
+
 
                         <DropdownMenuSeparator />
                         <DropdownMenuSub>
