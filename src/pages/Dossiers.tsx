@@ -482,22 +482,12 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
                   <TableCell>
                     <PortalStatusBadge status={lead.portal_status || 'draft'} />
                   </TableCell>
-                  <TableCell className="font-body">
-                    {preIntakeMap[lead.id]?.videocall_scheduled_at ? (
-                      <div className="flex flex-col">
-                        <span className="inline-flex items-center gap-1 text-[0.65rem] font-bold tracking-wider uppercase px-2 py-0.5 bg-primary/15 text-primary w-fit">Video call</span>
-                        <span className="text-xs text-muted-foreground mt-0.5">
-                          {formatDatum(preIntakeMap[lead.id].videocall_scheduled_at)} · {new Date(preIntakeMap[lead.id].videocall_scheduled_at).toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                      </div>
-                    ) : preIntakeMap[lead.id]?.plaatsbezoek_scheduled_at ? (
-                      <div className="flex flex-col">
-                        <span className="inline-flex items-center gap-1 text-[0.65rem] font-bold tracking-wider uppercase px-2 py-0.5 bg-indigo-100 text-indigo-700 w-fit">Plaatsbezoek</span>
-                        <span className="text-xs text-muted-foreground mt-0.5">
-                          {formatDatum(preIntakeMap[lead.id].plaatsbezoek_scheduled_at)} · {new Date(preIntakeMap[lead.id].plaatsbezoek_scheduled_at).toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                      </div>
-                    ) : (lead.volgende_stap || '—')}
+                  <TableCell className="font-body" onClick={(e) => e.stopPropagation()}>
+                    <NextStepCell
+                      value={lead.volgende_stap || ''}
+                      preIntake={preIntakeMap[lead.id]}
+                      onChange={(v) => updateNextStep(lead.id, v)}
+                    />
                   </TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu>
