@@ -795,6 +795,11 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
           }}
         />
       )}
+      <InboundInboxDialog
+        open={inboxOpen}
+        onOpenChange={setInboxOpen}
+        onAssigned={() => { void fetchLeads(); void refreshInboxCount(); }}
+      />
     </div>
   );
 }
