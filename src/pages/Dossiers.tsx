@@ -559,6 +559,12 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
                         <DropdownMenuItem onClick={() => handleStartVideocall(lead)}>
                           <Bot className="h-4 w-4 mr-2 text-primary" /> Videocall intake
                         </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setPhotoLead(lead)}>
+                          <ImageIcon className="h-4 w-4 mr-2 text-primary" /> Foto's uploaden
+                        </DropdownMenuItem>
+
+
+
 
 
                         <DropdownMenuSeparator />
