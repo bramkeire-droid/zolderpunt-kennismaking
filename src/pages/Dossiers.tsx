@@ -47,7 +47,7 @@ const STATUS_CONFIG: Record<string, { label: string; bg: string; color: string }
   verloren:         { label: 'Verloren',         bg: 'bg-red-100',        color: 'text-red-700' },
 };
 
-type CategoryKey = 'nieuw' | 'telefoon' | 'video' | 'plaatsbezoek' | 'offerte' | 'afgewezen' | 'goedgekeurd';
+type CategoryKey = 'nieuw' | 'telefoon' | 'video' | 'plaatsbezoek' | 'offerte' | 'afgewezen' | 'goedgekeurd' | 'afgerond';
 
 const CATEGORIES: { key: CategoryKey; label: string; accent: string }[] = [
   { key: 'nieuw',        label: 'Nieuwe lead',            accent: 'border-l-slate-400' },
@@ -57,6 +57,7 @@ const CATEGORIES: { key: CategoryKey; label: string; accent: string }[] = [
   { key: 'offerte',      label: 'Offerte opmaken',        accent: 'border-l-purple-500' },
   { key: 'afgewezen',    label: 'Project afgewezen',      accent: 'border-l-red-500' },
   { key: 'goedgekeurd',  label: 'Project goedgekeurd',    accent: 'border-l-green-500' },
+  { key: 'afgerond',     label: 'Project afgerond',       accent: 'border-l-emerald-600' },
 ];
 
 function resolveCategory(lead: any, preIntake: any, hasAnalysis: boolean): CategoryKey {
