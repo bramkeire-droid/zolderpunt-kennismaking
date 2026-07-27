@@ -156,7 +156,26 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOverCat, setDragOverCat] = useState<CategoryKey | null>(null);
   const [collapsed, setCollapsed] = useState<Record<CategoryKey, boolean>>({} as any);
+  const [inboxOpen, setInboxOpen] = useState(false);
+  const [inboxCount, setInboxCount] = useState(0);
   const toggleCollapse = (k: CategoryKey) => setCollapsed(p => ({ ...p, [k]: !p[k] }));
+
+  const refreshInboxCount = async () => {
+    const { count } = await supabase
+      .from('inbound_media_pending')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'pending');
+    setInboxCount(count ?? 0);
+  };
+  useEffect(() => {
+    void refreshInboxCount();
+    const ch = supabase
+      .channel('inbound_media_pending_dossiers')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'inbound_media_pending' }, () => refreshInboxCount())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, []);
+
 
   const updateCategory = async (leadId: string, key: CategoryKey | null) => {
     const prev = leads.find(l => l.id === leadId);
