@@ -370,6 +370,22 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
     handleOpen(data);
   };
 
+  const handleStartVideocall = async (lead: any) => {
+    let pi = preIntakeMap[lead.id];
+    if (!pi?.id) {
+      const { data, error } = await supabase
+        .from('pre_intake')
+        .insert({ lead_id: lead.id, videocall_planned: true } as any)
+        .select()
+        .single();
+      if (error || !data) { toast.error('Videocall intake kon niet gestart worden'); return; }
+      pi = data;
+      setPreIntakeMap(prev => ({ ...prev, [lead.id]: data }));
+    }
+    onOpenValidation?.(lead.id, pi.id);
+  };
+
+
   return (
     <div className="flex-1 overflow-y-auto p-8 lg:p-12 bg-background">
       <div className="max-w-6xl mx-auto">
