@@ -1,64 +1,30 @@
-
 ## Doel
-Het dossier-overzicht (`src/pages/Dossiers.tsx`) opsplitsen in 6 verticaal gestapelde categorieën, met automatische classificatie én manuele overrides (drag-and-drop + acties-menu).
+"Volgende stap" in het dossier-overzicht wordt een **inline dropdown** met vaste opties + vrije invoer, met automatische detectie voor videocall/plaatsbezoek.
 
-## Categorieën (in deze volgorde)
-1. Nieuwe lead
-2. Telefoongesprek gehad
-3. Video intake gehad
-4. Plaatsbezoek gehad
-5. Project afgewezen
-6. Project goedgekeurd
+## Opties in de dropdown
+1. Telefoongesprek inplannen
+2. Videocall
+3. Plaatsbezoek
+4. Offerte opmaken
+5. Project uitvoeren
+6. Andere… (opent klein tekstveld voor vrije invoer)
 
 ## Automatische detectie
-Bepaald per lead in deze prioriteitsvolgorde (eerste die matcht wint), tenzij er een manuele override staat:
+Wanneer `pre_intake` van de lead een toekomstige `videocall_scheduled_at` of `plaatsbezoek_scheduled_at` heeft:
+- De juiste optie ("Videocall" of "Plaatsbezoek") wordt automatisch als geselecteerde waarde getoond, ook als `volgende_stap` in de database leeg is.
+- Naast de label blijft de datum/tijd-badge staan (zoals nu al gerenderd wordt).
+- Handmatig kiezen blijft mogelijk en overschrijft de auto-detectie (opgeslagen in `leads.volgende_stap`).
 
-| Categorie | Detectieregel |
-|---|---|
-| Project goedgekeurd | `leads.status` ∈ {`afgesloten`, `uitvoering`} |
-| Project afgewezen | `leads.status` = `verloren` |
-| Plaatsbezoek gehad | `pre_intake.plaatsbezoek_scheduled_at` in het verleden **of** `leads.status` = `plaatsbezoek` |
-| Video intake gehad | `pre_intake.videocall_scheduled_at` in het verleden, of `pre_intake.locked_at` gezet, of transcript-analyse bestaat (`analysisMap[lead.id]`), of `leads.status` ∈ {`intake`} |
-| Telefoongesprek gehad | `pre_intake` bestaat voor deze lead, of `leads.gesprek_datum` gezet, of `leads.status` ∈ {`telefoongesprek`, `intake_gepland`} |
-| Nieuwe lead | fallback |
+Prioriteit auto-detectie (als `volgende_stap` leeg is): plaatsbezoek in toekomst > videocall in toekomst > niets.
 
-Detectie gebeurt client-side in `Dossiers.tsx` op basis van bestaande `leads` + `preIntakeMap` + `analysisMap` — geen extra queries.
+## UI-gedrag
+- In de kolom "Volgende stap" komt een compacte `Select`-trigger (shadcn) in plaats van de huidige platte tekst.
+- Bij keuze "Andere…" verschijnt een inline input; op Enter/blur wordt de vrije tekst opgeslagen.
+- Klik op de trigger stopt event-propagation zodat het dossier niet opent.
+- Bewaring: optimistische update op `leads[]` + `supabase.from('leads').update({ volgende_stap })`, met rollback + toast bij fout (zelfde patroon als `updateCategory`).
+- Wanneer de opgeslagen `volgende_stap` niet in de vaste lijst staat, wordt hij als "Andere: <tekst>" getoond en blijft bewerkbaar.
 
-## Manuele override
-Nieuwe kolom `leads.category_override text NULL`. Als gezet, overschrijft die de auto-detectie. Waardes: `nieuw` | `telefoon` | `video` | `plaatsbezoek` | `afgewezen` | `goedgekeurd` | `null` (= auto).
-
-Twee manieren om te wijzigen:
-- **Drag-and-drop**: sleep een rij naar een andere sectie → schrijft `category_override` weg via `supabase.from('leads').update({ category_override: <key> })`. Implementatie met native HTML5 drag-and-drop (geen extra dependency).
-- **Acties-menu** (bestaande `DropdownMenu` per rij): submenu "Verplaatsen naar…" met de 6 categorieën + "Automatisch bepalen" (zet override op `null`).
-
-## UI-structuur
-Vervang de huidige enkele `<Table>` door 6 collapsible secties onder elkaar. Elke sectie:
-- Header met categorienaam, count-badge, chevron (open/dicht, standaard open).
-- Zelfde `<Table>`-layout als nu (kolommen, sortering, acties, portal, PDF, etc. blijven identiek).
-- Lege secties tonen een dun grijs "leeg"-rijtje maar blijven zichtbaar als drop-target.
-- Drop-target visuele highlight bij dragover.
-
-Zoekbalk en sortering blijven globaal en werken binnen elke sectie.
-
-## Technische wijzigingen
-
-**Migratie** (schema):
-```sql
-ALTER TABLE public.leads ADD COLUMN category_override text NULL;
-```
-(Geen GRANT/policy-wijziging nodig — bestaande policies dekken de kolom.)
-
-**Bestanden**:
-- `src/pages/Dossiers.tsx`:
-  - Helper `resolveCategory(lead, preIntake, hasAnalysis)` die override respecteert, anders auto-detecteert.
-  - `groupedByCategory` memo (`filtered` → `Record<CategoryKey, Lead[]>`).
-  - Nieuwe render: sectielijst i.p.v. één tabel. Elke sectie hergebruikt bestaande rij-render (extractie naar interne `renderRow` functie).
-  - Drag-and-drop handlers (`onDragStart` op `<TableRow>`, `onDragOver`/`onDrop` op sectiecontainer) + `updateCategory(leadId, key)` helper met toast.
-  - Acties-dropdown: extra `DropdownMenuSub` "Verplaatsen naar…".
-- `src/integrations/supabase/types.ts`: wordt automatisch geregenereerd na migratie.
-
-**Niet aangeraakt**: statistieken- en sales-analyse-tabs, portal, PDF-download, bestaande STATUS_CONFIG (blijft voor de status-badge in de rij).
-
-## Out of scope
-- Kanban-weergave (blijft tabelrijen per sectie).
-- Wijzigen van `leads.status`-waardes bij versleep (override is een aparte kolom, laat status ongemoeid).
+## Scope
+- Alleen `src/pages/Dossiers.tsx` wijzigen.
+- Geen database-migratie nodig (`leads.volgende_stap` bestaat al als `text`).
+- Bestaande scheduled-at badges onder de dropdown blijven behouden.
