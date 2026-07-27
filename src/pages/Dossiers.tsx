@@ -47,7 +47,7 @@ const STATUS_CONFIG: Record<string, { label: string; bg: string; color: string }
   verloren:         { label: 'Verloren',         bg: 'bg-red-100',        color: 'text-red-700' },
 };
 
-type CategoryKey = 'nieuw' | 'telefoon' | 'video' | 'plaatsbezoek' | 'offerte' | 'afgewezen' | 'goedgekeurd';
+type CategoryKey = 'nieuw' | 'telefoon' | 'video' | 'plaatsbezoek' | 'offerte' | 'afgewezen' | 'goedgekeurd' | 'afgerond';
 
 const CATEGORIES: { key: CategoryKey; label: string; accent: string }[] = [
   { key: 'nieuw',        label: 'Nieuwe lead',            accent: 'border-l-slate-400' },
@@ -57,13 +57,15 @@ const CATEGORIES: { key: CategoryKey; label: string; accent: string }[] = [
   { key: 'offerte',      label: 'Offerte opmaken',        accent: 'border-l-purple-500' },
   { key: 'afgewezen',    label: 'Project afgewezen',      accent: 'border-l-red-500' },
   { key: 'goedgekeurd',  label: 'Project goedgekeurd',    accent: 'border-l-green-500' },
+  { key: 'afgerond',     label: 'Project afgerond',       accent: 'border-l-emerald-600' },
 ];
 
 function resolveCategory(lead: any, preIntake: any, hasAnalysis: boolean): CategoryKey {
   const override = lead.category_override as CategoryKey | null | undefined;
   if (override && CATEGORIES.some(c => c.key === override)) return override;
   const status = lead.status;
-  if (status === 'afgesloten' || status === 'uitvoering') return 'goedgekeurd';
+  if (status === 'afgesloten') return 'afgerond';
+  if (status === 'uitvoering') return 'goedgekeurd';
   if (status === 'verloren') return 'afgewezen';
   if (status === 'offerte' || lead.offerte_bedrag_excl != null) return 'offerte';
   const now = Date.now();
@@ -249,7 +251,7 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
 
   const groupedByCategory = useMemo(() => {
     const groups: Record<CategoryKey, any[]> = {
-      nieuw: [], telefoon: [], video: [], plaatsbezoek: [], offerte: [], afgewezen: [], goedgekeurd: [],
+      nieuw: [], telefoon: [], video: [], plaatsbezoek: [], offerte: [], afgewezen: [], goedgekeurd: [], afgerond: [],
     };
     filtered.forEach(l => {
       const cat = resolveCategory(l, preIntakeMap[l.id], !!analysisMap[l.id]);
