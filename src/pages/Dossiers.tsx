@@ -37,6 +37,32 @@ const STATUS_CONFIG: Record<string, { label: string; bg: string; color: string }
   verloren:         { label: 'Verloren',         bg: 'bg-red-100',        color: 'text-red-700' },
 };
 
+type CategoryKey = 'nieuw' | 'telefoon' | 'video' | 'plaatsbezoek' | 'afgewezen' | 'goedgekeurd';
+
+const CATEGORIES: { key: CategoryKey; label: string; accent: string }[] = [
+  { key: 'nieuw',        label: 'Nieuwe lead',            accent: 'border-l-slate-400' },
+  { key: 'telefoon',     label: 'Telefoongesprek gehad',  accent: 'border-l-blue-500' },
+  { key: 'video',        label: 'Video intake gehad',     accent: 'border-l-primary' },
+  { key: 'plaatsbezoek', label: 'Plaatsbezoek gehad',     accent: 'border-l-indigo-500' },
+  { key: 'afgewezen',    label: 'Project afgewezen',      accent: 'border-l-red-500' },
+  { key: 'goedgekeurd',  label: 'Project goedgekeurd',    accent: 'border-l-green-500' },
+];
+
+function resolveCategory(lead: any, preIntake: any, hasAnalysis: boolean): CategoryKey {
+  const override = lead.category_override as CategoryKey | null | undefined;
+  if (override && CATEGORIES.some(c => c.key === override)) return override;
+  const status = lead.status;
+  if (status === 'afgesloten' || status === 'uitvoering') return 'goedgekeurd';
+  if (status === 'verloren') return 'afgewezen';
+  const now = Date.now();
+  const pb = preIntake?.plaatsbezoek_scheduled_at ? new Date(preIntake.plaatsbezoek_scheduled_at).getTime() : null;
+  if ((pb && pb <= now) || status === 'plaatsbezoek') return 'plaatsbezoek';
+  const vc = preIntake?.videocall_scheduled_at ? new Date(preIntake.videocall_scheduled_at).getTime() : null;
+  if ((vc && vc <= now) || preIntake?.locked_at || hasAnalysis || status === 'intake') return 'video';
+  if (preIntake || lead.gesprek_datum || status === 'telefoongesprek' || status === 'intake_gepland') return 'telefoon';
+  return 'nieuw';
+}
+
 function rowToLead(row: any): LeadData {
   return {
     id: row.id,
