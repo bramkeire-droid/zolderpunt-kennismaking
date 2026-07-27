@@ -225,6 +225,18 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
     return sorted;
   }, [leads, search, sortKey, sortDir]);
 
+  const groupedByCategory = useMemo(() => {
+    const groups: Record<CategoryKey, any[]> = {
+      nieuw: [], telefoon: [], video: [], plaatsbezoek: [], afgewezen: [], goedgekeurd: [],
+    };
+    filtered.forEach(l => {
+      const cat = resolveCategory(l, preIntakeMap[l.id], !!analysisMap[l.id]);
+      groups[cat].push(l);
+    });
+    return groups;
+  }, [filtered, preIntakeMap, analysisMap]);
+
+
   const stats = useMemo(() => {
     const total = leads.length;
     const withBudget = leads.filter(l => l.budget_min != null);
