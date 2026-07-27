@@ -251,7 +251,7 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
 
   const groupedByCategory = useMemo(() => {
     const groups: Record<CategoryKey, any[]> = {
-      nieuw: [], telefoon: [], video: [], plaatsbezoek: [], offerte: [], afgewezen: [], goedgekeurd: [],
+      nieuw: [], telefoon: [], video: [], plaatsbezoek: [], offerte: [], afgewezen: [], goedgekeurd: [], afgerond: [],
     };
     filtered.forEach(l => {
       const cat = resolveCategory(l, preIntakeMap[l.id], !!analysisMap[l.id]);
