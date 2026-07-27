@@ -755,3 +755,78 @@ function StatusBadge({ status }: { status: string }) {
     </span>
   );
 }
+
+function NextStepCell({ value, preIntake, onChange }: { value: string; preIntake: any; onChange: (v: string) => void }) {
+  const now = Date.now();
+  const pb = preIntake?.plaatsbezoek_scheduled_at ? new Date(preIntake.plaatsbezoek_scheduled_at) : null;
+  const vc = preIntake?.videocall_scheduled_at ? new Date(preIntake.videocall_scheduled_at) : null;
+  const autoDetected: string | null =
+    pb && pb.getTime() >= now ? 'Plaatsbezoek'
+    : vc && vc.getTime() >= now ? 'Videocall'
+    : null;
+
+  const effective = value || autoDetected || '';
+  const isPreset = (NEXT_STEP_PRESETS as readonly string[]).includes(effective);
+  const isOther = !!effective && !isPreset;
+
+  const [editingOther, setEditingOther] = useState(isOther);
+  const [otherText, setOtherText] = useState(isOther ? effective : '');
+
+  useEffect(() => {
+    if (isOther) { setEditingOther(true); setOtherText(effective); }
+  }, [effective, isOther]);
+
+  const selectValue = editingOther ? NEXT_STEP_OTHER : (isPreset ? effective : '');
+
+  const scheduleBadge = autoDetected === 'Videocall' && vc ? (
+    <span className="text-[0.65rem] text-muted-foreground mt-1">
+      {formatDatum(vc.toISOString())} · {vc.toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' })}
+    </span>
+  ) : autoDetected === 'Plaatsbezoek' && pb ? (
+    <span className="text-[0.65rem] text-muted-foreground mt-1">
+      {formatDatum(pb.toISOString())} · {pb.toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' })}
+    </span>
+  ) : null;
+
+  return (
+    <div className="flex flex-col min-w-[170px]">
+      <Select
+        value={selectValue}
+        onValueChange={(v) => {
+          if (v === NEXT_STEP_OTHER) {
+            setEditingOther(true);
+            setOtherText('');
+          } else {
+            setEditingOther(false);
+            onChange(v);
+          }
+        }}
+      >
+        <SelectTrigger className="h-8 text-xs">
+          <SelectValue placeholder={autoDetected ? autoDetected : 'Kies volgende stap…'} />
+        </SelectTrigger>
+        <SelectContent>
+          {NEXT_STEP_PRESETS.map(p => (
+            <SelectItem key={p} value={p} className="text-xs">{p}</SelectItem>
+          ))}
+          <SelectItem value={NEXT_STEP_OTHER} className="text-xs">Andere…</SelectItem>
+        </SelectContent>
+      </Select>
+      {editingOther && (
+        <Input
+          autoFocus
+          value={otherText}
+          onChange={(e) => setOtherText(e.target.value)}
+          onBlur={() => { const t = otherText.trim(); if (t) onChange(t); else setEditingOther(false); }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') { const t = otherText.trim(); if (t) onChange(t); (e.target as HTMLInputElement).blur(); }
+            if (e.key === 'Escape') { setEditingOther(false); setOtherText(''); }
+          }}
+          placeholder="Beschrijf de volgende stap…"
+          className="h-7 mt-1 text-xs"
+        />
+      )}
+      {scheduleBadge}
+    </div>
+  );
+}
