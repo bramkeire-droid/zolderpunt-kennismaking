@@ -416,6 +416,19 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-headline font-bold text-foreground">Dossiers</h1>
           <div className="flex gap-2">
+            <Button
+              variant={inboxCount > 0 ? 'default' : 'outline'}
+              onClick={() => setInboxOpen(true)}
+              className="gap-2 font-headline relative"
+              title="Foto's uit WhatsApp/e-mail die nog gekoppeld moeten worden"
+            >
+              <Inbox className="h-4 w-4" /> Inbox
+              {inboxCount > 0 && (
+                <span className="ml-1 inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-semibold">
+                  {inboxCount}
+                </span>
+              )}
+            </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button className="gap-2 font-headline">
