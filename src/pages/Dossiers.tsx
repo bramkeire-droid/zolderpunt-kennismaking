@@ -149,6 +149,7 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
   const [offerteLead, setOfferteLead] = useState<any>(null);
   const [stabLead, setStabLead] = useState<any>(null);
   const [genericVoorblad, setGenericVoorblad] = useState<{ lead: any } | null>(null);
+  const [photoLead, setPhotoLead] = useState<any>(null);
   const [preIntakeMap, setPreIntakeMap] = useState<Record<string, any>>({});
   const [analysisMap, setAnalysisMap] = useState<Record<string, boolean>>({});
   const [draggingId, setDraggingId] = useState<string | null>(null);
