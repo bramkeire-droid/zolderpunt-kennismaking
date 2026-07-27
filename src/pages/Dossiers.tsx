@@ -47,13 +47,14 @@ const STATUS_CONFIG: Record<string, { label: string; bg: string; color: string }
   verloren:         { label: 'Verloren',         bg: 'bg-red-100',        color: 'text-red-700' },
 };
 
-type CategoryKey = 'nieuw' | 'telefoon' | 'video' | 'plaatsbezoek' | 'afgewezen' | 'goedgekeurd';
+type CategoryKey = 'nieuw' | 'telefoon' | 'video' | 'plaatsbezoek' | 'offerte' | 'afgewezen' | 'goedgekeurd';
 
 const CATEGORIES: { key: CategoryKey; label: string; accent: string }[] = [
   { key: 'nieuw',        label: 'Nieuwe lead',            accent: 'border-l-slate-400' },
   { key: 'telefoon',     label: 'Telefoongesprek gehad',  accent: 'border-l-blue-500' },
   { key: 'video',        label: 'Video intake gehad',     accent: 'border-l-primary' },
   { key: 'plaatsbezoek', label: 'Plaatsbezoek gehad',     accent: 'border-l-indigo-500' },
+  { key: 'offerte',      label: 'Offerte opmaken',        accent: 'border-l-purple-500' },
   { key: 'afgewezen',    label: 'Project afgewezen',      accent: 'border-l-red-500' },
   { key: 'goedgekeurd',  label: 'Project goedgekeurd',    accent: 'border-l-green-500' },
 ];
@@ -64,6 +65,7 @@ function resolveCategory(lead: any, preIntake: any, hasAnalysis: boolean): Categ
   const status = lead.status;
   if (status === 'afgesloten' || status === 'uitvoering') return 'goedgekeurd';
   if (status === 'verloren') return 'afgewezen';
+  if (status === 'offerte' || lead.offerte_bedrag_excl != null) return 'offerte';
   const now = Date.now();
   const pb = preIntake?.plaatsbezoek_scheduled_at ? new Date(preIntake.plaatsbezoek_scheduled_at).getTime() : null;
   if ((pb && pb <= now) || status === 'plaatsbezoek') return 'plaatsbezoek';
