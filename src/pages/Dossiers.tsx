@@ -358,7 +358,17 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
     if (delErr) toast.error('Verwijderen mislukt');
     else { toast.success(`${count} leeg dossier(s) verwijderd`); fetchLeads(); }
   };
-
+  const handleCreateLead = async (category: CategoryKey) => {
+    const { data, error } = await supabase
+      .from('leads')
+      .insert({ voornaam: 'Nieuw', achternaam: 'dossier', category_override: category } as any)
+      .select()
+      .single();
+    if (error || !data) { toast.error('Aanmaken mislukt'); return; }
+    toast.success(`Lead aangemaakt in "${CATEGORIES.find(c => c.key === category)?.label}"`);
+    setLeads(prev => [data, ...prev]);
+    handleOpen(data);
+  };
 
   return (
     <div className="flex-1 overflow-y-auto p-8 lg:p-12 bg-background">
@@ -366,6 +376,22 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-headline font-bold text-foreground">Dossiers</h1>
           <div className="flex gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button className="gap-2 font-headline">
+                  <FolderOpen className="h-4 w-4" /> Nieuwe lead
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Kies categorie</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {CATEGORIES.map(c => (
+                  <DropdownMenuItem key={c.key} onClick={() => handleCreateLead(c.key)}>
+                    {c.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="gap-2 font-headline">
@@ -388,6 +414,7 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
             </Button>
           </div>
         </div>
+
 
         <Tabs defaultValue="overzicht">
           <TabsList className="mb-6">
