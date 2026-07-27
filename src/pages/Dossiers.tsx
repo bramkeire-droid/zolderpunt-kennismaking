@@ -29,6 +29,8 @@ import type { ReportData, FeitjeItem } from '@/components/report/reportTypes';
 import OffertebijlageDialog from '@/components/dossier/OffertebijlageDialog';
 import StabiliteitVoorbladDialog from '@/components/dossier/StabiliteitVoorbladDialog';
 import GenericVoorbladDialog from '@/components/dossier/GenericVoorbladDialog';
+import PhotoUploadDialog from '@/components/dossier/PhotoUploadDialog';
+import { Image as ImageIcon } from 'lucide-react';
 import { formatDatum } from '@/components/report/reportConstants';
 import { downloadBlob, openDownloadWindow } from '@/lib/downloadFile';
 
