@@ -13,6 +13,16 @@ import SalesAnalysis from '@/components/SalesAnalysis';
 import PortalManageDialog from '@/components/portal/PortalManageDialog';
 import PortalPreview from '@/components/portal/PortalPreview';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from '@/components/ui/dropdown-menu';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+const NEXT_STEP_PRESETS = [
+  'Telefoongesprek inplannen',
+  'Videocall',
+  'Plaatsbezoek',
+  'Offerte opmaken',
+  'Project uitvoeren',
+] as const;
+const NEXT_STEP_OTHER = '__other__';
 import { pdf } from '@react-pdf/renderer';
 import ReportDocument from '@/components/report/ReportDocument';
 import type { ReportData, FeitjeItem } from '@/components/report/reportTypes';
