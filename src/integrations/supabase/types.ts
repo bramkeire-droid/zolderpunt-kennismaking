@@ -145,6 +145,21 @@ export type Database = {
           },
         ]
       }
+      inbound_webhook_dedup: {
+        Row: {
+          created_at: string
+          message_sid: string
+        }
+        Insert: {
+          created_at?: string
+          message_sid: string
+        }
+        Update: {
+          created_at?: string
+          message_sid?: string
+        }
+        Relationships: []
+      }
       leads: {
         Row: {
           achternaam: string
@@ -653,6 +668,19 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      touch_inbound_window: {
+        Args: {
+          p_from_identifier: string
+          p_new_media_id?: string
+          p_new_note?: string
+          p_source: string
+          p_window_seconds?: number
+        }
+        Returns: {
+          media_ids: string[]
+          notes: string
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "user"
