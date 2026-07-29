@@ -291,7 +291,7 @@ export async function readWindow(
   if (!data?.pending_expires_at || new Date(data.pending_expires_at) <= new Date()) return null;
   const mediaIds = Array.isArray(data.pending_media_ids) ? (data.pending_media_ids as string[]) : [];
   const candidates = Array.isArray(data.pending_candidates) ? (data.pending_candidates as LeadCandidate[]) : [];
-  return { mediaIds, candidates, photoCount: 0, hasPhotos: mediaIds.length > 0 };
+  return { mediaIds, candidates, photoCount: 0, hasPhotos: mediaIds.length > 0, hadPhotosBefore: mediaIds.length > 0 };
 }
 
 export async function clearWindow(supabase: SupabaseClient, source: InboundSource, fromIdentifier: string) {
