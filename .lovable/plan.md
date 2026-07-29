@@ -1,85 +1,56 @@
+# Foto's & video's in dossier
+
 ## Doel
-Klanten kunnen foto's doorsturen via WhatsApp of e-mail naar één centraal ontvangstpunt. De tool herkent automatisch bij welk dossier ze horen, downloadt ze naar Storage (`lead-fotos`) en hangt ze in `leads.fotos` — precies dezelfde plek als de "Foto's uploaden"-actie in Dossiers.
+1. De dossier-actie "Foto's uploaden" hernoemen naar **Foto's** en de dialog zowel upload-zone als bestaande media laten tonen (het "ik zie niets"-gevoel wegnemen).
+2. Video's ondersteunen: uploaden (met name `.mp4` van WhatsApp), afspelen in de dialog en in de klantportaal-galerij, en in het PDF-rapport tonen als thumbnail met play-icoon.
 
-## Architectuur (2 inbound-kanalen → 1 pipeline)
+## Aanpassingen
 
-```text
- WhatsApp (any nr) ──► Twilio WA webhook ──┐
-                                           ├──► Edge fn `inbound-media`
- E-mail (any adres) ──► Postmark inbound ──┘        │
-                                                    ▼
-                                          1. Media downloaden
-                                          2. Lead-matching (zie onder)
-                                          3. Compress + upload naar `lead-fotos`
-                                          4. Append aan `leads.fotos`
-                                          5. Bij twijfel → reply "voor welke klant?"
-```
+### 1. Dossier-actie hernoemen
+- `src/pages/Dossiers.tsx`: menu-item label `Foto's uploaden` → `Foto's`.
 
-Beide kanalen leveren dezelfde interne payload: `{ from, subject_or_caption, text, attachments[] }`. Eén verwerkingsfunctie, twee dunne adapters.
+### 2. Media-dialog uitbreiden (`PhotoUploadDialog.tsx`, hernoemen naar `MediaDialog.tsx`)
+- Bovenaan een duidelijke titel "Foto's & video's" met telling van bestaande items.
+- Grote upload-knop (accepteert `image/*,video/*`) + drag-and-drop zone.
+- Grid met bestaande media:
+  - Foto: huidige thumbnail (blijft `object-cover`).
+  - Video: thumbnail (poster) met play-overlay; klik = inline player (`<video controls>`) in een lightbox.
+- Verwijder-knop per item ruimt storage én DB-array op (inclusief thumbnail).
+- Als de dialog leeg is: lege-staat tekst "Nog geen foto's of video's — sleep bestanden hierheen".
 
-### Kanaal 1 — WhatsApp (Twilio)
-- Twilio WhatsApp Business Sender (goedkoopst en snelst live; Meta Cloud API kan later).
-- Webhook: `POST /functions/v1/inbound-whatsapp` (public, `verify_jwt = false`, HMAC-check via `X-Twilio-Signature`).
-- Media-URLs zijn signed; ophalen met Twilio Basic Auth.
-- Replies naar de klant via Twilio API (bevestiging of vraag om verduidelijking).
+### 3. Video-uploadflow
+- Client comprimeert alleen images (huidige `compressImageFile`); video's gaan as-is naar `lead-fotos` bucket.
+- Voor elke video: genereer client-side een JPEG-thumbnail door het bestand in een `<video>` element te laden, naar frame ~1s te seeken en op een `<canvas>` te tekenen. Upload de thumbnail als apart object (`<pad>.jpg`) naar dezelfde bucket.
+- Item-shape in `lead.fotos` uitgebreid (backwards compatible):
+  ```ts
+  {
+    bestandsnaam: string,
+    storage_path: string,
+    url?: string,
+    type?: 'image' | 'video',        // afwezig = image
+    thumbnail_path?: string,          // alleen bij video
+    thumbnail_url?: string
+  }
+  ```
+- Grootte-limiet client-side (bv. 50 MB) met duidelijke toast bij overschrijding.
 
-### Kanaal 2 — E-mail (Postmark Inbound)
-- Eén ontvangstadres, bv. `fotos@inbox.zolderpunt.be` (MX naar Postmark).
-- Postmark POST't JSON met attachments (base64) naar `POST /functions/v1/inbound-email` (public, HMAC-check via basic-auth token in URL of `Authorization` header, secret in Supabase).
-- Antwoorden via bestaande mail-flow (later; eerst enkel ingest).
+### 4. Consumers bijwerken (video renderen als thumbnail met play-badge, klik = play)
+- `src/components/portal/PortalFotos.tsx` (klantportaal-galerij): video's tonen met thumbnail + play-overlay; lightbox schakelt tussen `<img>` en `<video controls autoplay>`.
+- `src/components/ImageLightbox.tsx`: uitbreiden zodat het ook `<video>` kan renderen, of aparte `MediaLightbox` wrapper.
+- `src/components/report/ReportDocument.tsx` (PDF): render altijd de `thumbnail_url` (met een klein play-driehoekje overlay) voor video-items; foto's ongewijzigd.
+- `src/slides/Slide0B.tsx` en `Slide4.tsx` (labelmaker): video's tonen thumbnail; labelmaker-markers blijven alleen voor foto's mogelijk (video's krijgen geen numerieke markers).
+- `src/hooks/usePortal.ts` / `getPortalData` edge function: doorgeven van `type` en `thumbnail_url`.
 
-Iedereen kan sturen (openbaar) — anti-misbruik via:
-- Whitelist van bekende `email`/`telefoon` uit `leads` → auto-koppelen.
-- Onbekende afzenders → in "quarantaine"-tabel `inbound_media_pending`, wacht op menselijke koppeling in Dossiers.
+### 5. WhatsApp inbound (later opvolgen — buiten scope tenzij gevraagd)
+- `_shared/ingestMedia.ts` schrijft momenteel enkel `image/*`. Uitbreiden naar `video/*` valt hier logisch bij, maar houdt ook thumbnail-generatie server-side in (ffmpeg / edge runtime beperking). Ik markeer dit als vervolgstap tenzij je wil dat het meteen mee gaat.
 
-## Matching-logica (in volgorde)
+## Technisch (details)
 
-1. **Directe hint in tekst/subject/caption** — regex op `#<lead_id>` of `#<offerte_nummer>`.
-2. **Afzender-match** — `from_email` of `from_phone` (E.164, normaliseer) tegen `leads.email` / `leads.telefoon`.
-3. **Naam/adres-match** — fuzzy op subject/tekst tegen `voornaam achternaam` / `adres` (Postgres `similarity()` via `pg_trgm`).
-4. **Onduidelijk** → 
-   - WhatsApp: auto-reply "Voor welke klant/adres zijn deze foto's? Antwoord met #<code> of naam+adres." De volgende bericht van dat nummer binnen 24u wordt automatisch aan de gesuggereerde lead gekoppeld (via `inbound_conversation_state`).
-   - E-mail: reply met dezelfde vraag; correlatie via `In-Reply-To` header.
-5. Blijft onduidelijk → item in **Inbox-tab** in Dossiers waar je met één klik naar het juiste dossier sleept.
+- Geen database-migratie nodig: `leads.fotos` is `jsonb`, extra keys per item passen erin.
+- Storage: bestaande public bucket `lead-fotos` wordt hergebruikt voor zowel video's als thumbnails.
+- Bestandsnaamconventie: `<lead_id>/<timestamp>-<naam>.mp4` en `<lead_id>/<timestamp>-<naam>.thumb.jpg`.
+- Type-detectie via `file.type.startsWith('video/')`.
+- Thumbnail-extractie: gebruik `URL.createObjectURL(file)`, `video.currentTime = Math.min(1, duration/2)`, teken op canvas → `toBlob('image/jpeg', 0.8)`.
 
-## Nieuwe database-objecten
-
-- `inbound_media_pending` — `id, source ('wa'|'mail'), from_identifier, subject, body, storage_paths text[], suggested_lead_id, status ('pending'|'assigned'|'rejected'), created_at`.
-- `inbound_conversation_state` — `from_identifier, source, last_lead_id, expires_at` (24u TTL) voor multi-turn.
-- Storage-map: `lead-fotos/<lead_id>/inbox/<timestamp>-<naam>.jpg` (zelfde bucket, submap).
-
-Geen wijziging aan `leads.fotos` — bestaande UI leest gewoon door.
-
-## Nieuwe UI (Dossiers)
-
-- **Inbox-badge** rechtsboven met aantal `pending` items.
-- Kleine dialog met previews, gesuggereerde match en dropdown "Koppel aan dossier…". Actie kopieert de paden naar de definitieve `<lead_id>/` en appendt aan `leads.fotos`.
-
-## Nieuwe edge functions
-
-| Functie | Auth | Rol |
-|---|---|---|
-| `inbound-whatsapp` | public + Twilio HMAC | ontvangt WA webhook, normaliseert, roept ingest aan |
-| `inbound-email` | public + shared secret | ontvangt Postmark JSON, normaliseert, roept ingest aan |
-| `ingest-inbound-media` | interne aanroep (service role) | matching, compress, upload, DB-writes, reply-trigger |
-| `reply-whatsapp` | interne | verstuurt Twilio-antwoord |
-
-## Benodigde credentials (te vragen bij implementatie)
-
-- Twilio: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WA_FROM`.
-- Postmark: `POSTMARK_INBOUND_SECRET` (basic-auth in webhook-URL) + geverifieerd inbound-domein/adres.
-- DNS: MX-record voor `inbox.zolderpunt.be` → Postmark.
-
-## Aanpak (sprints)
-
-1. **DB + ingest-core** — tabellen, `ingest-inbound-media` met matching + upload + pending-fallback. Test met synthetische payload.
-2. **WhatsApp-adapter** — `inbound-whatsapp`, Twilio HMAC, media-download, auto-reply bij twijfel, conversation-state.
-3. **E-mail-adapter** — `inbound-email`, Postmark parsing, attachment-decode, reply-support.
-4. **Inbox-UI in Dossiers** — badge, dialog, drag-to-dossier, "Bevestigen".
-5. **Polish** — throttling per afzender, dedup op filehash, log-tab per lead (bron + timestamp).
-
-## Scope-grens
-
-- Geen wijzigingen aan bestaande dossier-flow, PDF's, portal, autosave.
-- `PhotoUploadDialog` en `Slide4` blijven één-op-één werken; inbound-pipeline schrijft naar exact hetzelfde `leads.fotos`-schema.
-- Openbaar toegankelijk, maar elke schrijfactie naar `leads` gaat via service-role in de edge function — nooit direct vanaf de client.
+## Openstaande vraag
+Wil je dat we in dezelfde slag ook de inbound WhatsApp/e-mail pipeline uitbreiden zodat binnenkomende video's automatisch in het dossier landen? Of eerst enkel de manuele upload + weergave, en inbound video's in een aparte ronde?
