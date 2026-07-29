@@ -41,6 +41,7 @@ export type Database = {
           pending_candidates: Json
           pending_expires_at: string | null
           pending_media_ids: string[]
+          pending_notes: string
           source: string
           updated_at: string
         }
@@ -52,6 +53,7 @@ export type Database = {
           pending_candidates?: Json
           pending_expires_at?: string | null
           pending_media_ids?: string[]
+          pending_notes?: string
           source: string
           updated_at?: string
         }
@@ -63,6 +65,7 @@ export type Database = {
           pending_candidates?: Json
           pending_expires_at?: string | null
           pending_media_ids?: string[]
+          pending_notes?: string
           source?: string
           updated_at?: string
         }
