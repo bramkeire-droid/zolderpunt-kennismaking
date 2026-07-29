@@ -181,30 +181,31 @@ export default function InboundInboxDialog({ open, onOpenChange, onAssigned }: P
           </DialogTitle>
         </DialogHeader>
 
-        {items.length === 0 && (
+        {groups.length === 0 && (
           <div className="text-center py-12 text-muted-foreground text-sm">
             Alles gekoppeld. Nieuwe foto's uit WhatsApp of e-mail verschijnen hier automatisch.
           </div>
         )}
 
         <div className="space-y-4">
-          {items.map((it) => (
-            <div key={it.id} className="border rounded-lg p-4 bg-card">
+          {groups.map((group) => (
+            <div key={group.groupId} className="border rounded-lg p-4 bg-card">
               <div className="flex items-start justify-between gap-4 mb-3">
                 <div className="text-sm">
                   <div className="flex items-center gap-2 font-medium">
-                    {it.source === 'wa' ? <MessageCircle className="h-4 w-4 text-green-600" /> : <Mail className="h-4 w-4 text-blue-600" />}
-                    {it.from_display || it.from_identifier}
-                    <span className="text-muted-foreground font-normal">· {new Date(it.created_at).toLocaleString('nl-BE')}</span>
+                    {group.source === 'wa' ? <MessageCircle className="h-4 w-4 text-green-600" /> : <Mail className="h-4 w-4 text-blue-600" />}
+                    {group.from_display || group.from_identifier}
+                    <span className="text-muted-foreground font-normal">· {new Date(group.created_at).toLocaleString('nl-BE')}</span>
                   </div>
-                  {it.subject && <div className="text-muted-foreground mt-1">{it.subject}</div>}
-                  {it.body && <div className="text-muted-foreground mt-1 line-clamp-2">{it.body}</div>}
-                  <div className="text-xs mt-2 text-muted-foreground italic">Matchpoging: {it.match_reason || '—'}</div>
+                  {group.bodies.length > 0 && (
+                    <div className="text-muted-foreground mt-1 line-clamp-2">{group.bodies.join(' ')}</div>
+                  )}
+                  <div className="text-xs mt-2 text-muted-foreground italic">Matchpoging: {group.match_reason || '—'}</div>
                 </div>
               </div>
 
               <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 mb-3">
-                {it.storage_paths.map((p) => (
+                {group.storage_paths.map((p) => (
                   <div key={p} className="aspect-square rounded overflow-hidden bg-muted">
                     {signedUrls[p]
                       ? <img src={signedUrls[p]} alt="" className="w-full h-full object-cover" />
@@ -216,18 +217,18 @@ export default function InboundInboxDialog({ open, onOpenChange, onAssigned }: P
               <div className="flex items-center gap-2">
                 <select
                   className="flex-1 border rounded px-3 py-2 text-sm bg-background"
-                  value={selection[it.id] || it.suggested_lead_id || ''}
-                  onChange={(e) => setSelection((s) => ({ ...s, [it.id]: e.target.value }))}
+                  value={selection[group.groupId] || group.suggested_lead_id || ''}
+                  onChange={(e) => setSelection((s) => ({ ...s, [group.groupId]: e.target.value }))}
                 >
                   <option value="">— Kies dossier —</option>
                   {leads.map((l) => (
                     <option key={l.id} value={l.id}>{l.label}</option>
                   ))}
                 </select>
-                <Button size="sm" onClick={() => assign(it)} disabled={busy === it.id} className="gap-1">
+                <Button size="sm" onClick={() => assign(group)} disabled={busy === group.groupId} className="gap-1">
                   <Check className="h-4 w-4" /> Koppelen
                 </Button>
-                <Button size="sm" variant="outline" onClick={() => reject(it)} disabled={busy === it.id} className="gap-1">
+                <Button size="sm" variant="outline" onClick={() => reject(group)} disabled={busy === group.groupId} className="gap-1">
                   <Trash2 className="h-4 w-4" /> Verwijderen
                 </Button>
               </div>
