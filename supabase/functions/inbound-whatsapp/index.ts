@@ -8,6 +8,7 @@ import {
   claimMessage,
   readWindow,
   touchWindow,
+  highConfidenceMatch,
   assignPendingGroupToLead,
   clearWindow,
   rememberConversation,
@@ -101,6 +102,17 @@ Deno.serve(async (req) => {
     // Free text (name/adres), sent on its own — remember it for up to 10
     // minutes so it counts whether the photos already arrived or still have to.
     const updated = await touchWindow(supabase, 'wa', fromPhone, { newNote: trimmed });
+
+    if (updated.hasPhotos) {
+      const sure = highConfidenceMatch(updated.candidates);
+      if (sure) {
+        const added = await assignPendingGroupToLead(supabase, updated.mediaIds, sure.id, 'wa');
+        await rememberConversation(supabase, 'wa', fromPhone, sure.id);
+        await clearWindow(supabase, 'wa', fromPhone);
+        return twiml(`✅ ${added} foto('s) gekoppeld aan ${sure.label}. Bedankt!`);
+      }
+    }
+
     if (updated.hasPhotos && updated.candidates.length) {
       const list = updated.candidates.map((c, i) => `${i + 1}. ${c.label}`).join('\n');
       return twiml(`Voor welk dossier is dit? Antwoord met het nummer:\n${list}`);

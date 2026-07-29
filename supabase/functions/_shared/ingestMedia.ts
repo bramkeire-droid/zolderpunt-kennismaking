@@ -118,6 +118,18 @@ export async function fuzzyCandidates(
   return Array.isArray(data) ? (data as LeadCandidate[]) : [];
 }
 
+// A single candidate that clearly stands out (nothing else even close) is
+// safe to auto-link without asking — e.g. a full name typed that matches
+// exactly one dossier. Two or more plausible candidates, or one weak/vague
+// hit, still go through the confirmation list: that's precisely the
+// wrong-match risk it exists to catch.
+const HIGH_CONFIDENCE_SCORE = 0.45;
+
+export function highConfidenceMatch(candidates: LeadCandidate[]): LeadCandidate | null {
+  if (candidates.length === 1 && candidates[0].score >= HIGH_CONFIDENCE_SCORE) return candidates[0];
+  return null;
+}
+
 export async function matchLead(
   supabase: SupabaseClient,
   payload: InboundPayload,
@@ -386,6 +398,16 @@ export async function ingestInboundWhatsAppInteractive(
   // the same batch can't each conclude they were the first and each fire
   // a "welk dossier?" reply.
   const win = await touchWindow(supabase, 'wa', payload.fromIdentifier, { newMediaId: pendingRow?.id });
+
+  // Exactly one clear candidate (e.g. the full name was typed and matches
+  // only one dossier) — no need to ask, link it straight away.
+  const sure = highConfidenceMatch(win.candidates);
+  if (sure) {
+    const added = await assignPendingGroupToLead(supabase, win.mediaIds, sure.id, 'wa');
+    await rememberConversation(supabase, 'wa', payload.fromIdentifier, sure.id);
+    await clearWindow(supabase, 'wa', payload.fromIdentifier);
+    return { status: 'matched', leadId: sure.id, leadLabel: sure.label, addedPhotoCount: added };
+  }
 
   if (win.hadPhotosBefore) {
     return { status: 'accumulating', groupPhotoCount: win.photoCount };
