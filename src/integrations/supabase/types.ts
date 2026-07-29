@@ -677,6 +677,7 @@ export type Database = {
           p_window_seconds?: number
         }
         Returns: {
+          had_photos_before: boolean
           media_ids: string[]
           notes: string
         }[]
