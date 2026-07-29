@@ -118,6 +118,31 @@ export async function fuzzyCandidates(
   return Array.isArray(data) ? (data as LeadCandidate[]) : [];
 }
 
+// Same idea, but searches each text segment (e.g. each photo caption and
+// the sender's note) SEPARATELY and merges by best score per lead — rather
+// than concatenating everything into one blob first. Trigram similarity is
+// a ratio over the whole compared string, so a long work-description
+// caption ("afwerking nodig in de inkomhal...") mixed into the same query
+// as a short "Douglas Deleu" note dilutes the match below the cutoff even
+// though the name is right there. Searching separately avoids that.
+export async function fuzzyCandidatesMulti(
+  supabase: SupabaseClient,
+  texts: string[],
+  limit = 5,
+): Promise<LeadCandidate[]> {
+  const segments = texts.map((t) => (t || '').trim()).filter((t) => t.length >= 3);
+  if (!segments.length) return [];
+  const perSegment = await Promise.all(segments.map((t) => fuzzyCandidates(supabase, t, limit)));
+  const best = new Map<string, LeadCandidate>();
+  for (const list of perSegment) {
+    for (const c of list) {
+      const existing = best.get(c.id);
+      if (!existing || c.score > existing.score) best.set(c.id, c);
+    }
+  }
+  return Array.from(best.values()).sort((a, b) => b.score - a.score).slice(0, limit);
+}
+
 // A single candidate that clearly stands out (nothing else even close) is
 // safe to auto-link without asking — e.g. a full name typed that matches
 // exactly one dossier. Two or more plausible candidates, or one weak/vague
@@ -252,7 +277,7 @@ export async function touchWindow(
   const notes: string = data?.notes || '';
   const hadPhotosBefore: boolean = !!data?.had_photos_before;
 
-  let combinedText = notes;
+  const segments: string[] = notes ? [notes] : [];
   let photoCount = 0;
   if (mediaIds.length) {
     const { data: rows } = await supabase
@@ -260,12 +285,15 @@ export async function touchWindow(
       .select('body, storage_paths')
       .in('id', mediaIds);
     for (const r of rows || []) {
-      if (r.body) combinedText += ` ${r.body}`;
+      if (r.body) segments.push(r.body);
       if (Array.isArray(r.storage_paths)) photoCount += r.storage_paths.length;
     }
   }
 
-  const candidates = await fuzzyCandidates(supabase, combinedText, 5);
+  // Searched per segment (not one concatenated blob) so a long, unrelated
+  // photo caption can't dilute the similarity score of a short, clear
+  // name/adres mentioned in a different message.
+  const candidates = await fuzzyCandidatesMulti(supabase, segments, 5);
 
   // Candidates are derived/informational, not the source of truth for
   // mediaIds/notes, so a rare concurrent overwrite here is low-risk —
