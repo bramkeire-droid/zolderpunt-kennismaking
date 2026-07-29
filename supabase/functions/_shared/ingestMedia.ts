@@ -26,7 +26,13 @@ export interface MatchResult {
   reason: string;
 }
 
-const svc = () =>
+export interface LeadCandidate {
+  id: string;
+  label: string;
+  score: number;
+}
+
+export const svc = () =>
   createClient(
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
@@ -43,10 +49,12 @@ export function normalizeEmail(raw: string): string {
 
 const UUID_RE = /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/i;
 
-export async function matchLead(
+// Steps 1-3: only returns a result when we're confident (explicit id, exact
+// phone/email match, or a recent remembered conversation). Never guesses.
+export async function matchLeadDeterministic(
   supabase: SupabaseClient,
   payload: InboundPayload,
-): Promise<MatchResult> {
+): Promise<MatchResult | null> {
   const haystack = `${payload.subject || ''} ${payload.body || ''}`;
 
   // 1) Explicit lead id or #<id> hint
@@ -95,14 +103,33 @@ export async function matchLead(
     return { leadId: conv.last_lead_id, reason: 'vorige koppeling binnen 24u' };
   }
 
-  // 4) Fuzzy on name/address via pg_trgm
-  const q = haystack.trim().slice(0, 200);
-  if (q.length >= 3) {
-    const { data } = await supabase.rpc('search_leads_fuzzy', { q }).limit(1);
-    if (data && Array.isArray(data) && data[0]?.id) {
-      return { leadId: data[0].id, reason: `naam/adres-match: "${data[0].label}"` };
-    }
-  }
+  return null;
+}
+
+// Ranked fuzzy candidates on name/address — no auto-pick, caller decides.
+export async function fuzzyCandidates(
+  supabase: SupabaseClient,
+  text: string,
+  limit = 5,
+): Promise<LeadCandidate[]> {
+  const q = text.trim().slice(0, 200);
+  if (q.length < 3) return [];
+  const { data } = await supabase.rpc('search_leads_fuzzy', { q }).limit(limit);
+  return Array.isArray(data) ? (data as LeadCandidate[]) : [];
+}
+
+export async function matchLead(
+  supabase: SupabaseClient,
+  payload: InboundPayload,
+): Promise<MatchResult> {
+  const deterministic = await matchLeadDeterministic(supabase, payload);
+  if (deterministic) return deterministic;
+
+  // Fuzzy on name/address via pg_trgm (top-1, used by the non-interactive
+  // email pipeline which has no way to ask a clarifying question back).
+  const haystack = `${payload.subject || ''} ${payload.body || ''}`;
+  const [top] = await fuzzyCandidates(supabase, haystack, 1);
+  if (top) return { leadId: top.id, reason: `naam/adres-match: "${top.label}"` };
 
   return { leadId: null, reason: 'geen match' };
 }
@@ -167,6 +194,182 @@ export async function rememberConversation(
     },
     { onConflict: 'source,from_identifier' },
   );
+}
+
+// Photos forwarded together (e.g. a batch of 15 WhatsApp photos) usually
+// arrive as separate webhook calls seconds apart. Anything from the same
+// sender within this window is treated as one forwarding batch.
+const GROUP_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
+
+export interface PendingGroup {
+  mediaIds: string[];
+  combinedText: string;
+  photoCount: number;
+}
+
+export async function getOpenPendingGroup(
+  supabase: SupabaseClient,
+  source: InboundSource,
+  fromIdentifier: string,
+): Promise<PendingGroup> {
+  const since = new Date(Date.now() - GROUP_WINDOW_MS).toISOString();
+  const { data } = await supabase
+    .from('inbound_media_pending')
+    .select('id, body, storage_paths')
+    .eq('source', source)
+    .eq('from_identifier', fromIdentifier)
+    .eq('status', 'pending')
+    .gte('created_at', since)
+    .order('created_at', { ascending: true });
+  const rows = data || [];
+  return {
+    mediaIds: rows.map((r: any) => r.id),
+    combinedText: rows.map((r: any) => r.body || '').filter(Boolean).join(' '),
+    photoCount: rows.reduce(
+      (n: number, r: any) => n + (Array.isArray(r.storage_paths) ? r.storage_paths.length : 0),
+      0,
+    ),
+  };
+}
+
+// Store the ranked candidates we just offered the sender, and which pending
+// rows they cover, so a plain-number reply can resolve them.
+export async function offerCandidates(
+  supabase: SupabaseClient,
+  source: InboundSource,
+  fromIdentifier: string,
+  mediaIds: string[],
+  candidates: LeadCandidate[],
+) {
+  await supabase.from('inbound_conversation_state').upsert(
+    {
+      source,
+      from_identifier: fromIdentifier,
+      pending_candidates: candidates,
+      pending_media_ids: mediaIds,
+      pending_expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'source,from_identifier' },
+  );
+}
+
+export interface PendingOffer {
+  candidates: LeadCandidate[];
+  mediaIds: string[];
+}
+
+export async function getPendingOffer(
+  supabase: SupabaseClient,
+  source: InboundSource,
+  fromIdentifier: string,
+): Promise<PendingOffer | null> {
+  const { data } = await supabase
+    .from('inbound_conversation_state')
+    .select('pending_candidates, pending_media_ids, pending_expires_at')
+    .eq('source', source)
+    .eq('from_identifier', fromIdentifier)
+    .maybeSingle();
+  if (!data?.pending_expires_at || new Date(data.pending_expires_at) <= new Date()) return null;
+  const candidates = Array.isArray(data.pending_candidates) ? (data.pending_candidates as LeadCandidate[]) : [];
+  const mediaIds = Array.isArray(data.pending_media_ids) ? (data.pending_media_ids as string[]) : [];
+  if (!candidates.length || !mediaIds.length) return null;
+  return { candidates, mediaIds };
+}
+
+export async function clearPendingOffer(supabase: SupabaseClient, source: InboundSource, fromIdentifier: string) {
+  await supabase
+    .from('inbound_conversation_state')
+    .update({ pending_candidates: [], pending_media_ids: [], pending_expires_at: null })
+    .eq('source', source)
+    .eq('from_identifier', fromIdentifier);
+}
+
+// Copies every photo in the given pending rows to the lead's folder, appends
+// them to leads.fotos, and marks those rows assigned — mirrors the manual
+// "Koppelen" action in the Inbox dialog, but driven by a WhatsApp reply.
+export async function assignPendingGroupToLead(
+  supabase: SupabaseClient,
+  mediaIds: string[],
+  leadId: string,
+  source: InboundSource,
+): Promise<number> {
+  const { data: rows } = await supabase
+    .from('inbound_media_pending')
+    .select('id, storage_paths')
+    .in('id', mediaIds);
+  const newPaths: string[] = [];
+  for (const item of rows || []) {
+    const paths: string[] = Array.isArray(item.storage_paths) ? item.storage_paths : [];
+    for (const src of paths) {
+      const dst = `${leadId}/inbox/${src.split('/').pop()}`;
+      const { error } = await supabase.storage.from('lead-fotos').copy(src, dst);
+      if (!error || error.message?.includes('exists')) newPaths.push(dst);
+    }
+  }
+  if (newPaths.length) await appendPhotosToLead(supabase, leadId, newPaths, source);
+  await supabase
+    .from('inbound_media_pending')
+    .update({ status: 'assigned', assigned_lead_id: leadId, assigned_at: new Date().toISOString() })
+    .in('id', mediaIds);
+  return newPaths.length;
+}
+
+export interface InteractiveIngestResult {
+  status: 'matched' | 'offered' | 'unmatched';
+  leadId?: string;
+  leadLabel?: string;
+  addedPhotoCount?: number;
+  candidates?: LeadCandidate[];
+  groupPhotoCount?: number;
+}
+
+// WhatsApp-specific ingest: never silently guesses on weak matches. A
+// confident match (phone/id/24h-memory) applies instantly; anything else
+// stashes the photos and returns ranked candidates for the caller to offer
+// back to the sender as a numbered reply.
+export async function ingestInboundWhatsAppInteractive(
+  payload: InboundPayload,
+): Promise<InteractiveIngestResult> {
+  const supabase = svc();
+  if (!payload.attachments.length) return { status: 'unmatched' };
+
+  const deterministic = await matchLeadDeterministic(supabase, payload);
+  if (deterministic?.leadId) {
+    const paths = await uploadAttachments(supabase, deterministic.leadId, payload.attachments, 'wa');
+    await appendPhotosToLead(supabase, deterministic.leadId, paths, 'wa');
+    await rememberConversation(supabase, 'wa', payload.fromIdentifier, deterministic.leadId);
+    await clearPendingOffer(supabase, 'wa', payload.fromIdentifier);
+    const { data: lead } = await supabase
+      .from('leads')
+      .select('voornaam, achternaam')
+      .eq('id', deterministic.leadId)
+      .maybeSingle();
+    const leadLabel = lead ? `${lead.voornaam || ''} ${lead.achternaam || ''}`.trim() : undefined;
+    return { status: 'matched', leadId: deterministic.leadId, leadLabel, addedPhotoCount: paths.length };
+  }
+
+  const paths = await uploadAttachments(supabase, 'inbox', payload.attachments, 'wa');
+  await supabase.from('inbound_media_pending').insert({
+    source: 'wa',
+    from_identifier: payload.fromIdentifier,
+    from_display: payload.fromDisplay || '',
+    subject: '',
+    body: payload.body || '',
+    storage_paths: paths,
+    match_reason: 'wacht op bevestiging',
+  });
+
+  const group = await getOpenPendingGroup(supabase, 'wa', payload.fromIdentifier);
+  const candidates = await fuzzyCandidates(supabase, group.combinedText, 5);
+
+  if (candidates.length) {
+    await offerCandidates(supabase, 'wa', payload.fromIdentifier, group.mediaIds, candidates);
+    return { status: 'offered', candidates, groupPhotoCount: group.photoCount };
+  }
+
+  await clearPendingOffer(supabase, 'wa', payload.fromIdentifier);
+  return { status: 'unmatched', groupPhotoCount: group.photoCount };
 }
 
 export interface IngestResult {

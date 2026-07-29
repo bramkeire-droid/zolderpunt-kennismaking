@@ -2,7 +2,16 @@
 // Public: verify_jwt = false. Auth = Twilio Basic on media download + shared secret guard on webhook.
 // Accepts application/x-www-form-urlencoded POSTs from Twilio.
 
-import { ingestInbound, normalizePhone, type InboundAttachment } from '../_shared/ingestMedia.ts';
+import {
+  normalizePhone,
+  svc,
+  getPendingOffer,
+  assignPendingGroupToLead,
+  clearPendingOffer,
+  rememberConversation,
+  ingestInboundWhatsAppInteractive,
+  type InboundAttachment,
+} from '../_shared/ingestMedia.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -51,7 +60,27 @@ Deno.serve(async (req) => {
   const profileName = form.get('ProfileName') || '';
   const fromPhone = normalizePhone(from.replace(/^whatsapp:/, ''));
 
+  // No photos in this message: either a reply picking a dossier from a list
+  // we offered earlier, or just a stray text message.
   if (!numMedia) {
+    const supabase = svc();
+    const offer = await getPendingOffer(supabase, 'wa', fromPhone);
+    if (offer) {
+      const choice = parseInt(body.trim(), 10);
+      if (Number.isInteger(choice) && choice >= 1 && choice <= offer.candidates.length) {
+        const picked = offer.candidates[choice - 1];
+        const added = await assignPendingGroupToLead(supabase, offer.mediaIds, picked.id, 'wa');
+        await rememberConversation(supabase, 'wa', fromPhone, picked.id);
+        await clearPendingOffer(supabase, 'wa', fromPhone);
+        return twiml(`✅ ${added} foto('s) gekoppeld aan ${picked.label}. Bedankt!`);
+      }
+      const list = offer.candidates
+        .map((c, i) => `${i + 1}. ${c.label}`)
+        .join('\n');
+      return twiml(
+        `Dat begreep ik niet. Antwoord met het nummer van het juiste dossier:\n${list}`,
+      );
+    }
     return twiml('Stuur foto\'s door en vermeld naam of adres van de klant. Bedankt!');
   }
 
@@ -78,7 +107,7 @@ Deno.serve(async (req) => {
 
   if (!attachments.length) return twiml('Geen foto\'s ontvangen. Probeer opnieuw?');
 
-  const result = await ingestInbound({
+  const result = await ingestInboundWhatsAppInteractive({
     source: 'wa',
     fromIdentifier: fromPhone,
     fromDisplay: profileName || fromPhone,
@@ -87,9 +116,17 @@ Deno.serve(async (req) => {
     attachments,
   });
 
-  if (result.matched) {
-    return twiml(`✅ ${attachments.length} foto('s) toegevoegd aan het dossier. Bedankt!`);
+  if (result.status === 'matched') {
+    return twiml(`✅ ${result.addedPhotoCount} foto('s) gekoppeld aan ${result.leadLabel || 'het dossier'}. Bedankt!`);
   }
+
+  if (result.status === 'offered' && result.candidates?.length) {
+    const list = result.candidates.map((c, i) => `${i + 1}. ${c.label}`).join('\n');
+    return twiml(
+      `${result.groupPhotoCount} foto('s) ontvangen. Voor welk dossier is dit? Antwoord met het nummer:\n${list}`,
+    );
+  }
+
   return twiml(
     `Bedankt! We konden nog niet automatisch bepalen bij welke klant deze foto's horen. ` +
     `Antwoord met naam + adres, of we koppelen ze handmatig in de tool.`,
