@@ -206,6 +206,7 @@ export interface WindowState {
   candidates: LeadCandidate[];
   photoCount: number;
   hasPhotos: boolean;
+  hadPhotosBefore: boolean;
 }
 
 // Extends (or opens) the sender's open interaction window with a newly
@@ -213,11 +214,12 @@ export interface WindowState {
 // gathered so far, and re-runs the fuzzy match. Always refreshes the
 // expiry, so any activity keeps the window alive for another 10 minutes.
 //
-// The merge itself (touch_inbound_window) runs as a single atomic SQL
-// UPDATE in Postgres — required because several photos from the same
-// forwarded batch can arrive within milliseconds of each other, and a
-// read-modify-write in application code would let concurrent calls
-// overwrite (lose) each other's media ids.
+// The merge itself (touch_inbound_window) runs inside a SELECT ... FOR
+// UPDATE row lock in Postgres — required because several photos from the
+// same forwarded batch can arrive within milliseconds of each other, and
+// a read-modify-write in application code would let concurrent calls
+// overwrite (lose) each other's media ids AND each conclude they were the
+// first, which caused duplicate "welk dossier?" replies.
 export async function touchWindow(
   supabase: SupabaseClient,
   source: InboundSource,
@@ -236,6 +238,7 @@ export async function touchWindow(
 
   const mediaIds: string[] = Array.isArray(data?.media_ids) ? data!.media_ids : [];
   const notes: string = data?.notes || '';
+  const hadPhotosBefore: boolean = !!data?.had_photos_before;
 
   let combinedText = notes;
   let photoCount = 0;
@@ -261,8 +264,9 @@ export async function touchWindow(
     .eq('source', source)
     .eq('from_identifier', fromIdentifier);
 
-  return { mediaIds, candidates, photoCount, hasPhotos: mediaIds.length > 0 };
+  return { mediaIds, candidates, photoCount, hasPhotos: mediaIds.length > 0, hadPhotosBefore };
 }
+
 
 // Guards against Twilio re-delivering the same webhook (e.g. after a slow
 // response) by claiming its unique MessageSid exactly once. Returns false
@@ -287,7 +291,7 @@ export async function readWindow(
   if (!data?.pending_expires_at || new Date(data.pending_expires_at) <= new Date()) return null;
   const mediaIds = Array.isArray(data.pending_media_ids) ? (data.pending_media_ids as string[]) : [];
   const candidates = Array.isArray(data.pending_candidates) ? (data.pending_candidates as LeadCandidate[]) : [];
-  return { mediaIds, candidates, photoCount: 0, hasPhotos: mediaIds.length > 0 };
+  return { mediaIds, candidates, photoCount: 0, hasPhotos: mediaIds.length > 0, hadPhotosBefore: mediaIds.length > 0 };
 }
 
 export async function clearWindow(supabase: SupabaseClient, source: InboundSource, fromIdentifier: string) {
@@ -362,12 +366,6 @@ export async function ingestInboundWhatsAppInteractive(
     return { status: 'matched', leadId: deterministic.leadId, leadLabel, addedPhotoCount: paths.length };
   }
 
-  // A window already open (with photos) means this is another photo from
-  // the same forwarded batch — don't re-send the whole list for every
-  // single one of them, just fold it in silently.
-  const before = await readWindow(supabase, 'wa', payload.fromIdentifier);
-  const hadOpenWindow = !!before?.hasPhotos;
-
   const paths = await uploadAttachments(supabase, 'inbox', payload.attachments, 'wa');
   const { data: pendingRow } = await supabase
     .from('inbound_media_pending')
@@ -383,9 +381,13 @@ export async function ingestInboundWhatsAppInteractive(
     .select('id')
     .single();
 
+  // touch_inbound_window runs under a row lock and tells us whether photos
+  // were already pending BEFORE our own insert — so concurrent photos from
+  // the same batch can't each conclude they were the first and each fire
+  // a "welk dossier?" reply.
   const win = await touchWindow(supabase, 'wa', payload.fromIdentifier, { newMediaId: pendingRow?.id });
 
-  if (hadOpenWindow) {
+  if (win.hadPhotosBefore) {
     return { status: 'accumulating', groupPhotoCount: win.photoCount };
   }
   if (win.candidates.length) {
