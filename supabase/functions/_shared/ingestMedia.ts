@@ -372,39 +372,40 @@ export async function assignPendingGroupToLead(
   return newPaths.length;
 }
 
-export interface InteractiveIngestResult {
-  status: 'matched' | 'offered' | 'unmatched' | 'accumulating';
-  leadId?: string;
-  leadLabel?: string;
-  addedPhotoCount?: number;
-  candidates?: LeadCandidate[];
-  groupPhotoCount?: number;
+// Sends a WhatsApp message through the Twilio REST API. Needed because the
+// decision about a batch happens long after its webhooks were answered, so
+// there is no open TwiML response left to reply through.
+export async function sendWhatsApp(toPhone: string, text: string): Promise<void> {
+  const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
+  const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
+  const from = Deno.env.get('TWILIO_WA_FROM') || 'whatsapp:+14155238886';
+  if (!accountSid || !authToken) {
+    console.error('twilio credentials missing, cannot send');
+    return;
+  }
+  const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
+    method: 'POST',
+    headers: {
+      Authorization: 'Basic ' + btoa(`${accountSid}:${authToken}`),
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: new URLSearchParams({ From: from, To: `whatsapp:+${toPhone}`, Body: text }),
+  });
+  if (!res.ok) console.error('twilio send failed', res.status, await res.text());
 }
 
-// WhatsApp-specific ingest: never silently guesses on weak matches. A
-// confident match (phone/id/24h-memory) applies instantly; anything else
-// stashes the photos and returns ranked candidates for the caller to offer
-// back to the sender as a numbered reply.
-export async function ingestInboundWhatsAppInteractive(
-  payload: InboundPayload,
-): Promise<InteractiveIngestResult> {
+// Collect-only: stores the photos and folds them into the sender's open
+// window. Deliberately makes NO decision and sends NO reply.
+//
+// A forwarded batch of 15 photos arrives as 15 separate webhooks, up to a
+// dozen of them in flight at the same time (measured: 11ms apart). Any
+// per-webhook decision means every one of those concurrent requests reaches
+// the same conclusion and acts on it — which is exactly what produced
+// duplicate links and a storm of replies. The decision therefore belongs in
+// the flush pass, which runs once, after the sender has gone quiet.
+export async function collectWhatsAppMedia(payload: InboundPayload): Promise<void> {
   const supabase = svc();
-  if (!payload.attachments.length) return { status: 'unmatched' };
-
-  const deterministic = await matchLeadDeterministic(supabase, payload);
-  if (deterministic?.leadId) {
-    const paths = await uploadAttachments(supabase, deterministic.leadId, payload.attachments, 'wa');
-    await appendPhotosToLead(supabase, deterministic.leadId, paths, 'wa');
-    await rememberConversation(supabase, 'wa', payload.fromIdentifier, deterministic.leadId);
-    await clearWindow(supabase, 'wa', payload.fromIdentifier);
-    const { data: lead } = await supabase
-      .from('leads')
-      .select('voornaam, achternaam')
-      .eq('id', deterministic.leadId)
-      .maybeSingle();
-    const leadLabel = lead ? `${lead.voornaam || ''} ${lead.achternaam || ''}`.trim() : undefined;
-    return { status: 'matched', leadId: deterministic.leadId, leadLabel, addedPhotoCount: paths.length };
-  }
+  if (!payload.attachments.length) return;
 
   const paths = await uploadAttachments(supabase, 'inbox', payload.attachments, 'wa');
   const { data: pendingRow } = await supabase
@@ -416,34 +417,114 @@ export async function ingestInboundWhatsAppInteractive(
       subject: '',
       body: payload.body || '',
       storage_paths: paths,
-      match_reason: 'wacht op bevestiging',
+      match_reason: 'wacht op verwerking',
     })
     .select('id')
     .single();
 
-  // touch_inbound_window runs under a row lock and tells us whether photos
-  // were already pending BEFORE our own insert — so concurrent photos from
-  // the same batch can't each conclude they were the first and each fire
-  // a "welk dossier?" reply.
-  const win = await touchWindow(supabase, 'wa', payload.fromIdentifier, { newMediaId: pendingRow?.id });
+  await touchWindow(supabase, 'wa', payload.fromIdentifier, { newMediaId: pendingRow?.id });
+}
 
-  // Exactly one clear candidate (e.g. the full name was typed and matches
-  // only one dossier) — no need to ask, link it straight away.
-  const sure = highConfidenceMatch(win.candidates);
+// Marks a group as handled so the flush pass won't pick it up again while
+// leaving it open for new photos/text, which restart the collect cycle.
+async function setFlushState(
+  supabase: SupabaseClient,
+  fromIdentifier: string,
+  state: 'idle' | 'awaiting_choice',
+) {
+  await supabase
+    .from('inbound_conversation_state')
+    .update({ flush_state: state, updated_at: new Date().toISOString() })
+    .eq('source', 'wa')
+    .eq('from_identifier', fromIdentifier);
+}
+
+// Decides what to do with one sender's collected batch and replies once.
+// Runs from the scheduled flush pass, after that sender has been quiet — so
+// unlike the old per-webhook logic it sees the complete batch, and the
+// ordering of photos vs. text no longer matters.
+export async function flushGroup(
+  supabase: SupabaseClient,
+  fromIdentifier: string,
+  mediaIds: string[],
+  notes: string,
+): Promise<void> {
+  if (!mediaIds.length) {
+    await setFlushState(supabase, fromIdentifier, 'idle');
+    return;
+  }
+
+  const { data: rows } = await supabase
+    .from('inbound_media_pending')
+    .select('id, body, storage_paths')
+    .in('id', mediaIds)
+    .eq('status', 'pending');
+  const live = rows || [];
+  if (!live.length) {
+    await clearWindow(supabase, 'wa', fromIdentifier);
+    await setFlushState(supabase, fromIdentifier, 'idle');
+    return;
+  }
+
+  const photoCount = live.reduce(
+    (n, r: any) => n + (Array.isArray(r.storage_paths) ? r.storage_paths.length : 0),
+    0,
+  );
+  const liveIds = live.map((r: any) => r.id);
+
+  // The sender's own number belonging to a customer means the customer sent
+  // these themselves — safe to link without asking.
+  const byPhone = await matchLeadDeterministic(supabase, {
+    source: 'wa',
+    fromIdentifier,
+    body: '',
+    attachments: [],
+  });
+  if (byPhone?.leadId) {
+    const added = await assignPendingGroupToLead(supabase, liveIds, byPhone.leadId, 'wa');
+    await clearWindow(supabase, 'wa', fromIdentifier);
+    await setFlushState(supabase, fromIdentifier, 'idle');
+    await sendWhatsApp(fromIdentifier, `✅ ${added} foto('s) toegevoegd aan je dossier. Bedankt!`);
+    return;
+  }
+
+  // Search each caption and note separately: trigram similarity is a ratio
+  // over the whole string, so folding a long work description in with a
+  // short name would push a correct match below the cutoff.
+  const segments = [notes, ...live.map((r: any) => r.body || '')];
+  const candidates = await fuzzyCandidatesMulti(supabase, segments, 5);
+
+  const sure = highConfidenceMatch(candidates);
   if (sure) {
-    const added = await assignPendingGroupToLead(supabase, win.mediaIds, sure.id, 'wa');
-    await rememberConversation(supabase, 'wa', payload.fromIdentifier, sure.id);
-    await clearWindow(supabase, 'wa', payload.fromIdentifier);
-    return { status: 'matched', leadId: sure.id, leadLabel: sure.label, addedPhotoCount: added };
+    const added = await assignPendingGroupToLead(supabase, liveIds, sure.id, 'wa');
+    await clearWindow(supabase, 'wa', fromIdentifier);
+    await setFlushState(supabase, fromIdentifier, 'idle');
+    await sendWhatsApp(fromIdentifier, `✅ ${added} foto('s) gekoppeld aan ${sure.label}. Bedankt!`);
+    return;
   }
 
-  if (win.hadPhotosBefore) {
-    return { status: 'accumulating', groupPhotoCount: win.photoCount };
+  if (candidates.length) {
+    await supabase
+      .from('inbound_conversation_state')
+      .update({ pending_candidates: candidates, pending_media_ids: liveIds })
+      .eq('source', 'wa')
+      .eq('from_identifier', fromIdentifier);
+    await setFlushState(supabase, fromIdentifier, 'awaiting_choice');
+    const list = candidates.map((c, i) => `${i + 1}. ${c.label}`).join('\n');
+    await sendWhatsApp(
+      fromIdentifier,
+      `${photoCount} foto('s) ontvangen. Voor welk dossier is dit? Antwoord met het nummer:\n${list}`,
+    );
+    return;
   }
-  if (win.candidates.length) {
-    return { status: 'offered', candidates: win.candidates, groupPhotoCount: win.photoCount };
-  }
-  return { status: 'unmatched', groupPhotoCount: win.photoCount };
+
+  // Nothing to go on yet. Stay open: a name sent later restarts the cycle.
+  await setFlushState(supabase, fromIdentifier, 'idle');
+  await sendWhatsApp(
+    fromIdentifier,
+    `${photoCount} foto('s) ontvangen, maar we weten nog niet bij welke klant ze horen. ` +
+    `Stuur de naam of het adres door, of koppel ze in de tool.`,
+  );
 }
 
 export interface IngestResult {

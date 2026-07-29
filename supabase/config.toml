@@ -33,3 +33,8 @@ verify_jwt = false
 [functions.inbound-email]
 verify_jwt = false
 
+# Called by a pg_cron job, so no JWT is available; guarded by a shared
+# secret from internal_config instead.
+[functions.flush-inbound-groups]
+verify_jwt = false
+
