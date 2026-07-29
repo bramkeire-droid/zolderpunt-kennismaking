@@ -672,6 +672,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_idle_inbound_groups: {
+        Args: { p_idle_seconds?: number }
+        Returns: {
+          from_identifier: string
+          media_ids: string[]
+          notes: string
+          source: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
