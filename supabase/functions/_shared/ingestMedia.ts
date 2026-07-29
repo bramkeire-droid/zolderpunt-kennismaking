@@ -212,32 +212,38 @@ export interface WindowState {
 // arrived photo batch and/or a note of free text, recombines everything
 // gathered so far, and re-runs the fuzzy match. Always refreshes the
 // expiry, so any activity keeps the window alive for another 10 minutes.
+//
+// The merge itself (touch_inbound_window) runs as a single atomic SQL
+// UPDATE in Postgres — required because several photos from the same
+// forwarded batch can arrive within milliseconds of each other, and a
+// read-modify-write in application code would let concurrent calls
+// overwrite (lose) each other's media ids.
 export async function touchWindow(
   supabase: SupabaseClient,
   source: InboundSource,
   fromIdentifier: string,
   opts: { newMediaId?: string; newNote?: string },
 ): Promise<WindowState> {
-  const { data: existing } = await supabase
-    .from('inbound_conversation_state')
-    .select('pending_media_ids, pending_notes, pending_expires_at')
-    .eq('source', source)
-    .eq('from_identifier', fromIdentifier)
+  const { data } = await supabase
+    .rpc('touch_inbound_window', {
+      p_source: source,
+      p_from_identifier: fromIdentifier,
+      p_new_media_id: opts.newMediaId ?? null,
+      p_new_note: opts.newNote ?? null,
+      p_window_seconds: WINDOW_MS / 1000,
+    })
     .maybeSingle();
 
-  const stillOpen = !!existing?.pending_expires_at && new Date(existing.pending_expires_at) > new Date();
-  const mediaIds = new Set<string>(stillOpen && Array.isArray(existing?.pending_media_ids) ? existing!.pending_media_ids : []);
-  if (opts.newMediaId) mediaIds.add(opts.newMediaId);
-  let notes = stillOpen ? (existing?.pending_notes || '') : '';
-  if (opts.newNote) notes = `${notes} ${opts.newNote}`.trim();
+  const mediaIds: string[] = Array.isArray(data?.media_ids) ? data!.media_ids : [];
+  const notes: string = data?.notes || '';
 
   let combinedText = notes;
   let photoCount = 0;
-  if (mediaIds.size) {
+  if (mediaIds.length) {
     const { data: rows } = await supabase
       .from('inbound_media_pending')
       .select('body, storage_paths')
-      .in('id', Array.from(mediaIds));
+      .in('id', mediaIds);
     for (const r of rows || []) {
       if (r.body) combinedText += ` ${r.body}`;
       if (Array.isArray(r.storage_paths)) photoCount += r.storage_paths.length;
@@ -246,20 +252,25 @@ export async function touchWindow(
 
   const candidates = await fuzzyCandidates(supabase, combinedText, 5);
 
-  await supabase.from('inbound_conversation_state').upsert(
-    {
-      source,
-      from_identifier: fromIdentifier,
-      pending_media_ids: Array.from(mediaIds),
-      pending_notes: notes,
-      pending_candidates: candidates,
-      pending_expires_at: new Date(Date.now() + WINDOW_MS).toISOString(),
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: 'source,from_identifier' },
-  );
+  // Candidates are derived/informational, not the source of truth for
+  // mediaIds/notes, so a rare concurrent overwrite here is low-risk —
+  // unlike the atomic merge above, this alone would not lose photos.
+  await supabase
+    .from('inbound_conversation_state')
+    .update({ pending_candidates: candidates })
+    .eq('source', source)
+    .eq('from_identifier', fromIdentifier);
 
-  return { mediaIds: Array.from(mediaIds), candidates, photoCount, hasPhotos: mediaIds.size > 0 };
+  return { mediaIds, candidates, photoCount, hasPhotos: mediaIds.length > 0 };
+}
+
+// Guards against Twilio re-delivering the same webhook (e.g. after a slow
+// response) by claiming its unique MessageSid exactly once. Returns false
+// if this message was already (or is already being) processed.
+export async function claimMessage(supabase: SupabaseClient, messageSid: string): Promise<boolean> {
+  if (!messageSid) return true; // nothing to dedupe against, proceed
+  const { error } = await supabase.from('inbound_webhook_dedup').insert({ message_sid: messageSid });
+  return !error; // error (conflict) means we've seen this one already
 }
 
 export async function readWindow(
@@ -318,7 +329,7 @@ export async function assignPendingGroupToLead(
 }
 
 export interface InteractiveIngestResult {
-  status: 'matched' | 'offered' | 'unmatched';
+  status: 'matched' | 'offered' | 'unmatched' | 'accumulating';
   leadId?: string;
   leadLabel?: string;
   addedPhotoCount?: number;
@@ -351,6 +362,12 @@ export async function ingestInboundWhatsAppInteractive(
     return { status: 'matched', leadId: deterministic.leadId, leadLabel, addedPhotoCount: paths.length };
   }
 
+  // A window already open (with photos) means this is another photo from
+  // the same forwarded batch — don't re-send the whole list for every
+  // single one of them, just fold it in silently.
+  const before = await readWindow(supabase, 'wa', payload.fromIdentifier);
+  const hadOpenWindow = !!before?.hasPhotos;
+
   const paths = await uploadAttachments(supabase, 'inbox', payload.attachments, 'wa');
   const { data: pendingRow } = await supabase
     .from('inbound_media_pending')
@@ -368,6 +385,9 @@ export async function ingestInboundWhatsAppInteractive(
 
   const win = await touchWindow(supabase, 'wa', payload.fromIdentifier, { newMediaId: pendingRow?.id });
 
+  if (hadOpenWindow) {
+    return { status: 'accumulating', groupPhotoCount: win.photoCount };
+  }
   if (win.candidates.length) {
     return { status: 'offered', candidates: win.candidates, groupPhotoCount: win.photoCount };
   }

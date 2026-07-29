@@ -5,6 +5,7 @@
 import {
   normalizePhone,
   svc,
+  claimMessage,
   readWindow,
   touchWindow,
   assignPendingGroupToLead,
@@ -60,12 +61,21 @@ Deno.serve(async (req) => {
   const numMedia = parseInt(form.get('NumMedia') || '0', 10);
   const profileName = form.get('ProfileName') || '';
   const fromPhone = normalizePhone(from.replace(/^whatsapp:/, ''));
+  const messageSid = form.get('MessageSid') || form.get('SmsMessageSid') || '';
+  const supabase = svc();
+
+  // Twilio retries a webhook it didn't get a timely response for, which
+  // would otherwise re-download/re-upload the same photo and re-run the
+  // matching logic a second time. Claim the MessageSid once and bail out
+  // silently on any repeat delivery.
+  if (!(await claimMessage(supabase, messageSid))) {
+    return twiml();
+  }
 
   // No photos in this message: could be a reply picking a dossier from a
   // list we offered earlier, a name/adres sent separately (before OR after
   // the photos), or just a stray text message.
   if (!numMedia) {
-    const supabase = svc();
     const trimmed = body.trim();
     const choice = parseInt(trimmed, 10);
     const win = await readWindow(supabase, 'wa', fromPhone);
@@ -135,6 +145,12 @@ Deno.serve(async (req) => {
 
   if (result.status === 'matched') {
     return twiml(`✅ ${result.addedPhotoCount} foto('s) gekoppeld aan ${result.leadLabel || 'het dossier'}. Bedankt!`);
+  }
+
+  // Another photo from a batch that already got its "welk dossier?" reply —
+  // fold it in silently instead of re-sending the list for every single one.
+  if (result.status === 'accumulating') {
+    return twiml();
   }
 
   if (result.status === 'offered' && result.candidates?.length) {
