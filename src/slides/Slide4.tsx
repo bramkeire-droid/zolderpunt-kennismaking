@@ -7,6 +7,7 @@ import { Upload, Loader2, X, Image, ImageOff, MapPin } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import ImageLightbox from '@/components/ImageLightbox';
 import { compressImageFile } from '@/lib/imageCompression';
+import { normalizeLeadMedia } from '@/lib/leadMedia';
 
 interface PhotoItem {
   bestandsnaam: string;
@@ -34,10 +35,16 @@ export default function Slide4() {
   const [labelMode, setLabelMode] = useState(false);
   const [pendingLabels, setPendingLabels] = useState<PendingLabel[]>([]);
 
-  const photos: (PhotoItem & { publicUrl: string })[] = (lead.fotos || []).map((f: PhotoItem) => ({
-    ...f,
-    publicUrl: f.url || supabase.storage.from('lead-fotos').getPublicUrl(f.storage_path).data.publicUrl,
-  }));
+  // normalizeLeadMedia bridges the two shapes in leads.fotos (manual upload
+  // vs. WhatsApp/mail), so inbound media shows up here too, and flags video.
+  const photos: (PhotoItem & { publicUrl: string; isVideo: boolean })[] =
+    normalizeLeadMedia(lead.fotos).map((m) => ({
+      bestandsnaam: m.name,
+      storage_path: m.path,
+      url: m.url,
+      publicUrl: m.url,
+      isVideo: m.isVideo,
+    }));
 
   const feitjes: FeitjeItem[] = (lead.project_feiten || []).filter(
     (f): f is FeitjeItem => typeof f === 'object' && 'tekst' in f
@@ -93,7 +100,9 @@ export default function Slide4() {
   };
 
   const handleImageClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!labelMode || !activePhoto) return;
+    // A label pins a percentage position on a still frame, which has no
+    // meaning on a moving image — so video is left out of the labelmaker.
+    if (!labelMode || !activePhoto || activePhoto.isVideo) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
@@ -231,7 +240,22 @@ export default function Slide4() {
                   activeIndex === i ? 'border-primary' : 'border-border hover:border-primary/40'
                 }`}
               >
-                <img src={photo.publicUrl} alt={photo.bestandsnaam} className="w-full h-full object-cover" />
+                {photo.isVideo ? (
+                  <>
+                    <video
+                      src={`${photo.publicUrl}#t=0.1`}
+                      preload="metadata"
+                      muted
+                      playsInline
+                      className="w-full h-full object-cover pointer-events-none"
+                    />
+                    <span className="absolute inset-0 flex items-center justify-center bg-black/30 text-white text-lg">
+                      ▶
+                    </span>
+                  </>
+                ) : (
+                  <img src={photo.publicUrl} alt={photo.bestandsnaam} className="w-full h-full object-cover" />
+                )}
               </button>
             ))}
             <button
@@ -250,7 +274,7 @@ export default function Slide4() {
               ref={fileInputRef}
               type="file"
               multiple
-              accept="image/*"
+              accept="image/*,video/*"
               className="hidden"
               onChange={handleFileSelect}
             />
@@ -277,17 +301,29 @@ export default function Slide4() {
           >
             {activePhoto ? (
               <>
-                <img
-                  src={activePhoto.publicUrl}
-                  alt={activePhoto.bestandsnaam}
-                  className="w-full h-full object-contain"
-                  onClick={(e) => {
-                    if (!labelMode) {
-                      e.stopPropagation();
-                      setLightboxSrc(activePhoto.publicUrl);
-                    }
-                  }}
-                />
+                {activePhoto.isVideo ? (
+                  // Labels are anchored to a fixed point on a still image, so
+                  // they are not offered for video; the player takes over.
+                  <video
+                    src={activePhoto.publicUrl}
+                    controls
+                    playsInline
+                    className="w-full h-full object-contain"
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                ) : (
+                  <img
+                    src={activePhoto.publicUrl}
+                    alt={activePhoto.bestandsnaam}
+                    className="w-full h-full object-contain"
+                    onClick={(e) => {
+                      if (!labelMode) {
+                        e.stopPropagation();
+                        setLightboxSrc(activePhoto.publicUrl);
+                      }
+                    }}
+                  />
+                )}
                 {/* Label overlays (saved + pending) */}
                 {allLabelsOnPhoto.map(label => (
                   <div

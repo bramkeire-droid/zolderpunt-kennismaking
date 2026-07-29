@@ -3,6 +3,9 @@
 
 import { ingestInbound, normalizeEmail, type InboundAttachment } from '../_shared/ingestMedia.ts';
 
+// Supabase edge runtime API for work that outlives the response.
+declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void };
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-webhook-secret',
@@ -44,7 +47,10 @@ Deno.serve(async (req) => {
 
   const attsRaw: any[] = Array.isArray(body.Attachments) ? body.Attachments : [];
   const attachments: InboundAttachment[] = attsRaw
-    .filter((a) => typeof a?.Content === 'string' && (a?.ContentType || '').startsWith('image/'))
+    .filter((a) => {
+      const ct = (a?.ContentType || '').toString();
+      return typeof a?.Content === 'string' && (ct.startsWith('image/') || ct.startsWith('video/'));
+    })
     .map((a) => ({
       filename: (a.Name || 'photo.jpg').toString(),
       contentType: a.ContentType,
@@ -52,18 +58,24 @@ Deno.serve(async (req) => {
     }));
 
   if (!attachments.length) {
-    return json({ ok: true, ignored: 'no image attachments' });
+    return json({ ok: true, ignored: 'no image or video attachments' });
   }
   if (!fromEmail) return json({ error: 'no sender' }, 400);
 
-  const result = await ingestInbound({
+  // Postmark abandons an inbound webhook after ~10s. Decoding and storing a
+  // handful of photos sits right on that limit (measured: 9.8s for 6x3MB),
+  // which silently dropped a real 6-photo mail. Acknowledge immediately and
+  // let the upload finish in the background instead.
+  const work = ingestInbound({
     source: 'mail',
     fromIdentifier: fromEmail,
     fromDisplay: fromName,
     subject,
     body: text,
     attachments,
-  });
+  }).catch((e) => console.error('inbound-email ingest failed', fromEmail, e));
 
-  return json({ ok: true, ...result });
+  EdgeRuntime.waitUntil(work);
+
+  return json({ ok: true, queued: attachments.length });
 });

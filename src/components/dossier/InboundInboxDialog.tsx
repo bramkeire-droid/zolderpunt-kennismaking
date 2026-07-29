@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Inbox, Mail, MessageCircle, Check, Trash2 } from 'lucide-react';
+import { isVideoPath } from '@/lib/leadMedia';
+import InboundHint from '@/components/dossier/InboundHint';
 
 interface PendingItem {
   id: string;
@@ -177,13 +179,15 @@ export default function InboundInboxDialog({ open, onOpenChange, onAssigned }: P
       <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Inbox className="h-5 w-5 text-primary" /> Inbox — onbekende foto's
+            <Inbox className="h-5 w-5 text-primary" /> Inbox — nog te koppelen
           </DialogTitle>
         </DialogHeader>
 
+        <InboundHint />
+
         {groups.length === 0 && (
           <div className="text-center py-12 text-muted-foreground text-sm">
-            Alles gekoppeld. Nieuwe foto's uit WhatsApp of e-mail verschijnen hier automatisch.
+            Alles gekoppeld. Nieuwe foto's en video's uit WhatsApp of e-mail verschijnen hier automatisch.
           </div>
         )}
 
@@ -206,10 +210,25 @@ export default function InboundInboxDialog({ open, onOpenChange, onAssigned }: P
 
               <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 mb-3">
                 {group.storage_paths.map((p) => (
-                  <div key={p} className="aspect-square rounded overflow-hidden bg-muted">
-                    {signedUrls[p]
-                      ? <img src={signedUrls[p]} alt="" className="w-full h-full object-cover" />
-                      : <div className="w-full h-full animate-pulse" />}
+                  <div key={p} className="aspect-square rounded overflow-hidden bg-muted relative">
+                    {!signedUrls[p] ? (
+                      <div className="w-full h-full animate-pulse" />
+                    ) : isVideoPath(p) ? (
+                      <a href={signedUrls[p]} target="_blank" rel="noreferrer" className="block w-full h-full">
+                        <video
+                          src={`${signedUrls[p]}#t=0.1`}
+                          preload="metadata"
+                          muted
+                          playsInline
+                          className="w-full h-full object-cover"
+                        />
+                        <span className="absolute inset-0 flex items-center justify-center bg-black/25 text-white text-xs font-medium">
+                          ▶ video
+                        </span>
+                      </a>
+                    ) : (
+                      <img src={signedUrls[p]} alt="" className="w-full h-full object-cover" />
+                    )}
                   </div>
                 ))}
               </div>

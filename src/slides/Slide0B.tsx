@@ -10,6 +10,7 @@ import { useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import ImageLightbox from '@/components/ImageLightbox';
 import { compressImageFile } from '@/lib/imageCompression';
+import { normalizeLeadMedia } from '@/lib/leadMedia';
 
 interface PhotoItem {
   bestandsnaam: string;
@@ -23,11 +24,16 @@ export default function Slide0B() {
   const [uploading, setUploading] = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
 
-  // Build public URLs for existing photos
-  const photos: (PhotoItem & { publicUrl: string })[] = (lead.fotos || []).map((f: PhotoItem) => ({
-    ...f,
-    publicUrl: f.url || supabase.storage.from('lead-fotos').getPublicUrl(f.storage_path).data.publicUrl,
-  }));
+  // normalizeLeadMedia handles both shapes in leads.fotos (manual upload and
+  // WhatsApp/mail) and flags which items are video.
+  const photos: (PhotoItem & { publicUrl: string; isVideo: boolean })[] =
+    normalizeLeadMedia(lead.fotos).map((m) => ({
+      bestandsnaam: m.name,
+      storage_path: m.path,
+      url: m.url,
+      publicUrl: m.url,
+      isVideo: m.isVideo,
+    }));
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -147,7 +153,7 @@ export default function Slide0B() {
                 ref={fileInputRef}
                 type="file"
                 multiple
-                accept="image/*"
+                accept="image/*,video/*"
                 className="hidden"
                 onChange={handleFileSelect}
               />
@@ -156,8 +162,23 @@ export default function Slide0B() {
             {photos.length > 0 && (
               <div className="grid grid-cols-4 gap-3">
                 {photos.map((photo, i) => (
-                  <div key={i} className="relative group overflow-hidden border border-border cursor-pointer" onClick={() => setLightboxSrc(photo.publicUrl)}>
-                    <img src={photo.publicUrl} alt={photo.bestandsnaam} className="w-full h-auto object-contain" />
+                  <div
+                    key={i}
+                    className="relative group overflow-hidden border border-border cursor-pointer"
+                    onClick={() => { if (!photo.isVideo) setLightboxSrc(photo.publicUrl); }}
+                  >
+                    {photo.isVideo ? (
+                      <video
+                        src={photo.publicUrl}
+                        controls
+                        playsInline
+                        preload="metadata"
+                        className="w-full h-auto"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    ) : (
+                      <img src={photo.publicUrl} alt={photo.bestandsnaam} className="w-full h-auto object-contain" />
+                    )}
                     <button
                       onClick={() => removePhoto(i)}
                       className="absolute top-1 right-1 bg-destructive text-destructive-foreground p-1 opacity-0 group-hover:opacity-100 transition-opacity"

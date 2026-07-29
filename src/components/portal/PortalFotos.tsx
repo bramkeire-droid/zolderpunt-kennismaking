@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import type { PortalData } from '@/hooks/usePortal';
 import ImageLightbox from '@/components/ImageLightbox';
+import { normalizeLeadMedia, imagesOnly } from '@/lib/leadMedia';
 
 interface Props {
   data: PortalData;
@@ -15,8 +16,14 @@ export default function PortalFotos({ data, onView }: Props) {
     onView?.();
   }, [onView]);
 
-  const fotos = data.fotos || [];
-  const urls = fotos.map((f) => f.url || '').filter(Boolean);
+  // Reading f.url only would hide every photo that arrived via WhatsApp or
+  // mail (those carry `path`). Video is kept out of the customer portal.
+  const fotos = imagesOnly(normalizeLeadMedia(data.fotos)).map((m) => ({
+    ...m,
+    bestandsnaam: m.name,
+    storage_path: m.path,
+  }));
+  const urls = fotos.map((f) => f.url);
   if (fotos.length === 0) return null;
 
   const feitenByPath = new Map<string, any[]>();

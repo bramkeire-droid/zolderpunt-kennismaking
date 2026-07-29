@@ -4,6 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Upload, Loader2, X, ImageIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { compressImageFile } from '@/lib/imageCompression';
+import { normalizeLeadMedia } from '@/lib/leadMedia';
+import MediaThumb from '@/components/MediaThumb';
+import InboundHint from '@/components/dossier/InboundHint';
 import { toast } from 'sonner';
 
 interface PhotoItem {
@@ -22,10 +25,10 @@ interface Props {
 export default function PhotoUploadDialog({ open, onClose, lead, onUpdate }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
-  const existing: PhotoItem[] = Array.isArray(lead?.fotos) ? lead.fotos : [];
-
-  const resolveUrl = (f: PhotoItem) =>
-    f.url || supabase.storage.from('lead-fotos').getPublicUrl(f.storage_path).data.publicUrl;
+  // Raw rows are kept for writing back (they may be either shape); the
+  // normalized view is what we render.
+  const rawExisting: any[] = Array.isArray(lead?.fotos) ? lead.fotos : [];
+  const existing = normalizeLeadMedia(rawExisting);
 
   const handleFiles = async (files: FileList | null) => {
     if (!files || files.length === 0 || !lead?.id) return;
@@ -44,12 +47,12 @@ export default function PhotoUploadDialog({ open, onClose, lead, onUpdate }: Pro
       } catch (e) { console.error(e); }
     }
     if (added.length > 0) {
-      const next = [...existing, ...added];
+      const next = [...rawExisting, ...added];
       const { error } = await supabase.from('leads').update({ fotos: next as any }).eq('id', lead.id);
       if (error) { toast.error('Opslaan mislukt'); }
       else {
         onUpdate(lead.id, { fotos: next });
-        toast.success(`${added.length} foto${added.length === 1 ? '' : "'s"} toegevoegd`);
+        toast.success(`${added.length} bestand${added.length === 1 ? '' : 'en'} toegevoegd`);
       }
     }
     setUploading(false);
@@ -59,10 +62,12 @@ export default function PhotoUploadDialog({ open, onClose, lead, onUpdate }: Pro
   const handleRemove = async (idx: number) => {
     const target = existing[idx];
     if (!target) return;
-    const next = existing.filter((_, i) => i !== idx);
+    const next = rawExisting.filter((_, i) => i !== idx);
     const { error } = await supabase.from('leads').update({ fotos: next as any }).eq('id', lead.id);
     if (error) { toast.error('Verwijderen mislukt'); return; }
-    await supabase.storage.from('lead-fotos').remove([target.storage_path]).catch(() => {});
+    if (target.path) {
+      await supabase.storage.from('lead-fotos').remove([target.path]).catch(() => {});
+    }
     onUpdate(lead.id, { fotos: next });
   };
 
@@ -72,20 +77,22 @@ export default function PhotoUploadDialog({ open, onClose, lead, onUpdate }: Pro
         <DialogHeader>
           <DialogTitle className="font-headline flex items-center gap-2">
             <ImageIcon className="h-5 w-5 text-primary" />
-            Foto's uploaden
+            Foto's en video's
           </DialogTitle>
           <p className="text-xs text-muted-foreground font-body mt-1">
             {lead?.voornaam || lead?.achternaam
               ? `${lead.voornaam ?? ''} ${lead.achternaam ?? ''}`.trim()
-              : 'Dossier'} · foto's komen automatisch terecht bij de videocall-intake.
+              : 'Dossier'} · komen automatisch terecht bij de videocall-intake.
           </p>
         </DialogHeader>
 
         <div className="space-y-4">
+          <InboundHint />
+
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*"
+            accept="image/*,video/*"
             multiple
             className="hidden"
             onChange={(e) => handleFiles(e.target.files)}
@@ -96,7 +103,7 @@ export default function PhotoUploadDialog({ open, onClose, lead, onUpdate }: Pro
             className="w-full h-12 gap-2 font-headline"
           >
             {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-            {uploading ? 'Uploaden…' : "Foto's selecteren"}
+            {uploading ? 'Uploaden…' : 'Bestanden selecteren'}
           </Button>
 
           {existing.length > 0 && (
@@ -106,11 +113,13 @@ export default function PhotoUploadDialog({ open, onClose, lead, onUpdate }: Pro
               </div>
               <div className="grid grid-cols-4 gap-2 max-h-[50vh] overflow-y-auto">
                 {existing.map((f, i) => (
-                  <div key={f.storage_path} className="relative group aspect-square bg-muted overflow-hidden">
-                    <img src={resolveUrl(f)} alt={f.bestandsnaam} className="w-full h-full object-cover" />
+                  <div key={f.path || f.url} className="relative group aspect-square bg-muted overflow-hidden">
+                    <a href={f.url} target="_blank" rel="noreferrer" className="block w-full h-full">
+                      <MediaThumb item={f} className="w-full h-full" />
+                    </a>
                     <button
                       onClick={() => handleRemove(i)}
-                      className="absolute top-1 right-1 p-1 bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute top-1 right-1 p-1 bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity z-10"
                       title="Verwijderen"
                     >
                       <X className="h-3 w-3" />

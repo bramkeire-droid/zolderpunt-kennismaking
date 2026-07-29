@@ -6,11 +6,13 @@ import AddressAutocomplete from '@/components/AddressAutocomplete';
 import { Input } from '@/components/ui/input';
 import { MapPin, Image } from 'lucide-react';
 import ImageLightbox from '@/components/ImageLightbox';
+import { normalizeLeadMedia } from '@/lib/leadMedia';
 
 export default function Slide3() {
   const { lead, updateLead } = useSession();
   const geocodedRef = useRef(false);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+  const media = normalizeLeadMedia(lead.fotos);
 
   // Geocode fallback: fetch coordinates for existing addresses missing lat/lng
   useEffect(() => {
@@ -112,11 +114,26 @@ export default function Slide3() {
 
           {/* Right column: Photos */}
           <div>
-            {lead.fotos && lead.fotos.length > 0 ? (
+            {media.length > 0 ? (
               <div className="grid grid-cols-2 gap-3">
-                {lead.fotos.slice(0, 4).map((foto, i) => (
-                  <div key={i} className="overflow-hidden border border-border bg-muted cursor-pointer" onClick={() => setLightboxSrc(foto.url)}>
-                    <img src={foto.url} alt={foto.bestandsnaam} className="w-full h-auto object-contain" />
+                {media.slice(0, 4).map((m, i) => (
+                  <div
+                    key={i}
+                    className="overflow-hidden border border-border bg-muted cursor-pointer"
+                    onClick={() => { if (!m.isVideo) setLightboxSrc(m.url); }}
+                  >
+                    {m.isVideo ? (
+                      <video
+                        src={m.url}
+                        controls
+                        playsInline
+                        preload="metadata"
+                        className="w-full h-auto"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    ) : (
+                      <img src={m.url} alt={m.name} className="w-full h-auto object-contain" />
+                    )}
                   </div>
                 ))}
               </div>

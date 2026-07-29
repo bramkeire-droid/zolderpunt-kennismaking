@@ -31,6 +31,8 @@ import StabiliteitVoorbladDialog from '@/components/dossier/StabiliteitVoorbladD
 import GenericVoorbladDialog from '@/components/dossier/GenericVoorbladDialog';
 import PhotoUploadDialog from '@/components/dossier/PhotoUploadDialog';
 import InboundInboxDialog from '@/components/dossier/InboundInboxDialog';
+import { INBOUND_HINT_TEXT } from '@/components/dossier/InboundHint';
+import { normalizeLeadMedia, imagesOnly } from '@/lib/leadMedia';
 import { Image as ImageIcon, Inbox } from 'lucide-react';
 import { formatDatum } from '@/components/report/reportConstants';
 import { downloadBlob, openDownloadWindow } from '@/lib/downloadFile';
@@ -347,8 +349,10 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
         prijs_max_incl_btw: lead.prijs_max_incl_btw ?? 0,
         prijs_mw_min_incl_btw: lead.prijs_mw_min_incl_btw ?? 0,
         prijs_mw_max_incl_btw: lead.prijs_mw_max_incl_btw ?? 0,
-        fotos: (lead.fotos || []).filter((f: any) => f.url).map((f: any) => f.url),
-        fotos_met_path: (lead.fotos || []).filter((f: any) => f.url).map((f: any) => ({ url: f.url, storage_path: f.storage_path })),
+        // Same as Slide10: inbound photos carry `path` (not `url`) and would
+        // otherwise be missing from the report; video is left out entirely.
+        fotos: imagesOnly(normalizeLeadMedia(lead.fotos)).map((m) => m.url),
+        fotos_met_path: imagesOnly(normalizeLeadMedia(lead.fotos)).map((m) => ({ url: m.url, storage_path: m.path })),
         waarde_tekst_ai: lead.waarde_tekst_ai || 'Extra leefruimte gecreëerd uit ruimte die er al was.',
         inbegrepen_posten: lead.inbegrepen_posten || [],
         project_feiten: (lead.project_feiten || []).filter((f: any): f is FeitjeItem => typeof f === 'object' && 'tekst' in f),
@@ -420,7 +424,7 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
               variant={inboxCount > 0 ? 'default' : 'outline'}
               onClick={() => setInboxOpen(true)}
               className="gap-2 font-headline relative"
-              title="Foto's uit WhatsApp/e-mail die nog gekoppeld moeten worden"
+              title={INBOUND_HINT_TEXT}
             >
               <Inbox className="h-4 w-4" /> Inbox
               {inboxCount > 0 && (

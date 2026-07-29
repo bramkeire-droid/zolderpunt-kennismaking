@@ -10,6 +10,7 @@ import type { ReportData, FeitjeItem } from '@/components/report/reportTypes';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { fetchAndDownscaleToDataUrl } from '@/lib/imageCompression';
+import { normalizeLeadMedia, imagesOnly } from '@/lib/leadMedia';
 import { formatDatum } from '@/components/report/reportConstants';
 import { downloadBlob, openDownloadWindow } from '@/lib/downloadFile';
 
@@ -40,10 +41,13 @@ function mapLeadToReportData(lead: ReturnType<typeof useSession>['lead']): Repor
     prijs_max_incl_btw: lead.prijs_max_incl_btw ?? 0,
     prijs_mw_min_incl_btw: lead.prijs_mw_min_incl_btw ?? 0,
     prijs_mw_max_incl_btw: lead.prijs_mw_max_incl_btw ?? 0,
-    fotos: (lead.fotos || []).filter(f => f.url).map(f => f.url!),
-    fotos_met_path: (lead.fotos || []).filter(f => f.url).map(f => ({
-      url: f.url!,
-      storage_path: f.storage_path,
+    // Filtering on f.url alone silently dropped every inbound photo (those
+    // carry `path`, not `url`). Video is excluded because react-pdf cannot
+    // render it.
+    fotos: imagesOnly(normalizeLeadMedia(lead.fotos)).map(m => m.url),
+    fotos_met_path: imagesOnly(normalizeLeadMedia(lead.fotos)).map(m => ({
+      url: m.url,
+      storage_path: m.path,
     })),
     waarde_tekst_ai: lead.waarde_tekst_ai || 'Extra leefruimte gecreëerd uit ruimte die er al was.',
     inbegrepen_posten: posten,
