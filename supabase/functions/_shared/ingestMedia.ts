@@ -206,6 +206,7 @@ export interface WindowState {
   candidates: LeadCandidate[];
   photoCount: number;
   hasPhotos: boolean;
+  hadPhotosBefore: boolean;
 }
 
 // Extends (or opens) the sender's open interaction window with a newly
@@ -213,11 +214,12 @@ export interface WindowState {
 // gathered so far, and re-runs the fuzzy match. Always refreshes the
 // expiry, so any activity keeps the window alive for another 10 minutes.
 //
-// The merge itself (touch_inbound_window) runs as a single atomic SQL
-// UPDATE in Postgres — required because several photos from the same
-// forwarded batch can arrive within milliseconds of each other, and a
-// read-modify-write in application code would let concurrent calls
-// overwrite (lose) each other's media ids.
+// The merge itself (touch_inbound_window) runs inside a SELECT ... FOR
+// UPDATE row lock in Postgres — required because several photos from the
+// same forwarded batch can arrive within milliseconds of each other, and
+// a read-modify-write in application code would let concurrent calls
+// overwrite (lose) each other's media ids AND each conclude they were the
+// first, which caused duplicate "welk dossier?" replies.
 export async function touchWindow(
   supabase: SupabaseClient,
   source: InboundSource,
@@ -236,6 +238,7 @@ export async function touchWindow(
 
   const mediaIds: string[] = Array.isArray(data?.media_ids) ? data!.media_ids : [];
   const notes: string = data?.notes || '';
+  const hadPhotosBefore: boolean = !!data?.had_photos_before;
 
   let combinedText = notes;
   let photoCount = 0;
@@ -261,8 +264,9 @@ export async function touchWindow(
     .eq('source', source)
     .eq('from_identifier', fromIdentifier);
 
-  return { mediaIds, candidates, photoCount, hasPhotos: mediaIds.length > 0 };
+  return { mediaIds, candidates, photoCount, hasPhotos: mediaIds.length > 0, hadPhotosBefore };
 }
+
 
 // Guards against Twilio re-delivering the same webhook (e.g. after a slow
 // response) by claiming its unique MessageSid exactly once. Returns false
