@@ -5,9 +5,10 @@
 import {
   normalizePhone,
   svc,
-  getPendingOffer,
+  readWindow,
+  touchWindow,
   assignPendingGroupToLead,
-  clearPendingOffer,
+  clearWindow,
   rememberConversation,
   ingestInboundWhatsAppInteractive,
   type InboundAttachment,
@@ -60,28 +61,44 @@ Deno.serve(async (req) => {
   const profileName = form.get('ProfileName') || '';
   const fromPhone = normalizePhone(from.replace(/^whatsapp:/, ''));
 
-  // No photos in this message: either a reply picking a dossier from a list
-  // we offered earlier, or just a stray text message.
+  // No photos in this message: could be a reply picking a dossier from a
+  // list we offered earlier, a name/adres sent separately (before OR after
+  // the photos), or just a stray text message.
   if (!numMedia) {
     const supabase = svc();
-    const offer = await getPendingOffer(supabase, 'wa', fromPhone);
-    if (offer) {
-      const choice = parseInt(body.trim(), 10);
-      if (Number.isInteger(choice) && choice >= 1 && choice <= offer.candidates.length) {
-        const picked = offer.candidates[choice - 1];
-        const added = await assignPendingGroupToLead(supabase, offer.mediaIds, picked.id, 'wa');
+    const trimmed = body.trim();
+    const choice = parseInt(trimmed, 10);
+    const win = await readWindow(supabase, 'wa', fromPhone);
+
+    if (win?.candidates.length) {
+      if (Number.isInteger(choice) && choice >= 1 && choice <= win.candidates.length && win.mediaIds.length) {
+        const picked = win.candidates[choice - 1];
+        const added = await assignPendingGroupToLead(supabase, win.mediaIds, picked.id, 'wa');
         await rememberConversation(supabase, 'wa', fromPhone, picked.id);
-        await clearPendingOffer(supabase, 'wa', fromPhone);
+        await clearWindow(supabase, 'wa', fromPhone);
         return twiml(`✅ ${added} foto('s) gekoppeld aan ${picked.label}. Bedankt!`);
       }
-      const list = offer.candidates
-        .map((c, i) => `${i + 1}. ${c.label}`)
-        .join('\n');
-      return twiml(
-        `Dat begreep ik niet. Antwoord met het nummer van het juiste dossier:\n${list}`,
-      );
+      if (Number.isInteger(choice)) {
+        const list = win.candidates.map((c, i) => `${i + 1}. ${c.label}`).join('\n');
+        return twiml(`Dat nummer bestaat niet. Antwoord met het nummer van het juiste dossier:\n${list}`);
+      }
     }
-    return twiml('Stuur foto\'s door en vermeld naam of adres van de klant. Bedankt!');
+
+    if (!trimmed) {
+      return twiml('Stuur foto\'s door en vermeld naam of adres van de klant. Bedankt!');
+    }
+
+    // Free text (name/adres), sent on its own — remember it for up to 10
+    // minutes so it counts whether the photos already arrived or still have to.
+    const updated = await touchWindow(supabase, 'wa', fromPhone, { newNote: trimmed });
+    if (updated.hasPhotos && updated.candidates.length) {
+      const list = updated.candidates.map((c, i) => `${i + 1}. ${c.label}`).join('\n');
+      return twiml(`Voor welk dossier is dit? Antwoord met het nummer:\n${list}`);
+    }
+    if (updated.hasPhotos) {
+      return twiml('Bedankt, genoteerd! Nog geen duidelijke match — stuur ook nog straatnaam of huisnummer door.');
+    }
+    return twiml('Genoteerd! Stuur nu de foto\'s door, dan koppelen we ze hieraan.');
   }
 
   const attachments: InboundAttachment[] = [];

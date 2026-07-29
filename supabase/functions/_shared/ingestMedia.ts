@@ -196,91 +196,93 @@ export async function rememberConversation(
   );
 }
 
-// Photos forwarded together (e.g. a batch of 15 WhatsApp photos) usually
-// arrive as separate webhook calls seconds apart. Anything from the same
-// sender within this window is treated as one forwarding batch.
-const GROUP_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
+// Photos and free-text hints for the same sender, in any order and in
+// separate messages, are combined as long as they land within this window
+// of each other — covers "text before photos" and "text after photos".
+const WINDOW_MS = 10 * 60 * 1000; // 10 minutes
 
-export interface PendingGroup {
+export interface WindowState {
   mediaIds: string[];
-  combinedText: string;
+  candidates: LeadCandidate[];
   photoCount: number;
+  hasPhotos: boolean;
 }
 
-export async function getOpenPendingGroup(
+// Extends (or opens) the sender's open interaction window with a newly
+// arrived photo batch and/or a note of free text, recombines everything
+// gathered so far, and re-runs the fuzzy match. Always refreshes the
+// expiry, so any activity keeps the window alive for another 10 minutes.
+export async function touchWindow(
   supabase: SupabaseClient,
   source: InboundSource,
   fromIdentifier: string,
-): Promise<PendingGroup> {
-  const since = new Date(Date.now() - GROUP_WINDOW_MS).toISOString();
-  const { data } = await supabase
-    .from('inbound_media_pending')
-    .select('id, body, storage_paths')
+  opts: { newMediaId?: string; newNote?: string },
+): Promise<WindowState> {
+  const { data: existing } = await supabase
+    .from('inbound_conversation_state')
+    .select('pending_media_ids, pending_notes, pending_expires_at')
     .eq('source', source)
     .eq('from_identifier', fromIdentifier)
-    .eq('status', 'pending')
-    .gte('created_at', since)
-    .order('created_at', { ascending: true });
-  const rows = data || [];
-  return {
-    mediaIds: rows.map((r: any) => r.id),
-    combinedText: rows.map((r: any) => r.body || '').filter(Boolean).join(' '),
-    photoCount: rows.reduce(
-      (n: number, r: any) => n + (Array.isArray(r.storage_paths) ? r.storage_paths.length : 0),
-      0,
-    ),
-  };
-}
+    .maybeSingle();
 
-// Store the ranked candidates we just offered the sender, and which pending
-// rows they cover, so a plain-number reply can resolve them.
-export async function offerCandidates(
-  supabase: SupabaseClient,
-  source: InboundSource,
-  fromIdentifier: string,
-  mediaIds: string[],
-  candidates: LeadCandidate[],
-) {
+  const stillOpen = !!existing?.pending_expires_at && new Date(existing.pending_expires_at) > new Date();
+  const mediaIds = new Set<string>(stillOpen && Array.isArray(existing?.pending_media_ids) ? existing!.pending_media_ids : []);
+  if (opts.newMediaId) mediaIds.add(opts.newMediaId);
+  let notes = stillOpen ? (existing?.pending_notes || '') : '';
+  if (opts.newNote) notes = `${notes} ${opts.newNote}`.trim();
+
+  let combinedText = notes;
+  let photoCount = 0;
+  if (mediaIds.size) {
+    const { data: rows } = await supabase
+      .from('inbound_media_pending')
+      .select('body, storage_paths')
+      .in('id', Array.from(mediaIds));
+    for (const r of rows || []) {
+      if (r.body) combinedText += ` ${r.body}`;
+      if (Array.isArray(r.storage_paths)) photoCount += r.storage_paths.length;
+    }
+  }
+
+  const candidates = await fuzzyCandidates(supabase, combinedText, 5);
+
   await supabase.from('inbound_conversation_state').upsert(
     {
       source,
       from_identifier: fromIdentifier,
+      pending_media_ids: Array.from(mediaIds),
+      pending_notes: notes,
       pending_candidates: candidates,
-      pending_media_ids: mediaIds,
-      pending_expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+      pending_expires_at: new Date(Date.now() + WINDOW_MS).toISOString(),
       updated_at: new Date().toISOString(),
     },
     { onConflict: 'source,from_identifier' },
   );
+
+  return { mediaIds: Array.from(mediaIds), candidates, photoCount, hasPhotos: mediaIds.size > 0 };
 }
 
-export interface PendingOffer {
-  candidates: LeadCandidate[];
-  mediaIds: string[];
-}
-
-export async function getPendingOffer(
+export async function readWindow(
   supabase: SupabaseClient,
   source: InboundSource,
   fromIdentifier: string,
-): Promise<PendingOffer | null> {
+): Promise<WindowState | null> {
   const { data } = await supabase
     .from('inbound_conversation_state')
-    .select('pending_candidates, pending_media_ids, pending_expires_at')
+    .select('pending_media_ids, pending_candidates, pending_expires_at')
     .eq('source', source)
     .eq('from_identifier', fromIdentifier)
     .maybeSingle();
   if (!data?.pending_expires_at || new Date(data.pending_expires_at) <= new Date()) return null;
-  const candidates = Array.isArray(data.pending_candidates) ? (data.pending_candidates as LeadCandidate[]) : [];
   const mediaIds = Array.isArray(data.pending_media_ids) ? (data.pending_media_ids as string[]) : [];
-  if (!candidates.length || !mediaIds.length) return null;
-  return { candidates, mediaIds };
+  const candidates = Array.isArray(data.pending_candidates) ? (data.pending_candidates as LeadCandidate[]) : [];
+  return { mediaIds, candidates, photoCount: 0, hasPhotos: mediaIds.length > 0 };
 }
 
-export async function clearPendingOffer(supabase: SupabaseClient, source: InboundSource, fromIdentifier: string) {
+export async function clearWindow(supabase: SupabaseClient, source: InboundSource, fromIdentifier: string) {
   await supabase
     .from('inbound_conversation_state')
-    .update({ pending_candidates: [], pending_media_ids: [], pending_expires_at: null })
+    .update({ pending_candidates: [], pending_media_ids: [], pending_notes: '', pending_expires_at: null })
     .eq('source', source)
     .eq('from_identifier', fromIdentifier);
 }
@@ -339,7 +341,7 @@ export async function ingestInboundWhatsAppInteractive(
     const paths = await uploadAttachments(supabase, deterministic.leadId, payload.attachments, 'wa');
     await appendPhotosToLead(supabase, deterministic.leadId, paths, 'wa');
     await rememberConversation(supabase, 'wa', payload.fromIdentifier, deterministic.leadId);
-    await clearPendingOffer(supabase, 'wa', payload.fromIdentifier);
+    await clearWindow(supabase, 'wa', payload.fromIdentifier);
     const { data: lead } = await supabase
       .from('leads')
       .select('voornaam, achternaam')
@@ -350,26 +352,26 @@ export async function ingestInboundWhatsAppInteractive(
   }
 
   const paths = await uploadAttachments(supabase, 'inbox', payload.attachments, 'wa');
-  await supabase.from('inbound_media_pending').insert({
-    source: 'wa',
-    from_identifier: payload.fromIdentifier,
-    from_display: payload.fromDisplay || '',
-    subject: '',
-    body: payload.body || '',
-    storage_paths: paths,
-    match_reason: 'wacht op bevestiging',
-  });
+  const { data: pendingRow } = await supabase
+    .from('inbound_media_pending')
+    .insert({
+      source: 'wa',
+      from_identifier: payload.fromIdentifier,
+      from_display: payload.fromDisplay || '',
+      subject: '',
+      body: payload.body || '',
+      storage_paths: paths,
+      match_reason: 'wacht op bevestiging',
+    })
+    .select('id')
+    .single();
 
-  const group = await getOpenPendingGroup(supabase, 'wa', payload.fromIdentifier);
-  const candidates = await fuzzyCandidates(supabase, group.combinedText, 5);
+  const win = await touchWindow(supabase, 'wa', payload.fromIdentifier, { newMediaId: pendingRow?.id });
 
-  if (candidates.length) {
-    await offerCandidates(supabase, 'wa', payload.fromIdentifier, group.mediaIds, candidates);
-    return { status: 'offered', candidates, groupPhotoCount: group.photoCount };
+  if (win.candidates.length) {
+    return { status: 'offered', candidates: win.candidates, groupPhotoCount: win.photoCount };
   }
-
-  await clearPendingOffer(supabase, 'wa', payload.fromIdentifier);
-  return { status: 'unmatched', groupPhotoCount: group.photoCount };
+  return { status: 'unmatched', groupPhotoCount: win.photoCount };
 }
 
 export interface IngestResult {
