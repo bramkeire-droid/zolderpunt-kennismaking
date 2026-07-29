@@ -366,12 +366,6 @@ export async function ingestInboundWhatsAppInteractive(
     return { status: 'matched', leadId: deterministic.leadId, leadLabel, addedPhotoCount: paths.length };
   }
 
-  // A window already open (with photos) means this is another photo from
-  // the same forwarded batch — don't re-send the whole list for every
-  // single one of them, just fold it in silently.
-  const before = await readWindow(supabase, 'wa', payload.fromIdentifier);
-  const hadOpenWindow = !!before?.hasPhotos;
-
   const paths = await uploadAttachments(supabase, 'inbox', payload.attachments, 'wa');
   const { data: pendingRow } = await supabase
     .from('inbound_media_pending')
@@ -387,9 +381,13 @@ export async function ingestInboundWhatsAppInteractive(
     .select('id')
     .single();
 
+  // touch_inbound_window runs under a row lock and tells us whether photos
+  // were already pending BEFORE our own insert — so concurrent photos from
+  // the same batch can't each conclude they were the first and each fire
+  // a "welk dossier?" reply.
   const win = await touchWindow(supabase, 'wa', payload.fromIdentifier, { newMediaId: pendingRow?.id });
 
-  if (hadOpenWindow) {
+  if (win.hadPhotosBefore) {
     return { status: 'accumulating', groupPhotoCount: win.photoCount };
   }
   if (win.candidates.length) {
