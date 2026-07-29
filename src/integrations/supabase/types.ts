@@ -35,8 +35,10 @@ export type Database = {
       inbound_conversation_state: {
         Row: {
           expires_at: string
+          flush_state: string
           from_identifier: string
           id: string
+          last_activity_at: string | null
           last_lead_id: string | null
           pending_candidates: Json
           pending_expires_at: string | null
@@ -47,8 +49,10 @@ export type Database = {
         }
         Insert: {
           expires_at?: string
+          flush_state?: string
           from_identifier: string
           id?: string
+          last_activity_at?: string | null
           last_lead_id?: string | null
           pending_candidates?: Json
           pending_expires_at?: string | null
@@ -59,8 +63,10 @@ export type Database = {
         }
         Update: {
           expires_at?: string
+          flush_state?: string
           from_identifier?: string
           id?: string
+          last_activity_at?: string | null
           last_lead_id?: string | null
           pending_candidates?: Json
           pending_expires_at?: string | null
@@ -157,6 +163,21 @@ export type Database = {
         Update: {
           created_at?: string
           message_sid?: string
+        }
+        Relationships: []
+      }
+      internal_config: {
+        Row: {
+          key: string
+          value: string
+        }
+        Insert: {
+          key: string
+          value: string
+        }
+        Update: {
+          key?: string
+          value?: string
         }
         Relationships: []
       }
