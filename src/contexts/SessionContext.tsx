@@ -136,7 +136,12 @@ export const defaultLeadData: LeadData = {
   project_timing: '',
   volgende_stap: '',
   gesprek_notities: '',
-  gesprek_datum: new Date().toISOString().split('T')[0],
+  // Leeg bij aanmaak: het dossieroverzicht gebruikt een ingevulde
+  // gesprek_datum als bewijs dat er al gebeld is (resolveCategory in
+  // Dossiers.tsx). Vooraf invullen met vandaag zette elke nieuwe lead
+  // meteen fout in "Telefoongesprek gehad", nog vóór het gesprek
+  // plaatsvond. Wordt pas gezet zodra het gesprek echt is gevoerd.
+  gesprek_datum: '',
   budget_min: null,
   budget_max: null,
   budget_incl6: null,
@@ -257,7 +262,10 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const resetSession = useCallback(() => {
-    setLead({ ...defaultLeadData, gesprek_datum: new Date().toISOString().split('T')[0] });
+    // Same reasoning as defaultLeadData: don't backdate to today before a
+    // conversation actually happened, or the lead lands in "Telefoongesprek
+    // gehad" the moment it's created.
+    setLead({ ...defaultLeadData });
     setCurrentSlideState('0A');
     setCurrentMode('voorbereiding');
     setIsEditing(false);
