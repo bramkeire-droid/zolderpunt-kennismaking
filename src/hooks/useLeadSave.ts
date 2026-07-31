@@ -48,7 +48,12 @@ function leadToRow(lead: LeadData) {
     waarde_tekst_ai: lead.waarde_tekst_ai,
     status: lead.status,
     project_feiten: lead.project_feiten as any,
-    fotos: lead.fotos as any,
+    // `fotos` is deliberately NOT saved here. Photos also arrive from
+    // outside this session (WhatsApp/e-mail webhooks, and the dossier
+    // dialog which writes straight to the database). Including a
+    // possibly-stale in-memory copy in every generic save silently wiped
+    // freshly-arrived media — 74 photos were lost that way. Screens that
+    // change photos persist them directly via saveLeadPhotos().
     technisch: lead.technisch as any,
     gespreksvragen: lead.gespreksvragen as any,
   };

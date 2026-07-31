@@ -10,7 +10,7 @@ import { useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import ImageLightbox from '@/components/ImageLightbox';
 import { compressImageFile } from '@/lib/imageCompression';
-import { normalizeLeadMedia } from '@/lib/leadMedia';
+import { normalizeLeadMedia, saveLeadPhotos } from '@/lib/leadMedia';
 
 interface PhotoItem {
   bestandsnaam: string;
@@ -65,7 +65,14 @@ export default function Slide0B() {
     }
 
     if (newPhotos.length > 0) {
-      updateLead({ fotos: [...(lead.fotos || []), ...newPhotos] });
+      // Re-read from the database first: media may have arrived via
+      // WhatsApp/e-mail since this screen loaded, and appending to the
+      // in-memory copy would drop it.
+      const { data: fresh } = await supabase.from('leads').select('fotos').eq('id', lead.id).maybeSingle();
+      const current: any[] = Array.isArray(fresh?.fotos) ? (fresh!.fotos as any[]) : (lead.fotos || []);
+      const next = [...current, ...newPhotos];
+      await saveLeadPhotos(lead.id, next);
+      updateLead({ fotos: next as any });
     }
 
     setUploading(false);
@@ -74,11 +81,12 @@ export default function Slide0B() {
   };
 
   const removePhoto = async (index: number) => {
-    const photo = lead.fotos[index];
-    if (photo?.storage_path) {
-      await supabase.storage.from('lead-fotos').remove([photo.storage_path]);
+    const target = photos[index];
+    if (target?.storage_path) {
+      await supabase.storage.from('lead-fotos').remove([target.storage_path]);
     }
-    const updated = lead.fotos.filter((_: any, i: number) => i !== index);
+    const updated = (lead.fotos || []).filter((_: any, i: number) => i !== index);
+    await saveLeadPhotos(lead.id, updated);
     updateLead({ fotos: updated });
   };
 

@@ -7,7 +7,7 @@ import { Upload, Loader2, X, Image, ImageOff, MapPin } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import ImageLightbox from '@/components/ImageLightbox';
 import { compressImageFile } from '@/lib/imageCompression';
-import { normalizeLeadMedia } from '@/lib/leadMedia';
+import { normalizeLeadMedia, saveLeadPhotos } from '@/lib/leadMedia';
 
 interface PhotoItem {
   bestandsnaam: string;
@@ -83,8 +83,16 @@ export default function Slide4() {
       newPhotos.push({ bestandsnaam: file.name, storage_path: path, url: urlData.publicUrl });
     }
     if (newPhotos.length > 0) {
-      updateLead({ fotos: [...(lead.fotos || []), ...newPhotos] });
-      if (activeIndex === null) setActiveIndex((lead.fotos || []).length);
+      // Re-read first: WhatsApp/e-mail media may have landed since this
+      // screen loaded, and appending to the stale copy would drop it.
+      const { data: fresh } = lead.id
+        ? await supabase.from('leads').select('fotos').eq('id', lead.id).maybeSingle()
+        : { data: null };
+      const current: any[] = Array.isArray(fresh?.fotos) ? (fresh!.fotos as any[]) : (lead.fotos || []);
+      const next = [...current, ...newPhotos];
+      if (lead.id) await saveLeadPhotos(lead.id, next);
+      updateLead({ fotos: next as any });
+      if (activeIndex === null) setActiveIndex(current.length);
     }
     setUploading(false);
     if (fileInputRef.current) fileInputRef.current.value = '';

@@ -50,3 +50,13 @@ export function normalizeLeadMedia(raw: unknown): LeadMediaItem[] {
 export function imagesOnly(items: LeadMediaItem[]): LeadMediaItem[] {
   return items.filter((m) => !m.isVideo);
 }
+
+// Photos must be written straight to the row, never as part of a generic
+// lead save: media also arrives from the WhatsApp/e-mail webhooks, so a
+// stale in-memory copy would overwrite whatever landed in the meantime.
+export async function saveLeadPhotos(leadId: string, fotos: any[]): Promise<boolean> {
+  if (!leadId) return false;
+  const { error } = await supabase.from('leads').update({ fotos: fotos as any }).eq('id', leadId);
+  if (error) console.error('saveLeadPhotos failed', leadId, error);
+  return !error;
+}

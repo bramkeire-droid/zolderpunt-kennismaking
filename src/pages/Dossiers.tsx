@@ -60,8 +60,8 @@ const CATEGORIES: { key: CategoryKey; label: string; accent: string }[] = [
   { key: 'video',        label: 'Video intake gehad',     accent: 'border-l-primary' },
   { key: 'plaatsbezoek', label: 'Plaatsbezoek gehad',     accent: 'border-l-indigo-500' },
   { key: 'offerte',      label: 'Offerte opmaken',        accent: 'border-l-purple-500' },
-  { key: 'afgewezen',    label: 'Project afgewezen',      accent: 'border-l-red-500' },
   { key: 'goedgekeurd',  label: 'Project goedgekeurd',    accent: 'border-l-green-500' },
+  { key: 'afgewezen',    label: 'Project afgewezen',      accent: 'border-l-red-500' },
   { key: 'afgerond',     label: 'Project afgerond',       accent: 'border-l-emerald-600' },
 ];
 
