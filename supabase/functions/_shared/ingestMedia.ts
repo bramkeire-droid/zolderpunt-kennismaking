@@ -3,6 +3,7 @@
 // and either appends to leads.fotos or stashes in inbound_media_pending.
 
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
+import { sendMail, appLink } from './sendMail.ts';
 
 export type InboundSource = 'wa' | 'mail';
 
@@ -48,6 +49,26 @@ export function normalizeEmail(raw: string): string {
 }
 
 const UUID_RE = /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/i;
+
+// The keyword that turns a WhatsApp message into a follow-up mail instead of
+// a photo hint. An array so a synonym can be added without touching the logic.
+const MEMO_KEYWORDS = ['tbc'];
+
+// Returns the text after the keyword, '' for a bare keyword, or null when this
+// isn't a memo command. A bare keyword is the normal case: WhatsApp offers no
+// caption when you forward a text message, so it arrives as a second message
+// right after the thing being forwarded.
+//
+// Anchored at the first word on purpose — a forwarded message that merely
+// mentions "tbc" somewhere in its body must keep behaving like ordinary text.
+export function parseMemoCommand(text: string): string | null {
+  const trimmed = (text || '').trim();
+  for (const kw of MEMO_KEYWORDS) {
+    const re = new RegExp(`^${kw}\\b[\\s:,.-]*`, 'i');
+    if (re.test(trimmed)) return trimmed.replace(re, '').trim();
+  }
+  return null;
+}
 
 // Steps 1-3: only returns a result when we're confident (explicit id, exact
 // phone/email match, or a recent remembered conversation). Never guesses.
@@ -342,6 +363,35 @@ export async function clearWindow(supabase: SupabaseClient, source: InboundSourc
     .eq('from_identifier', fromIdentifier);
 }
 
+// Takes the loose text collected in a sender's open window and clears ONLY
+// that column — deliberately not clearWindow, which would also drop
+// pending_media_ids. A "tbc" can arrive while a photo batch is still being
+// collected in the same row, and turning that text into a memo must leave the
+// photos on their normal path.
+export async function takeWindowNotes(
+  supabase: SupabaseClient,
+  source: InboundSource,
+  fromIdentifier: string,
+): Promise<string> {
+  const { data } = await supabase
+    .from('inbound_conversation_state')
+    .select('pending_notes, pending_expires_at')
+    .eq('source', source)
+    .eq('from_identifier', fromIdentifier)
+    .maybeSingle();
+
+  const fresh = data?.pending_expires_at && new Date(data.pending_expires_at) > new Date();
+  const notes = fresh ? (data?.pending_notes || '') : '';
+  if (!notes) return '';
+
+  await supabase
+    .from('inbound_conversation_state')
+    .update({ pending_notes: '' })
+    .eq('source', source)
+    .eq('from_identifier', fromIdentifier);
+  return notes;
+}
+
 // Copies every photo in the given pending rows to the lead's folder, appends
 // them to leads.fotos, and marks those rows assigned — mirrors the manual
 // "Koppelen" action in the Inbox dialog, but driven by a WhatsApp reply.
@@ -392,6 +442,85 @@ export async function sendWhatsApp(toPhone: string, text: string): Promise<void>
     body: new URLSearchParams({ From: from, To: `whatsapp:+${toPhone}`, Body: text }),
   });
   if (!res.ok) console.error('twilio send failed', res.status, await res.text());
+}
+
+export interface MemoRow {
+  id: string;
+  source: InboundSource;
+  from_identifier: string;
+  from_display: string;
+  subject: string;
+  body: string;
+  email_attempts: number;
+  created_at: string;
+}
+
+export interface MemoInput {
+  source: InboundSource;
+  fromIdentifier: string;
+  fromDisplay?: string;
+  subject: string;
+  body: string;
+  kind: 'memo' | 'unmatched_media';
+}
+
+// Built from the stored row rather than from the input, so a retry produces
+// exactly the same mail as the first attempt.
+function memoEmailBody(row: MemoRow): string {
+  const id = row.source === 'wa' ? `+${row.from_identifier}` : row.from_identifier;
+  const who = row.from_display ? `${row.from_display} (${id})` : id;
+  const when = new Date(row.created_at).toLocaleString('nl-BE', { timeZone: 'Europe/Brussels' });
+  const via = row.source === 'wa' ? 'WhatsApp' : 'e-mail';
+  return `${row.body}\n\n—\nDoorgestuurd via ${via} door ${who}\n${when}${appLink()}`;
+}
+
+// Mails one stored memo and records the outcome on the row. Used both right
+// after storing and by the retry pass in flush-inbound-groups.
+export async function mailMemo(supabase: SupabaseClient, row: MemoRow): Promise<boolean> {
+  const res = await sendMail({ subject: row.subject, text: memoEmailBody(row) });
+  await supabase
+    .from('inbound_memos')
+    .update(
+      res.ok
+        ? { emailed_at: new Date().toISOString(), email_error: '' }
+        : { email_error: res.error, email_attempts: (row.email_attempts || 0) + 1 },
+    )
+    .eq('id', row.id);
+  return res.ok;
+}
+
+// Stores a memo without mailing it. Split from the sending half because the
+// WhatsApp webhook has to answer Twilio quickly: it stores the row inside the
+// request (so it can honestly confirm) and leaves the Postmark call to run on
+// after the response.
+export async function storeMemo(supabase: SupabaseClient, memo: MemoInput): Promise<MemoRow | null> {
+  const { data: row, error } = await supabase
+    .from('inbound_memos')
+    .insert({
+      source: memo.source,
+      from_identifier: memo.fromIdentifier,
+      from_display: memo.fromDisplay || '',
+      subject: memo.subject,
+      body: memo.body,
+      kind: memo.kind,
+    })
+    .select('id, source, from_identifier, from_display, subject, body, email_attempts, created_at')
+    .single();
+
+  if (error || !row) {
+    console.error('memo insert failed', error?.message);
+    return null;
+  }
+  return row as MemoRow;
+}
+
+// Stores a memo first, then mails it. That order is the point: the sender is
+// told it's handled the moment the row exists, so Postmark being unreachable
+// has to be recoverable rather than a lost note.
+export async function recordMemo(supabase: SupabaseClient, memo: MemoInput): Promise<boolean> {
+  const row = await storeMemo(supabase, memo);
+  if (!row) return false;
+  return await mailMemo(supabase, row);
 }
 
 // Collect-only: stores the photos and folds them into the sender's open
@@ -520,10 +649,31 @@ export async function flushGroup(
 
   // Nothing to go on yet. Stay open: a name sent later restarts the cycle.
   await setFlushState(supabase, fromIdentifier, 'idle');
+
+  // Mail it too. The WhatsApp question below is exactly the kind of thing that
+  // arrives at an inconvenient hour and gets scrolled past; the mail keeps it
+  // waiting in the inbox until there's time for it.
+  const captions = live
+    .map((r) => ((r as { body?: string }).body || '').trim())
+    .filter(Boolean);
+  await recordMemo(supabase, {
+    source: 'wa',
+    fromIdentifier,
+    subject: `📌 ${photoCount} foto('s) zonder dossier`,
+    body: [
+      `${photoCount} foto('s) via WhatsApp ontvangen, maar geen enkel dossier komt overeen.`,
+      notes ? `Meegestuurde tekst: ${notes}` : '',
+      captions.length ? `Bijschriften: ${captions.join(' | ')}` : '',
+      `Ze staan klaar in de Inbox om te koppelen.`,
+    ].filter(Boolean).join('\n\n'),
+    kind: 'unmatched_media',
+  });
+
   await sendWhatsApp(
     fromIdentifier,
     `${photoCount} foto('s) ontvangen, maar we weten nog niet bij welke klant ze horen. ` +
-    `Stuur de naam of het adres door, of koppel ze in de tool.`,
+    `Stuur de naam of het adres door, of koppel ze in de tool. ` +
+    `Je krijgt er ook een e-mail over.`,
   );
 }
 

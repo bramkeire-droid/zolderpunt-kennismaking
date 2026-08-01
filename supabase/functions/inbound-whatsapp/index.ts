@@ -16,8 +16,15 @@ import {
   collectWhatsAppMedia,
   assignPendingGroupToLead,
   clearWindow,
+  parseMemoCommand,
+  takeWindowNotes,
+  storeMemo,
+  mailMemo,
   type InboundAttachment,
 } from '../_shared/ingestMedia.ts';
+
+// Supabase edge runtime API for work that outlives the response.
+declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void };
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -93,6 +100,41 @@ Deno.serve(async (req) => {
         const list = win.candidates.map((c, i) => `${i + 1}. ${c.label}`).join('\n');
         return twiml(`Dat nummer bestaat niet. Antwoord met het nummer van het juiste dossier:\n${list}`);
       }
+    }
+
+    // "tbc" marks something to follow up later rather than a photo hint: it
+    // goes out as mail and stays unread in the inbox until there's time for
+    // it.
+    //
+    // Bare "tbc" means "the thing I just forwarded" — WhatsApp allows no
+    // caption when forwarding a text message, so it arrives as a follow-up and
+    // the text already in the window is the memo. "tbc <text>" is a note the
+    // sender typed themselves, and then the window is left alone: it may well
+    // hold the customer name belonging to a photo batch still being collected.
+    const memo = parseMemoCommand(trimmed);
+    if (memo !== null) {
+      const memoBody = memo || (await takeWindowNotes(supabase, 'wa', fromPhone));
+      if (!memoBody) {
+        return twiml('Niets te noteren — stuur eerst het bericht door en antwoord daarna "tbc".');
+      }
+      const firstLine = memoBody.replace(/\s+/g, ' ').slice(0, 70);
+      const row = await storeMemo(supabase, {
+        source: 'wa',
+        fromIdentifier: fromPhone,
+        fromDisplay: profileName,
+        subject: `📌 TBC — ${firstLine}`,
+        body: memoBody,
+        kind: 'memo',
+      });
+      if (!row) return twiml('Opslaan mislukte — probeer het nog eens.');
+
+      // Answer Twilio now and mail after: a slow Postmark would otherwise
+      // stall the webhook into a retry. A send that fails here is picked up by
+      // the retry pass in flush-inbound-groups.
+      EdgeRuntime.waitUntil(
+        mailMemo(supabase, row).catch((e) => console.error('memo mail failed', row.id, e)),
+      );
+      return twiml('📬 Genoteerd. Je krijgt er een e-mail over.');
     }
 
     // Any other text (a name, an address) is just another clue for the

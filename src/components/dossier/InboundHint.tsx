@@ -7,11 +7,15 @@ export const INBOUND_WHATSAPP = '+1 415 523 8886';
 export const INBOUND_WHATSAPP_JOIN = 'join check-pocket';
 export const INBOUND_EMAIL = 'fotos@inbox.zolderpunt.be';
 
+export const INBOUND_MEMO_KEYWORD = 'tbc';
+
 export const INBOUND_HINT_TEXT =
   `Foto's en video's doorsturen:\n` +
   `• WhatsApp ${INBOUND_WHATSAPP} (eerste keer: stuur "${INBOUND_WHATSAPP_JOIN}")\n` +
   `• E-mail ${INBOUND_EMAIL}\n` +
-  `Vermeld naam of adres van de klant. Na ~1 minuut krijg je bevestiging.`;
+  `Vermeld naam of adres van de klant. Na ~1 minuut krijg je bevestiging.\n` +
+  `Iets om later op te volgen? Stuur het door naar WhatsApp en antwoord ` +
+  `"${INBOUND_MEMO_KEYWORD}" — je krijgt het per e-mail.`;
 
 const Row = ({
   icon,
@@ -64,6 +68,11 @@ export default function InboundHint() {
         Stuur door en vermeld <span className="font-medium">naam of adres</span> van de klant — dat mag
         in een apart bericht, voor of na. Ongeveer een minuut later krijg je een bevestiging, of een
         vraag welk dossier het is.
+      </div>
+      <div className="text-muted-foreground border-t pt-2">
+        Iets om <span className="font-medium">later op te volgen</span>? Stuur het bericht door naar
+        WhatsApp en antwoord <span className="font-medium">"{INBOUND_MEMO_KEYWORD}"</span> — je krijgt
+        het per e-mail, zodat het ongelezen in je inbox blijft staan.
       </div>
     </div>
   );
