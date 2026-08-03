@@ -187,6 +187,10 @@ export type Database = {
           adres: string
           adres_lat: number | null
           adres_lng: number | null
+          bouwflow_phase: string | null
+          bouwflow_project_id: string | null
+          bouwflow_project_number: string | null
+          bouwflow_pushed_at: string | null
           btw_percentage: number | null
           budget_excl: number | null
           budget_incl21: number | null
@@ -244,6 +248,10 @@ export type Database = {
           adres?: string
           adres_lat?: number | null
           adres_lng?: number | null
+          bouwflow_phase?: string | null
+          bouwflow_project_id?: string | null
+          bouwflow_project_number?: string | null
+          bouwflow_pushed_at?: string | null
           btw_percentage?: number | null
           budget_excl?: number | null
           budget_incl21?: number | null
@@ -301,6 +309,10 @@ export type Database = {
           adres?: string
           adres_lat?: number | null
           adres_lng?: number | null
+          bouwflow_phase?: string | null
+          bouwflow_project_id?: string | null
+          bouwflow_project_number?: string | null
+          bouwflow_pushed_at?: string | null
           btw_percentage?: number | null
           budget_excl?: number | null
           budget_incl21?: number | null
