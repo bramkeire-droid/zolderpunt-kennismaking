@@ -133,12 +133,15 @@ Deno.serve(async (req) => {
       if (typeof v === 'string' && v) return v;
       if (typeof v === 'number') return String(v);
     }
-    if (typeof resultObj.project === 'object' && resultObj.project !== null) {
-      const proj = resultObj.project as Record<string, unknown>;
-      for (const key of keys) {
-        const v = proj[key];
-        if (typeof v === 'string' && v) return v;
-        if (typeof v === 'number') return String(v);
+    for (const containerKey of ['project', 'bouwflow', 'data']) {
+      const container = resultObj[containerKey];
+      if (typeof container === 'object' && container !== null) {
+        const obj = container as Record<string, unknown>;
+        for (const key of keys) {
+          const v = obj[key];
+          if (typeof v === 'string' && v) return v;
+          if (typeof v === 'number') return String(v);
+        }
       }
     }
     return null;
