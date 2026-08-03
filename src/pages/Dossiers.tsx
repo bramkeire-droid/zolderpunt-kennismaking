@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useState, useEffect, useMemo } from 'react';
-import { Search, FolderOpen, Users, TrendingUp, DollarSign, Eye, RefreshCw, Trash2, CheckCircle, Globe, Phone, Bot, FileDown, MoreVertical, ArrowUp, ArrowDown, ArrowUpDown, FileText, Receipt, Hammer, ArrowRightLeft, ChevronDown, ChevronRight, GripVertical } from 'lucide-react';
+import { Search, FolderOpen, Users, TrendingUp, DollarSign, Eye, RefreshCw, Trash2, CheckCircle, Globe, Phone, Bot, FileDown, MoreVertical, ArrowUp, ArrowDown, ArrowUpDown, FileText, Receipt, Hammer, ArrowRightLeft, ChevronDown, ChevronRight, GripVertical, Send } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { defaultTechnisch } from '@/contexts/SessionContext';
 import type { LeadData } from '@/contexts/SessionContext';
@@ -31,6 +31,7 @@ import StabiliteitVoorbladDialog from '@/components/dossier/StabiliteitVoorbladD
 import GenericVoorbladDialog from '@/components/dossier/GenericVoorbladDialog';
 import PhotoUploadDialog from '@/components/dossier/PhotoUploadDialog';
 import InboundInboxDialog from '@/components/dossier/InboundInboxDialog';
+import PushToBouwflowDialog from '@/components/dossier/PushToBouwflowDialog';
 import { INBOUND_HINT_TEXT } from '@/components/dossier/InboundHint';
 import { normalizeLeadMedia, imagesOnly } from '@/lib/leadMedia';
 import { Image as ImageIcon, Inbox } from 'lucide-react';
@@ -153,6 +154,7 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
   const [stabLead, setStabLead] = useState<any>(null);
   const [genericVoorblad, setGenericVoorblad] = useState<{ lead: any } | null>(null);
   const [photoLead, setPhotoLead] = useState<any>(null);
+  const [bouwflowLead, setBouwflowLead] = useState<any>(null);
   const [preIntakeMap, setPreIntakeMap] = useState<Record<string, any>>({});
   const [analysisMap, setAnalysisMap] = useState<Record<string, boolean>>({});
   const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -600,8 +602,21 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
                           <ImageIcon className="h-4 w-4 mr-2 text-primary" /> Foto's
                         </DropdownMenuItem>
 
-
-
+                        <DropdownMenuSeparator />
+                        <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">Bouwflow</DropdownMenuLabel>
+                        {lead.bouwflow_project_id ? (
+                          <DropdownMenuItem
+                            disabled
+                            className="opacity-100 cursor-default text-green-700 focus:bg-transparent focus:text-green-700"
+                          >
+                            <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
+                            Al in Bouwflow{lead.bouwflow_project_number ? ` · #${lead.bouwflow_project_number}` : ''}
+                          </DropdownMenuItem>
+                        ) : (
+                          <DropdownMenuItem onClick={() => setBouwflowLead(lead)}>
+                            <Send className="h-4 w-4 mr-2 text-primary" /> Naar Bouwflow pushen
+                          </DropdownMenuItem>
+                        )}
 
 
                         <DropdownMenuSeparator />
@@ -804,6 +819,18 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
         onOpenChange={setInboxOpen}
         onAssigned={() => { void fetchLeads(); void refreshInboxCount(); }}
       />
+
+      {bouwflowLead && (
+        <PushToBouwflowDialog
+          open={!!bouwflowLead}
+          onClose={() => setBouwflowLead(null)}
+          lead={bouwflowLead}
+          onPushed={(leadId, patch) => {
+            setLeads(prev => prev.map(l => l.id === leadId ? { ...l, ...patch } : l));
+            setBouwflowLead(null);
+          }}
+        />
+      )}
     </div>
   );
 }
