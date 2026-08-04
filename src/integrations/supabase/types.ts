@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      bouwflow_phase_category_map: {
+        Row: {
+          compass_category: string
+          note: string | null
+          phase_id: number
+          phase_title: string
+        }
+        Insert: {
+          compass_category: string
+          note?: string | null
+          phase_id: number
+          phase_title: string
+        }
+        Update: {
+          compass_category?: string
+          note?: string | null
+          phase_id?: number
+          phase_title?: string
+        }
+        Relationships: []
+      }
       bouwflow_phases: {
         Row: {
           approved: boolean | null
