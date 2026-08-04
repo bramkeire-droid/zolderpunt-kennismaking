@@ -33,6 +33,8 @@ import PhotoUploadDialog from '@/components/dossier/PhotoUploadDialog';
 import InboundInboxDialog from '@/components/dossier/InboundInboxDialog';
 import PushToBouwflowDialog from '@/components/dossier/PushToBouwflowDialog';
 import MoveBouwflowPhaseDialog, { type PhaseOption } from '@/components/dossier/MoveBouwflowPhaseDialog';
+import KanbanBoard from '@/components/dossier/KanbanBoard';
+import { LayoutGrid, Rows3 } from 'lucide-react';
 import { INBOUND_HINT_TEXT } from '@/components/dossier/InboundHint';
 import { normalizeLeadMedia, imagesOnly } from '@/lib/leadMedia';
 import { Image as ImageIcon, Inbox } from 'lucide-react';
@@ -185,6 +187,12 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
   const [bouwflowSyncing, setBouwflowSyncing] = useState(false);
   const [phaseOptions, setPhaseOptions] = useState<PhaseOption[]>([]);
   const [moveDialog, setMoveDialog] = useState<{ lead: any; cat: CategoryKey } | null>(null);
+  // Keuze onthouden: wie in kanban werkt wil daar bij de volgende keer weer staan.
+  const [viewMode, setViewMode] = useState<'tabel' | 'kanban'>(
+    () => (localStorage.getItem('dossiers_view') === 'kanban' ? 'kanban' : 'tabel')
+  );
+  const [toonLegeKolommen, setToonLegeKolommen] = useState(true);
+  const kiesView = (v: 'tabel' | 'kanban') => { setViewMode(v); localStorage.setItem('dossiers_view', v); };
   const toggleCollapse = (k: CategoryKey) => setCollapsed(p => ({ ...p, [k]: !p[k] }));
 
   // De kolomindeling komt uit Bouwflow, in Bouwflow's eigen volgorde.
@@ -549,8 +557,8 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
           </TabsList>
 
           <TabsContent value="overzicht">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="relative flex-1 max-w-sm">
+            <div className="flex items-center gap-4 mb-6 flex-wrap">
+              <div className="relative flex-1 min-w-[200px] max-w-sm">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   value={search}
@@ -558,6 +566,42 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
                   placeholder="Zoeken op naam of adres..."
                   className="pl-9 bg-card"
                 />
+              </div>
+
+              {viewMode === 'kanban' && (
+                <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={toonLegeKolommen}
+                    onChange={(e) => setToonLegeKolommen(e.target.checked)}
+                    className="accent-primary"
+                  />
+                  Lege fases tonen
+                </label>
+              )}
+
+              {/* Tabel of kanban — beide tonen dezelfde Bouwflow-fases. */}
+              <div className="ml-auto inline-flex border border-border bg-card overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => kiesView('tabel')}
+                  aria-pressed={viewMode === 'tabel'}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-headline transition-colors ${
+                    viewMode === 'tabel' ? 'bg-primary text-primary-foreground' : 'hover:bg-accent/50'
+                  }`}
+                >
+                  <Rows3 className="h-3.5 w-3.5" /> Tabel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => kiesView('kanban')}
+                  aria-pressed={viewMode === 'kanban'}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-headline transition-colors ${
+                    viewMode === 'kanban' ? 'bg-primary text-primary-foreground' : 'hover:bg-accent/50'
+                  }`}
+                >
+                  <LayoutGrid className="h-3.5 w-3.5" /> Kanban
+                </button>
               </div>
             </div>
 
@@ -742,6 +786,33 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
                   </TableCell>
                 </TableRow>
               );
+
+              if (viewMode === 'kanban') {
+                return (
+                  <KanbanBoard
+                    columns={CATEGORIES}
+                    grouped={groupedByCategory}
+                    draggingId={draggingId}
+                    dragOverKey={dragOverCat}
+                    showEmpty={toonLegeKolommen}
+                    onDragStart={setDraggingId}
+                    onDragEnd={() => { setDraggingId(null); setDragOverCat(null); }}
+                    onDragOverColumn={setDragOverCat}
+                    onDropOnColumn={(key) => {
+                      if (draggingId) {
+                        const current = leads.find(l => l.id === draggingId);
+                        const cat = CATEGORIES.find(c => c.key === key);
+                        // Zelfde weg als de tabel: bevestigen, en Bouwflow moet de
+                        // fase doorvoeren voor de kaart verspringt.
+                        if (current && cat && resolveCategory(current) !== key) requestMove(current, cat);
+                      }
+                      setDraggingId(null);
+                      setDragOverCat(null);
+                    }}
+                    onOpenLead={handleOpen}
+                  />
+                );
+              }
 
               return (
                 <div className="space-y-4">
