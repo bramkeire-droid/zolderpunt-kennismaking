@@ -1,4 +1,5 @@
 import { MessageCircle, Mail, Copy } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import { toast } from 'sonner';
 
 // Where customers' photos/videos can be forwarded to. Kept in one place so
@@ -8,6 +9,11 @@ export const INBOUND_WHATSAPP_JOIN = 'join check-pocket';
 export const INBOUND_EMAIL = 'fotos@inbox.zolderpunt.be';
 
 export const INBOUND_MEMO_KEYWORD = 'tbc';
+
+// wa.me wil enkel cijfers (geen spaties/plusteken); de tekst komt vooringevuld
+// mee zodat gebruikers de joincode nooit zelf hoeven te onthouden of te typen.
+const INBOUND_WHATSAPP_DIGITS = INBOUND_WHATSAPP.replace(/\D/g, '');
+export const INBOUND_JOIN_LINK = `https://wa.me/${INBOUND_WHATSAPP_DIGITS}?text=${encodeURIComponent(INBOUND_WHATSAPP_JOIN)}`;
 
 export const INBOUND_HINT_TEXT =
   `Foto's en video's doorsturen:\n` +
@@ -57,8 +63,23 @@ export default function InboundHint() {
         icon={<MessageCircle className="h-3.5 w-3.5 text-green-600" />}
         label="WhatsApp"
         value={INBOUND_WHATSAPP}
-        extra={`Eerste keer per gsm: stuur "${INBOUND_WHATSAPP_JOIN}" naar dit nummer.`}
+        extra="Sessie verlopen na 72u — zie de join-knop hieronder."
       />
+      <div className="flex items-center justify-between gap-3 rounded-md border border-dashed p-2">
+        <div className="min-w-0">
+          <div className="font-medium">Eerste keer, of geen bevestiging binnen 2 minuten?</div>
+          <a
+            href={INBOUND_JOIN_LINK}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary hover:underline inline-flex items-center gap-1 mt-0.5"
+          >
+            <MessageCircle className="h-3 w-3 shrink-0" />
+            Tik hier om opnieuw te joinen
+          </a>
+        </div>
+        <QRCodeSVG value={INBOUND_JOIN_LINK} size={52} className="shrink-0" />
+      </div>
       <Row
         icon={<Mail className="h-3.5 w-3.5 text-blue-600" />}
         label="E-mail"

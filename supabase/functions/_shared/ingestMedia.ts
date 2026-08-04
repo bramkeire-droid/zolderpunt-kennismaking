@@ -449,7 +449,31 @@ export async function sendWhatsApp(toPhone: string, text: string): Promise<void>
     },
     body: new URLSearchParams({ From: from, To: `whatsapp:+${toPhone}`, Body: text }),
   });
-  if (!res.ok) console.error('twilio send failed', res.status, await res.text());
+  if (res.ok) return;
+  const body = await res.text();
+  console.error('twilio send failed', res.status, body);
+  await alertOnExpiredSession(toPhone, body);
+}
+
+// Twilio error 63015 means the recipient's 72u sandbox session lapsed, so our
+// confirmation silently never arrived — the caller gets no exception and no
+// signal. The photos/text are already saved by this point; this only alerts
+// that the reply itself needs a manual follow-up.
+async function alertOnExpiredSession(toPhone: string, twilioResponseBody: string): Promise<void> {
+  let code: number | undefined;
+  try {
+    code = JSON.parse(twilioResponseBody)?.code;
+  } catch {
+    return;
+  }
+  if (code !== 63015) return;
+  await sendMail({
+    subject: `⚠️ WhatsApp-bevestiging niet aangekomen bij +${toPhone}`,
+    text:
+      `De bevestiging naar +${toPhone} kon niet verstuurd worden: de WhatsApp-sandboxsessie is ` +
+      `verlopen (moet opnieuw "join check-pocket" sturen naar +1 415 523 8886).\n\n` +
+      `Wat hij/zij stuurde is wél opgeslagen — dit is alleen een gemiste bevestiging.${appLink()}`,
+  });
 }
 
 export interface MemoRow {
