@@ -1,9 +1,19 @@
 // ================================================================
 // push-bouwflow-phase
 //
-// Duwt een fase-wijziging vanuit Compass naar BouwFlow. Wordt aangeroepen
+// Bevestigt een fase-wijziging die de Chrome-extensie zonet in de BouwFlow-
+// UI heeft uitgevoerd, en zet Compass daarna gelijk. Wordt aangeroepen
 // wanneer een gebruiker een dossier naar een andere kolom sleept in de
 // Dossiers-lijst en de bevestigingspopup accepteert.
+//
+// ROLVERDELING — waarom een extensie én deze functie:
+//   BouwFlow's publieke API kan de fase van een bestaand project NIET
+//   schrijven (live getest: PATCH met project_phase_id geeft 200 maar laat
+//   de fase ongemoeid; de UI doet het via Livewire). De Chrome-extensie
+//   bedient daarom de echte UI. Maar een RPA kan stilletjes falen, dus
+//   vertrouwen we haar melding niet: deze functie leest de fase terug via
+//   BouwFlow's API — die kan wél lezen — en werkt Compass alleen bij als
+//   BouwFlow echt op de gevraagde fase staat.
 //
 // BEVEILIGING — deze functie SCHRIJFT naar BouwFlow, het bronsysteem.
 // verify_jwt uit config.toml blijkt in dit project niet afgedwongen te
@@ -128,14 +138,19 @@ Deno.serve(async (req) => {
     }
   }
 
-  // --- Naar BouwFlow duwen via de website-proxy ----------------------------
+  // --- Onafhankelijk verifiëren wat er ECHT in BouwFlow staat --------------
+  // De fase is zonet door de Chrome-extensie in de BouwFlow-UI gezet. We
+  // geloven die melding niet op haar woord: we lezen de fase terug via
+  // BouwFlow's eigen API. Die kan de fase niet schrijven, maar wel lezen,
+  // en is dus een onafhankelijke bron. Zo kan een mislukte of half gelukte
+  // RPA nooit als succes in Compass belanden.
   const secret = Deno.env.get('PUSH_LEAD_SECRET') || '';
   let proxyRes: Response;
   try {
     proxyRes = await fetch(PROXY_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ secret, project_id: projectPkId, project_phase_id: phaseId }),
+      body: JSON.stringify({ secret, project_id: projectPkId, project_phase_id: phaseId, verify_only: true }),
     });
   } catch (err) {
     console.error('push-bouwflow-phase: proxy onbereikbaar', err);
@@ -158,20 +173,23 @@ Deno.serve(async (req) => {
     }, 502);
   }
 
-  const applied = proxyResult.applied === true;
+  const currentPhase =
+    proxyResult.current_phase === null || proxyResult.current_phase === undefined
+      ? null
+      : Number(proxyResult.current_phase);
+  const applied = currentPhase === phaseId;
 
-  // BouwFlow heeft de wijziging niet doorgevoerd -> Compass NIET aanpassen.
+  // BouwFlow staat niet op de gevraagde fase -> Compass NIET aanpassen.
   if (!applied) {
     return json({
       success: false,
       applied: false,
-      reason: 'bouwflow_rejected',
+      reason: 'not_confirmed_in_bouwflow',
       message:
-        'BouwFlow heeft de fasewijziging niet doorgevoerd. Het dossier is in Compass onveranderd gelaten ' +
+        'BouwFlow staat niet op de gevraagde fase. Het dossier is in Compass onveranderd gelaten ' +
         'zodat beide systemen gelijk blijven.',
       requested_phase: phaseId,
-      phase_before: proxyResult.phase_before ?? null,
-      phase_after: proxyResult.phase_after ?? null,
+      current_phase: currentPhase,
     });
   }
 
@@ -201,12 +219,10 @@ Deno.serve(async (req) => {
   return json({
     success: true,
     applied: true,
-    no_change_needed: proxyResult.no_change_needed === true,
     phase_id: phaseId,
     phase_title: phaseRow.phase_title,
     compass_category: phaseRow.compass_category,
     project_pk_id: projectPkId,
-    phase_before: proxyResult.phase_before ?? null,
-    phase_after: proxyResult.phase_after ?? null,
+    current_phase: currentPhase,
   });
 });

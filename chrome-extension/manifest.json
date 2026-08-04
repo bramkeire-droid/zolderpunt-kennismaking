@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "Zolderpunt Compass — Bouwflow-fase",
+  "version": "1.0.0",
+  "description": "Duwt een fasewijziging uit Compass onmiddellijk door naar Bouwflow. Nodig omdat Bouwflow's publieke API de projectfase niet kan wijzigen.",
+  "permissions": ["scripting", "tabs"],
+  "host_permissions": ["https://*.bouwflow.be/*"],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://zolderpunt-kennismaking.lovable.app/*",
+        "https://id-preview--f2d6309c-8fb2-4154-be16-1f927dbbe385.lovable.app/*",
+        "http://localhost/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  }
+}

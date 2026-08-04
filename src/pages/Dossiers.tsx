@@ -32,6 +32,7 @@ import GenericVoorbladDialog from '@/components/dossier/GenericVoorbladDialog';
 import PhotoUploadDialog from '@/components/dossier/PhotoUploadDialog';
 import InboundInboxDialog from '@/components/dossier/InboundInboxDialog';
 import PushToBouwflowDialog from '@/components/dossier/PushToBouwflowDialog';
+import MoveBouwflowPhaseDialog, { type PhaseOption } from '@/components/dossier/MoveBouwflowPhaseDialog';
 import { INBOUND_HINT_TEXT } from '@/components/dossier/InboundHint';
 import { normalizeLeadMedia, imagesOnly } from '@/lib/leadMedia';
 import { Image as ImageIcon, Inbox } from 'lucide-react';
@@ -166,7 +167,19 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
   const [inboxOpen, setInboxOpen] = useState(false);
   const [inboxCount, setInboxCount] = useState(0);
   const [bouwflowSyncing, setBouwflowSyncing] = useState(false);
+  const [phaseOptions, setPhaseOptions] = useState<PhaseOption[]>([]);
+  const [moveDialog, setMoveDialog] = useState<{ lead: any; cat: CategoryKey } | null>(null);
   const toggleCollapse = (k: CategoryKey) => setCollapsed(p => ({ ...p, [k]: !p[k] }));
+
+  // Welke Bouwflow-fase hoort bij welke Compass-kolom. Nodig om bij het
+  // verslepen de juiste fase naar Bouwflow te kunnen duwen.
+  useEffect(() => {
+    supabase
+      .from('bouwflow_phase_category_map')
+      .select('phase_id, phase_title, compass_category')
+      .order('phase_id')
+      .then(({ data }) => { if (data) setPhaseOptions(data as PhaseOption[]); });
+  }, []);
 
   const refreshInboxCount = async () => {
     const { count } = await supabase
@@ -733,7 +746,9 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
                           if (draggingId) {
                             const current = leads.find(l => l.id === draggingId);
                             const currentCat = current ? resolveCategory(current, preIntakeMap[draggingId], !!analysisMap[draggingId]) : null;
-                            if (currentCat !== cat.key) updateCategory(draggingId, cat.key);
+                            // Niet meteen verplaatsen: eerst bevestigen, en bij een
+                            // gekoppeld dossier moet Bouwflow het eerst doorvoeren.
+                            if (current && currentCat !== cat.key) setMoveDialog({ lead: current, cat: cat.key });
                           }
                           setDraggingId(null);
                           setDragOverCat(null);
@@ -873,6 +888,31 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
           }}
         />
       )}
+
+      <MoveBouwflowPhaseDialog
+        open={!!moveDialog}
+        onOpenChange={(v) => { if (!v) setMoveDialog(null); }}
+        lead={moveDialog?.lead ?? null}
+        targetCategoryKey={moveDialog?.cat ?? null}
+        targetCategoryLabel={CATEGORIES.find(c => c.key === moveDialog?.cat)?.label ?? ''}
+        phaseOptions={phaseOptions}
+        onLocalOnly={() => {
+          if (moveDialog) updateCategory(moveDialog.lead.id, moveDialog.cat);
+          setMoveDialog(null);
+        }}
+        onConfirmed={(phase) => {
+          // Bouwflow is bevestigd bijgewerkt; de edge function heeft de rij al
+          // aangepast. Hier enkel de lokale weergave gelijkzetten.
+          if (moveDialog) {
+            const leadId = moveDialog.lead.id;
+            setLeads(prev => prev.map(l => l.id === leadId
+              ? { ...l, category_override: phase.compass_category, bouwflow_phase: String(phase.phase_id) }
+              : l));
+            toast.success(`Verplaatst — Bouwflow staat nu op "${phase.phase_title}"`);
+          }
+          setMoveDialog(null);
+        }}
+      />
     </div>
   );
 }
