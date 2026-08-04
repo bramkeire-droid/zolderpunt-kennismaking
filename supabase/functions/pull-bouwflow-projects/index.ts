@@ -177,6 +177,24 @@ Deno.serve(async (req) => {
   //     dan niet, dus die vallen terug op matchen via projectnummer.
   const salesProjects = allProjects.filter((p) => PIPELINE_IDS.includes(Number(p.project_pipeline_id)));
 
+  // Diagnose: welke pipeline-ids komen voor, en hoeveel projecten vallen buiten
+  // de boot? Zonder deze telling is een gemist project onzichtbaar.
+  const pipelineTally: Record<string, number> = {};
+  for (const p of allProjects) {
+    const key = p.project_pipeline_id === null || p.project_pipeline_id === undefined
+      ? '(geen)'
+      : String(p.project_pipeline_id);
+    pipelineTally[key] = (pipelineTally[key] ?? 0) + 1;
+  }
+  const skippedProjects = allProjects
+    .filter((p) => !PIPELINE_IDS.includes(Number(p.project_pipeline_id)))
+    .map((p) => ({
+      project_number: p.project_id,
+      project_name: typeof p.name === 'string' ? p.name.slice(0, 50) : '',
+      pipeline_id: p.project_pipeline_id ?? null,
+      phase_id: p.project_phase_id ?? null,
+    }));
+
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
@@ -291,6 +309,8 @@ Deno.serve(async (req) => {
       dry_run: true,
       total_seen: totalSeen,
       sales_pipeline_projects_seen: salesProjects.length,
+      pipeline_tally: pipelineTally,
+      skipped_projects: skippedProjects,
       matched: matchedDetails.length,
       matched_details: matchedDetails,
       would_create: wouldCreateDetails.length,
