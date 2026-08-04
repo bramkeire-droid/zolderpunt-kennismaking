@@ -12,13 +12,6 @@ const json = (body: unknown, status = 200) =>
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
 
-const ALLOWED_PHASES = new Set([
-  'nieuwe_lead',
-  'telefoongesprek_gehad',
-  'plaatsbezoek_ingepland',
-  'offerte_te_maken',
-]);
-
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
@@ -31,10 +24,14 @@ Deno.serve(async (req) => {
   }
 
   const leadId = typeof body.lead_id === 'string' ? body.lead_id.trim() : '';
-  const phase = typeof body.phase === 'string' ? body.phase.trim() : '';
+  // phase is nu een echte, numerieke Bouwflow project_phase_id (als string),
+  // rechtstreeks afkomstig uit de bouwflow_phases-tabel — geen semantische
+  // sleutel meer, dus geen hardcoded whitelist nodig, enkel een vorm-check.
+  const phaseRaw = typeof body.phase === 'string' ? body.phase.trim() : String(body.phase ?? '').trim();
+  const phase = /^\d+$/.test(phaseRaw) ? phaseRaw : '';
 
   if (!leadId) return json({ error: 'lead_id is verplicht' }, 400);
-  if (!ALLOWED_PHASES.has(phase)) return json({ error: 'Ongeldige phase' }, 400);
+  if (!phase) return json({ error: 'Ongeldige phase' }, 400);
 
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,

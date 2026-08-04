@@ -162,6 +162,7 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
   const [collapsed, setCollapsed] = useState<Record<CategoryKey, boolean>>({} as any);
   const [inboxOpen, setInboxOpen] = useState(false);
   const [inboxCount, setInboxCount] = useState(0);
+  const [bouwflowSyncing, setBouwflowSyncing] = useState(false);
   const toggleCollapse = (k: CategoryKey) => setCollapsed(p => ({ ...p, [k]: !p[k] }));
 
   const refreshInboxCount = async () => {
@@ -387,6 +388,34 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
     if (delErr) toast.error('Verwijderen mislukt');
     else { toast.success(`${count} leeg dossier(s) verwijderd`); fetchLeads(); }
   };
+  const handleBouwflowSync = async () => {
+    setBouwflowSyncing(true);
+    try {
+      const { data: phasesData, error: phasesError } = await supabase.functions.invoke('sync-bouwflow-phases', { body: {} });
+      if (phasesError) throw new Error(phasesError.message || 'Synchroniseren van Bouwflow-fasen mislukt');
+      if (phasesData?.error) throw new Error(String(phasesData.error));
+
+      const { data: pullData, error: pullError } = await supabase.functions.invoke('pull-bouwflow-projects', {
+        body: { dry_run: true },
+      });
+      if (pullError) throw new Error(pullError.message || 'Bouwflow dry-run mislukt');
+      if (pullData?.error) throw new Error(String(pullData.error));
+
+      const fasesCount = phasesData?.count ?? 0;
+      const matched = pullData?.matched ?? 0;
+      const wouldCreate = pullData?.would_create ?? 0;
+      const flaggedCount = Array.isArray(pullData?.flagged_test_projects) ? pullData.flagged_test_projects.length : 0;
+
+      toast.success(
+        `${fasesCount} fases bijgewerkt · ${matched} dossiers al gekoppeld · ${wouldCreate} zouden aangemaakt worden · ${flaggedCount} testprojecten genegeerd`
+      );
+    } catch (err: any) {
+      toast.error(err?.message || 'Synchroniseren met Bouwflow mislukt');
+    } finally {
+      setBouwflowSyncing(false);
+    }
+  };
+
   const handleCreateLead = async (category: CategoryKey) => {
     const { data, error } = await supabase
       .from('leads')
@@ -470,6 +499,16 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
             <Button variant="outline" onClick={fetchLeads} className="gap-2 font-headline" disabled={loading}>
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
               Vernieuwen
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleBouwflowSync}
+              className="gap-2 font-headline"
+              disabled={bouwflowSyncing}
+              title="Fasen ophalen en dry-run tonen van wat een echte projecten-sync zou doen"
+            >
+              <ArrowRightLeft className={`h-4 w-4 ${bouwflowSyncing ? 'animate-pulse' : ''}`} />
+              Synchroniseer met Bouwflow
             </Button>
           </div>
         </div>

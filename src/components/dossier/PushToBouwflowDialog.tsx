@@ -8,12 +8,13 @@ import { AlertTriangle, Send } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-export const BOUWFLOW_PHASES = [
-  { value: 'nieuwe_lead', label: 'Nieuwe lead' },
-  { value: 'telefoongesprek_gehad', label: 'Telefoongesprek gehad' },
-  { value: 'plaatsbezoek_ingepland', label: 'Plaatsbezoek ingepland' },
-  { value: 'offerte_te_maken', label: 'Offerte te maken' },
-] as const;
+const SALES_PIPELINE_ID = 1;
+
+interface BouwflowPhase {
+  id: number;
+  title_nl: string | null;
+  sort_order: number | null;
+}
 
 interface Props {
   open: boolean;
@@ -25,9 +26,28 @@ interface Props {
 export default function PushToBouwflowDialog({ open, onClose, lead, onPushed }: Props) {
   const [phase, setPhase] = useState<string>('');
   const [submitting, setSubmitting] = useState(false);
+  const [phases, setPhases] = useState<BouwflowPhase[]>([]);
+  const [phasesLoading, setPhasesLoading] = useState(false);
 
   useEffect(() => {
-    if (open) setPhase('');
+    if (!open) return;
+    setPhase('');
+    setPhasesLoading(true);
+    supabase
+      .from('bouwflow_phases')
+      .select('id, title_nl, sort_order')
+      .eq('project_pipeline_id', SALES_PIPELINE_ID)
+      .order('sort_order', { ascending: true })
+      .then(({ data, error }) => {
+        if (error) {
+          console.error('PushToBouwflowDialog: kon bouwflow_phases niet laden', error);
+          toast.error('Kon Bouwflow-fases niet laden');
+          setPhases([]);
+        } else {
+          setPhases((data as BouwflowPhase[]) ?? []);
+        }
+        setPhasesLoading(false);
+      });
   }, [open, lead?.id]);
 
   const hasWebsiteOmschrijving = !!(lead?.website_omschrijving && String(lead.website_omschrijving).trim());
@@ -102,24 +122,32 @@ export default function PushToBouwflowDialog({ open, onClose, lead, onPushed }: 
           </Alert>
         )}
 
-        <RadioGroup value={phase} onValueChange={setPhase} className="gap-3">
-          {BOUWFLOW_PHASES.map((p) => (
-            <label
-              key={p.value}
-              htmlFor={`bouwflow-phase-${p.value}`}
-              className="flex items-center gap-3 border border-border p-3 cursor-pointer hover:bg-accent/40 transition-colors"
-            >
-              <RadioGroupItem value={p.value} id={`bouwflow-phase-${p.value}`} />
-              <Label htmlFor={`bouwflow-phase-${p.value}`} className="cursor-pointer font-body">
-                {p.label}
-              </Label>
-            </label>
-          ))}
-        </RadioGroup>
+        {phasesLoading ? (
+          <p className="text-sm text-muted-foreground font-body py-2">Fasen laden…</p>
+        ) : phases.length === 0 ? (
+          <p className="text-sm text-muted-foreground font-body py-2">
+            Geen Bouwflow-fases gevonden. Synchroniseer eerst via "Synchroniseer met Bouwflow".
+          </p>
+        ) : (
+          <RadioGroup value={phase} onValueChange={setPhase} className="gap-3">
+            {phases.map((p) => (
+              <label
+                key={p.id}
+                htmlFor={`bouwflow-phase-${p.id}`}
+                className="flex items-center gap-3 border border-border p-3 cursor-pointer hover:bg-accent/40 transition-colors"
+              >
+                <RadioGroupItem value={String(p.id)} id={`bouwflow-phase-${p.id}`} />
+                <Label htmlFor={`bouwflow-phase-${p.id}`} className="cursor-pointer font-body">
+                  {p.title_nl || `Fase ${p.id}`}
+                </Label>
+              </label>
+            ))}
+          </RadioGroup>
+        )}
 
         <DialogFooter className="pt-2">
           <Button variant="outline" onClick={onClose} disabled={submitting}>Annuleren</Button>
-          <Button onClick={handleConfirm} disabled={!phase || submitting} className="gap-2">
+          <Button onClick={handleConfirm} disabled={!phase || submitting || phasesLoading} className="gap-2">
             {submitting ? 'Bezig…' : 'Bevestigen'}
           </Button>
         </DialogFooter>
