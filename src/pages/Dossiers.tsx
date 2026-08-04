@@ -210,6 +210,30 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
     }
   };
 
+  // "Automatisch bepalen" mag een gekoppeld dossier niet losweken van Bouwflow.
+  // Voor zo'n dossier betekent herstellen: terug naar wat Bouwflow zegt.
+  const resetCategory = async (lead: any) => {
+    const linked = Boolean(lead.bouwflow_project_pk_id);
+    const target = linked
+      ? (phaseOptions.find(p => String(p.phase_id) === String(lead.bouwflow_phase))?.compass_category ?? null)
+      : null;
+
+    if (linked && !target) {
+      toast.error('Onbekende Bouwflow-fase; categorie niet aangepast.');
+      return;
+    }
+
+    const prev = lead.category_override ?? null;
+    setLeads(ls => ls.map(l => l.id === lead.id ? { ...l, category_override: target } : l));
+    const { error } = await supabase.from('leads').update({ category_override: target } as any).eq('id', lead.id);
+    if (error) {
+      toast.error('Aanpassen mislukt');
+      setLeads(ls => ls.map(l => l.id === lead.id ? { ...l, category_override: prev } : l));
+      return;
+    }
+    toast.success(linked ? 'Gelijkgezet met Bouwflow' : 'Automatische categorie hersteld');
+  };
+
   const updateNextStep = async (leadId: string, value: string) => {
     const prev = leads.find(l => l.id === leadId);
     setLeads(ls => ls.map(l => l.id === leadId ? { ...l, volgende_stap: value } : l));
@@ -681,13 +705,15 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
                           </DropdownMenuSubTrigger>
                           <DropdownMenuSubContent className="w-56">
                             {CATEGORIES.map(c => (
-                              <DropdownMenuItem key={c.key} onClick={() => updateCategory(lead.id, c.key)}>
+                              // Zelfde weg als slepen: eerst bevestigen, en bij een
+                              // gekoppeld dossier moet Bouwflow het eerst doorvoeren.
+                              <DropdownMenuItem key={c.key} onClick={() => setMoveDialog({ lead, cat: c.key })}>
                                 {c.label}
                               </DropdownMenuItem>
                             ))}
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => updateCategory(lead.id, null)}>
-                              Automatisch bepalen
+                            <DropdownMenuItem onClick={() => resetCategory(lead)}>
+                              {lead.bouwflow_project_pk_id ? 'Gelijkzetten met Bouwflow' : 'Automatisch bepalen'}
                             </DropdownMenuItem>
                           </DropdownMenuSubContent>
                         </DropdownMenuSub>
