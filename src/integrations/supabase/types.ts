@@ -20,18 +20,21 @@ export type Database = {
           note: string | null
           phase_id: number
           phase_title: string
+          sort_order: number | null
         }
         Insert: {
           compass_category: string
           note?: string | null
           phase_id: number
           phase_title: string
+          sort_order?: number | null
         }
         Update: {
           compass_category?: string
           note?: string | null
           phase_id?: number
           phase_title?: string
+          sort_order?: number | null
         }
         Relationships: []
       }
@@ -247,6 +250,8 @@ export type Database = {
           adres: string
           adres_lat: number | null
           adres_lng: number | null
+          afgewezen_op: string | null
+          afwijs_reden: string | null
           bouwflow_phase: string | null
           bouwflow_project_id: string | null
           bouwflow_project_number: string | null
@@ -310,6 +315,8 @@ export type Database = {
           adres?: string
           adres_lat?: number | null
           adres_lng?: number | null
+          afgewezen_op?: string | null
+          afwijs_reden?: string | null
           bouwflow_phase?: string | null
           bouwflow_project_id?: string | null
           bouwflow_project_number?: string | null
@@ -373,6 +380,8 @@ export type Database = {
           adres?: string
           adres_lat?: number | null
           adres_lng?: number | null
+          afgewezen_op?: string | null
+          afwijs_reden?: string | null
           bouwflow_phase?: string | null
           bouwflow_project_id?: string | null
           bouwflow_project_number?: string | null
