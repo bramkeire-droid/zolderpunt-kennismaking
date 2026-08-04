@@ -1,36 +1,35 @@
-import { useSession, AppMode, MODE_FIRST_SLIDE, SLIDE_ORDER, SLIDE_MODES, SlideId } from '@/contexts/SessionContext';
+import { useSession, SLIDE_ORDER, SLIDE_MODES, SlideId } from '@/contexts/SessionContext';
 import { useAuth } from '@/contexts/AuthContext';
 import logoBlauw from '@/assets/logo-blauw.svg';
-import { LogOut, Phone, Home } from 'lucide-react';
+import { LogOut, Phone, FolderOpen, Plus, ChevronDown, Video, FilePlus2 } from 'lucide-react';
 import ExtraInfoMenu from './ExtraInfoMenu';
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 const HIDE_EXTRA_INFO_ON: SlideId[] = ['0A', '0B', '1'];
 
-const MODE_LABELS: Record<AppMode, string> = {
-  voorbereiding: 'Voorbereiding',
-  gesprek: 'Gesprek',
-  rapport: 'Rapport',
-  dossiers: 'Dossiers',
-};
-
-const MODES: AppMode[] = ['voorbereiding', 'gesprek', 'rapport', 'dossiers'];
-
+// De balk kent nog maar twee dingen: een nieuw dossier beginnen, of een
+// bestaand dossier openen. De stappen Voorbereiding / Gesprek / Rapport
+// stonden hier eerder als losse knoppen, maar dat zijn stappen bínnen een
+// dossier — als losse navigatie leidden ze tot verwarring. Binnen een dossier
+// navigeer je met Vorige / Volgende onderaan.
 interface NavigationBarProps {
   onGoHome?: () => void;
+  /** Telefoongesprek starten (kies of maak een lead). */
   onNewCall?: () => void;
+  /** Leeg dossier aanmaken en registratie openen. */
+  onNewDossier?: () => void;
+  /** Videocall-intake starten. */
+  onNewIntake?: () => void;
+  onGoDossiers?: () => void;
 }
 
-export default function NavigationBar({ onGoHome, onNewCall }: NavigationBarProps) {
-  const { currentMode, currentSlide, setCurrentSlide, setCurrentMode } = useSession();
+export default function NavigationBar({
+  onGoHome, onNewCall, onNewDossier, onNewIntake, onGoDossiers,
+}: NavigationBarProps) {
+  const { currentMode, currentSlide } = useSession();
   const { signOut } = useAuth();
-
-  const handleModeClick = (mode: AppMode) => {
-    if (mode === 'dossiers') {
-      setCurrentMode('dossiers');
-    } else {
-      setCurrentSlide(MODE_FIRST_SLIDE[mode]);
-    }
-  };
 
   const modeSlides = SLIDE_ORDER.filter(s => SLIDE_MODES[s] === currentMode);
   const slideIndex = modeSlides.indexOf(currentSlide) + 1;
@@ -41,32 +40,52 @@ export default function NavigationBar({ onGoHome, onNewCall }: NavigationBarProp
         <img src={logoBlauw} alt="Zolderpunt" className="h-8 w-auto" />
       </button>
 
-      <div className="flex items-center gap-1 ml-4">
-        {MODES.map(mode => (
-          <button
-            key={mode}
-            onClick={() => handleModeClick(mode)}
-            className={`px-4 py-2 rounded-none text-sm font-headline font-semibold transition-colors ${
-              currentMode === mode
-                ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-            }`}
-          >
-            {MODE_LABELS[mode]}
-          </button>
-        ))}
-      </div>
+      <div className="flex items-center gap-2 ml-4">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="flex items-center gap-2 px-4 py-2 text-sm font-headline font-semibold bg-primary text-primary-foreground hover:bg-secondary transition-colors">
+              <Plus className="h-4 w-4" />
+              Nieuw dossier
+              <ChevronDown className="h-3.5 w-3.5 opacity-70" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-64">
+            <DropdownMenuItem onClick={() => onNewDossier?.()}>
+              <FilePlus2 className="h-4 w-4 mr-2 text-muted-foreground" />
+              <div className="flex flex-col">
+                <span>Leeg dossier</span>
+                <span className="text-xs text-muted-foreground">Enkel klantgegevens registreren</span>
+              </div>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onNewCall?.()}>
+              <Phone className="h-4 w-4 mr-2 text-muted-foreground" />
+              <div className="flex flex-col">
+                <span>Telefoongesprek</span>
+                <span className="text-xs text-muted-foreground">Bellen en meteen noteren</span>
+              </div>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onNewIntake?.()}>
+              <Video className="h-4 w-4 mr-2 text-muted-foreground" />
+              <div className="flex flex-col">
+                <span>Videocall intake</span>
+                <span className="text-xs text-muted-foreground">Volledig intakegesprek doorlopen</span>
+              </div>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
-      {onNewCall && (
         <button
-          onClick={onNewCall}
-          className="flex items-center gap-2 px-3 py-2 text-sm font-headline font-semibold text-primary hover:bg-primary/10 transition-colors"
-          title="Nieuw telefoongesprek"
+          onClick={() => onGoDossiers?.()}
+          className={`flex items-center gap-2 px-4 py-2 text-sm font-headline font-semibold transition-colors ${
+            currentMode === 'dossiers'
+              ? 'bg-primary text-primary-foreground'
+              : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+          }`}
         >
-          <Phone className="h-4 w-4" />
-          <span className="hidden lg:inline">Telefoongesprek</span>
+          <FolderOpen className="h-4 w-4" />
+          Dossiers
         </button>
-      )}
+      </div>
 
       {currentMode !== 'dossiers' && (
         <div className="ml-auto flex items-center gap-4">
