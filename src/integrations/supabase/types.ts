@@ -214,6 +214,62 @@ export type Database = {
           },
         ]
       }
+      inbound_memos: {
+        Row: {
+          body: string
+          created_at: string
+          email_attempts: number
+          email_error: string
+          emailed_at: string | null
+          from_display: string
+          from_identifier: string
+          id: string
+          kind: string
+          lead_id: string | null
+          media_ids: string[]
+          source: string
+          subject: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          email_attempts?: number
+          email_error?: string
+          emailed_at?: string | null
+          from_display?: string
+          from_identifier: string
+          id?: string
+          kind?: string
+          lead_id?: string | null
+          media_ids?: string[]
+          source?: string
+          subject?: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          email_attempts?: number
+          email_error?: string
+          emailed_at?: string | null
+          from_display?: string
+          from_identifier?: string
+          id?: string
+          kind?: string
+          lead_id?: string | null
+          media_ids?: string[]
+          source?: string
+          subject?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inbound_memos_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inbound_webhook_dedup: {
         Row: {
           created_at: string
