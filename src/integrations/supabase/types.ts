@@ -20,6 +20,7 @@ export type Database = {
           note: string | null
           phase_id: number
           phase_title: string
+          pipeline_id: number | null
           sort_order: number | null
         }
         Insert: {
@@ -27,6 +28,7 @@ export type Database = {
           note?: string | null
           phase_id: number
           phase_title: string
+          pipeline_id?: number | null
           sort_order?: number | null
         }
         Update: {
@@ -34,6 +36,7 @@ export type Database = {
           note?: string | null
           phase_id?: number
           phase_title?: string
+          pipeline_id?: number | null
           sort_order?: number | null
         }
         Relationships: []
