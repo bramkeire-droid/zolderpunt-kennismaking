@@ -243,6 +243,9 @@ Deno.serve(async (req) => {
     if (lead.bouwflow_project_number) leadByProjectNumber.set(String(lead.bouwflow_project_number), entry);
   }
 
+  // Eén Compass-dossier hoort bij één Bouwflow-project; houdt bij welke
+  // dossiers in deze run al vergeven zijn.
+  const claimedLeadIds = new Set<string>();
   const matchedDetails: Record<string, unknown>[] = [];
   const wouldCreateDetails: CreateCandidate[] = [];
   const flaggedTestProjects: CreateCandidate[] = [];
@@ -258,9 +261,22 @@ Deno.serve(async (req) => {
     const projectNumber = project.project_id;
     const isFlagged = TEST_NAME_RE.test(projectName);
 
-    const existingLead =
-      (customerId !== null ? leadByCustomerId.get(String(customerId)) : undefined) ??
-      (projectNumber ? leadByProjectNumber.get(String(projectNumber)) : undefined);
+    // Projectnummer EERST: dat is uniek per project. Een klant kan meerdere
+    // projecten hebben (Kim De Braekeleir, Rob & An-Katrien, RGV...), dus
+    // matchen op customer-id alleen zou twee projecten op hetzelfde dossier
+    // laten landen — de tweede overschreef dan de eerste en dat project
+    // verdween uit Compass (zo raakten ZL-0013 en ZL-0014 zoek).
+    let existingLead = projectNumber ? leadByProjectNumber.get(String(projectNumber)) : undefined;
+
+    if (!existingLead && customerId !== null) {
+      const byCustomer = leadByCustomerId.get(String(customerId));
+      // Alleen bruikbaar als dat dossier nog geen ander project heeft en in
+      // deze run nog niet vergeven is.
+      if (byCustomer && !byCustomer.bouwflow_project_number && !claimedLeadIds.has(byCustomer.id)) {
+        existingLead = byCustomer;
+      }
+    }
+    if (existingLead) claimedLeadIds.add(existingLead.id);
 
     if (existingLead) {
       matchedDetails.push({
