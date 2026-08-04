@@ -332,13 +332,31 @@ bug in deze code maar een harde beperking van de sandbox, en ze geldt vandaag al
 het doorsturen van foto's — dus de hele doorstuurfunctie wankelt erop, niet alleen
 `tbc`.
 
-Er kan met code niets aan gedaan worden; de uitweg is een echte
-WhatsApp-productiesender (Meta Business-verificatie via Twilio). Er liep aan het eind
-van de vorige sessie een onderzoek naar de precieze voorwaarden, doorlooptijd en
-kosten dat niet meer afgerond raakte. **Zoek dit opnieuw uit vóór je Bram een
-richting aanraadt**, en let daarbij op de 24-uursregel van WhatsApp: antwoorden op
-een inkomend bericht mogen vrije tekst zijn, maar een bericht dat het bedrijf zelf
-initieert vereist buiten dat venster een goedgekeurd template. Dat raakt `sendWhatsApp`.
+Het onderzoek is intussen afgerond en staat volledig in
+**`docs/whatsapp-sandbox-advies.md`**. Lees dat vóór je hier iets over zegt. De kern:
+
+- Er is **geen** oplossing in code. De joincode moet uit de WhatsApp van de gebruiker
+  zelf komen, en de klok van 72 uur loopt vanaf het joinen — niet vanaf het laatste
+  bericht, dus warmhouden werkt niet.
+- Twilio's eigen documentatie zegt dat de sandbox niet in productie hoort. Dit draait
+  vandaag dus op een testomgeving.
+- **De helft van de schade is onzichtbaar**: een foto van iemand met een verlopen
+  sessie bereikt de webhook waarschijnlijk nooit, zonder fout of logregel. Dat is een
+  afleiding uit het routeringsmechanisme, geen uitspraak van Twilio — **laat Bram dit
+  testen** voor er conclusies aan verbonden worden.
+- De uitweg is een eigen WhatsApp-nummer via Twilio Self Sign-up plus Meta Business
+  Verification. Verificatie is gratis, het nummer kost enkele euro's per maand, maar
+  de doorlooptijd is 1 tot 3 weken en is een harde poort. Het nummer mag nog niet op
+  de gewone WhatsApp in gebruik zijn.
+- Twee mitigaties zijn wél bouwbaar en samen ongeveer een halve dag: een één-tik
+  joinlink (`https://wa.me/14155238886?text=join%20check-pocket`) met QR-code in
+  `InboundHint.tsx`, en het uitlezen van Twilio-foutcode **63015** in `sendWhatsApp`
+  om Bram te mailen als een bevestiging niet aankwam.
+
+Let daarnaast op de 24-uursregel van WhatsApp: antwoorden op een inkomend bericht
+mogen vrije tekst zijn, maar een bericht dat het bedrijf zelf initieert vereist buiten
+dat venster een goedgekeurd template. Dat raakt `sendWhatsApp` zodra er ooit iets
+proactiefs bij komt.
 
 Behandel dit als een apart traject, niet als onderdeel van deze PR.
 
