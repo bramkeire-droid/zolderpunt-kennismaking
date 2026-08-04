@@ -257,7 +257,11 @@ export async function rememberConversation(
 // Photos and free-text hints for the same sender, in any order and in
 // separate messages, are combined as long as they land within this window
 // of each other — covers "text before photos" and "text after photos".
-const WINDOW_MS = 10 * 60 * 1000; // 10 minutes
+// A batch that gets an inconclusive "we don't know which customer" reply
+// leaves this window open (see flushGroup's no-candidates branch), so this
+// also bounds how long someone on-site has to send the missing name before
+// the link to their already-sent photos is dropped.
+const WINDOW_MS = 60 * 60 * 1000; // 1 hour
 
 export interface WindowState {
   mediaIds: string[];
