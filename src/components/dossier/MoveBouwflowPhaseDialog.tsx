@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { ArrowRightLeft, ExternalLink, Loader2, AlertTriangle } from 'lucide-react';
 
@@ -11,6 +11,12 @@ import { ArrowRightLeft, ExternalLink, Loader2, AlertTriangle } from 'lucide-rea
 // achtergrondtabblad. Zie chrome-extension/background.js.
 const APP_SOURCE = 'zp-compass';
 const EXT_SOURCE = 'zp-compass-ext';
+
+// BouwFlow bewaart een afwijsreden in customer_rejected_reason_id, maar dat
+// veld is niet schrijfbaar via de API en staat niet op de bewerkpagina — het
+// is enkel te zetten via de kanban-popup. De reden wordt daarom in Compass
+// zelf bewaard (leads.afwijs_reden).
+const REJECTED_PHASE_ID = 8;
 
 function askExtension<T = any>(payload: Record<string, unknown>, expectType: string, timeoutMs: number): Promise<T | null> {
   return new Promise((resolve) => {
@@ -41,65 +47,41 @@ export interface PhaseOption {
   phase_id: number;
   phase_title: string;
   compass_category: string;
+  sort_order?: number;
 }
 
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   lead: any | null;
-  targetCategoryKey: string | null;
-  targetCategoryLabel: string;
-  phaseOptions: PhaseOption[];
-  /** Dossier zonder BouwFlow-koppeling: enkel lokaal verplaatsen. */
-  onLocalOnly: () => void;
-  /** BouwFlow bevestigd; parent mag de kaart verplaatsen. */
-  onConfirmed: (phase: PhaseOption) => void;
+  targetPhase: PhaseOption | null;
+  onConfirmed: (phase: PhaseOption, reden: string | null) => void;
 }
 
-type Status = 'idle' | 'working' | 'error';
-
-export default function MoveBouwflowPhaseDialog({
-  open, onOpenChange, lead, targetCategoryKey, targetCategoryLabel, phaseOptions, onLocalOnly, onConfirmed,
-}: Props) {
-  const [status, setStatus] = useState<Status>('idle');
+export default function MoveBouwflowPhaseDialog({ open, onOpenChange, lead, targetPhase, onConfirmed }: Props) {
+  const [busy, setBusy] = useState(false);
   const [step, setStep] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [needsExtension, setNeedsExtension] = useState(false);
-  const [chosenPhaseId, setChosenPhaseId] = useState<string>('');
-
-  const options = useMemo(
-    () => phaseOptions.filter(p => p.compass_category === targetCategoryKey),
-    [phaseOptions, targetCategoryKey]
-  );
-
-  const isLinked = Boolean(lead?.bouwflow_project_pk_id);
-  const projectNumber: string | null = lead?.bouwflow_project_number ?? null;
+  const [reden, setReden] = useState('');
 
   useEffect(() => {
     if (!open) return;
-    setStatus('idle');
+    setBusy(false);
     setStep('');
     setError(null);
     setNeedsExtension(false);
-    setChosenPhaseId(options.length > 0 ? String(options[0].phase_id) : '');
-  }, [open, options]);
+    setReden(lead?.afwijs_reden ?? '');
+  }, [open, lead]);
 
   const naam = lead ? `${lead.voornaam ?? ''} ${lead.achternaam ?? ''}`.trim() : '';
+  const projectNumber: string | null = lead?.bouwflow_project_number ?? null;
+  const isRejection = targetPhase?.phase_id === REJECTED_PHASE_ID;
 
   const handleConfirm = async () => {
-    if (!lead) return;
+    if (!lead || !targetPhase) return;
 
-    // Geen BouwFlow-koppeling: gewoon lokaal verplaatsen.
-    if (!isLinked) {
-      onLocalOnly();
-      onOpenChange(false);
-      return;
-    }
-
-    const phase = options.find(p => String(p.phase_id) === chosenPhaseId);
-    if (!phase) { setError('Kies eerst een Bouwflow-fase.'); return; }
-
-    setStatus('working');
+    setBusy(true);
     setError(null);
     setNeedsExtension(false);
 
@@ -108,32 +90,26 @@ export default function MoveBouwflowPhaseDialog({
     const pong = await askExtension<{ version?: string }>({ type: 'PING' }, 'PONG', 1500);
     if (!pong) {
       setNeedsExtension(true);
-      setStatus('error');
+      setBusy(false);
       setStep('');
       return;
     }
 
     // 2. Laat de extensie de fase in de BouwFlow-UI zetten.
-    setStep(`Bouwflow bijwerken naar "${phase.phase_title}"…`);
+    setStep(`Bouwflow bijwerken naar "${targetPhase.phase_title}"…`);
     const res = await askExtension<{ ok: boolean; error?: string; needsLogin?: boolean }>(
-      { type: 'SET_PHASE', projectNumber, phaseId: phase.phase_id, phaseTitle: phase.phase_title },
+      { type: 'SET_PHASE', projectNumber, phaseId: targetPhase.phase_id, phaseTitle: targetPhase.phase_title },
       'SET_PHASE_RESULT',
       60000
     );
 
-    if (!res) {
-      setStatus('error');
-      setStep('');
-      setError('De extensie reageerde niet op tijd. Staat Bouwflow nog open en ben je ingelogd?');
-      return;
-    }
-    if (!res.ok) {
-      setStatus('error');
+    if (!res || !res.ok) {
+      setBusy(false);
       setStep('');
       setError(
-        res.needsLogin
-          ? 'Je bent niet ingelogd in Bouwflow. Log in en probeer opnieuw.'
-          : res.error || 'De extensie kon de fase niet wijzigen.'
+        !res ? 'De extensie reageerde niet op tijd. Staat Bouwflow nog open en ben je ingelogd?'
+        : res.needsLogin ? 'Je bent niet ingelogd in Bouwflow. Log in en probeer opnieuw.'
+        : res.error || 'De extensie kon de fase niet wijzigen.'
       );
       return;
     }
@@ -142,30 +118,38 @@ export default function MoveBouwflowPhaseDialog({
     //    Compass bijwerken. De extensie wordt niet op haar woord geloofd.
     setStep('Controleren in Bouwflow…');
     const { data, error: fnError } = await supabase.functions.invoke('push-bouwflow-phase', {
-      body: { lead_id: lead.id, phase_id: phase.phase_id },
+      body: { lead_id: lead.id, phase_id: targetPhase.phase_id },
     });
 
-    if (fnError) {
-      setStatus('error');
-      setStep('');
-      setError(`Controle mislukt: ${fnError.message}`);
-      return;
-    }
-    if (!data?.success || data?.applied !== true) {
-      setStatus('error');
+    if (fnError || !data?.success || data?.applied !== true) {
+      setBusy(false);
       setStep('');
       setError(
-        data?.message ||
-        'Bouwflow staat niet op de gevraagde fase. Het dossier is niet verplaatst zodat beide systemen gelijk blijven.'
+        fnError ? `Controle mislukt: ${fnError.message}`
+        : data?.message || 'Bouwflow staat niet op de gevraagde fase. Het dossier is niet verplaatst zodat beide systemen gelijk blijven.'
       );
       return;
     }
 
-    onConfirmed(phase);
+    // 4. Afwijsreden is Compass-eigen; pas wegschrijven nadat Bouwflow akkoord is.
+    const schoonReden = isRejection ? reden.trim() : '';
+    if (isRejection) {
+      const { error: redenError } = await supabase
+        .from('leads')
+        .update({ afwijs_reden: schoonReden || null, afgewezen_op: new Date().toISOString() } as any)
+        .eq('id', lead.id);
+      if (redenError) {
+        // De fase staat al goed in beide systemen; enkel de reden ontbreekt.
+        setBusy(false);
+        setStep('');
+        setError(`Fase is verplaatst, maar de reden kon niet opgeslagen worden: ${redenError.message}`);
+        return;
+      }
+    }
+
+    onConfirmed(targetPhase, isRejection ? (schoonReden || null) : null);
     onOpenChange(false);
   };
-
-  const busy = status === 'working';
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!busy) onOpenChange(v); }}>
@@ -173,41 +157,28 @@ export default function MoveBouwflowPhaseDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ArrowRightLeft className="h-4 w-4 text-primary" />
-            Verplaatsen naar "{targetCategoryLabel}"
+            Verplaatsen naar "{targetPhase?.phase_title ?? ''}"
           </DialogTitle>
           <DialogDescription>
-            {isLinked
-              ? <>Dit past ook de projectfase van <span className="font-medium">{naam}</span> aan in Bouwflow{projectNumber ? ` (${projectNumber})` : ''}.</>
-              : <>Dit dossier is niet aan Bouwflow gekoppeld en wordt enkel in Compass verplaatst.</>}
+            Dit zet <span className="font-medium">{naam}</span>
+            {projectNumber ? ` (${projectNumber})` : ''} ook in Bouwflow op deze fase.
           </DialogDescription>
         </DialogHeader>
 
-        {isLinked && options.length > 1 && (
-          <div className="space-y-2">
-            <p className="text-sm text-muted-foreground">
-              Deze kolom komt overeen met meerdere Bouwflow-fases. Kies de juiste:
+        {isRejection && (
+          <div className="space-y-1.5">
+            <label htmlFor="afwijs-reden" className="text-sm font-medium">Waarom afgewezen?</label>
+            <Textarea
+              id="afwijs-reden"
+              value={reden}
+              onChange={(e) => setReden(e.target.value)}
+              placeholder="Bijvoorbeeld: te duur, kiest andere aannemer, project uitgesteld…"
+              rows={3}
+              disabled={busy}
+            />
+            <p className="text-xs text-muted-foreground">
+              Wordt in Compass bewaard. Bouwflow's eigen redenveld is via de API niet te vullen.
             </p>
-            <Select value={chosenPhaseId} onValueChange={setChosenPhaseId} disabled={busy}>
-              <SelectTrigger><SelectValue placeholder="Kies een Bouwflow-fase" /></SelectTrigger>
-              <SelectContent>
-                {options.map(o => (
-                  <SelectItem key={o.phase_id} value={String(o.phase_id)}>{o.phase_title}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-
-        {isLinked && options.length === 1 && (
-          <p className="text-sm">
-            Bouwflow-fase wordt: <span className="font-medium">{options[0].phase_title}</span>
-          </p>
-        )}
-
-        {isLinked && options.length === 0 && (
-          <div className="flex gap-2 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
-            <span>Voor deze kolom is geen Bouwflow-fase bekend. Verplaatsen zou de systemen uit elkaar laten lopen.</span>
           </div>
         )}
 
@@ -245,8 +216,8 @@ export default function MoveBouwflowPhaseDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>Annuleren</Button>
-          <Button onClick={handleConfirm} disabled={busy || (isLinked && options.length === 0)}>
-            {busy ? 'Bezig…' : isLinked ? 'Verplaatsen in Compass én Bouwflow' : 'Verplaatsen'}
+          <Button onClick={handleConfirm} disabled={busy || !targetPhase}>
+            {busy ? 'Bezig…' : 'Verplaatsen in Compass én Bouwflow'}
           </Button>
         </DialogFooter>
       </DialogContent>
