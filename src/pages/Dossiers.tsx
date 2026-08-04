@@ -66,21 +66,30 @@ const phaseKey = (phaseId: number | string) => `phase:${phaseId}`;
 
 export interface CategoryDef { key: CategoryKey; label: string; accent: string; phaseId: number | null }
 
-// Kleuren volgen de fase-volgorde: grijs bij binnenkomst, via blauw/paars naar
-// groen bij goedkeuring, amber voor opvolging en rood voor geweigerd.
-const ACCENTS = [
+// Verkoop loopt van grijs via blauw/paars naar groen, met amber voor opvolging
+// en rood voor geweigerd. Uitvoering krijgt een eigen, warmere reeks zodat de
+// twee pipelines in één lijst uit elkaar te houden zijn.
+const ACCENTS_VERKOOP = [
   'border-l-slate-400', 'border-l-sky-500', 'border-l-blue-500', 'border-l-indigo-500',
   'border-l-violet-500', 'border-l-purple-500', 'border-l-fuchsia-500', 'border-l-pink-500',
   'border-l-green-500', 'border-l-emerald-600', 'border-l-amber-500', 'border-l-red-500',
 ];
+const ACCENTS_UITVOERING = [
+  'border-l-teal-500', 'border-l-cyan-600', 'border-l-orange-400', 'border-l-orange-500',
+  'border-l-orange-600', 'border-l-amber-600', 'border-l-yellow-600', 'border-l-lime-600',
+  'border-l-green-700', 'border-l-emerald-700', 'border-l-stone-500',
+];
 
-function buildCategories(phases: { phase_id: number; phase_title: string }[]): CategoryDef[] {
-  const cols = phases.map((p, i) => ({
-    key: phaseKey(p.phase_id),
-    label: p.phase_title,
-    accent: ACCENTS[i % ACCENTS.length],
-    phaseId: p.phase_id,
-  }));
+function buildCategories(phases: { phase_id: number; phase_title: string; pipeline_id?: number | null }[]): CategoryDef[] {
+  let v = 0;
+  let u = 0;
+  const cols = phases.map((p) => {
+    const isUitvoering = Number(p.pipeline_id) === 2;
+    const accent = isUitvoering
+      ? ACCENTS_UITVOERING[u++ % ACCENTS_UITVOERING.length]
+      : ACCENTS_VERKOOP[v++ % ACCENTS_VERKOOP.length];
+    return { key: phaseKey(p.phase_id), label: p.phase_title, accent, phaseId: p.phase_id };
+  });
   // Dossiers zonder Bouwflow-koppeling horen in geen enkele Bouwflow-kolom;
   // ze apart tonen is eerlijker dan ze in een fase te duwen die niet bestaat.
   cols.push({ key: UNLINKED, label: 'Niet in Bouwflow', accent: 'border-l-neutral-300', phaseId: null });
@@ -182,7 +191,7 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
   useEffect(() => {
     supabase
       .from('bouwflow_phase_category_map')
-      .select('phase_id, phase_title, compass_category, sort_order')
+      .select('phase_id, phase_title, compass_category, sort_order, pipeline_id')
       .order('sort_order')
       .then(({ data }) => { if (data) setPhaseOptions(data as PhaseOption[]); });
   }, []);

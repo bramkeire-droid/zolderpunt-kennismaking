@@ -48,6 +48,7 @@ export interface PhaseOption {
   phase_title: string;
   compass_category: string;
   sort_order?: number;
+  pipeline_id?: number | null;
 }
 
 interface Props {

@@ -53,7 +53,9 @@ const json = (body: unknown, status = 200) =>
   });
 
 const GET_PROJECTS_URL = 'https://hxisdviyjmjbgaiydlfk.supabase.co/functions/v1/get-bouwflow-projects';
-const SALES_PIPELINE_ID = 1;
+// Beide pipelines: 1 = Verkoop, 2 = Uitvoering. Compass toont ze allebei,
+// elk met hun eigen fases als kolom.
+const PIPELINE_IDS = [1, 2];
 const TEST_NAME_RE = /^(WORKFLOWTEST|WORKFLOW TEST|VERIFICATIETEST)/i;
 
 function splitName(fullName: string): { voornaam: string; achternaam: string } {
@@ -166,21 +168,26 @@ Deno.serve(async (req) => {
   const allProjects = ((proxyResult as Record<string, unknown>).projects as Record<string, unknown>[]) ?? [];
   const totalSeen = allProjects.length;
 
-  const salesProjects = allProjects.filter((p) => {
-    const pipelineId = Number(p.project_pipeline_id);
-    const customers = Array.isArray(p.customers) ? (p.customers as unknown[]) : [];
-    return pipelineId === SALES_PIPELINE_ID && customers.length > 0;
-  });
+  // ALLE projecten, uit BEIDE pipelines. Twee eerdere filters lieten samen 37
+  // van de 90 projecten buiten Compass vallen:
+  //   - `pipelineId === 1` sloeg de hele Uitvoering-pipeline over (21 stuks);
+  //   - `customers.length > 0` gooide projecten zonder gekoppelde klant weg
+  //     (15 stuks, o.a. ZL-0041 en ZL-0043). Zo'n project bestaat wel degelijk
+  //     en hoort dus gewoon in Compass; enkel het koppelen op customer-id lukt
+  //     dan niet, dus die vallen terug op matchen via projectnummer.
+  const salesProjects = allProjects.filter((p) => PIPELINE_IDS.includes(Number(p.project_pipeline_id)));
 
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
   );
 
+  // Ook dossiers die enkel een projectnummer hebben (bv. handmatig gekoppeld,
+  // of een project zonder klant): die moeten hervonden worden, niet gedupliceerd.
   const { data: existingLeads, error: leadsError } = await supabase
     .from('leads')
     .select('id, bouwflow_project_id, bouwflow_project_number')
-    .not('bouwflow_project_id', 'is', null);
+    .or('bouwflow_project_id.not.is.null,bouwflow_project_number.not.is.null');
 
   if (leadsError) {
     console.error('pull-bouwflow-projects: leads fetch error', leadsError);
@@ -211,13 +218,11 @@ Deno.serve(async (req) => {
   const unmappedPhases = new Set<string>();
 
   const leadByCustomerId = new Map<string, { id: string; bouwflow_project_number: string | null }>();
+  const leadByProjectNumber = new Map<string, { id: string; bouwflow_project_number: string | null }>();
   for (const lead of existingLeads ?? []) {
-    if (lead.bouwflow_project_id) {
-      leadByCustomerId.set(String(lead.bouwflow_project_id), {
-        id: lead.id,
-        bouwflow_project_number: lead.bouwflow_project_number ?? null,
-      });
-    }
+    const entry = { id: lead.id, bouwflow_project_number: lead.bouwflow_project_number ?? null };
+    if (lead.bouwflow_project_id) leadByCustomerId.set(String(lead.bouwflow_project_id), entry);
+    if (lead.bouwflow_project_number) leadByProjectNumber.set(String(lead.bouwflow_project_number), entry);
   }
 
   const matchedDetails: Record<string, unknown>[] = [];
@@ -225,42 +230,50 @@ Deno.serve(async (req) => {
   const flaggedTestProjects: CreateCandidate[] = [];
 
   for (const project of salesProjects) {
-    const customers = project.customers as Record<string, unknown>[];
+    const customers = Array.isArray(project.customers) ? (project.customers as Record<string, unknown>[]) : [];
     const customer = customers[0];
-    const customerId = customer?.id;
-    if (customerId === undefined || customerId === null) continue;
+    // Een project zonder gekoppelde klant is nog steeds een echt project;
+    // het valt dan terug op matchen via projectnummer.
+    const customerId = customer?.id ?? null;
 
     const projectName = typeof project.name === 'string' ? project.name : '';
+    const projectNumber = project.project_id;
     const isFlagged = TEST_NAME_RE.test(projectName);
 
-    const existingLead = leadByCustomerId.get(String(customerId));
+    const existingLead =
+      (customerId !== null ? leadByCustomerId.get(String(customerId)) : undefined) ??
+      (projectNumber ? leadByProjectNumber.get(String(projectNumber)) : undefined);
 
     if (existingLead) {
       matchedDetails.push({
         lead_id: existingLead.id,
         customer_id: customerId,
         project_pk_id: project.id,
-        project_number: project.project_id,
+        project_number: projectNumber,
         project_phase_id: project.project_phase_id,
         project_name: projectName,
       });
       continue;
     }
 
-    const { voornaam, achternaam } = splitName(typeof customer.name === 'string' ? customer.name : '');
+    // Zonder klant is er geen naam/telefoon/e-mail; de projectnaam is dan het
+    // enige houvast en wordt als dossiernaam gebruikt.
+    const { voornaam, achternaam } = customer
+      ? splitName(typeof customer.name === 'string' ? customer.name : '')
+      : splitName(projectName);
     const addresses = Array.isArray(project.addresses) ? (project.addresses as unknown[]) : [];
     const adres = addresses.length > 0 ? formatAddress(addresses[0]) : '';
 
     const candidate: CreateCandidate = {
       customer_id: customerId,
       project_pk_id: project.id,
-      project_number: project.project_id,
+      project_number: projectNumber,
       project_phase_id: project.project_phase_id,
       project_name: projectName,
       voornaam,
       achternaam,
-      email: typeof customer.email === 'string' ? customer.email : '',
-      telefoon: typeof customer.phone === 'string' ? customer.phone : '',
+      email: customer && typeof customer.email === 'string' ? customer.email : '',
+      telefoon: customer && typeof customer.phone === 'string' ? customer.phone : '',
       adres,
       raw_addresses: addresses,
     };
@@ -349,7 +362,8 @@ Deno.serve(async (req) => {
       // Bouwflow bepaalt in welke kolom dit dossier hoort. Zonder deze waarde
       // valt een vers geimporteerd dossier altijd terug op 'nieuw'.
       category_override: mappedCategory,
-      bouwflow_project_id: String(c.customer_id),
+      // Zonder klant blijft dit leeg; String(null) zou letterlijk "null" opslaan.
+      bouwflow_project_id: c.customer_id === null || c.customer_id === undefined ? null : String(c.customer_id),
       bouwflow_project_pk_id: c.project_pk_id,
       bouwflow_project_number: c.project_number,
       bouwflow_phase:
