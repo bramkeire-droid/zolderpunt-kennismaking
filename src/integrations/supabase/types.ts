@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      bouwflow_phases: {
+        Row: {
+          approved: boolean | null
+          final: boolean | null
+          id: number
+          project_pipeline_id: number | null
+          rejected: boolean | null
+          sort_order: number | null
+          synced_at: string
+          title_en: string | null
+          title_fr: string | null
+          title_nl: string | null
+        }
+        Insert: {
+          approved?: boolean | null
+          final?: boolean | null
+          id: number
+          project_pipeline_id?: number | null
+          rejected?: boolean | null
+          sort_order?: number | null
+          synced_at?: string
+          title_en?: string | null
+          title_fr?: string | null
+          title_nl?: string | null
+        }
+        Update: {
+          approved?: boolean | null
+          final?: boolean | null
+          id?: number
+          project_pipeline_id?: number | null
+          rejected?: boolean | null
+          sort_order?: number | null
+          synced_at?: string
+          title_en?: string | null
+          title_fr?: string | null
+          title_nl?: string | null
+        }
+        Relationships: []
+      }
       google_reviews_cache: {
         Row: {
           fetched_at: string
@@ -190,6 +229,8 @@ export type Database = {
           bouwflow_phase: string | null
           bouwflow_project_id: string | null
           bouwflow_project_number: string | null
+          bouwflow_project_pk_id: number | null
+          bouwflow_pull_synced_at: string | null
           bouwflow_pushed_at: string | null
           btw_percentage: number | null
           budget_excl: number | null
@@ -251,6 +292,8 @@ export type Database = {
           bouwflow_phase?: string | null
           bouwflow_project_id?: string | null
           bouwflow_project_number?: string | null
+          bouwflow_project_pk_id?: number | null
+          bouwflow_pull_synced_at?: string | null
           bouwflow_pushed_at?: string | null
           btw_percentage?: number | null
           budget_excl?: number | null
@@ -312,6 +355,8 @@ export type Database = {
           bouwflow_phase?: string | null
           bouwflow_project_id?: string | null
           bouwflow_project_number?: string | null
+          bouwflow_project_pk_id?: number | null
+          bouwflow_pull_synced_at?: string | null
           bouwflow_pushed_at?: string | null
           btw_percentage?: number | null
           budget_excl?: number | null
