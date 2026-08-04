@@ -53,8 +53,10 @@ const STATUS_CONFIG: Record<string, { label: string; bg: string; color: string }
   verloren:         { label: 'Verloren',         bg: 'bg-red-100',        color: 'text-red-700' },
 };
 
-type CategoryKey = 'nieuw' | 'telefoon' | 'video' | 'plaatsbezoek' | 'offerte' | 'afgewezen' | 'goedgekeurd' | 'afgerond';
+type CategoryKey = 'nieuw' | 'telefoon' | 'video' | 'plaatsbezoek' | 'offerte' | 'opvolging' | 'afgewezen' | 'goedgekeurd' | 'afgerond';
 
+// Volgorde spiegelt bewust de kolomvolgorde van Bouwflow's Verkoop-pipeline:
+// Bouwflow is de leidende waarheid voor de fase van een gekoppeld dossier.
 const CATEGORIES: { key: CategoryKey; label: string; accent: string }[] = [
   { key: 'nieuw',        label: 'Nieuwe lead',            accent: 'border-l-slate-400' },
   { key: 'telefoon',     label: 'Telefoongesprek gehad',  accent: 'border-l-blue-500' },
@@ -62,6 +64,7 @@ const CATEGORIES: { key: CategoryKey; label: string; accent: string }[] = [
   { key: 'plaatsbezoek', label: 'Plaatsbezoek gehad',     accent: 'border-l-indigo-500' },
   { key: 'offerte',      label: 'Offerte opmaken',        accent: 'border-l-purple-500' },
   { key: 'goedgekeurd',  label: 'Project goedgekeurd',    accent: 'border-l-green-500' },
+  { key: 'opvolging',    label: 'Opvolging lange termijn', accent: 'border-l-amber-500' },
   { key: 'afgewezen',    label: 'Project afgewezen',      accent: 'border-l-red-500' },
   { key: 'afgerond',     label: 'Project afgerond',       accent: 'border-l-emerald-600' },
 ];
@@ -279,7 +282,7 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
 
   const groupedByCategory = useMemo(() => {
     const groups: Record<CategoryKey, any[]> = {
-      nieuw: [], telefoon: [], video: [], plaatsbezoek: [], offerte: [], afgewezen: [], goedgekeurd: [], afgerond: [],
+      nieuw: [], telefoon: [], video: [], plaatsbezoek: [], offerte: [], opvolging: [], afgewezen: [], goedgekeurd: [], afgerond: [],
     };
     filtered.forEach(l => {
       const cat = resolveCategory(l, preIntakeMap[l.id], !!analysisMap[l.id]);

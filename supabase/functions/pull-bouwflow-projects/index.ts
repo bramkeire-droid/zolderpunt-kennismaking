@@ -10,11 +10,24 @@
 // Voor elk gezien project met minstens 1 gekoppelde klant:
 //   - Bestaat er al een lead met bouwflow_project_id = String(customer.id)
 //     (bestaande kolom, bevat in werkelijkheid een Bouwflow CUSTOMER id —
-//     zie push-to-bouwflow/FACTS)? -> backfill enkel Bouwflow-linkage-
-//     metadata op die rij, andere Compass-eigen velden blijven ongemoeid.
-//   - Geen match? -> nieuw lead-dossier aanmaken (status 'nieuw',
-//     gevonden_via 'Bouwflow (sync)', category_override bewust NULL
-//     zodat Compass' eigen resolveCategory() de categorie bepaalt).
+//     zie push-to-bouwflow/FACTS)? -> backfill Bouwflow-linkage-metadata
+//     op die rij; andere Compass-eigen velden blijven ongemoeid.
+//   - Geen match? -> nieuw lead-dossier aanmaken (gevonden_via
+//     'Bouwflow (sync)').
+//
+// BOUWFLOW IS DE LEIDENDE WAARHEID VOOR DE FASE. In beide gevallen wordt
+// `category_override` gezet op basis van de Bouwflow-projectfase, via de
+// tabel `bouwflow_phase_category_map` (phase_id -> Compass CategoryKey).
+// Een eerdere versie liet category_override bewust NULL "zodat Compass'
+// eigen resolveCategory() beslist" — dat was fout: een geïmporteerd
+// dossier heeft geen Compass-eigen signalen (geen pre_intake, geen
+// gesprek_datum, geen budget), dus viel álles terug op 'nieuw'. Daardoor
+// belandden 22 dossiers in "Nieuwe lead" terwijl Bouwflow er 4 had staan.
+//
+// LET OP bij nieuwe rijen: kolom `leads.gesprek_datum` heeft
+// DEFAULT CURRENT_DATE. Niet meegeven in de INSERT betekent dus "er is
+// vandaag gebeld", wat resolveCategory() als telefoongesprek-bewijs leest.
+// Daarom wordt gesprek_datum hier expliciet op null gezet.
 //
 // dry_run (body of query ?dry_run=true): voert alle matching-logica uit
 // en berekent de volledige would-be breakdown, maar schrijft niets weg.
@@ -174,6 +187,29 @@ Deno.serve(async (req) => {
     return json({ error: leadsError.message }, 500);
   }
 
+  // Bouwflow-fase -> Compass-categorie. Bevat ook de 4 fases die Bouwflow's
+  // publieke API niet teruggeeft (6, 7, 20, 8); die staan handmatig in de tabel.
+  const { data: phaseMapRows, error: phaseMapError } = await supabase
+    .from('bouwflow_phase_category_map')
+    .select('phase_id, compass_category');
+
+  if (phaseMapError) {
+    console.error('pull-bouwflow-projects: phase map fetch error', phaseMapError);
+    return json({ error: phaseMapError.message }, 500);
+  }
+
+  const categoryByPhaseId = new Map<string, string>();
+  for (const row of phaseMapRows ?? []) {
+    categoryByPhaseId.set(String(row.phase_id), row.compass_category);
+  }
+
+  const categoryFor = (phaseId: unknown): string | null =>
+    phaseId === null || phaseId === undefined
+      ? null
+      : categoryByPhaseId.get(String(phaseId)) ?? null;
+
+  const unmappedPhases = new Set<string>();
+
   const leadByCustomerId = new Map<string, { id: string; bouwflow_project_number: string | null }>();
   for (const lead of existingLeads ?? []) {
     if (lead.bouwflow_project_id) {
@@ -264,6 +300,17 @@ Deno.serve(async (req) => {
         m.project_phase_id !== null && m.project_phase_id !== undefined ? String(m.project_phase_id) : null,
       bouwflow_pull_synced_at: nowIso,
     };
+
+    // Bouwflow bepaalt de kolom waarin dit dossier in Compass hoort.
+    const mappedCategory = categoryFor(m.project_phase_id);
+    if (mappedCategory) {
+      patch.category_override = mappedCategory;
+    } else if (m.project_phase_id !== null && m.project_phase_id !== undefined) {
+      // Onbekende fase: laat de bestaande categorie staan i.p.v. te gokken,
+      // en rapporteer het zodat de mapping-tabel aangevuld kan worden.
+      unmappedPhases.add(String(m.project_phase_id));
+    }
+
     const existing = leadByCustomerId.get(String(m.customer_id));
     if (existing && !existing.bouwflow_project_number && m.project_number) {
       patch.bouwflow_project_number = m.project_number;
@@ -283,6 +330,11 @@ Deno.serve(async (req) => {
   const createdLeadIds: string[] = [];
 
   for (const c of allCreateCandidates) {
+    const mappedCategory = categoryFor(c.project_phase_id);
+    if (!mappedCategory && c.project_phase_id !== null && c.project_phase_id !== undefined) {
+      unmappedPhases.add(String(c.project_phase_id));
+    }
+
     const insertRow = {
       voornaam: c.voornaam,
       achternaam: c.achternaam,
@@ -291,6 +343,12 @@ Deno.serve(async (req) => {
       adres: c.adres,
       status: 'nieuw',
       gevonden_via: 'Bouwflow (sync)',
+      // Expliciet null: de kolom heeft DEFAULT CURRENT_DATE, en een ingevulde
+      // gesprek_datum leest Compass als "er is al gebeld".
+      gesprek_datum: null,
+      // Bouwflow bepaalt in welke kolom dit dossier hoort. Zonder deze waarde
+      // valt een vers geimporteerd dossier altijd terug op 'nieuw'.
+      category_override: mappedCategory,
       bouwflow_project_id: String(c.customer_id),
       bouwflow_project_pk_id: c.project_pk_id,
       bouwflow_project_number: c.project_number,
@@ -324,6 +382,9 @@ Deno.serve(async (req) => {
     created: createdCount,
     created_lead_ids: createdLeadIds,
     flagged_test_projects: flaggedTestProjects.map((c) => c.project_name),
+    // Fases die (nog) niet in bouwflow_phase_category_map staan. Dossiers met
+    // zo'n fase hielden hun bestaande categorie i.p.v. een gok.
+    unmapped_phase_ids: unmappedPhases.size > 0 ? [...unmappedPhases] : undefined,
     errors: errors.length > 0 ? errors : undefined,
   });
 });
