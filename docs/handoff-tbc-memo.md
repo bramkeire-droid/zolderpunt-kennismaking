@@ -62,17 +62,26 @@ Zes bestanden, 359 regels erbij, 4 eraf.
 ### `supabase/migrations/20260801120000_inbound_memos.sql` (nieuw)
 
 Tabel `public.inbound_memos`: `id, source, from_identifier, from_display, subject,
-body, kind ('memo'|'unmatched_media'), lead_id, emailed_at, email_attempts,
-email_error, created_at`. Grants en RLS gekopieerd van `inbound_media_pending`
-(authenticated mag select/update/delete met `USING (true)`, service_role mag alles).
-Partiële index `idx_inbound_memos_unsent ON (created_at) WHERE emailed_at IS NULL`,
-want de retry-pass leest daar elke 30 s op.
+body, kind ('memo'|'unmatched_media'), media_ids, lead_id, emailed_at,
+email_attempts, email_error, created_at`. Grants en RLS gekopieerd van
+`inbound_media_pending` (authenticated mag select/update/delete met `USING (true)`,
+service_role mag alles). Twee indexen: partieel op `created_at WHERE emailed_at IS
+NULL` voor de retry-pass, en een GIN op `media_ids` voor de overlap-guard.
+
+**Volledig idempotent geschreven** (`IF NOT EXISTS`, `DROP POLICY IF EXISTS`, losse
+`ADD COLUMN IF NOT EXISTS`). Dat is geen netheid maar noodzaak: de pg_cron-job en het
+`flush_secret` van deze pijplijn staan **niet** in `supabase/migrations/` maar alleen
+in de live database, dus de kans is groot dat iemand deze SQL met de hand in de
+SQL-editor plakt. Gebeurt dat, dan komt er géén rij in
+`supabase_migrations.schema_migrations` en zou een niet-idempotente versie elke
+latere geautomatiseerde push blokkeren met "already exists".
 
 ### `supabase/functions/_shared/sendMail.ts` (nieuw, 66 regels)
 
 - `sendMail({subject, text, to?})` → `{ok, error}`. POST naar
   `https://api.postmarkapp.com/email`, header `X-Postmark-Server-Token`,
-  `MessageStream: 'outbound'`.
+  `MessageStream: 'outbound'`, met `AbortSignal.timeout(10_000)` — de aanroepers
+  zitten in een webhook of in de cron-pass, die allebei hun eigen deadline hebben.
 - **Throwt nooit.** Ontbrekende secrets of een 4xx komen terug als `{ok:false, error}`,
   omdat de aanroeper dat in `email_error` wegschrijft en de retry-pass het opnieuw doet.
 - `appLink()` → optionele regel met `APP_BASE_URL`; leeg als die secret niet gezet is.
@@ -88,9 +97,13 @@ Nieuw, in volgorde van voorkomen:
   Geeft de rest terug, `''` bij kaal trefwoord, `null` als het geen commando is.
   **Geankerd op het eerste woord** (`^tbc\b`), zodat een doorgestuurd bericht dat
   toevallig "tbc" bevat niets doet.
-- `takeWindowNotes(supabase, source, from)` (~371) — leest `pending_notes` en wist
-  **alleen die kolom**. Uitdrukkelijk niet `clearWindow`, want die wist ook
-  `pending_media_ids` en dan sneuvelt een lopende fotobatch.
+- `takeWindowNotes(supabase, source, from)` (~371) — leest `pending_notes`. Wissen is
+  **voorwaardelijk**: staan er nog `pending_media_ids` open, dan wordt de tekst
+  gekopieerd en níét gewist. Reden: `touch_inbound_window` plakt alle losse tekst in
+  één string, dus dezelfde kolom bevat zowel "het bericht dat ik doorstuurde" als de
+  klantnaam die bij een fotobatch hoort. Leegmaken zou die batch zijn enige matchclue
+  afnemen. De memo draagt dan wat ruis mee; de foto's houden hun clue. Uitdrukkelijk
+  niet `clearWindow` gebruiken, want die wist ook `pending_media_ids`.
 - `MemoRow` / `MemoInput` interfaces, `memoEmailBody(row)` (private).
 - `mailMemo(supabase, row)` (~479) — mailt één opgeslagen rij en schrijft de uitkomst
   weg (`emailed_at` bij succes, anders `email_error` + `email_attempts+1`).
@@ -98,9 +111,18 @@ Nieuw, in volgorde van voorkomen:
 - `recordMemo(supabase, memo)` (~520) — `storeMemo` + `mailMemo`.
 - **`flushGroup` laatste tak gewijzigd** (~660): waar bij nul kandidaten enkel een
   WhatsApp vertrok, wordt nu ook een `recordMemo` met `kind:'unmatched_media'`
-  geschreven (aantal foto's, bijschriften, meegestuurde tekst). De WhatsApp-tekst
-  meldt er nu bij dat er ook een mail vertrok. **De andere takken van `flushGroup`
-  zijn ongemoeid** — een automatische koppeling of een dossierlijst is geen memo.
+  geschreven (aantal foto's, bijschriften, meegestuurde tekst). Twee details die je
+  niet mag omkeren:
+  - **De WhatsApp gaat eerst, de mail daarna.** Dit project verloor eerder al een
+    mail doordat er werk vóór het antwoord stond (zie commit `c176824`: 9,8 s upload
+    net over Postmarks limiet van 10 s).
+  - **Overlap-guard.** De tak laat het venster bewust openstaan, dus dezelfde batch
+    wordt opnieuw geflusht bij elk volgend bericht dat ook niet matcht. Zonder guard
+    levert dat een stapel mails over dezelfde foto's. Vóór het mailen wordt daarom
+    gecheckt of er al een `unmatched_media`-memo bestaat met overlappende
+    `media_ids`.
+  **De andere takken van `flushGroup` zijn ongemoeid** — een automatische koppeling
+  of een dossierlijst is geen memo.
 
 ### `supabase/functions/inbound-whatsapp/index.ts` (gewijzigd)
 
@@ -134,6 +156,7 @@ waar de doorstuurinstructies staan — hou dat zo.
 | Wat Bram stuurt | Wat er gebeurt |
 |---|---|
 | Bericht doorsturen, daarna los `tbc` | De doorgestuurde tekst (uit `pending_notes`) wordt de memo. Antwoord: "📬 Genoteerd. Je krijgt er een e-mail over." |
+| Idem, maar er staat óók een fotobatch te wachten | Zelfde mail, maar `pending_notes` wordt **niet** gewist. De memo bevat dan ook de klantnaam die bij de foto's hoort — bewuste ruis, want anders verliest die batch zijn matchclue |
 | `tbc bel de leverancier morgen` | Die tekst wordt de memo. **Het venster blijft ongemoeid** |
 | `tbc` zonder dat er iets in het venster staat | "Niets te noteren — stuur eerst het bericht door en antwoord daarna "tbc"." |
 | Een cijfer (antwoord op een dossierlijst) | Ongewijzigd, koppelt de foto's |
@@ -161,6 +184,13 @@ getypt.
   functions zitten er niet in — `vitest.config.ts` regelt dat)
 - `parseMemoCommand` los nagelopen op 14 gevallen, inclusief wat níét mag matchen:
   `nog tbc voor de trap` → `null`, `tbcx iets` → `null`, `3` → `null`
+
+Daarnaast is het document dat je nu leest door een reviewronde gehaald: twaalf
+feitelijke claims zijn tegen de code nagetrokken (geen fouten gevonden), en een
+volledigheidscontrole legde vier echte bugs bloot die daarna gerepareerd zijn — de
+gewiste klantnaam bij kaal `tbc`, de stapel mails bij herflush, de niet-idempotente
+migratie en de onbegrensde Postmark-call. Die reparaties zitten in de commit ná
+`993280d`.
 
 **Nooit end-to-end gedraaid.** Er is geen CI in de repo (nul GitHub Actions-workflows),
 dus de PR heeft geen checks en krijgt die ook niet.
@@ -195,7 +225,7 @@ tussenoplossing.
 |---|---|---|
 | `POSTMARK_SERVER_TOKEN` | ja | Server API Token van de server die de inbound al doet (`account.postmarkapp.com/servers` → server → tab **API Tokens**) |
 | `MEMO_EMAIL_FROM` | ja | `info@belhouse-atelier.be` |
-| `MEMO_EMAIL_TO` | nee | Default `hello@zolderpunt.be` zit in `sendMail.ts` |
+| `MEMO_EMAIL_TO` | **vraag het na** | Default `hello@zolderpunt.be` zit in `sendMail.ts` — zie de waarschuwing hieronder |
 | `APP_BASE_URL` | nee | Alleen voor de link in de mail |
 
 ### 3. PR mergen (jij)
@@ -217,18 +247,54 @@ Bram, of controleer na de merge of de tabel verschenen is.
 
 ### 5. End-to-end testen (jij, samen met Bram)
 
+**Stap 0 — de goedkope rooktest, doe deze eerst.** Hij valideert tabel, deploy,
+secrets en afzenderverificatie in één klap, zonder door WhatsApp of door Brams
+productiepad te gaan. In de Supabase SQL-editor:
+
+```sql
+insert into inbound_memos (from_identifier, subject, body, created_at)
+values ('32499000000', 'Test', 'Test', now() - interval '3 minutes');
+```
+
+Het tijdstip in het verleden omzeilt de genadeperiode van 2 minuten, zodat de
+eerstvolgende cron-pass hem meteen oppakt. Kijk binnen 30 s:
+
+```sql
+select emailed_at, email_attempts, email_error from inbound_memos order by created_at desc limit 1;
+```
+
+`emailed_at` gevuld = alles werkt. Anders staat de reden in `email_error`.
+Blijft `email_attempts` op 0 staan, dan draait de cron-job niet — controleer met
+`select jobname, schedule from cron.job;` of `flush-inbound-groups` daar nog
+ingepland staat. Die job staat **niet** in de repo, dus hij kan stil ontbreken.
+
+Daarna pas via WhatsApp:
+
 1. **Sandbox opnieuw joinen.** Twilio-sandboxsessies verlopen na 72 uur. `join check-pocket`
-   naar `+1 415 523 8886`.
+   naar `+1 415 523 8886`. **Zie ook de openstaande kwestie onderaan** — dit is precies
+   waar Bram over struikelde.
 2. Bericht doorsturen → los `tbc` → verwacht "📬 Genoteerd" en een mail.
 3. `tbc bel de leverancier morgen` → mail, venster ongemoeid.
 4. Foto's met een klantnaam → controleer dat de normale koppeling of de dossierlijst
-   nog werkt. Dit is de regressietest die telt.
-5. Foto's met een onzinnige naam → WhatsApp-vraag **en** een mail met
-   `kind='unmatched_media'`.
+   nog werkt. **Dit is de regressietest die telt.**
+5. Foto's + naam → dan een bericht doorsturen → dan `tbc`. Controleer dat de foto's
+   dáárna nog steeds correct gekoppeld worden. Dit dekt de valkuil die
+   `takeWindowNotes` afvangt.
+6. Foto's met een onzinnige naam → WhatsApp-vraag **en** een mail met
+   `kind='unmatched_media'`. Antwoord daarna nog eens met iets dat ook niet matcht
+   en controleer dat er **géén tweede mail** komt.
 
 Gaat er iets mis: de reden staat in `inbound_memos.email_error` en in de
 Supabase-functielogs. Meest waarschijnlijk een Postmark `422` — dan klopt de
 afzender niet.
+
+### 6. Als het misgaat — de terugweg
+
+De feature raakt een pad waar Bram dagelijks van afhangt, dus weet hoe je terugkeert:
+merge reverten en `inbound-whatsapp` + `flush-inbound-groups` opnieuw uitrollen. De
+tabel `inbound_memos` mag gewoon blijven staan — niets anders leest eruit, en zo gaan
+opgeslagen notities niet verloren. Zet in dat geval ook de twee secrets niet terug op
+leeg; zonder de functiecode doen ze niets.
 
 ## Conventies in deze repo
 
@@ -242,6 +308,39 @@ afzender niet.
   functie bij.
 - Bram werkt met Lovable; wijzigingen die hij daar maakt komen ook in deze repo terecht.
   Controleer bij het starten of `main` intussen verschoven is.
+
+## Openstaande kwesties die je moet aankaarten
+
+### A. Is `hello@zolderpunt.be` wel de juiste mailbox?
+
+De hele premisse is dat de mail "ongelezen in *zijn* mailbox blijft staan". Maar
+`hello@zolderpunt.be` is in `src/components/report/reportConstants.ts:5` het
+**publieke contactadres** dat op offertes, rapport-PDF's en in het klantenportaal
+staat. Privénotities ("bel de leverancier morgen") landen dan in de gedeelde
+bedrijfsinbox, en als dat adres doorstuurt of door iemand anders gelezen wordt,
+faalt de feature in haar doel terwijl alle techniek groen staat.
+
+**Vraag Bram vóór de test:** welk adres check jij 's avonds op je gsm? Zet
+`MEMO_EMAIL_TO` daarop in plaats van de default te laten staan.
+
+### B. De Twilio-sandbox is het echte probleem — groter dan deze feature
+
+Bram kaartte dit aan het eind van de vorige sessie aan en het is **belangrijker dan
+alle punten hierboven**: deelnemers aan de Twilio WhatsApp-sandbox moeten periodiek
+opnieuw `join check-pocket` sturen. Zijn gebruikers onthouden dat niet. Dat is geen
+bug in deze code maar een harde beperking van de sandbox, en ze geldt vandaag al voor
+het doorsturen van foto's — dus de hele doorstuurfunctie wankelt erop, niet alleen
+`tbc`.
+
+Er kan met code niets aan gedaan worden; de uitweg is een echte
+WhatsApp-productiesender (Meta Business-verificatie via Twilio). Er liep aan het eind
+van de vorige sessie een onderzoek naar de precieze voorwaarden, doorlooptijd en
+kosten dat niet meer afgerond raakte. **Zoek dit opnieuw uit vóór je Bram een
+richting aanraadt**, en let daarbij op de 24-uursregel van WhatsApp: antwoorden op
+een inkomend bericht mogen vrije tekst zijn, maar een bericht dat het bedrijf zelf
+initieert vereist buiten dat venster een goedgekeurd template. Dat raakt `sendWhatsApp`.
+
+Behandel dit als een apart traject, niet als onderdeel van deze PR.
 
 ## Eerste zet
 

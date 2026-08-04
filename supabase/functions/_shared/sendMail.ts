@@ -31,6 +31,11 @@ export async function sendMail(opts: {
   try {
     const res = await fetch(POSTMARK_ENDPOINT, {
       method: 'POST',
+      // Bounded on purpose. Callers sit in a WhatsApp webhook or in the flush
+      // pass, both of which have deadlines of their own; an unbounded fetch to
+      // a struggling Postmark would take those down with it. A timeout lands in
+      // the catch below as {ok:false} and the retry pass takes it from there.
+      signal: AbortSignal.timeout(10_000),
       headers: {
         'X-Postmark-Server-Token': token,
         'Content-Type': 'application/json',

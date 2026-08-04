@@ -363,11 +363,16 @@ export async function clearWindow(supabase: SupabaseClient, source: InboundSourc
     .eq('from_identifier', fromIdentifier);
 }
 
-// Takes the loose text collected in a sender's open window and clears ONLY
-// that column — deliberately not clearWindow, which would also drop
-// pending_media_ids. A "tbc" can arrive while a photo batch is still being
-// collected in the same row, and turning that text into a memo must leave the
-// photos on their normal path.
+// Reads the loose text collected in a sender's open window for use as a memo.
+//
+// Clearing it is conditional, and that condition matters. touch_inbound_window
+// concatenates every loose message into one pending_notes string, so the same
+// column holds both "the thing I forwarded" and the customer name typed for a
+// photo batch. Wiping it while photos are still pending would take away the
+// batch's only matching clue and push it into the no-candidates branch — the
+// exact class of failure (losing photos' context) this pipeline was rebuilt to
+// prevent. So when media is pending the text is copied, not taken: the memo
+// carries a bit of extra noise, the photos keep their clue.
 export async function takeWindowNotes(
   supabase: SupabaseClient,
   source: InboundSource,
@@ -375,7 +380,7 @@ export async function takeWindowNotes(
 ): Promise<string> {
   const { data } = await supabase
     .from('inbound_conversation_state')
-    .select('pending_notes, pending_expires_at')
+    .select('pending_notes, pending_expires_at, pending_media_ids')
     .eq('source', source)
     .eq('from_identifier', fromIdentifier)
     .maybeSingle();
@@ -383,6 +388,9 @@ export async function takeWindowNotes(
   const fresh = data?.pending_expires_at && new Date(data.pending_expires_at) > new Date();
   const notes = fresh ? (data?.pending_notes || '') : '';
   if (!notes) return '';
+
+  const mediaPending = Array.isArray(data?.pending_media_ids) && data!.pending_media_ids.length > 0;
+  if (mediaPending) return notes;
 
   await supabase
     .from('inbound_conversation_state')
@@ -462,6 +470,9 @@ export interface MemoInput {
   subject: string;
   body: string;
   kind: 'memo' | 'unmatched_media';
+  // Which pending media this memo is about. Only set for 'unmatched_media', and
+  // only so a re-flush of the same batch can recognise it has already mailed.
+  mediaIds?: string[];
 }
 
 // Built from the stored row rather than from the input, so a retry produces
@@ -503,6 +514,7 @@ export async function storeMemo(supabase: SupabaseClient, memo: MemoInput): Prom
       subject: memo.subject,
       body: memo.body,
       kind: memo.kind,
+      media_ids: memo.mediaIds || [],
     })
     .select('id, source, from_identifier, from_display, subject, body, email_attempts, created_at')
     .single();
@@ -650,9 +662,30 @@ export async function flushGroup(
   // Nothing to go on yet. Stay open: a name sent later restarts the cycle.
   await setFlushState(supabase, fromIdentifier, 'idle');
 
-  // Mail it too. The WhatsApp question below is exactly the kind of thing that
-  // arrives at an inconvenient hour and gets scrolled past; the mail keeps it
-  // waiting in the inbox until there's time for it.
+  // The reply goes out before the mail. Postmark has cost this project a lost
+  // message once already (see c176824: 9.8s of upload work ahead of the
+  // response blew past the webhook deadline), and the sender waiting on
+  // WhatsApp should never be held up by a slow mail server.
+  await sendWhatsApp(
+    fromIdentifier,
+    `${photoCount} foto('s) ontvangen, maar we weten nog niet bij welke klant ze horen. ` +
+    `Stuur de naam of het adres door, of koppel ze in de tool. ` +
+    `Je krijgt er ook een e-mail over.`,
+  );
+
+  // Staying open means this batch gets flushed again on the next message that
+  // doesn't match either — so without this guard a few near-misses in a row
+  // would each produce another mail about the same photos. For a feature whose
+  // whole point is less noise, that would be worse than the problem.
+  const { data: alreadyMailed } = await supabase
+    .from('inbound_memos')
+    .select('id')
+    .eq('kind', 'unmatched_media')
+    .overlaps('media_ids', liveIds)
+    .limit(1)
+    .maybeSingle();
+  if (alreadyMailed) return;
+
   const captions = live
     .map((r) => ((r as { body?: string }).body || '').trim())
     .filter(Boolean);
@@ -667,14 +700,8 @@ export async function flushGroup(
       `Ze staan klaar in de Inbox om te koppelen.`,
     ].filter(Boolean).join('\n\n'),
     kind: 'unmatched_media',
+    mediaIds: liveIds,
   });
-
-  await sendWhatsApp(
-    fromIdentifier,
-    `${photoCount} foto('s) ontvangen, maar we weten nog niet bij welke klant ze horen. ` +
-    `Stuur de naam of het adres door, of koppel ze in de tool. ` +
-    `Je krijgt er ook een e-mail over.`,
-  );
 }
 
 export interface IngestResult {
