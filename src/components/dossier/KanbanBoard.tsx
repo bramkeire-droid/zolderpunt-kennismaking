@@ -37,7 +37,9 @@ export default function KanbanBoard({
   const visible = showEmpty ? columns : columns.filter(c => (grouped[c.key] ?? []).length > 0);
 
   return (
-    <div className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(190px,1fr))]">
+    // items-start: een lege kolom mag niet uitgerekt worden tot de hoogte van
+    // de volste kolom in dezelfde rij.
+    <div className="grid gap-3 items-start [grid-template-columns:repeat(auto-fill,minmax(175px,1fr))]">
       {visible.map(col => {
         const rows = grouped[col.key] ?? [];
         const isTarget = dragOverKey === col.key;
@@ -62,7 +64,9 @@ export default function KanbanBoard({
               </div>
             </div>
 
-            <div className="flex-1 p-1.5 space-y-1.5 min-h-[60px]">
+            {/* Vaste maximumhoogte met eigen scroll: anders bepaalt één volle
+                kolom (Geweigerd heeft er 24) de hoogte van het hele bord. */}
+            <div className="p-1.5 space-y-1.5 min-h-[48px] max-h-[190px] overflow-y-auto">
               {rows.map(lead => {
                 const naam = `${lead.voornaam ?? ''} ${lead.achternaam ?? ''}`.trim() || 'Naamloos';
                 const heeftFotos = Array.isArray(lead.fotos) && lead.fotos.length > 0;
