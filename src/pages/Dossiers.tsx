@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useState, useEffect, useMemo } from 'react';
-import { Search, FolderOpen, Users, TrendingUp, DollarSign, Eye, RefreshCw, Trash2, CheckCircle, Globe, Phone, Bot, FileDown, MoreVertical, ArrowUp, ArrowDown, ArrowUpDown, FileText, Receipt, Hammer, ArrowRightLeft, ChevronDown, ChevronRight, GripVertical } from 'lucide-react';
+import { Search, FolderOpen, Users, TrendingUp, DollarSign, Eye, RefreshCw, Trash2, CheckCircle, Globe, Phone, Bot, FileDown, MoreVertical, ArrowUp, ArrowDown, ArrowUpDown, FileText, Receipt, Hammer, ArrowRightLeft, ChevronDown, ChevronRight, GripVertical, Send } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { defaultTechnisch } from '@/contexts/SessionContext';
 import type { LeadData } from '@/contexts/SessionContext';
@@ -31,6 +31,8 @@ import StabiliteitVoorbladDialog from '@/components/dossier/StabiliteitVoorbladD
 import GenericVoorbladDialog from '@/components/dossier/GenericVoorbladDialog';
 import PhotoUploadDialog from '@/components/dossier/PhotoUploadDialog';
 import InboundInboxDialog from '@/components/dossier/InboundInboxDialog';
+import PushToBouwflowDialog from '@/components/dossier/PushToBouwflowDialog';
+import MoveBouwflowPhaseDialog, { type PhaseOption } from '@/components/dossier/MoveBouwflowPhaseDialog';
 import { INBOUND_HINT_TEXT } from '@/components/dossier/InboundHint';
 import { normalizeLeadMedia, imagesOnly } from '@/lib/leadMedia';
 import { Image as ImageIcon, Inbox } from 'lucide-react';
@@ -52,8 +54,10 @@ const STATUS_CONFIG: Record<string, { label: string; bg: string; color: string }
   verloren:         { label: 'Verloren',         bg: 'bg-red-100',        color: 'text-red-700' },
 };
 
-type CategoryKey = 'nieuw' | 'telefoon' | 'video' | 'plaatsbezoek' | 'offerte' | 'afgewezen' | 'goedgekeurd' | 'afgerond';
+type CategoryKey = 'nieuw' | 'telefoon' | 'video' | 'plaatsbezoek' | 'offerte' | 'opvolging' | 'afgewezen' | 'goedgekeurd' | 'afgerond';
 
+// Volgorde spiegelt bewust de kolomvolgorde van Bouwflow's Verkoop-pipeline:
+// Bouwflow is de leidende waarheid voor de fase van een gekoppeld dossier.
 const CATEGORIES: { key: CategoryKey; label: string; accent: string }[] = [
   { key: 'nieuw',        label: 'Nieuwe lead',            accent: 'border-l-slate-400' },
   { key: 'telefoon',     label: 'Telefoongesprek gehad',  accent: 'border-l-blue-500' },
@@ -61,6 +65,7 @@ const CATEGORIES: { key: CategoryKey; label: string; accent: string }[] = [
   { key: 'plaatsbezoek', label: 'Plaatsbezoek gehad',     accent: 'border-l-indigo-500' },
   { key: 'offerte',      label: 'Offerte opmaken',        accent: 'border-l-purple-500' },
   { key: 'goedgekeurd',  label: 'Project goedgekeurd',    accent: 'border-l-green-500' },
+  { key: 'opvolging',    label: 'Opvolging lange termijn', accent: 'border-l-amber-500' },
   { key: 'afgewezen',    label: 'Project afgewezen',      accent: 'border-l-red-500' },
   { key: 'afgerond',     label: 'Project afgerond',       accent: 'border-l-emerald-600' },
 ];
@@ -153,6 +158,7 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
   const [stabLead, setStabLead] = useState<any>(null);
   const [genericVoorblad, setGenericVoorblad] = useState<{ lead: any } | null>(null);
   const [photoLead, setPhotoLead] = useState<any>(null);
+  const [bouwflowLead, setBouwflowLead] = useState<any>(null);
   const [preIntakeMap, setPreIntakeMap] = useState<Record<string, any>>({});
   const [analysisMap, setAnalysisMap] = useState<Record<string, boolean>>({});
   const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -160,7 +166,20 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
   const [collapsed, setCollapsed] = useState<Record<CategoryKey, boolean>>({} as any);
   const [inboxOpen, setInboxOpen] = useState(false);
   const [inboxCount, setInboxCount] = useState(0);
+  const [bouwflowSyncing, setBouwflowSyncing] = useState(false);
+  const [phaseOptions, setPhaseOptions] = useState<PhaseOption[]>([]);
+  const [moveDialog, setMoveDialog] = useState<{ lead: any; cat: CategoryKey } | null>(null);
   const toggleCollapse = (k: CategoryKey) => setCollapsed(p => ({ ...p, [k]: !p[k] }));
+
+  // Welke Bouwflow-fase hoort bij welke Compass-kolom. Nodig om bij het
+  // verslepen de juiste fase naar Bouwflow te kunnen duwen.
+  useEffect(() => {
+    supabase
+      .from('bouwflow_phase_category_map')
+      .select('phase_id, phase_title, compass_category')
+      .order('phase_id')
+      .then(({ data }) => { if (data) setPhaseOptions(data as PhaseOption[]); });
+  }, []);
 
   const refreshInboxCount = async () => {
     const { count } = await supabase
@@ -189,6 +208,30 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
     } else {
       toast.success(key ? `Verplaatst naar "${CATEGORIES.find(c => c.key === key)?.label}"` : 'Automatische categorie hersteld');
     }
+  };
+
+  // "Automatisch bepalen" mag een gekoppeld dossier niet losweken van Bouwflow.
+  // Voor zo'n dossier betekent herstellen: terug naar wat Bouwflow zegt.
+  const resetCategory = async (lead: any) => {
+    const linked = Boolean(lead.bouwflow_project_pk_id);
+    const target = linked
+      ? (phaseOptions.find(p => String(p.phase_id) === String(lead.bouwflow_phase))?.compass_category ?? null)
+      : null;
+
+    if (linked && !target) {
+      toast.error('Onbekende Bouwflow-fase; categorie niet aangepast.');
+      return;
+    }
+
+    const prev = lead.category_override ?? null;
+    setLeads(ls => ls.map(l => l.id === lead.id ? { ...l, category_override: target } : l));
+    const { error } = await supabase.from('leads').update({ category_override: target } as any).eq('id', lead.id);
+    if (error) {
+      toast.error('Aanpassen mislukt');
+      setLeads(ls => ls.map(l => l.id === lead.id ? { ...l, category_override: prev } : l));
+      return;
+    }
+    toast.success(linked ? 'Gelijkgezet met Bouwflow' : 'Automatische categorie hersteld');
   };
 
   const updateNextStep = async (leadId: string, value: string) => {
@@ -276,7 +319,7 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
 
   const groupedByCategory = useMemo(() => {
     const groups: Record<CategoryKey, any[]> = {
-      nieuw: [], telefoon: [], video: [], plaatsbezoek: [], offerte: [], afgewezen: [], goedgekeurd: [], afgerond: [],
+      nieuw: [], telefoon: [], video: [], plaatsbezoek: [], offerte: [], opvolging: [], afgewezen: [], goedgekeurd: [], afgerond: [],
     };
     filtered.forEach(l => {
       const cat = resolveCategory(l, preIntakeMap[l.id], !!analysisMap[l.id]);
@@ -385,6 +428,34 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
     if (delErr) toast.error('Verwijderen mislukt');
     else { toast.success(`${count} leeg dossier(s) verwijderd`); fetchLeads(); }
   };
+  const handleBouwflowSync = async () => {
+    setBouwflowSyncing(true);
+    try {
+      const { data: phasesData, error: phasesError } = await supabase.functions.invoke('sync-bouwflow-phases', { body: {} });
+      if (phasesError) throw new Error(phasesError.message || 'Synchroniseren van Bouwflow-fasen mislukt');
+      if (phasesData?.error) throw new Error(String(phasesData.error));
+
+      const { data: pullData, error: pullError } = await supabase.functions.invoke('pull-bouwflow-projects', {
+        body: { dry_run: true },
+      });
+      if (pullError) throw new Error(pullError.message || 'Bouwflow dry-run mislukt');
+      if (pullData?.error) throw new Error(String(pullData.error));
+
+      const fasesCount = phasesData?.count ?? 0;
+      const matched = pullData?.matched ?? 0;
+      const wouldCreate = pullData?.would_create ?? 0;
+      const flaggedCount = Array.isArray(pullData?.flagged_test_projects) ? pullData.flagged_test_projects.length : 0;
+
+      toast.success(
+        `${fasesCount} fases bijgewerkt · ${matched} dossiers al gekoppeld · ${wouldCreate} zouden aangemaakt worden · ${flaggedCount} testprojecten genegeerd`
+      );
+    } catch (err: any) {
+      toast.error(err?.message || 'Synchroniseren met Bouwflow mislukt');
+    } finally {
+      setBouwflowSyncing(false);
+    }
+  };
+
   const handleCreateLead = async (category: CategoryKey) => {
     const { data, error } = await supabase
       .from('leads')
@@ -468,6 +539,16 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
             <Button variant="outline" onClick={fetchLeads} className="gap-2 font-headline" disabled={loading}>
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
               Vernieuwen
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleBouwflowSync}
+              className="gap-2 font-headline"
+              disabled={bouwflowSyncing}
+              title="Fasen ophalen en dry-run tonen van wat een echte projecten-sync zou doen"
+            >
+              <ArrowRightLeft className={`h-4 w-4 ${bouwflowSyncing ? 'animate-pulse' : ''}`} />
+              Synchroniseer met Bouwflow
             </Button>
           </div>
         </div>
@@ -600,8 +681,21 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
                           <ImageIcon className="h-4 w-4 mr-2 text-primary" /> Foto's
                         </DropdownMenuItem>
 
-
-
+                        <DropdownMenuSeparator />
+                        <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">Bouwflow</DropdownMenuLabel>
+                        {lead.bouwflow_project_id ? (
+                          <DropdownMenuItem
+                            disabled
+                            className="opacity-100 cursor-default text-green-700 focus:bg-transparent focus:text-green-700"
+                          >
+                            <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
+                            Al in Bouwflow{lead.bouwflow_project_number ? ` · #${lead.bouwflow_project_number}` : ''}
+                          </DropdownMenuItem>
+                        ) : (
+                          <DropdownMenuItem onClick={() => setBouwflowLead(lead)}>
+                            <Send className="h-4 w-4 mr-2 text-primary" /> Naar Bouwflow pushen
+                          </DropdownMenuItem>
+                        )}
 
 
                         <DropdownMenuSeparator />
@@ -611,13 +705,15 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
                           </DropdownMenuSubTrigger>
                           <DropdownMenuSubContent className="w-56">
                             {CATEGORIES.map(c => (
-                              <DropdownMenuItem key={c.key} onClick={() => updateCategory(lead.id, c.key)}>
+                              // Zelfde weg als slepen: eerst bevestigen, en bij een
+                              // gekoppeld dossier moet Bouwflow het eerst doorvoeren.
+                              <DropdownMenuItem key={c.key} onClick={() => setMoveDialog({ lead, cat: c.key })}>
                                 {c.label}
                               </DropdownMenuItem>
                             ))}
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => updateCategory(lead.id, null)}>
-                              Automatisch bepalen
+                            <DropdownMenuItem onClick={() => resetCategory(lead)}>
+                              {lead.bouwflow_project_pk_id ? 'Gelijkzetten met Bouwflow' : 'Automatisch bepalen'}
                             </DropdownMenuItem>
                           </DropdownMenuSubContent>
                         </DropdownMenuSub>
@@ -676,7 +772,9 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
                           if (draggingId) {
                             const current = leads.find(l => l.id === draggingId);
                             const currentCat = current ? resolveCategory(current, preIntakeMap[draggingId], !!analysisMap[draggingId]) : null;
-                            if (currentCat !== cat.key) updateCategory(draggingId, cat.key);
+                            // Niet meteen verplaatsen: eerst bevestigen, en bij een
+                            // gekoppeld dossier moet Bouwflow het eerst doorvoeren.
+                            if (current && currentCat !== cat.key) setMoveDialog({ lead: current, cat: cat.key });
                           }
                           setDraggingId(null);
                           setDragOverCat(null);
@@ -803,6 +901,43 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
         open={inboxOpen}
         onOpenChange={setInboxOpen}
         onAssigned={() => { void fetchLeads(); void refreshInboxCount(); }}
+      />
+
+      {bouwflowLead && (
+        <PushToBouwflowDialog
+          open={!!bouwflowLead}
+          onClose={() => setBouwflowLead(null)}
+          lead={bouwflowLead}
+          onPushed={(leadId, patch) => {
+            setLeads(prev => prev.map(l => l.id === leadId ? { ...l, ...patch } : l));
+            setBouwflowLead(null);
+          }}
+        />
+      )}
+
+      <MoveBouwflowPhaseDialog
+        open={!!moveDialog}
+        onOpenChange={(v) => { if (!v) setMoveDialog(null); }}
+        lead={moveDialog?.lead ?? null}
+        targetCategoryKey={moveDialog?.cat ?? null}
+        targetCategoryLabel={CATEGORIES.find(c => c.key === moveDialog?.cat)?.label ?? ''}
+        phaseOptions={phaseOptions}
+        onLocalOnly={() => {
+          if (moveDialog) updateCategory(moveDialog.lead.id, moveDialog.cat);
+          setMoveDialog(null);
+        }}
+        onConfirmed={(phase) => {
+          // Bouwflow is bevestigd bijgewerkt; de edge function heeft de rij al
+          // aangepast. Hier enkel de lokale weergave gelijkzetten.
+          if (moveDialog) {
+            const leadId = moveDialog.lead.id;
+            setLeads(prev => prev.map(l => l.id === leadId
+              ? { ...l, category_override: phase.compass_category, bouwflow_phase: String(phase.phase_id) }
+              : l));
+            toast.success(`Verplaatst — Bouwflow staat nu op "${phase.phase_title}"`);
+          }
+          setMoveDialog(null);
+        }}
       />
     </div>
   );
