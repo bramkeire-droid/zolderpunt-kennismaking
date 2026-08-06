@@ -621,6 +621,22 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
                 <p className="text-muted-foreground font-body">Nog geen dossiers. Start een nieuw intakegesprek om te beginnen.</p>
               </div>
             ) : (() => {
+              const activeLead = leads.find(l => l.id === activeLeadId) ?? null;
+              const actionBar = activeLead ? (
+                <LeadActionBar
+                  lead={activeLead}
+                  onClose={() => setActiveLeadId(null)}
+                  onOpenDossier={() => handleOpen(activeLead)}
+                  onCall={() => onOpenCall?.(activeLead.id)}
+                  onIntake={() => handleStartVideocall(activeLead)}
+                  onPhotos={() => setPhotoLead(activeLead)}
+                  onPortal={() => setPortalLead(activeLead)}
+                  onCalculator={() => setCalcLead(activeLead)}
+                  onVoorblad={() => setGenericVoorblad({ lead: activeLead })}
+                  onOfferte={() => setOfferteLead(activeLead)}
+                />
+              ) : null;
+
               const renderRow = (lead: any) => (
                 <TableRow
                   key={lead.id}
@@ -628,7 +644,7 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
                   onDragStart={(e) => { setDraggingId(lead.id); e.dataTransfer.effectAllowed = 'move'; }}
                   onDragEnd={() => { setDraggingId(null); setDragOverCat(null); }}
                   className={`cursor-pointer hover:bg-accent/50 ${draggingId === lead.id ? 'opacity-40' : ''}`}
-                  onClick={() => handleOpen(lead)}
+                  onClick={() => setActiveLeadId(lead.id)}
                 >
                   <TableCell className="w-6 pr-0 text-muted-foreground/40" onClick={(e) => e.stopPropagation()}>
                     <GripVertical className="h-4 w-4 cursor-grab active:cursor-grabbing" />
@@ -793,23 +809,10 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
               );
 
               if (viewMode === 'kanban') {
-                const activeLead = leads.find(l => l.id === activeLeadId) ?? null;
                 return (
                   <>
-                  {activeLead && (
-                    <LeadActionBar
-                      lead={activeLead}
-                      onClose={() => setActiveLeadId(null)}
-                      onOpenDossier={() => handleOpen(activeLead)}
-                      onCall={() => onOpenCall?.(activeLead.id)}
-                      onIntake={() => handleStartVideocall(activeLead)}
-                      onPhotos={() => setPhotoLead(activeLead)}
-                      onPortal={() => setPortalLead(activeLead)}
-                      onCalculator={() => setCalcLead(activeLead)}
-                      onVoorblad={() => setGenericVoorblad({ lead: activeLead })}
-                      onOfferte={() => setOfferteLead(activeLead)}
-                    />
-                  )}
+                  {actionBar}
+
                   <KanbanBoard
                     columns={CATEGORIES}
                     grouped={groupedByCategory}
@@ -838,6 +841,8 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
 
               return (
                 <div className="space-y-4">
+                  {actionBar}
+
                   {CATEGORIES.map(cat => {
                     const rows = groupedByCategory[cat.key];
                     const isOpen = !collapsed[cat.key];
