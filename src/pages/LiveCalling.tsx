@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, type ReactNode } from 'react';
 import { usePreIntake } from '@/contexts/PreIntakeContext';
 import { usePreIntakeSave } from '@/hooks/usePreIntakeSave';
 import { useCallTimer } from '@/hooks/useCallTimer';
