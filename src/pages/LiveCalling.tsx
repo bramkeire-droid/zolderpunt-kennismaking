@@ -20,6 +20,8 @@ interface LiveCallingProps {
   onOpenValidation: (leadId: string, preIntakeId: string) => void;
   initialLeadId?: string | null;
   initialStep?: CallingStep;
+  /** Actiebalk voor het geopende dossier, gerenderd onder de topbar. */
+  renderActionsBar?: (leadId: string) => ReactNode;
 }
 
 
