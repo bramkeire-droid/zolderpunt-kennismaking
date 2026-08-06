@@ -331,6 +331,8 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
         </div>
       </div>
 
+      {selectedLead?.id && renderActionsBar?.(selectedLead.id)}
+
       {/* ═══ WORKSPACE — single centered column ═══ */}
       <div className="flex-1 min-h-0 bg-[#FFFCF5] overflow-auto">
         <div className="px-8 py-5 max-w-[1600px] mx-auto flex flex-col gap-4">
