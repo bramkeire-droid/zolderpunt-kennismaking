@@ -34,6 +34,8 @@ import InboundInboxDialog from '@/components/dossier/InboundInboxDialog';
 import PushToBouwflowDialog from '@/components/dossier/PushToBouwflowDialog';
 import MoveBouwflowPhaseDialog, { type PhaseOption } from '@/components/dossier/MoveBouwflowPhaseDialog';
 import KanbanBoard from '@/components/dossier/KanbanBoard';
+import LeadActionBar from '@/components/dossier/LeadActionBar';
+import CalculatorDialog from '@/components/dossier/CalculatorDialog';
 import { LayoutGrid, Rows3 } from 'lucide-react';
 import { INBOUND_HINT_TEXT } from '@/components/dossier/InboundHint';
 import { normalizeLeadMedia, imagesOnly } from '@/lib/leadMedia';
@@ -176,6 +178,9 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
   const [stabLead, setStabLead] = useState<any>(null);
   const [genericVoorblad, setGenericVoorblad] = useState<{ lead: any } | null>(null);
   const [photoLead, setPhotoLead] = useState<any>(null);
+  const [calcLead, setCalcLead] = useState<any>(null);
+  // Kaart aangeklikt in kanban: dossier-actiebalk bovenaan tonen.
+  const [activeLeadId, setActiveLeadId] = useState<string | null>(null);
   const [bouwflowLead, setBouwflowLead] = useState<any>(null);
   const [preIntakeMap, setPreIntakeMap] = useState<Record<string, any>>({});
   const [analysisMap, setAnalysisMap] = useState<Record<string, boolean>>({});
@@ -788,7 +793,23 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
               );
 
               if (viewMode === 'kanban') {
+                const activeLead = leads.find(l => l.id === activeLeadId) ?? null;
                 return (
+                  <>
+                  {activeLead && (
+                    <LeadActionBar
+                      lead={activeLead}
+                      onClose={() => setActiveLeadId(null)}
+                      onOpenDossier={() => handleOpen(activeLead)}
+                      onCall={() => onOpenCall?.(activeLead.id)}
+                      onIntake={() => handleStartVideocall(activeLead)}
+                      onPhotos={() => setPhotoLead(activeLead)}
+                      onPortal={() => setPortalLead(activeLead)}
+                      onCalculator={() => setCalcLead(activeLead)}
+                      onVoorblad={() => setGenericVoorblad({ lead: activeLead })}
+                      onOfferte={() => setOfferteLead(activeLead)}
+                    />
+                  )}
                   <KanbanBoard
                     columns={CATEGORIES}
                     grouped={groupedByCategory}
@@ -809,8 +830,9 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
                       setDraggingId(null);
                       setDragOverCat(null);
                     }}
-                    onOpenLead={handleOpen}
+                    onOpenLead={(l) => setActiveLeadId(l.id)}
                   />
+                  </>
                 );
               }
 
@@ -954,6 +976,14 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
           }}
         />
       )}
+      {calcLead && (
+        <CalculatorDialog
+          lead={calcLead}
+          onClose={() => setCalcLead(null)}
+          onUpdate={(leadId, patch) => setLeads(prev => prev.map(l => l.id === leadId ? { ...l, ...patch } : l))}
+        />
+      )}
+
       <InboundInboxDialog
         open={inboxOpen}
         onOpenChange={setInboxOpen}
