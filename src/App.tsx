@@ -60,6 +60,7 @@ function AppContent() {
   const [briefingLead, setBriefingLead] = useState<LeadData | null>(null);
   const [callingLeadId, setCallingLeadId] = useState<string | null>(null);
   const [callingInitialStep, setCallingInitialStep] = useState<'calling' | 'select-lead'>('select-lead');
+  const [activeDossierId, setActiveDossierId] = useState<string | null>(null);
   const { currentMode, currentSlide, resetSession, setCurrentMode, loadLead } = useSession();
   const { flushSave } = useLeadSave();
 
