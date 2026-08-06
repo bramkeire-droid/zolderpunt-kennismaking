@@ -29,7 +29,7 @@ interface LiveCallingProps {
 
 /* ───────────────────────── MAIN COMPONENT ───────────────────────── */
 
-export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, initialLeadId, initialStep }: LiveCallingProps) {
+export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, initialLeadId, initialStep, renderActionsBar }: LiveCallingProps) {
   const [step, setStep] = useState<CallingStep>(initialStep ?? 'select-lead');
   const { signOut } = useAuth();
   const [search, setSearch] = useState('');
