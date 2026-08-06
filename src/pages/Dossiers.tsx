@@ -644,7 +644,7 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
                   onDragStart={(e) => { setDraggingId(lead.id); e.dataTransfer.effectAllowed = 'move'; }}
                   onDragEnd={() => { setDraggingId(null); setDragOverCat(null); }}
                   className={`cursor-pointer hover:bg-accent/50 ${draggingId === lead.id ? 'opacity-40' : ''}`}
-                  onClick={() => setActiveLeadId(lead.id)}
+                  onClick={() => handleOpen(lead)}
                 >
                   <TableCell className="w-6 pr-0 text-muted-foreground/40" onClick={(e) => e.stopPropagation()}>
                     <GripVertical className="h-4 w-4 cursor-grab active:cursor-grabbing" />
