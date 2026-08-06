@@ -17,7 +17,7 @@ import {
   assignPendingGroupToLead,
   clearWindow,
   parseMemoCommand,
-  takeWindowNotes,
+  takeWindowForMemo,
   storeMemo,
   mailMemo,
   type InboundAttachment,
@@ -108,22 +108,29 @@ Deno.serve(async (req) => {
     //
     // Bare "tbc" means "the thing I just forwarded" — WhatsApp allows no
     // caption when forwarding a text message, so it arrives as a follow-up and
-    // the text already in the window is the memo. "tbc <text>" is a note the
+    // everything open in the window (text AND any still-pending photos) is
+    // claimed for the memo; see takeWindowForMemo. "tbc <text>" is a note the
     // sender typed themselves, and then the window is left alone: it may well
-    // hold the customer name belonging to a photo batch still being collected.
+    // hold the customer name belonging to an unrelated photo batch still
+    // being collected.
     const memo = parseMemoCommand(trimmed);
     if (memo !== null) {
-      const memoBody = memo || (await takeWindowNotes(supabase, 'wa', fromPhone));
-      if (!memoBody) {
+      const claimed = memo ? { notes: memo, photoCount: 0 } : await takeWindowForMemo(supabase, 'wa', fromPhone);
+      if (!claimed.notes && !claimed.photoCount) {
         return twiml('Niets te noteren — stuur eerst het bericht door en antwoord daarna "tbc".');
       }
-      const firstLine = memoBody.replace(/\s+/g, ' ').slice(0, 70);
+      const firstLine = (claimed.notes || `${claimed.photoCount} foto('s) zonder tekst`)
+        .replace(/\s+/g, ' ')
+        .slice(0, 70);
+      const photoNote = claimed.photoCount
+        ? `\n\n(${claimed.photoCount} foto('s) horen hierbij — bewaard, maar niet aan een dossier gekoppeld.)`
+        : '';
       const row = await storeMemo(supabase, {
         source: 'wa',
         fromIdentifier: fromPhone,
         fromDisplay: profileName,
         subject: `📌 TBC — ${firstLine}`,
-        body: memoBody,
+        body: (claimed.notes || `(geen tekst, enkel ${claimed.photoCount} foto('s))`) + photoNote,
         kind: 'memo',
       });
       if (!row) return twiml('Opslaan mislukte — probeer het nog eens.');
@@ -134,7 +141,11 @@ Deno.serve(async (req) => {
       EdgeRuntime.waitUntil(
         mailMemo(supabase, row).catch((e) => console.error('memo mail failed', row.id, e)),
       );
-      return twiml('📬 Genoteerd. Je krijgt er een e-mail over.');
+      return twiml(
+        claimed.photoCount
+          ? `📬 Genoteerd (incl. ${claimed.photoCount} foto('s), niet aan een dossier gekoppeld). Je krijgt er een e-mail over.`
+          : '📬 Genoteerd. Je krijgt er een e-mail over.',
+      );
     }
 
     // Any other text (a name, an address) is just another clue for the

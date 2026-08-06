@@ -367,21 +367,25 @@ export async function clearWindow(supabase: SupabaseClient, source: InboundSourc
     .eq('from_identifier', fromIdentifier);
 }
 
-// Reads the loose text collected in a sender's open window for use as a memo.
-//
-// Clearing it is conditional, and that condition matters. touch_inbound_window
-// concatenates every loose message into one pending_notes string, so the same
-// column holds both "the thing I forwarded" and the customer name typed for a
-// photo batch. Wiping it while photos are still pending would take away the
-// batch's only matching clue and push it into the no-candidates branch — the
-// exact class of failure (losing photos' context) this pipeline was rebuilt to
-// prevent. So when media is pending the text is copied, not taken: the memo
-// carries a bit of extra noise, the photos keep their clue.
-export async function takeWindowNotes(
+export interface WindowForMemo {
+  notes: string;
+  photoCount: number;
+}
+
+// Bare "tbc" claims everything currently open in the window for the memo —
+// notes AND any still-pending photos. Earlier this only ever took the notes
+// and, if photos were pending, left them untouched so a later dossier match
+// wouldn't lose its clue (see the removed takeWindowNotes). That protection
+// no longer applies once "tbc" is the reply: the sender has just said this
+// batch isn't dossier material, so there is nothing left to protect the
+// photos' matching clue for — deferring them to the mailbox and clearing the
+// window fully is correct here, unlike the "tbc <tekst>" branch below which
+// still leaves an unrelated pending batch alone on purpose.
+export async function takeWindowForMemo(
   supabase: SupabaseClient,
   source: InboundSource,
   fromIdentifier: string,
-): Promise<string> {
+): Promise<WindowForMemo> {
   const { data } = await supabase
     .from('inbound_conversation_state')
     .select('pending_notes, pending_expires_at, pending_media_ids')
@@ -391,17 +395,30 @@ export async function takeWindowNotes(
 
   const fresh = data?.pending_expires_at && new Date(data.pending_expires_at) > new Date();
   const notes = fresh ? (data?.pending_notes || '') : '';
-  if (!notes) return '';
+  const mediaIds = fresh && Array.isArray(data?.pending_media_ids) ? (data!.pending_media_ids as string[]) : [];
 
-  const mediaPending = Array.isArray(data?.pending_media_ids) && data!.pending_media_ids.length > 0;
-  if (mediaPending) return notes;
+  const photoCount = mediaIds.length ? await deferMediaToMemo(supabase, mediaIds) : 0;
+  if (notes || mediaIds.length) await clearWindow(supabase, source, fromIdentifier);
 
-  await supabase
-    .from('inbound_conversation_state')
-    .update({ pending_notes: '' })
-    .eq('source', source)
-    .eq('from_identifier', fromIdentifier);
-  return notes;
+  return { notes, photoCount };
+}
+
+// Pulls pending photos out of dossier consideration without touching storage
+// or leads — 'memo' status is excluded by flushGroup's `WHERE status =
+// 'pending'`, so the flush pass stops asking which dossier they belong to.
+// Returns the number of individual photos (not rows) deferred, for the mail.
+export async function deferMediaToMemo(supabase: SupabaseClient, mediaIds: string[]): Promise<number> {
+  if (!mediaIds.length) return 0;
+  const { data } = await supabase
+    .from('inbound_media_pending')
+    .update({ status: 'memo' })
+    .eq('status', 'pending')
+    .in('id', mediaIds)
+    .select('storage_paths');
+  return (data || []).reduce(
+    (n, r: { storage_paths?: unknown }) => n + (Array.isArray(r.storage_paths) ? r.storage_paths.length : 0),
+    0,
+  );
 }
 
 // Copies every photo in the given pending rows to the lead's folder, appends
