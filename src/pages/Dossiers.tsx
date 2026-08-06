@@ -809,23 +809,10 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
               );
 
               if (viewMode === 'kanban') {
-                const activeLead = leads.find(l => l.id === activeLeadId) ?? null;
                 return (
                   <>
-                  {activeLead && (
-                    <LeadActionBar
-                      lead={activeLead}
-                      onClose={() => setActiveLeadId(null)}
-                      onOpenDossier={() => handleOpen(activeLead)}
-                      onCall={() => onOpenCall?.(activeLead.id)}
-                      onIntake={() => handleStartVideocall(activeLead)}
-                      onPhotos={() => setPhotoLead(activeLead)}
-                      onPortal={() => setPortalLead(activeLead)}
-                      onCalculator={() => setCalcLead(activeLead)}
-                      onVoorblad={() => setGenericVoorblad({ lead: activeLead })}
-                      onOfferte={() => setOfferteLead(activeLead)}
-                    />
-                  )}
+                  {actionBar}
+
                   <KanbanBoard
                     columns={CATEGORIES}
                     grouped={groupedByCategory}
