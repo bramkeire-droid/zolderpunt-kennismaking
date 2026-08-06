@@ -37,6 +37,7 @@ import logoBlauw from '@/assets/logo-blauw.svg';
 import DecorativeAngle from '@/components/DecorativeAngle';
 import CoachingSuggestions from '@/components/CoachingSuggestions';
 import IntakeBriefing from '@/components/IntakeBriefing';
+import DossierActionsBar from '@/components/dossier/DossierActionsBar';
 import Portal from '@/pages/Portal';
 import { supabase } from '@/integrations/supabase/client';
 import { AppActionsProvider } from '@/contexts/AppActionsContext';
