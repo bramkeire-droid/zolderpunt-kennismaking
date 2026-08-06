@@ -37,6 +37,7 @@ import logoBlauw from '@/assets/logo-blauw.svg';
 import DecorativeAngle from '@/components/DecorativeAngle';
 import CoachingSuggestions from '@/components/CoachingSuggestions';
 import IntakeBriefing from '@/components/IntakeBriefing';
+import DossierActionsBar from '@/components/dossier/DossierActionsBar';
 import Portal from '@/pages/Portal';
 import { supabase } from '@/integrations/supabase/client';
 import { AppActionsProvider } from '@/contexts/AppActionsContext';
@@ -60,6 +61,7 @@ function AppContent() {
   const [briefingLead, setBriefingLead] = useState<LeadData | null>(null);
   const [callingLeadId, setCallingLeadId] = useState<string | null>(null);
   const [callingInitialStep, setCallingInitialStep] = useState<'calling' | 'select-lead'>('select-lead');
+  const [activeDossierId, setActiveDossierId] = useState<string | null>(null);
   const { currentMode, currentSlide, resetSession, setCurrentMode, loadLead } = useSession();
   const { flushSave } = useLeadSave();
 
@@ -72,6 +74,7 @@ function AppContent() {
   }, [currentMode, flushSave]);
 
   const handleOpenLead = async (lead: LeadData) => {
+    setActiveDossierId(lead.id ?? null);
     // Toon briefing als er een pre_intake bestaat voor dit dossier
     if (lead.id) {
       const { data: pi } = await supabase
@@ -97,17 +100,20 @@ function AppContent() {
 
   const handleGoHome = async () => {
     if (view === 'slides') await flushSave();
+    setActiveDossierId(null);
     setView('start');
   };
 
   const handleNewIntake = async () => {
     if (view === 'slides') await flushSave();
+    setActiveDossierId(null);
     resetSession();
     setView('slides');
   };
 
   const handleNewCall = async () => {
     if (view === 'slides') await flushSave();
+    setActiveDossierId(null);
     setCallingLeadId(null);
     setCallingInitialStep('select-lead');
     setView('calling');
@@ -115,6 +121,7 @@ function AppContent() {
 
   const handleOpenCall = async (leadId: string) => {
     if (view === 'slides') await flushSave();
+    setActiveDossierId(leadId);
     setCallingLeadId(leadId);
     setCallingInitialStep('calling');
     setView('calling');
@@ -122,6 +129,7 @@ function AppContent() {
 
   const handleGoDossiers = async () => {
     if (view === 'slides') await flushSave();
+    setActiveDossierId(null);
     setCurrentMode('dossiers');
     setView('dossiers');
   };
@@ -138,6 +146,7 @@ function AppContent() {
     if (!bestaand?.id) {
       await supabase.from('pre_intake').insert({ lead_id: leadId, videocall_planned: true } as any);
     }
+    setActiveDossierId(leadId);
     setCallingLeadId(leadId);
     setCallingInitialStep('calling');
     setView('calling');
@@ -187,6 +196,15 @@ function AppContent() {
     );
   }
 
+  const dossierBar = (leadId: string) => (
+    <DossierActionsBar
+      leadId={leadId}
+      onCall={handleOpenCall}
+      onIntake={handleStartVideocall}
+      onGoDossiers={handleGoDossiers}
+    />
+  );
+
   if (view === 'calling') {
     return (
       <PreIntakeProvider>
@@ -196,6 +214,7 @@ function AppContent() {
           onOpenValidation={handleOpenValidation}
           initialLeadId={callingLeadId}
           initialStep={callingInitialStep}
+          renderActionsBar={dossierBar}
         />
       </PreIntakeProvider>
     );
@@ -223,6 +242,7 @@ function AppContent() {
           onNewIntake={handleNewIntake}
           onGoDossiers={handleGoDossiers}
         />
+        {briefingLead.id && dossierBar(briefingLead.id)}
         <IntakeBriefing
           lead={briefingLead}
           onStart={handleStartFromBriefing}
@@ -251,6 +271,7 @@ function AppContent() {
         />
       ) : (
         <AppActionsProvider value={{ openCall: handleOpenCall, startVideocall: handleStartVideocall }}>
+          {activeDossierId && dossierBar(activeDossierId)}
           {(() => {
             const SlideComponent = SLIDE_COMPONENTS[currentSlide];
             return SlideComponent ? <SlideComponent /> : null;

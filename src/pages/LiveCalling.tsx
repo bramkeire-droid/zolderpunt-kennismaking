@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, type ReactNode } from 'react';
 import { usePreIntake } from '@/contexts/PreIntakeContext';
 import { usePreIntakeSave } from '@/hooks/usePreIntakeSave';
 import { useCallTimer } from '@/hooks/useCallTimer';
@@ -20,6 +20,8 @@ interface LiveCallingProps {
   onOpenValidation: (leadId: string, preIntakeId: string) => void;
   initialLeadId?: string | null;
   initialStep?: CallingStep;
+  /** Actiebalk voor het geopende dossier, gerenderd onder de topbar. */
+  renderActionsBar?: (leadId: string) => ReactNode;
 }
 
 
@@ -27,7 +29,7 @@ interface LiveCallingProps {
 
 /* ───────────────────────── MAIN COMPONENT ───────────────────────── */
 
-export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, initialLeadId, initialStep }: LiveCallingProps) {
+export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, initialLeadId, initialStep, renderActionsBar }: LiveCallingProps) {
   const [step, setStep] = useState<CallingStep>(initialStep ?? 'select-lead');
   const { signOut } = useAuth();
   const [search, setSearch] = useState('');
@@ -328,6 +330,8 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
           </button>
         </div>
       </div>
+
+      {selectedLead?.id && renderActionsBar?.(selectedLead.id)}
 
       {/* ═══ WORKSPACE — single centered column ═══ */}
       <div className="flex-1 min-h-0 bg-[#FFFCF5] overflow-auto">
