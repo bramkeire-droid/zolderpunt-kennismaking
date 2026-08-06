@@ -841,7 +841,7 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
 
               return (
                 <div className="space-y-4">
-                  {actionBar}
+
 
                   {CATEGORIES.map(cat => {
                     const rows = groupedByCategory[cat.key];
