@@ -195,6 +195,15 @@ function AppContent() {
     );
   }
 
+  const dossierBar = (leadId: string) => (
+    <DossierActionsBar
+      leadId={leadId}
+      onCall={handleOpenCall}
+      onIntake={handleStartVideocall}
+      onGoDossiers={handleGoDossiers}
+    />
+  );
+
   if (view === 'calling') {
     return (
       <PreIntakeProvider>
@@ -204,6 +213,7 @@ function AppContent() {
           onOpenValidation={handleOpenValidation}
           initialLeadId={callingLeadId}
           initialStep={callingInitialStep}
+          renderActionsBar={dossierBar}
         />
       </PreIntakeProvider>
     );
@@ -231,6 +241,7 @@ function AppContent() {
           onNewIntake={handleNewIntake}
           onGoDossiers={handleGoDossiers}
         />
+        {briefingLead.id && dossierBar(briefingLead.id)}
         <IntakeBriefing
           lead={briefingLead}
           onStart={handleStartFromBriefing}
@@ -259,6 +270,7 @@ function AppContent() {
         />
       ) : (
         <AppActionsProvider value={{ openCall: handleOpenCall, startVideocall: handleStartVideocall }}>
+          {activeDossierId && dossierBar(activeDossierId)}
           {(() => {
             const SlideComponent = SLIDE_COMPONENTS[currentSlide];
             return SlideComponent ? <SlideComponent /> : null;
