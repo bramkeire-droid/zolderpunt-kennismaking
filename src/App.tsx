@@ -39,6 +39,7 @@ import CoachingSuggestions from '@/components/CoachingSuggestions';
 import IntakeBriefing from '@/components/IntakeBriefing';
 import Portal from '@/pages/Portal';
 import { supabase } from '@/integrations/supabase/client';
+import { AppActionsProvider } from '@/contexts/AppActionsContext';
 import type { SlideId } from '@/contexts/SessionContext';
 import type { LeadData } from '@/contexts/SessionContext';
 
@@ -125,6 +126,23 @@ function AppContent() {
     setView('dossiers');
   };
 
+  // Videocall-intake voor een bestaand dossier: zorg dat er een pre_intake
+  // bestaat (daar hangt de planning van de videocall aan) en open het gesprek.
+  const handleStartVideocall = async (leadId: string) => {
+    if (view === 'slides') await flushSave();
+    const { data: bestaand } = await supabase
+      .from('pre_intake')
+      .select('id')
+      .eq('lead_id', leadId)
+      .maybeSingle();
+    if (!bestaand?.id) {
+      await supabase.from('pre_intake').insert({ lead_id: leadId, videocall_planned: true } as any);
+    }
+    setCallingLeadId(leadId);
+    setCallingInitialStep('calling');
+    setView('calling');
+  };
+
   const handleOpenValidation = (leadId: string, preIntakeId: string) => {
     setValidationLeadId(leadId);
     setValidationPreIntakeId(preIntakeId);
@@ -198,7 +216,13 @@ function AppContent() {
   if (view === 'briefing' && briefingLead) {
     return (
       <div className="h-screen flex flex-col">
-        <NavigationBar onGoHome={handleGoHome} onNewCall={handleNewCall} />
+        <NavigationBar
+          onGoHome={handleGoHome}
+          onNewCall={handleNewCall}
+          onNewDossier={handleNewIntake}
+          onNewIntake={handleNewIntake}
+          onGoDossiers={handleGoDossiers}
+        />
         <IntakeBriefing
           lead={briefingLead}
           onStart={handleStartFromBriefing}
@@ -215,6 +239,9 @@ function AppContent() {
       <NavigationBar
         onGoHome={handleGoHome}
         onNewCall={handleNewCall}
+        onNewDossier={handleNewIntake}
+        onNewIntake={handleNewIntake}
+        onGoDossiers={handleGoDossiers}
       />
       {actualMode === 'dossiers' ? (
         <Dossiers
@@ -223,10 +250,12 @@ function AppContent() {
           onOpenCall={handleOpenCall}
         />
       ) : (
-        (() => {
-          const SlideComponent = SLIDE_COMPONENTS[currentSlide];
-          return SlideComponent ? <SlideComponent /> : null;
-        })()
+        <AppActionsProvider value={{ openCall: handleOpenCall, startVideocall: handleStartVideocall }}>
+          {(() => {
+            const SlideComponent = SLIDE_COMPONENTS[currentSlide];
+            return SlideComponent ? <SlideComponent /> : null;
+          })()}
+        </AppActionsProvider>
       )}
     </div>
   );
