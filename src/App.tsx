@@ -73,6 +73,7 @@ function AppContent() {
   }, [currentMode, flushSave]);
 
   const handleOpenLead = async (lead: LeadData) => {
+    setActiveDossierId(lead.id ?? null);
     // Toon briefing als er een pre_intake bestaat voor dit dossier
     if (lead.id) {
       const { data: pi } = await supabase
@@ -98,17 +99,20 @@ function AppContent() {
 
   const handleGoHome = async () => {
     if (view === 'slides') await flushSave();
+    setActiveDossierId(null);
     setView('start');
   };
 
   const handleNewIntake = async () => {
     if (view === 'slides') await flushSave();
+    setActiveDossierId(null);
     resetSession();
     setView('slides');
   };
 
   const handleNewCall = async () => {
     if (view === 'slides') await flushSave();
+    setActiveDossierId(null);
     setCallingLeadId(null);
     setCallingInitialStep('select-lead');
     setView('calling');
@@ -116,6 +120,7 @@ function AppContent() {
 
   const handleOpenCall = async (leadId: string) => {
     if (view === 'slides') await flushSave();
+    setActiveDossierId(leadId);
     setCallingLeadId(leadId);
     setCallingInitialStep('calling');
     setView('calling');
@@ -123,6 +128,7 @@ function AppContent() {
 
   const handleGoDossiers = async () => {
     if (view === 'slides') await flushSave();
+    setActiveDossierId(null);
     setCurrentMode('dossiers');
     setView('dossiers');
   };
@@ -139,6 +145,7 @@ function AppContent() {
     if (!bestaand?.id) {
       await supabase.from('pre_intake').insert({ lead_id: leadId, videocall_planned: true } as any);
     }
+    setActiveDossierId(leadId);
     setCallingLeadId(leadId);
     setCallingInitialStep('calling');
     setView('calling');
