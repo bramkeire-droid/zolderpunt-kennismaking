@@ -9,32 +9,24 @@ import { Inbox, Mail, MessageCircle, Check, ChevronsUpDown, Trash2 } from 'lucid
 import { isVideoPath } from '@/lib/leadMedia';
 import InboundHint from '@/components/dossier/InboundHint';
 import { cn } from '@/lib/utils';
+import { groupInbound, type InboundGroup, type InboundRow } from '@/lib/inboundGroups';
 
-interface PendingItem {
-  id: string;
+interface PendingItem extends InboundRow {
   source: 'wa' | 'mail';
   from_identifier: string;
   from_display: string;
   subject: string;
   body: string;
-  storage_paths: string[];
   suggested_lead_id: string | null;
   match_reason: string;
-  created_at: string;
 }
 
-interface PendingGroup {
-  groupId: string;
-  source: 'wa' | 'mail';
-  from_identifier: string;
-  from_display: string;
-  items: PendingItem[];
-  storage_paths: string[];
-  bodies: string[];
+// Groeperen gebeurt via de gedeelde helper (zie lib/inboundGroups), zodat de
+// Inbox en de dossierpagina één doorgestuurde reeks foto's identiek bundelen.
+type PendingGroup = InboundGroup<PendingItem> & {
   suggested_lead_id: string | null;
   match_reason: string;
-  created_at: string;
-}
+};
 
 interface LeadOpt { id: string; label: string; }
 
@@ -44,43 +36,14 @@ interface Props {
   onAssigned?: () => void;
 }
 
-// Photos forwarded together (e.g. a batch of 15 WhatsApp photos) usually arrive
-// as separate webhook calls seconds apart. Group same-sender items that land
-// within this window into a single card so they can be linked in one action.
-const GROUP_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
-
 function groupPending(items: PendingItem[]): PendingGroup[] {
-  const sorted = [...items].sort(
-    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
-  );
-  const groups: PendingGroup[] = [];
-  for (const it of sorted) {
-    const last = groups[groups.length - 1];
-    const sameSender = last && last.source === it.source && last.from_identifier === it.from_identifier;
-    const withinWindow = last &&
-      new Date(it.created_at).getTime() - new Date(last.created_at).getTime() <= GROUP_WINDOW_MS;
-    if (sameSender && withinWindow) {
-      last.items.push(it);
-      last.storage_paths.push(...it.storage_paths);
-      if (it.body) last.bodies.push(it.body);
-      if (!last.suggested_lead_id && it.suggested_lead_id) last.suggested_lead_id = it.suggested_lead_id;
-      last.created_at = it.created_at; // extend window from most recent item
-    } else {
-      groups.push({
-        groupId: it.id,
-        source: it.source,
-        from_identifier: it.from_identifier,
-        from_display: it.from_display,
-        items: [it],
-        storage_paths: [...it.storage_paths],
-        bodies: it.body ? [it.body] : [],
-        suggested_lead_id: it.suggested_lead_id,
-        match_reason: it.match_reason,
-        created_at: it.created_at,
-      });
-    }
-  }
-  return groups.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  return groupInbound(items).map(groep => ({
+    ...groep,
+    // Eerste bruikbare suggestie/reden uit de groep: die hoort bij dezelfde
+    // doorgestuurde reeks, dus één keuze geldt voor de hele kaart.
+    suggested_lead_id: groep.items.find(it => it.suggested_lead_id)?.suggested_lead_id ?? null,
+    match_reason: groep.items.find(it => it.match_reason)?.match_reason ?? '',
+  }));
 }
 
 export default function InboundInboxDialog({ open, onOpenChange, onAssigned }: Props) {

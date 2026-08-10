@@ -2,30 +2,24 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { MessageCircle, Mail, Paperclip, Inbox } from 'lucide-react';
 import { INBOUND_EMAIL, INBOUND_WHATSAPP } from './InboundHint';
+import { groupInbound, type InboundGroup, type InboundRow } from '@/lib/inboundGroups';
 
 // Wat de klant zelf heeft doorgestuurd, per dossier op één tijdlijn.
-// De inbound-verwerking (WhatsApp en e-mail) bestond al en zet berichten met
-// bijlagen in `inbound_media_pending`; wat ontbrak was een plek waar je per
-// dossier ziet wát er binnenkwam. Foto's blijven bij de dossierfoto's staan —
-// dit overzicht toont de begeleidende tekst en wanneer het kwam.
+// De inbound-verwerking (WhatsApp en e-mail) zet berichten met bijlagen in
+// `inbound_media_pending`; dit is de plek waar je per dossier ziet wát er
+// binnenkwam. Foto's blijven bij de dossierfoto's staan — dit overzicht toont
+// de begeleidende tekst, hoeveel er meekwam en wanneer.
+//
+// Groeperen gebeurt via de gedeelde helper: WhatsApp levert elke foto als een
+// eigen record aan, dus zonder groepering wordt één doorgestuurde reeks van 42
+// foto's hier 42 aparte meldingen.
 
-interface Item {
-  id: string;
-  source: string;
-  from_display: string | null;
-  from_identifier: string | null;
-  subject: string | null;
-  body: string | null;
-  storage_paths: unknown;
-  created_at: string;
-}
-
-const aantalBijlagen = (paths: unknown) => (Array.isArray(paths) ? paths.length : 0);
+type Item = InboundRow;
 
 export default function AangeleverdDoorKlant({
   leadId, compact = false,
 }: { leadId: string | undefined; compact?: boolean }) {
-  const [items, setItems] = useState<Item[]>([]);
+  const [groepen, setGroepen] = useState<InboundGroup<Item>[]>([]);
   const [laden, setLaden] = useState(true);
 
   useEffect(() => {
@@ -38,14 +32,7 @@ export default function AangeleverdDoorKlant({
       .order('created_at', { ascending: false })
       .then(({ data }) => {
         if (!actief) return;
-        // Foto's-zonder-tekst (bv. losse WhatsApp-berichten uit een grote
-        // batch) staan al bij de dossierfoto's — hier tonen we enkel wat de
-        // klant er zelf bij geschreven heeft. Zonder deze filter gaf 1 batch
-        // van 42 foto's ook 42 lege rijen in dit overzicht.
-        const metTekst = ((data as Item[]) ?? []).filter(
-          it => (it.body ?? '').trim() || (it.subject ?? '').trim(),
-        );
-        setItems(metTekst);
+        setGroepen(groupInbound((data as Item[]) ?? []));
         setLaden(false);
       });
     return () => { actief = false; };
@@ -64,44 +51,46 @@ export default function AangeleverdDoorKlant({
             Doorsturen naar {INBOUND_EMAIL} of WhatsApp {INBOUND_WHATSAPP}
           </p>
         </div>
-        {items.length > 0 && (
+        {groepen.length > 0 && (
           <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground tabular-nums">
-            {items.length}
+            {groepen.length}
           </span>
         )}
       </div>
 
       {laden ? (
         <p className="py-4 text-center text-xs text-muted-foreground">Laden…</p>
-      ) : items.length === 0 ? (
+      ) : groepen.length === 0 ? (
         <div className="flex items-center gap-2 rounded border border-dashed border-border px-3 py-4 text-xs text-muted-foreground">
           <Inbox className="h-4 w-4 shrink-0" />
           Nog niets ontvangen. Stuur een mail of foto's door en wijs ze toe via de Inbox.
         </div>
       ) : (
         <ul className="space-y-2">
-          {items.map(item => {
-            const isMail = item.source === 'mail';
-            const bijlagen = aantalBijlagen(item.storage_paths);
-            const datum = new Date(item.created_at).toLocaleString('nl-BE', {
+          {groepen.map(groep => {
+            const isMail = groep.source === 'mail';
+            const bijlagen = groep.storage_paths.length;
+            const datum = new Date(groep.created_at).toLocaleString('nl-BE', {
               day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
             });
+            const onderwerp = groep.subjects[0];
+            const tekst = groep.bodies.join('\n\n');
             return (
-              <li key={item.id} className="rounded border border-border bg-background p-2.5">
+              <li key={groep.groupId} className="rounded border border-border bg-background p-2.5">
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   {isMail ? <Mail className="h-3.5 w-3.5 shrink-0" /> : <MessageCircle className="h-3.5 w-3.5 shrink-0" />}
                   <span className="font-medium text-foreground">
-                    {item.from_display || item.from_identifier || (isMail ? 'E-mail' : 'WhatsApp')}
+                    {groep.from_display || groep.from_identifier || (isMail ? 'E-mail' : 'WhatsApp')}
                   </span>
                   <span className="ml-auto tabular-nums">{datum}</span>
                 </div>
 
-                {item.subject && (
-                  <p className="mt-1 text-xs font-semibold text-foreground">{item.subject}</p>
+                {onderwerp && (
+                  <p className="mt-1 text-xs font-semibold text-foreground">{onderwerp}</p>
                 )}
-                {item.body && (
+                {tekst && (
                   <p className="mt-1 whitespace-pre-wrap text-xs leading-relaxed text-muted-foreground">
-                    {item.body}
+                    {tekst}
                   </p>
                 )}
                 {bijlagen > 0 && (
