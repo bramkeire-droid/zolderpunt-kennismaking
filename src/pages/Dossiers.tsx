@@ -194,6 +194,7 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
   // De browser herstelt bij terugkeer of verversen de vorige scrollpositie,
   // waardoor je halverwege de lijst landt. Altijd bovenaan beginnen.
   const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollHersteld = useRef(false);
   useEffect(() => { scrollRef.current?.scrollTo({ top: 0 }); }, []);
   const [inboxOpen, setInboxOpen] = useState(false);
   const [inboxCount, setInboxCount] = useState(0);
@@ -233,12 +234,15 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
   // blijft staan.
   const defaultsGezet = useRef(false);
   useEffect(() => {
-    if (defaultsGezet.current || CATEGORIES.length === 0) return;
+    // Wachten tot de fases geladen zijn: buildCategories geeft altijd al de
+    // kolom "Niet in Bouwflow" terug, dus CATEGORIES is nooit leeg en een
+    // check daarop zou de defaults op één kolom zetten.
+    if (defaultsGezet.current || phaseOptions.length === 0) return;
     defaultsGezet.current = true;
     const start: Record<CategoryKey, boolean> = {};
     CATEGORIES.forEach((c, i) => { start[c.key] = i >= 6; });
     setCollapsed(start);
-  }, [CATEGORIES]);
+  }, [CATEGORIES, phaseOptions]);
 
   const refreshInboxCount = async () => {
     const { count } = await supabase
@@ -306,6 +310,14 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
   };
 
   useEffect(() => { fetchLeads(); }, []);
+
+  // De browser herstelt zijn scrollpositie pas zodra de lijst gevuld is, dus
+  // één keer opnieuw naar boven zodra de eerste dossiers binnen zijn.
+  useEffect(() => {
+    if (scrollHersteld.current || leads.length === 0) return;
+    scrollHersteld.current = true;
+    requestAnimationFrame(() => scrollRef.current?.scrollTo({ top: 0 }));
+  }, [leads]);
 
   // Fetch pre-intake indicators
   useEffect(() => {
