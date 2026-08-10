@@ -15,6 +15,8 @@ export interface PortalData {
   rapport_aandachtspunten_ai: string;
   waarde_tekst_ai: string;
   budget_excl: number | null;
+  budget_min_excl: number | null;
+  budget_max_excl: number | null;
   btw_percentage: number;
   prijs_min_incl_btw: number;
   prijs_max_incl_btw: number;
@@ -22,7 +24,14 @@ export interface PortalData {
   prijs_mw_max_incl_btw: number;
   fotos: { bestandsnaam: string; storage_path: string; url?: string }[];
   project_feiten: any[];
-  inbegrepen_posten: { post: string; bedrag: number }[];
+  inbegrepen_posten: {
+    post: string;
+    bedrag: number;
+    categorie?: 'standaard' | 'badkamer' | 'maatwerk' | 'extra';
+    min?: number;
+    max?: number;
+    omschrijving?: string;
+  }[];
   technisch: any;
 }
 
@@ -51,6 +60,8 @@ async function fetchDirectFromSupabase(portalToken: string): Promise<PortalData 
     rapport_aandachtspunten_ai: (lead as any).rapport_aandachtspunten_ai ?? '',
     waarde_tekst_ai: (lead as any).waarde_tekst_ai ?? '',
     budget_excl: (lead as any).budget_excl ?? null,
+    budget_min_excl: (lead as any).budget_min_excl ?? null,
+    budget_max_excl: (lead as any).budget_max_excl ?? null,
     btw_percentage: (lead as any).btw_percentage ?? 6,
     prijs_min_incl_btw: (lead as any).prijs_min_incl_btw ?? 0,
     prijs_max_incl_btw: (lead as any).prijs_max_incl_btw ?? 0,
@@ -133,6 +144,8 @@ export function usePortal(portalToken: string, isPreview = false) {
               rapport_aandachtspunten_ai: lead.rapport_aandachtspunten_ai ?? '',
               waarde_tekst_ai: lead.waarde_tekst_ai ?? '',
               budget_excl: lead.budget_excl ?? null,
+              budget_min_excl: (lead as any).budget_min_excl ?? null,
+              budget_max_excl: (lead as any).budget_max_excl ?? null,
               btw_percentage: lead.btw_percentage ?? 6,
               prijs_min_incl_btw: lead.prijs_min_incl_btw ?? 0,
               prijs_max_incl_btw: lead.prijs_max_incl_btw ?? 0,

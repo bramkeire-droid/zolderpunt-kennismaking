@@ -1,6 +1,7 @@
 import { DollarSign, CheckCircle } from 'lucide-react';
 import type { PortalData } from '@/hooks/usePortal';
 import { STANDAARD_INBEGREPEN } from '@/components/report/reportConstants';
+import { CATEGORIE_MET_BEDRAG, leesPosten } from '@/lib/prijscalculator';
 
 interface Props {
   data: PortalData;
@@ -17,13 +18,25 @@ export default function PortalInvestering({ data, onView }: Props) {
   const excl = data.budget_excl;
   if (!excl || excl <= 0) return null;
 
-  const min = Math.round(excl * 0.85);
-  const max = Math.round(excl * 1.15);
+  // Elementen met een eigen min/max hebben hun eigen bandbreedte; die bewaart
+  // de calculator apart. ±15% blijft de terugval voor oudere dossiers.
+  const min = Math.round(data.budget_min_excl ?? excl * 0.85);
+  const max = Math.round(data.budget_max_excl ?? excl * 1.15);
 
-  const calcItems = (data.inbegrepen_posten || [])
-    .filter((p: any) => p.post)
-    .map((p: any) => p.post);
-  const allItems = [...new Set([...calcItems, ...STANDAARD_INBEGREPEN])];
+  // Zelfde regel als in het rapport: alleen badkamer, maatwerk en vrije
+  // elementen dragen een deelbedrag; de tariefposten horen bij het basiswerk.
+  const posten = leesPosten(data.inbegrepen_posten);
+  const gezien = new Set(posten.map((p) => p.post.toLowerCase().trim()));
+  const allItems: { label: string; bedrag?: string }[] = [
+    ...posten.map((p) => {
+      const bereik =
+        p.min != null && p.max != null && p.min !== p.max
+          ? `${fmt(p.min)} — ${fmt(p.max)}`
+          : fmt(p.bedrag);
+      return { label: p.post, ...(CATEGORIE_MET_BEDRAG.includes(p.categorie) ? { bedrag: bereik } : {}) };
+    }),
+    ...STANDAARD_INBEGREPEN.filter((s) => !gezien.has(s.toLowerCase().trim())).map((s) => ({ label: s })),
+  ];
 
   return (
     <section className="bg-[#F8F3EB] py-10" onMouseEnter={onView}>
@@ -88,7 +101,12 @@ export default function PortalInvestering({ data, onView }: Props) {
               {allItems.map((item, i) => (
                 <div key={i} className="flex items-start gap-2">
                   <span className="text-[#008CFF] text-sm mt-0.5">&#10003;</span>
-                  <span className="font-body text-sm text-[#1A1A1A]">{item}</span>
+                  <span className="font-body text-sm text-[#1A1A1A]">
+                    {item.label}
+                    {item.bedrag && (
+                      <span className="ml-1.5 font-semibold text-[#008CFF]">{item.bedrag}</span>
+                    )}
+                  </span>
                 </div>
               ))}
             </div>

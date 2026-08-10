@@ -97,6 +97,8 @@ serve(async (req) => {
       rapport_aandachtspunten_ai: lead.rapport_aandachtspunten_ai,
       waarde_tekst_ai: lead.waarde_tekst_ai,
       budget_excl: lead.budget_excl,
+      budget_min_excl: lead.budget_min_excl,
+      budget_max_excl: lead.budget_max_excl,
       btw_percentage: lead.btw_percentage,
       prijs_min_incl_btw: lead.prijs_min_incl_btw,
       prijs_max_incl_btw: lead.prijs_max_incl_btw,

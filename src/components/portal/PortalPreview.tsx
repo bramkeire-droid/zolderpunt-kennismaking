@@ -29,6 +29,8 @@ function leadToPortalData(lead: any): PortalData {
     rapport_aandachtspunten_ai: lead.rapport_aandachtspunten_ai ?? '',
     waarde_tekst_ai: lead.waarde_tekst_ai ?? '',
     budget_excl: lead.budget_excl ?? null,
+    budget_min_excl: (lead as any).budget_min_excl ?? null,
+    budget_max_excl: (lead as any).budget_max_excl ?? null,
     btw_percentage: lead.btw_percentage ?? 6,
     prijs_min_incl_btw: lead.prijs_min_incl_btw ?? 0,
     prijs_max_incl_btw: lead.prijs_max_incl_btw ?? 0,
