@@ -113,6 +113,48 @@ export async function matchLeadDeterministic(
     if (data?.id) return { leadId: data.id, reason: `E-mailadres matcht klant` };
   }
 
+  // 2b) Adressen en nummers ÍN de tekst. Een doorgestuurde klantmail komt van
+  // ons eigen adres, dus de afzender levert dan niets op terwijl het adres van
+  // de klant gewoon in de "Van:"-regel staat. Eigen domeinen overslaan, anders
+  // matcht een doorgestuurde mail op onszelf.
+  const EIGEN_DOMEINEN = /@(zolderpunt\.be|belhouse\.be|inbox\.zolderpunt\.be)$/i;
+  const adressenInTekst = [...new Set(
+    (haystack.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi) || [])
+      .map(a => a.toLowerCase())
+      .filter(a => !EIGEN_DOMEINEN.test(a) && a !== payload.fromIdentifier?.toLowerCase()),
+  )];
+
+  for (const adres of adressenInTekst) {
+    const { data } = await supabase
+      .from('leads')
+      .select('id')
+      .ilike('email', adres)
+      .limit(1)
+      .maybeSingle();
+    if (data?.id) return { leadId: data.id, reason: `e-mailadres in bericht (${adres})` };
+  }
+
+  // Telefoonnummers in de tekst, op de laatste 9 cijfers zoals bij WhatsApp.
+  const nummersInTekst = [...new Set(
+    (haystack.match(/(?:\+32|0032|0)\s?4\d{2}(?:[\s./-]?\d{2}){3}/g) || [])
+      .map(n => normalizePhone(n))
+      .filter(n => n.length >= 9),
+  )];
+
+  if (nummersInTekst.length > 0) {
+    const { data } = await supabase
+      .from('leads')
+      .select('id, telefoon')
+      .not('telefoon', 'eq', '')
+      .order('created_at', { ascending: false })
+      .limit(200);
+    for (const nummer of nummersInTekst) {
+      const kort = nummer.slice(-9);
+      const hit = (data || []).find(l => normalizePhone(l.telefoon || '').endsWith(kort));
+      if (hit) return { leadId: hit.id, reason: `telefoonnummer in bericht (${hit.telefoon})` };
+    }
+  }
+
   // 3) Conversation state (previous reply in last 24h)
   const { data: conv } = await supabase
     .from('inbound_conversation_state')
