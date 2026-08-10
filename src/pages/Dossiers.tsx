@@ -3,7 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Search, FolderOpen, Users, TrendingUp, DollarSign, Eye, RefreshCw, Trash2, CheckCircle, Globe, Phone, Bot, FileDown, MoreVertical, ArrowUp, ArrowDown, ArrowUpDown, FileText, Receipt, Hammer, ArrowRightLeft, ChevronDown, ChevronRight, GripVertical, Send } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { defaultTechnisch } from '@/contexts/SessionContext';
@@ -187,6 +187,10 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOverCat, setDragOverCat] = useState<CategoryKey | null>(null);
   const [collapsed, setCollapsed] = useState<Record<CategoryKey, boolean>>({} as any);
+  // De browser herstelt bij terugkeer of verversen de vorige scrollpositie,
+  // waardoor je halverwege de lijst landt. Altijd bovenaan beginnen.
+  const scrollRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { scrollRef.current?.scrollTo({ top: 0 }); }, []);
   const [inboxOpen, setInboxOpen] = useState(false);
   const [inboxCount, setInboxCount] = useState(0);
   const [bouwflowSyncing, setBouwflowSyncing] = useState(false);
@@ -210,6 +214,19 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
   }, []);
 
   const CATEGORIES = useMemo(() => buildCategories(phaseOptions), [phaseOptions]);
+
+  // Met 25 fases is een volledig uitgeklapte lijst niet te overzien. De eerste
+  // zes (de actieve verkoopfases) staan open, de rest ingeklapt. Alleen de
+  // eerste keer instellen, zodat wat de gebruiker daarna open- of dichtklapt
+  // blijft staan.
+  const defaultsGezet = useRef(false);
+  useEffect(() => {
+    if (defaultsGezet.current || CATEGORIES.length === 0) return;
+    defaultsGezet.current = true;
+    const start: Record<CategoryKey, boolean> = {};
+    CATEGORIES.forEach((c, i) => { start[c.key] = i >= 6; });
+    setCollapsed(start);
+  }, [CATEGORIES]);
 
   const refreshInboxCount = async () => {
     const { count } = await supabase
@@ -504,7 +521,7 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
 
 
   return (
-    <div className="flex-1 overflow-y-auto p-8 lg:p-12 bg-background">
+    <div ref={scrollRef} className="flex-1 overflow-y-auto p-8 lg:p-12 bg-background">
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-headline font-bold text-foreground">Dossiers</h1>
