@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Inbox, Mail, MessageCircle, Check, Trash2 } from 'lucide-react';
+import { Inbox, Mail, MessageCircle, Check, ChevronsUpDown, Trash2 } from 'lucide-react';
 import { isVideoPath } from '@/lib/leadMedia';
 import InboundHint from '@/components/dossier/InboundHint';
+import { cn } from '@/lib/utils';
 
 interface PendingItem {
   id: string;
@@ -86,6 +89,8 @@ export default function InboundInboxDialog({ open, onOpenChange, onAssigned }: P
   const [selection, setSelection] = useState<Record<string, string>>({});
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
+  // groupId van de kaart waarvan de dossier-zoeker net open staat, of null.
+  const [comboOpen, setComboOpen] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -234,16 +239,51 @@ export default function InboundInboxDialog({ open, onOpenChange, onAssigned }: P
               </div>
 
               <div className="flex items-center gap-2">
-                <select
-                  className="flex-1 border rounded px-3 py-2 text-sm bg-background"
-                  value={selection[group.groupId] || group.suggested_lead_id || ''}
-                  onChange={(e) => setSelection((s) => ({ ...s, [group.groupId]: e.target.value }))}
-                >
-                  <option value="">— Kies dossier —</option>
-                  {leads.map((l) => (
-                    <option key={l.id} value={l.id}>{l.label}</option>
-                  ))}
-                </select>
+                {(() => {
+                  const gekozenId = selection[group.groupId] || group.suggested_lead_id || '';
+                  const gekozenLabel = leads.find((l) => l.id === gekozenId)?.label;
+                  return (
+                    <Popover
+                      open={comboOpen === group.groupId}
+                      onOpenChange={(open) => setComboOpen(open ? group.groupId : null)}
+                    >
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={comboOpen === group.groupId}
+                          className="flex-1 justify-between font-normal"
+                        >
+                          <span className="truncate">{gekozenLabel || '— Kies dossier —'}</span>
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[420px] p-0" align="start">
+                        <Command>
+                          <CommandInput placeholder="Zoek op naam of adres..." />
+                          <CommandList>
+                            <CommandEmpty>Geen dossier gevonden.</CommandEmpty>
+                            <CommandGroup>
+                              {leads.map((l) => (
+                                <CommandItem
+                                  key={l.id}
+                                  value={l.label}
+                                  onSelect={() => {
+                                    setSelection((s) => ({ ...s, [group.groupId]: l.id }));
+                                    setComboOpen(null);
+                                  }}
+                                >
+                                  <Check className={cn('mr-2 h-4 w-4', gekozenId === l.id ? 'opacity-100' : 'opacity-0')} />
+                                  {l.label}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  );
+                })()}
                 <Button size="sm" onClick={() => assign(group)} disabled={busy === group.groupId} className="gap-1">
                   <Check className="h-4 w-4" /> Koppelen
                 </Button>
