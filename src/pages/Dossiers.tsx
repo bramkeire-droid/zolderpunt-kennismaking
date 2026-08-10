@@ -34,6 +34,10 @@ import InboundInboxDialog from '@/components/dossier/InboundInboxDialog';
 import PushToBouwflowDialog from '@/components/dossier/PushToBouwflowDialog';
 import MoveBouwflowPhaseDialog, { type PhaseOption } from '@/components/dossier/MoveBouwflowPhaseDialog';
 import KanbanBoard from '@/components/dossier/KanbanBoard';
+import PipelineHeader from '@/components/dossier/PipelineHeader';
+import {
+  FASE_GROEPEN, bepaalVolgendeActie, dossierWaarde, type FaseGroepKey,
+} from '@/lib/pipeline';
 import LeadActionBar from '@/components/dossier/LeadActionBar';
 import CalculatorDialog from '@/components/dossier/CalculatorDialog';
 import { LayoutGrid, Rows3 } from 'lucide-react';
@@ -200,7 +204,15 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
   const [viewMode, setViewMode] = useState<'tabel' | 'kanban'>(
     () => (localStorage.getItem('dossiers_view') === 'kanban' ? 'kanban' : 'tabel')
   );
-  const [toonLegeKolommen, setToonLegeKolommen] = useState(true);
+  // Lege fases nemen standaard geen ruimte in; ze zijn zichtbaar te maken.
+  const [toonLegeKolommen, setToonLegeKolommen] = useState(false);
+  const [alleenAchterstallig, setAlleenAchterstallig] = useState(false);
+  // Open de fasegroep waar de gebruiker het laatst werkte.
+  const [faseGroep, setFaseGroep] = useState<FaseGroepKey>(
+    () => (localStorage.getItem('dossiers_groep') as FaseGroepKey) || 'intake'
+  );
+  const kiesGroep = (g: FaseGroepKey) => { setFaseGroep(g); localStorage.setItem('dossiers_groep', g); };
+  const [laatsteSync, setLaatsteSync] = useState<string | null>(null);
   const kiesView = (v: 'tabel' | 'kanban') => { setViewMode(v); localStorage.setItem('dossiers_view', v); };
   const toggleCollapse = (k: CategoryKey) => setCollapsed(p => ({ ...p, [k]: !p[k] }));
 
@@ -319,10 +331,21 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
   }, [leads]);
 
   const filtered = useMemo(() => {
-    const base = !search.trim() ? leads : leads.filter(l =>
-      `${l.voornaam} ${l.achternaam}`.toLowerCase().includes(search.toLowerCase()) ||
-      (l.adres ?? '').toLowerCase().includes(search.toLowerCase())
+    // Zoeken over naam, adres, dossiernummer en e-mail.
+    const q = search.trim().toLowerCase();
+    let base = !q ? leads : leads.filter(l =>
+      `${l.voornaam ?? ''} ${l.achternaam ?? ''}`.toLowerCase().includes(q) ||
+      (l.adres ?? '').toLowerCase().includes(q) ||
+      (l.email ?? '').toLowerCase().includes(q) ||
+      (l.bouwflow_project_number ?? '').toLowerCase().includes(q)
     );
+
+    if (alleenAchterstallig) {
+      base = base.filter(l => {
+        const a = bepaalVolgendeActie(l, preIntakeMap[l.id]);
+        return a.niveau === 'te_laat' || a.niveau === 'geen_actie';
+      });
+    }
     const getVal = (l: any): string | number => {
       switch (sortKey) {
         case 'naam': return `${l.voornaam ?? ''} ${l.achternaam ?? ''}`.trim().toLowerCase();
@@ -340,7 +363,7 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
       return 0;
     });
     return sorted;
-  }, [leads, search, sortKey, sortDir]);
+  }, [leads, search, sortKey, sortDir, alleenAchterstallig, preIntakeMap]);
 
   const groupedByCategory = useMemo(() => {
     const groups: Record<CategoryKey, any[]> = {};
@@ -354,6 +377,50 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
     });
     return groups;
   }, [filtered, CATEGORIES]);
+
+  // Alleen de kolommen van de gekozen fasegroep, en lege fases enkel op verzoek.
+  const zichtbareKolommen = useMemo(() => {
+    const groepDef = FASE_GROEPEN.find(g => g.key === faseGroep);
+    const inGroep = (c: CategoryDef) =>
+      !groepDef || groepDef.phaseIds.length === 0
+        ? true
+        : c.phaseId !== null && groepDef.phaseIds.includes(c.phaseId);
+    return CATEGORIES
+      .filter(c => (faseGroep === 'alles' ? true : inGroep(c)))
+      .filter(c => toonLegeKolommen || (groupedByCategory[c.key] ?? []).length > 0);
+  }, [CATEGORIES, faseGroep, toonLegeKolommen, groupedByCategory]);
+
+  const aantalPerGroep = useMemo(() => {
+    const uit: Record<string, number> = {};
+    FASE_GROEPEN.forEach(g => {
+      uit[g.key] = leads.filter(l => {
+        const fase = l.bouwflow_phase ? Number(l.bouwflow_phase) : null;
+        if (g.phaseIds.length === 0) return true;
+        return fase !== null && g.phaseIds.includes(fase);
+      }).length;
+    });
+    return uit;
+  }, [leads]);
+
+  // Uitsluitend cijfers die uit bestaande velden volgen. "Goedgekeurd deze
+  // maand" ontbreekt bewust: er is geen datum van fasewijziging in Compass.
+  const kpi = useMemo(() => {
+    const inactieveFases = FASE_GROEPEN.find(g => g.key === 'inactief')?.phaseIds ?? [];
+    const actieveDossiers = leads.filter(l => {
+      const fase = l.bouwflow_phase ? Number(l.bouwflow_phase) : null;
+      return fase === null || !inactieveFases.includes(fase);
+    });
+    const metWaarde = actieveDossiers.filter(l => dossierWaarde(l) != null);
+    return {
+      actief: actieveDossiers.length,
+      pipelinewaarde: metWaarde.reduce((s, l) => s + (dossierWaarde(l) ?? 0), 0),
+      waardeVanAantal: metWaarde.length,
+      opvolgingNodig: actieveDossiers.filter(l => {
+        const a = bepaalVolgendeActie(l, preIntakeMap[l.id]);
+        return a.niveau === 'te_laat' || a.niveau === 'geen_actie';
+      }).length,
+    };
+  }, [leads, preIntakeMap]);
 
 
   const stats = useMemo(() => {
@@ -478,7 +545,10 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
       const created = pullData?.created ?? 0;
 
       toast.success(
-        `${fasesCount} fases bijgewerkt · ${matched} dossiers gekoppeld · ${created} nieuw aangemaakt`
+        `${fasesCount} fases bijgewerkt · ${matched} dossiers gekoppeld · ${created} nieuw aangemaakt`,
+      );
+      setLaatsteSync(
+        new Date().toLocaleString('nl-BE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
       );
       await fetchLeads();
     } catch (err: any) {
@@ -507,7 +577,9 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
 
 
   return (
-    <div ref={scrollRef} className="flex-1 overflow-y-auto p-8 lg:p-12 bg-background">
+    // Volle breedte met een smalle marge: de pipeline heeft alle ruimte nodig,
+    // en een neutraal grijs laat de witte kaarten en werkbalk uitkomen.
+    <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-6 bg-slate-50">
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-headline font-bold text-foreground">Dossiers</h1>
@@ -527,36 +599,47 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
             </Button>
             {/* Geen eigen "Nieuwe lead"-knop meer: de navigatiebalk heeft
                 "Nieuw dossier", en twee knoppen voor hetzelfde is verwarrend. */}
+            {/* Vernieuwen is een klein icoon; zeldzame acties zitten onder
+                "Meer", zodat er maar één opvallende actie overblijft. */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={fetchLeads}
+              disabled={loading}
+              title="Lijst vernieuwen"
+              aria-label="Lijst vernieuwen"
+              className="h-9 w-9"
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            </Button>
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="gap-2 font-headline">
-                  <MoreVertical className="h-4 w-4" /> Bulkacties
+                  <MoreVertical className="h-4 w-4" /> Meer
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={handleCleanEmpty}>Lege dossiers wissen</DropdownMenuItem>
+              <DropdownMenuContent align="end" className="w-64">
+                <DropdownMenuItem onClick={handleBouwflowSync} disabled={bouwflowSyncing}>
+                  <ArrowRightLeft className={`h-4 w-4 mr-2 text-primary ${bouwflowSyncing ? 'animate-pulse' : ''}`} />
+                  <div className="flex flex-col">
+                    <span>Synchroniseren met Bouwflow</span>
+                    <span className="text-xs text-muted-foreground">
+                      {laatsteSync ? `Laatst: ${laatsteSync}` : 'Nog niet gesynchroniseerd'}
+                    </span>
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setGenericVoorblad({ lead: null })}>
                   <FileText className="h-4 w-4 mr-2 text-primary" /> Generiek voorblad maken
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setOfferteLead({ __standalone: true })}>
-                  <FileText className="h-4 w-4 mr-2 text-primary" /> Offerte & bijlage maken
+                  <FileText className="h-4 w-4 mr-2 text-primary" /> Offerte &amp; bijlage maken
                 </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleCleanEmpty}>Lege dossiers wissen</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <Button variant="outline" onClick={fetchLeads} className="gap-2 font-headline" disabled={loading}>
-              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-              Vernieuwen
-            </Button>
-            <Button
-              variant="outline"
-              onClick={handleBouwflowSync}
-              className="gap-2 font-headline"
-              disabled={bouwflowSyncing}
-              title="Fasen ophalen en dry-run tonen van wat een echte projecten-sync zou doen"
-            >
-              <ArrowRightLeft className={`h-4 w-4 ${bouwflowSyncing ? 'animate-pulse' : ''}`} />
-              Synchroniseer met Bouwflow
-            </Button>
           </div>
         </div>
 
@@ -569,52 +652,21 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
           </TabsList>
 
           <TabsContent value="overzicht">
-            <div className="flex items-center gap-4 mb-6 flex-wrap">
-              <div className="relative flex-1 min-w-[200px] max-w-sm">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  placeholder="Zoeken op naam of adres..."
-                  className="pl-9 bg-card"
-                />
-              </div>
-
-              {viewMode === 'kanban' && (
-                <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={toonLegeKolommen}
-                    onChange={(e) => setToonLegeKolommen(e.target.checked)}
-                    className="accent-primary"
-                  />
-                  Lege fases tonen
-                </label>
-              )}
-
-              {/* Tabel of kanban — beide tonen dezelfde Bouwflow-fases. */}
-              <div className="ml-auto inline-flex border border-border bg-card overflow-hidden">
-                <button
-                  type="button"
-                  onClick={() => kiesView('tabel')}
-                  aria-pressed={viewMode === 'tabel'}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-headline transition-colors ${
-                    viewMode === 'tabel' ? 'bg-primary text-primary-foreground' : 'hover:bg-accent/50'
-                  }`}
-                >
-                  <Rows3 className="h-3.5 w-3.5" /> Tabel
-                </button>
-                <button
-                  type="button"
-                  onClick={() => kiesView('kanban')}
-                  aria-pressed={viewMode === 'kanban'}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-headline transition-colors ${
-                    viewMode === 'kanban' ? 'bg-primary text-primary-foreground' : 'hover:bg-accent/50'
-                  }`}
-                >
-                  <LayoutGrid className="h-3.5 w-3.5" /> Kanban
-                </button>
-              </div>
+            <div className="mb-4">
+              <PipelineHeader
+                kpi={kpi}
+                groep={faseGroep}
+                onGroep={kiesGroep}
+                aantalPerGroep={aantalPerGroep}
+                zoek={search}
+                onZoek={setSearch}
+                viewMode={viewMode}
+                onView={kiesView}
+                toonLege={toonLegeKolommen}
+                onToonLege={setToonLegeKolommen}
+                alleenAchterstallig={alleenAchterstallig}
+                onAlleenAchterstallig={setAlleenAchterstallig}
+              />
             </div>
 
             {loading && leads.length === 0 ? (
@@ -821,12 +873,12 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
                   {actionBar}
 
                   <KanbanBoard
-                    columns={CATEGORIES}
+                    columns={zichtbareKolommen}
                     grouped={groupedByCategory}
+                    preIntakeMap={preIntakeMap}
                     draggingId={draggingId}
                     dragOverKey={dragOverCat}
                     activeLeadId={activeLeadId}
-                    showEmpty={toonLegeKolommen}
                     onDragStart={setDraggingId}
                     onDragEnd={() => { setDraggingId(null); setDragOverCat(null); }}
                     onDragOverColumn={setDragOverCat}
