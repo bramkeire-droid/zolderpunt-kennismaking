@@ -392,6 +392,8 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
   }, [filtered, CATEGORIES]);
 
   // Alleen de kolommen van de gekozen fasegroep, en lege fases enkel op verzoek.
+  const zoekActief = search.trim().length > 0;
+
   const zichtbareKolommen = useMemo(() => {
     const groepDef = FASE_GROEPEN.find(g => g.key === faseGroep);
     const inGroep = (c: CategoryDef) =>
@@ -399,9 +401,12 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
         ? true
         : c.phaseId !== null && groepDef.phaseIds.includes(c.phaseId);
     return CATEGORIES
-      .filter(c => (faseGroep === 'alles' ? true : inGroep(c)))
+      // Bij een actieve zoekopdracht doorzoeken we alle dossiers, niet enkel
+      // de kolommen van de gekozen fasegroep — anders lijkt een treffer in
+      // een andere fase onterecht "niet gevonden".
+      .filter(c => (zoekActief || faseGroep === 'alles') ? true : inGroep(c))
       .filter(c => toonLegeKolommen || (groupedByCategory[c.key] ?? []).length > 0);
-  }, [CATEGORIES, faseGroep, toonLegeKolommen, groupedByCategory]);
+  }, [CATEGORIES, faseGroep, toonLegeKolommen, groupedByCategory, zoekActief]);
 
   const aantalPerGroep = useMemo(() => {
     const uit: Record<string, number> = {};
@@ -898,6 +903,7 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
                   <KanbanBoard
                     columns={zichtbareKolommen}
                     grouped={groupedByCategory}
+                    zoekActief={zoekActief}
                     preIntakeMap={preIntakeMap}
                     draggingId={draggingId}
                     dragOverKey={dragOverCat}
@@ -933,7 +939,9 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
                       anders tonen de twee weergaven iets anders. */}
                   {zichtbareKolommen.map(cat => {
                     const rows = groupedByCategory[cat.key];
-                    const isOpen = !collapsed[cat.key];
+                    // Tijdens zoeken altijd open: een treffer in een ingeklapte
+                    // categorie mag niet verborgen blijven achter de toggle.
+                    const isOpen = !collapsed[cat.key] || zoekActief;
                     const isDragTarget = dragOverCat === cat.key;
                     return (
                       <div

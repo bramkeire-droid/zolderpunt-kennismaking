@@ -13,6 +13,7 @@ export interface KanbanColumn {
 interface Props {
   columns: KanbanColumn[];
   grouped: Record<string, any[]>;
+  zoekActief?: boolean;
   preIntakeMap: Record<string, any>;
   draggingId: string | null;
   dragOverKey: string | null;
@@ -31,7 +32,7 @@ interface Props {
 const KOLOM_BREEDTE = 300;
 
 export default function KanbanBoard({
-  columns, grouped, preIntakeMap, draggingId, dragOverKey, activeLeadId,
+  columns, grouped, zoekActief, preIntakeMap, draggingId, dragOverKey, activeLeadId,
   onDragStart, onDragEnd, onDragOverColumn, onDropOnColumn, onOpenLead, onSelectLead,
 }: Props) {
   const [ingeklapt, setIngeklapt] = useState<Record<string, boolean>>({});
@@ -50,7 +51,8 @@ export default function KanbanBoard({
         {columns.map(col => {
           const rows = grouped[col.key] ?? [];
           const isTarget = dragOverKey === col.key;
-          const dicht = ingeklapt[col.key];
+          // Tijdens zoeken altijd open: een ingeklapte kolom mag geen treffer verbergen.
+          const dicht = zoekActief ? false : ingeklapt[col.key];
           const groep: FaseGroepKey | null = groepVanFase(col.phaseId);
           const totaal = rows.reduce((som, l) => som + (dossierWaarde(l) ?? 0), 0);
 
