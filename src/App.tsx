@@ -32,7 +32,7 @@ import Slide10 from '@/slides/Slide10';
 import { Toaster } from '@/components/ui/toaster';
 import { Toaster as Sonner } from '@/components/ui/sonner';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, FolderOpen, Phone } from 'lucide-react';
+import { FolderOpen, Phone, Video, FilePlus2 } from 'lucide-react';
 import logoBlauw from '@/assets/logo-blauw.svg';
 import DecorativeAngle from '@/components/DecorativeAngle';
 import CoachingSuggestions from '@/components/CoachingSuggestions';
@@ -165,26 +165,42 @@ function AppContent() {
         <DecorativeAngle position="bottom-left" color="secondary" size={250} />
         <div className="flex-1 flex flex-col items-center justify-center relative z-10">
           <img src={logoBlauw} alt="Zolderpunt" className="h-14 mb-12" />
+          {/* Zelfde twee keuzes en dezelfde bewoording als de navigatiebalk:
+              een nieuw dossier beginnen, of een bestaand dossier openen. */}
           <div className="w-full max-w-sm flex flex-col gap-3 px-6">
+            <p className="text-xs font-headline font-semibold uppercase tracking-wider text-muted-foreground">
+              Nieuw dossier
+            </p>
+            <Button
+              onClick={handleNewIntake}
+              className="w-full h-14 bg-primary text-primary-foreground hover:bg-secondary font-headline text-base gap-3 justify-start px-5"
+            >
+              <FilePlus2 className="h-5 w-5" />
+              Leeg dossier
+            </Button>
             <Button
               onClick={handleNewCall}
-              className="w-full h-14 bg-primary text-primary-foreground hover:bg-secondary font-headline text-base gap-3 justify-center"
+              variant="outline"
+              className="w-full h-14 font-headline text-base gap-3 justify-start px-5"
             >
               <Phone className="h-5 w-5" />
-              Nieuw telefoongesprek
+              Telefoongesprek
             </Button>
             <Button
               onClick={handleNewIntake}
               variant="outline"
-              className="w-full h-14 font-headline text-base gap-3 justify-center"
+              className="w-full h-14 font-headline text-base gap-3 justify-start px-5"
             >
-              <ArrowRight className="h-5 w-5" />
-              Nieuw intakegesprek starten
+              <Video className="h-5 w-5" />
+              Videocall intake
             </Button>
+
+            <div className="h-px bg-border my-2" />
+
             <Button
               variant="outline"
               onClick={handleGoDossiers}
-              className="w-full h-14 font-headline text-base gap-3 justify-center"
+              className="w-full h-14 font-headline text-base gap-3 justify-start px-5"
             >
               <FolderOpen className="h-5 w-5" />
               Dossiers bekijken

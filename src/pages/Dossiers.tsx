@@ -488,20 +488,6 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
     }
   };
 
-  // Een vers dossier hangt nog niet aan Bouwflow en komt dus altijd in
-  // "Niet in Bouwflow" — een kolom kiezen zou een fase suggereren die daar
-  // niet bestaat. Pushen naar Bouwflow bepaalt daarna de kolom.
-  const handleCreateLead = async () => {
-    const { data, error } = await supabase
-      .from('leads')
-      .insert({ voornaam: 'Nieuw', achternaam: 'dossier' } as any)
-      .select()
-      .single();
-    if (error || !data) { toast.error('Aanmaken mislukt'); return; }
-    toast.success('Dossier aangemaakt');
-    setLeads(prev => [data, ...prev]);
-    handleOpen(data);
-  };
 
   const handleStartVideocall = async (lead: any) => {
     let pi = preIntakeMap[lead.id];
@@ -539,9 +525,8 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
                 </span>
               )}
             </Button>
-            <Button className="gap-2 font-headline" onClick={() => handleCreateLead()}>
-              <FolderOpen className="h-4 w-4" /> Nieuwe lead
-            </Button>
+            {/* Geen eigen "Nieuwe lead"-knop meer: de navigatiebalk heeft
+                "Nieuw dossier", en twee knoppen voor hetzelfde is verwarrend. */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="gap-2 font-headline">
