@@ -25,6 +25,10 @@ export interface InboundPayload {
 export interface MatchResult {
   leadId: string | null;
   reason: string;
+  // Alleen gezet door matchLeadByAI(): markeert dat dit een AI-inschatting is,
+  // geen geverifieerde identificatie. Onbepaald (deterministisch/klantfiche/
+  // 24u-geheugen) betekent bevestigd en mag automatisch koppelen.
+  confidence?: 'hoog' | 'middel' | 'laag';
 }
 
 export interface LeadCandidate {
@@ -282,6 +286,151 @@ export function highConfidenceMatch(candidates: LeadCandidate[]): LeadCandidate 
   return null;
 }
 
+// ── AI-gestuurde matching voor mail ──────────────────────────────────────
+// Alleen ingezet wanneer de deterministische stappen (UUID/e-mail/telefoon/
+// klantfiche/24u-geheugen) niets vonden. Redeneert over meer dan naam/adres
+// (ook telefoon, e-mail, projectnummer, fase, context) maar koppelt nooit
+// zelf — het teruggegeven vertrouwen zorgt dat ingestInbound() altijd om een
+// menselijke bevestiging vraagt via de bestaande Inbox in plaats van blind
+// te schrijven. Zie generate-rapport-summary/index.ts voor hetzelfde
+// gateway-patroon (model, tool-call-forcering).
+async function callAI(apiKey: string, messages: unknown[], tools: unknown[], toolChoice: unknown) {
+  let response: Response;
+  try {
+    response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'google/gemini-3-flash-preview', messages, tools, tool_choice: toolChoice, stream: false }),
+    });
+  } catch (err) {
+    console.error('matchLeadByAI: gateway onbereikbaar', err);
+    return { error: true as const, status: 0 };
+  }
+  if (!response.ok) {
+    console.error('matchLeadByAI: gateway error', response.status, await response.text());
+    return { error: true as const, status: response.status };
+  }
+  return { error: false as const, data: await response.json() };
+}
+
+function parseToolCallArgs(data: any): Record<string, unknown> | null {
+  const toolCall = data?.choices?.[0]?.message?.tool_calls?.[0];
+  if (!toolCall?.function?.arguments) return null;
+  return typeof toolCall.function.arguments === 'string'
+    ? JSON.parse(toolCall.function.arguments)
+    : toolCall.function.arguments;
+}
+
+const kiesDossierTool = {
+  type: 'function' as const,
+  function: {
+    name: 'kies_dossier',
+    description: 'Kiest het dossier waar dit bericht het meest waarschijnlijk bij hoort, of geen enkele.',
+    parameters: {
+      type: 'object',
+      properties: {
+        dossier_id: {
+          type: 'string',
+          description: "Het uuid van het best passende dossier uit de kandidatenlijst, of een lege string '' als niets goed genoeg past.",
+        },
+        vertrouwen: {
+          type: 'string',
+          enum: ['hoog', 'middel', 'laag', 'geen'],
+          description: '"geen" wanneer dossier_id leeg is. Anders hoe zeker de match is.',
+        },
+        redenering: {
+          type: 'string',
+          description: 'Welke signalen (naam, adres, telefoon, e-mail, context/onderwerp) wezen naar dit dossier — of waarom geen enkele paste. 1-2 zinnen.',
+        },
+      },
+      required: ['dossier_id', 'vertrouwen', 'redenering'],
+      additionalProperties: false,
+    },
+  },
+};
+
+export async function matchLeadByAI(
+  supabase: SupabaseClient,
+  payload: InboundPayload,
+): Promise<MatchResult> {
+  const apiKey = Deno.env.get('LOVABLE_API_KEY');
+  if (!apiKey) return { leadId: null, reason: 'geen match (LOVABLE_API_KEY ontbreekt)' };
+
+  const { data: leads } = await supabase
+    .from('leads')
+    .select('id, voornaam, achternaam, adres, telefoon, email, bouwflow_project_number, bouwflow_phase')
+    .limit(300);
+  const kandidaten = leads ?? [];
+  if (kandidaten.length === 0) return { leadId: null, reason: 'geen dossiers om tegen te matchen' };
+
+  const { data: fases } = await supabase.from('bouwflow_phase_category_map').select('phase_id, phase_title');
+  const faseTitels = new Map((fases ?? []).map((f: any) => [String(f.phase_id), f.phase_title]));
+  const kandidatenIds = new Set(kandidaten.map((l: any) => l.id as string));
+
+  const lijst = kandidaten
+    .map((l: any) => {
+      const naam = `${l.voornaam || ''} ${l.achternaam || ''}`.trim() || '(naamloos)';
+      const fase = l.bouwflow_phase ? faseTitels.get(String(l.bouwflow_phase)) || l.bouwflow_phase : '-';
+      return `${l.id} | ${naam} | adres:${l.adres || '-'} | tel:${l.telefoon || '-'} | email:${l.email || '-'} | project:${l.bouwflow_project_number || '-'} | fase:${fase}`;
+    })
+    .join('\n');
+
+  const system = `Je koppelt een binnenkomend bericht (e-mail) aan het juiste klantdossier van Zolderpunt, een zolderrenovatiebedrijf.
+
+Je krijgt de afzender, het onderwerp, de inhoud van het bericht, en een lijst van alle dossiers met hun gekende gegevens (naam, adres, telefoon, e-mail, projectnummer, fase).
+
+Analyseer het bericht: welke naam, adres, telefoonnummer, e-mailadres of context (bv. een projectnummer, een afspraakbevestiging, een verwijzing naar een eerder gesprek) wijst naar één specifiek dossier?
+
+BELANGRIJK: een verkeerde koppeling is erger dan geen koppeling — bij twijfel kies je geen enkele. Kies alleen "hoog" vertrouwen bij een sterke, specifieke overeenkomst (bv. volledige naam + adres of telefoon matchen). "middel" bij een redelijke maar niet waterdichte overeenkomst (bv. enkel de naam, of een veelvoorkomende combinatie). "laag" bij een zwakke gok. "geen" als niets aannemelijk is — dan is dossier_id een lege string.
+
+Dossiers kunnen ook al afgerond of geweigerd zijn (fase "Voltooid", "Geweigerd", "Geannuleerd") — dat sluit een match niet uit (bv. een nazorgvraag of nieuwe aanvraag van een bestaande klant), maar wees extra kritisch voor die dossiers zonder duidelijk signaal.`;
+
+  const user = `AFZENDER: ${payload.fromDisplay || payload.fromIdentifier} <${payload.fromIdentifier}>
+ONDERWERP: ${payload.subject || '(geen onderwerp)'}
+BERICHT:
+${(payload.body || '(geen tekst)').slice(0, 4000)}
+
+KANDIDAAT-DOSSIERS:
+${lijst}`;
+
+  const result = await callAI(
+    apiKey,
+    [
+      { role: 'system', content: system },
+      { role: 'user', content: user },
+    ],
+    [kiesDossierTool],
+    { type: 'function', function: { name: 'kies_dossier' } },
+  );
+
+  if (result.error) {
+    return { leadId: null, reason: `AI-analyse mislukt (status ${result.status}) — manueel koppelen` };
+  }
+
+  const args = parseToolCallArgs(result.data);
+  if (!args) {
+    return { leadId: null, reason: 'AI-analyse mislukt (geen antwoord) — manueel koppelen' };
+  }
+
+  const dossierId = typeof args.dossier_id === 'string' ? args.dossier_id.trim() : '';
+  const vertrouwenRaw = typeof args.vertrouwen === 'string' ? args.vertrouwen : 'geen';
+  const redenering = typeof args.redenering === 'string' ? args.redenering : '';
+
+  if (!dossierId || !kandidatenIds.has(dossierId)) {
+    if (dossierId) console.error('matchLeadByAI: AI gaf onbekend dossier_id terug', dossierId);
+    return { leadId: null, reason: `AI-analyse: geen dossier gevonden — ${redenering || 'geen duidelijke match'}` };
+  }
+
+  const tier: 'hoog' | 'middel' | 'laag' =
+    vertrouwenRaw === 'hoog' || vertrouwenRaw === 'middel' || vertrouwenRaw === 'laag' ? vertrouwenRaw : 'laag';
+
+  return {
+    leadId: dossierId,
+    reason: `AI-analyse (${tier}): ${redenering || '(geen toelichting)'}`,
+    confidence: tier,
+  };
+}
+
 export async function matchLead(
   supabase: SupabaseClient,
   payload: InboundPayload,
@@ -289,8 +438,12 @@ export async function matchLead(
   const deterministic = await matchLeadDeterministic(supabase, payload);
   if (deterministic) return deterministic;
 
-  // Fuzzy on name/address via pg_trgm (top-1, used by the non-interactive
-  // email pipeline which has no way to ask a clarifying question back).
+  if (payload.source === 'mail') {
+    return await matchLeadByAI(supabase, payload);
+  }
+
+  // Fuzzy on name/address via pg_trgm (top-1). WhatsApp-only fallback — de
+  // e-mailpijplijn gebruikt nu matchLeadByAI() hierboven in plaats hiervan.
   const haystack = `${payload.subject || ''} ${payload.body || ''}`;
   const [top] = await fuzzyCandidates(supabase, haystack, 1);
   if (top) return { leadId: top.id, reason: `naam/adres-match: "${top.label}"` };
@@ -865,20 +1018,25 @@ export interface IngestResult {
 
 export async function ingestInbound(payload: InboundPayload): Promise<IngestResult> {
   const supabase = svc();
-  if (!payload.attachments.length) {
-    return { matched: false, leadId: null, pendingId: null, reason: 'no attachments', uploadedPaths: [] };
-  }
 
   const match = await matchLead(supabase, payload);
+  // Alleen een deterministische/klantfiche/24u-geheugen-match (confidence
+  // onbepaald) mag automatisch koppelen. Een AI-suggestie (confidence gezet)
+  // landt altijd als suggestie in de Inbox — nooit een blinde schrijfactie.
+  const confirmedLeadId = match.leadId && !match.confidence ? match.leadId : null;
 
-  if (match.leadId) {
-    const paths = await uploadAttachments(supabase, match.leadId, payload.attachments, payload.source);
-    await appendPhotosToLead(supabase, match.leadId, paths, payload.source);
-    await rememberConversation(supabase, payload.source, payload.fromIdentifier, match.leadId);
-    return { matched: true, leadId: match.leadId, pendingId: null, reason: match.reason, uploadedPaths: paths };
+  const paths = await uploadAttachments(supabase, confirmedLeadId ?? 'inbox', payload.attachments, payload.source);
+
+  if (confirmedLeadId) {
+    await appendPhotosToLead(supabase, confirmedLeadId, paths, payload.source);
+    await rememberConversation(supabase, payload.source, payload.fromIdentifier, confirmedLeadId);
   }
 
-  const paths = await uploadAttachments(supabase, 'inbox', payload.attachments, payload.source);
+  // Elke binnenkomende mail krijgt precies één rij, foto's of niet, match of
+  // niet — zo verschijnt ook tekst-only mail (bv. een Calendly-melding) altijd
+  // op de dossierpagina (AangeleverdDoorKlant.tsx filtert op assigned_lead_id)
+  // of, bij twijfel, in de Inbox met de AI-suggestie al voorgeselecteerd.
+  const nowIso = new Date().toISOString();
   const { data: pending } = await supabase
     .from('inbound_media_pending')
     .insert({
@@ -888,10 +1046,20 @@ export async function ingestInbound(payload: InboundPayload): Promise<IngestResu
       subject: payload.subject || '',
       body: payload.body || '',
       storage_paths: paths,
+      suggested_lead_id: confirmedLeadId ? null : match.leadId,
       match_reason: match.reason,
+      status: confirmedLeadId ? 'assigned' : 'pending',
+      assigned_lead_id: confirmedLeadId,
+      assigned_at: confirmedLeadId ? nowIso : null,
     })
     .select('id')
     .single();
 
-  return { matched: false, leadId: null, pendingId: pending?.id ?? null, reason: match.reason, uploadedPaths: paths };
+  return {
+    matched: !!confirmedLeadId,
+    leadId: confirmedLeadId,
+    pendingId: pending?.id ?? null,
+    reason: match.reason,
+    uploadedPaths: paths,
+  };
 }

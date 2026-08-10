@@ -74,7 +74,7 @@ export default function AangeleverdDoorKlant({
       ) : (
         <ul className="space-y-2">
           {items.map(item => {
-            const isMail = item.source === 'email';
+            const isMail = item.source === 'mail';
             const bijlagen = aantalBijlagen(item.storage_paths);
             const datum = new Date(item.created_at).toLocaleString('nl-BE', {
               day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',

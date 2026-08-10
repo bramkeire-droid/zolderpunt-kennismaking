@@ -57,9 +57,6 @@ Deno.serve(async (req) => {
       bytes: base64ToBytes(a.Content),
     }));
 
-  if (!attachments.length) {
-    return json({ ok: true, ignored: 'no image or video attachments' });
-  }
   if (!fromEmail) return json({ error: 'no sender' }, 400);
 
   // Postmark abandons an inbound webhook after ~10s. Decoding and storing a
