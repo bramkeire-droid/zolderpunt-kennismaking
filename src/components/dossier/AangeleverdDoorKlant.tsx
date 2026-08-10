@@ -38,7 +38,14 @@ export default function AangeleverdDoorKlant({
       .order('created_at', { ascending: false })
       .then(({ data }) => {
         if (!actief) return;
-        setItems((data as Item[]) ?? []);
+        // Foto's-zonder-tekst (bv. losse WhatsApp-berichten uit een grote
+        // batch) staan al bij de dossierfoto's — hier tonen we enkel wat de
+        // klant er zelf bij geschreven heeft. Zonder deze filter gaf 1 batch
+        // van 42 foto's ook 42 lege rijen in dit overzicht.
+        const metTekst = ((data as Item[]) ?? []).filter(
+          it => (it.body ?? '').trim() || (it.subject ?? '').trim(),
+        );
+        setItems(metTekst);
         setLaden(false);
       });
     return () => { actief = false; };

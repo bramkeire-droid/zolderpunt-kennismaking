@@ -1032,10 +1032,22 @@ export async function ingestInbound(payload: InboundPayload): Promise<IngestResu
     await rememberConversation(supabase, payload.source, payload.fromIdentifier, confirmedLeadId);
   }
 
-  // Elke binnenkomende mail krijgt precies één rij, foto's of niet, match of
-  // niet — zo verschijnt ook tekst-only mail (bv. een Calendly-melding) altijd
-  // op de dossierpagina (AangeleverdDoorKlant.tsx filtert op assigned_lead_id)
-  // of, bij twijfel, in de Inbox met de AI-suggestie al voorgeselecteerd.
+  // Een bevestigde match zonder tekst (enkel foto's, geen onderwerp/body) heeft
+  // niets om te tonen — de foto's staan al bij het dossier. Zo'n rij zou de
+  // "Aangeleverd door de klant"-tijdlijn per binnenkomende foto vervuilen
+  // (net zoals WhatsApp dat vandaag al doet, waar Bram tegenaan liep: 42
+  // foto's gaven 42 lege rijen). Enkel overslaan bij een BEVESTIGDE match —
+  // een onbevestigde (AI-)suggestie moet altijd in de Inbox blijven staan,
+  // ook zonder tekst, want daar moet een mens nog kiezen.
+  const heeftTekst = !!(payload.subject?.trim() || payload.body?.trim());
+  if (confirmedLeadId && !heeftTekst) {
+    return { matched: true, leadId: confirmedLeadId, pendingId: null, reason: match.reason, uploadedPaths: paths };
+  }
+
+  // Elke overige binnenkomende mail krijgt precies één rij — zo verschijnt
+  // tekst-only mail (bv. een Calendly-melding) op de dossierpagina
+  // (AangeleverdDoorKlant.tsx filtert op assigned_lead_id) of, bij twijfel,
+  // in de Inbox met de AI-suggestie al voorgeselecteerd.
   const nowIso = new Date().toISOString();
   const { data: pending } = await supabase
     .from('inbound_media_pending')
