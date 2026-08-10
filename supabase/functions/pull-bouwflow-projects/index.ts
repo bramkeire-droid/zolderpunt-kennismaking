@@ -58,6 +58,23 @@ const GET_PROJECTS_URL = 'https://hxisdviyjmjbgaiydlfk.supabase.co/functions/v1/
 const PIPELINE_IDS = [1, 2];
 const TEST_NAME_RE = /^(WORKFLOWTEST|WORKFLOW TEST|VERIFICATIETEST)/i;
 
+// Belgische nummers komen in allerlei vormen binnen (+32, 0032, spaties,
+// puntjes). Alles terugbrengen tot één nationale vorm: 04xxxxxxxx.
+function normPhone(raw: unknown): string {
+  if (typeof raw !== 'string') return '';
+  let s = raw.replace(/[^0-9]/g, '');
+  if (s.startsWith('0032')) s = '0' + s.slice(4);
+  else if (s.startsWith('32')) s = '0' + s.slice(2);
+  if (s && !s.startsWith('0')) s = '0' + s;
+  // Te kort om onderscheidend te zijn; liever geen match dan een foute.
+  return s.length >= 9 ? s : '';
+}
+
+function normEmail(raw: unknown): string {
+  if (typeof raw !== 'string') return '';
+  return raw.trim().toLowerCase().replace(/^'+|'+$/g, '');
+}
+
 function splitName(fullName: string): { voornaam: string; achternaam: string } {
   const trimmed = (fullName || '').trim();
   if (!trimmed) return { voornaam: '', achternaam: '' };
@@ -202,10 +219,13 @@ Deno.serve(async (req) => {
 
   // Ook dossiers die enkel een projectnummer hebben (bv. handmatig gekoppeld,
   // of een project zonder klant): die moeten hervonden worden, niet gedupliceerd.
+  // ALLE dossiers ophalen, ook die zonder BouwFlow-koppeling. Eerder werd hier
+  // gefilterd op dossiers die al een koppeling hadden, maar juist de
+  // ongekoppelde dossiers (website-leads) moeten via telefoon/e-mail alsnog
+  // gevonden worden — anders maakt de sync er een duplicaat van.
   const { data: existingLeads, error: leadsError } = await supabase
     .from('leads')
-    .select('id, bouwflow_project_id, bouwflow_project_number')
-    .or('bouwflow_project_id.not.is.null,bouwflow_project_number.not.is.null');
+    .select('id, bouwflow_project_id, bouwflow_project_number, telefoon, email');
 
   if (leadsError) {
     console.error('pull-bouwflow-projects: leads fetch error', leadsError);
@@ -237,10 +257,22 @@ Deno.serve(async (req) => {
 
   const leadByCustomerId = new Map<string, { id: string; bouwflow_project_number: string | null }>();
   const leadByProjectNumber = new Map<string, { id: string; bouwflow_project_number: string | null }>();
+  // Een lead die via de website binnenkomt, belandt apart in Compass én in
+  // BouwFlow zonder dat er een koppeling wordt gelegd: bouwflow_project_id
+  // blijft dan leeg. Matchen op enkel dat veld levert dus een duplicaat op.
+  // Telefoon en e-mail zijn in de praktijk betrouwbare sleutels gebleken.
+  const leadByPhone = new Map<string, { id: string; bouwflow_project_number: string | null }>();
+  const leadByEmail = new Map<string, { id: string; bouwflow_project_number: string | null }>();
+
   for (const lead of existingLeads ?? []) {
     const entry = { id: lead.id, bouwflow_project_number: lead.bouwflow_project_number ?? null };
     if (lead.bouwflow_project_id) leadByCustomerId.set(String(lead.bouwflow_project_id), entry);
     if (lead.bouwflow_project_number) leadByProjectNumber.set(String(lead.bouwflow_project_number), entry);
+
+    const p = normPhone(lead.telefoon);
+    if (p && !leadByPhone.has(p)) leadByPhone.set(p, entry);
+    const e = normEmail(lead.email);
+    if (e && !leadByEmail.has(e)) leadByEmail.set(e, entry);
   }
 
   // Eén Compass-dossier hoort bij één Bouwflow-project; houdt bij welke
@@ -276,6 +308,24 @@ Deno.serve(async (req) => {
         existingLead = byCustomer;
       }
     }
+
+    // Laatste redmiddel: telefoon, dan e-mail. Nodig voor leads die via de
+    // website binnenkwamen en dus los in beide systemen staan zonder
+    // koppeling. Zonder deze stap maakt de sync er een duplicaat van.
+    if (!existingLead) {
+      const customer = customers[0] as Record<string, unknown> | undefined;
+      const kandidaten = [
+        leadByPhone.get(normPhone(customer?.phone)),
+        leadByEmail.get(normEmail(customer?.email)),
+      ];
+      for (const kandidaat of kandidaten) {
+        if (kandidaat && !kandidaat.bouwflow_project_number && !claimedLeadIds.has(kandidaat.id)) {
+          existingLead = kandidaat;
+          break;
+        }
+      }
+    }
+
     if (existingLead) claimedLeadIds.add(existingLead.id);
 
     if (existingLead) {
@@ -360,9 +410,13 @@ Deno.serve(async (req) => {
       unmappedPhases.add(String(m.project_phase_id));
     }
 
-    const existing = leadByCustomerId.get(String(m.customer_id));
-    if (existing && !existing.bouwflow_project_number && m.project_number) {
-      patch.bouwflow_project_number = m.project_number;
+    // Projectnummer en klant-id altijd meeschrijven als ze nog ontbreken.
+    // Bij een match via telefoon/e-mail zijn ze per definitie leeg; zonder
+    // deze regels blijft het dossier ongekoppeld en herhaalt de sync zich
+    // elke keer opnieuw.
+    if (m.project_number) patch.bouwflow_project_number = m.project_number;
+    if (m.customer_id !== null && m.customer_id !== undefined) {
+      patch.bouwflow_project_id = String(m.customer_id);
     }
 
     const { error: updateError } = await supabase.from('leads').update(patch).eq('id', m.lead_id as string);

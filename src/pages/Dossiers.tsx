@@ -445,20 +445,25 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
       if (phasesError) throw new Error(phasesError.message || 'Synchroniseren van Bouwflow-fasen mislukt');
       if (phasesData?.error) throw new Error(String(phasesData.error));
 
+      // Echte run: de knop deed eerder enkel een dry-run, waardoor er nooit
+      // iets gekoppeld of aangemaakt werd en nieuwe Bouwflow-projecten
+      // onzichtbaar bleven in Compass. Matchen gebeurt nu ook op telefoon en
+      // e-mail, dus een website-lead die los in beide systemen staat wordt
+      // gekoppeld in plaats van gedupliceerd.
       const { data: pullData, error: pullError } = await supabase.functions.invoke('pull-bouwflow-projects', {
-        body: { dry_run: true },
+        body: { dry_run: false },
       });
-      if (pullError) throw new Error(pullError.message || 'Bouwflow dry-run mislukt');
+      if (pullError) throw new Error(pullError.message || 'Bouwflow-sync mislukt');
       if (pullData?.error) throw new Error(String(pullData.error));
 
       const fasesCount = phasesData?.count ?? 0;
       const matched = pullData?.matched ?? 0;
-      const wouldCreate = pullData?.would_create ?? 0;
-      const flaggedCount = Array.isArray(pullData?.flagged_test_projects) ? pullData.flagged_test_projects.length : 0;
+      const created = pullData?.created ?? 0;
 
       toast.success(
-        `${fasesCount} fases bijgewerkt · ${matched} dossiers al gekoppeld · ${wouldCreate} zouden aangemaakt worden · ${flaggedCount} testprojecten genegeerd`
+        `${fasesCount} fases bijgewerkt · ${matched} dossiers gekoppeld · ${created} nieuw aangemaakt`
       );
+      await fetchLeads();
     } catch (err: any) {
       toast.error(err?.message || 'Synchroniseren met Bouwflow mislukt');
     } finally {
