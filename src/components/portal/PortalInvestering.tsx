@@ -27,13 +27,17 @@ export default function PortalInvestering({ data, onView }: Props) {
   // elementen dragen een deelbedrag; de tariefposten horen bij het basiswerk.
   const posten = leesPosten(data.inbegrepen_posten);
   const gezien = new Set(posten.map((p) => p.post.toLowerCase().trim()));
-  const allItems: { label: string; bedrag?: string }[] = [
+  const allItems: { label: string; bedrag?: string; omschrijving?: string }[] = [
     ...posten.map((p) => {
       const bereik =
         p.min != null && p.max != null && p.min !== p.max
           ? `${fmt(p.min)} — ${fmt(p.max)}`
           : fmt(p.bedrag);
-      return { label: p.post, ...(CATEGORIE_MET_BEDRAG.includes(p.categorie) ? { bedrag: bereik } : {}) };
+      return {
+        label: p.post,
+        ...(CATEGORIE_MET_BEDRAG.includes(p.categorie) ? { bedrag: bereik } : {}),
+        ...(p.omschrijving ? { omschrijving: p.omschrijving } : {}),
+      };
     }),
     ...STANDAARD_INBEGREPEN.filter((s) => !gezien.has(s.toLowerCase().trim())).map((s) => ({ label: s })),
   ];
@@ -105,6 +109,9 @@ export default function PortalInvestering({ data, onView }: Props) {
                     {item.label}
                     {item.bedrag && (
                       <span className="ml-1.5 font-semibold text-[#008CFF]">{item.bedrag}</span>
+                    )}
+                    {item.omschrijving && (
+                      <span className="block text-xs text-[#1A1A1A]/60">{item.omschrijving}</span>
                     )}
                   </span>
                 </div>

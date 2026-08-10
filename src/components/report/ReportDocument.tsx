@@ -63,7 +63,11 @@ function makeSafe(data: ReportData) {
     fotos: data.fotos ?? [],
     fotos_met_path: data.fotos_met_path ?? [],
     project_feiten: (data.project_feiten ?? []).map(f => ({ ...f, tekst: safe(f.tekst) })),
-    inbegrepen_posten: (data.inbegrepen_posten ?? []).map(p => ({ ...p, post: safe(p.post) })),
+    inbegrepen_posten: (data.inbegrepen_posten ?? []).map(p => ({
+      ...p,
+      post: safe(p.post),
+      ...(p.omschrijving ? { omschrijving: safe(p.omschrijving) } : {}),
+    })),
     gewenst_resultaat: safe(data.gewenst_resultaat ?? ''),
   };
 }
@@ -499,6 +503,8 @@ interface ChecklistItem {
   label: string;
   /** Alleen gevuld voor badkamer, maatwerk en vrije elementen. */
   bedrag?: string;
+  /** Toelichting bij een vrij toegevoegd element. */
+  omschrijving?: string;
 }
 
 /**
@@ -525,7 +531,11 @@ function buildChecklist(inbegrepen: unknown): ChecklistItem[] {
       p.min != null && p.max != null && p.min !== p.max
         ? `${euroPdf(p.min)} — ${euroPdf(p.max)}`
         : euroPdf(p.bedrag);
-    items.push({ label: p.post, ...(metBedrag ? { bedrag: bereik } : {}) });
+    items.push({
+      label: p.post,
+      ...(metBedrag ? { bedrag: bereik } : {}),
+      ...(p.omschrijving ? { omschrijving: p.omschrijving } : {}),
+    });
   }
 
   // 2. Add standard items (dedup against calculator items)
@@ -754,6 +764,11 @@ function InvesteringPage({ data }: { data: ReportData }) {
                 {item.bedrag && (
                   <Text style={[s.bodyKlein, { color: COLORS.primary, fontWeight: 600 }]}>
                     {item.bedrag}
+                  </Text>
+                )}
+                {item.omschrijving && (
+                  <Text style={[s.bodyKlein, { color: COLORS.grijs, fontSize: 7 }]}>
+                    {item.omschrijving}
                   </Text>
                 )}
               </View>
