@@ -10,6 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { isoNaarLokaleDatum, isoNaarLokaleTijd, lokaalNaarIso } from '@/lib/localDateTime';
 
 
 type CallingStep = 'select-lead' | 'calling';
@@ -195,14 +196,25 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
       const events = (result as any)?.events || {};
       const patch: Partial<typeof data> = {};
 
+      // De automatische sync draait bij het openen van een gesprek. Die mag een
+      // tijdstip dat hier handmatig is aangepast niet overschrijven — anders
+      // sprong een met de klant afgesproken wijziging bij het heropenen terug
+      // naar wat er in Calendly stond. Verversen via de knop is wél expliciet
+      // en mag dus wel overschrijven.
+      const magOverschrijven = source === 'manual';
+
       if (events.videocall?.scheduledAt) {
         patch.videocall_planned = true;
-        patch.videocall_scheduled_at = events.videocall.scheduledAt;
+        if (magOverschrijven || !data.videocall_scheduled_at) {
+          patch.videocall_scheduled_at = events.videocall.scheduledAt;
+        }
         if (events.videocall.meetLink) patch.google_meet_link = events.videocall.meetLink;
       }
       if (events.plaatsbezoek?.scheduledAt) {
         patch.plaatsbezoek_planned = true;
-        patch.plaatsbezoek_scheduled_at = events.plaatsbezoek.scheduledAt;
+        if (magOverschrijven || !data.plaatsbezoek_scheduled_at) {
+          patch.plaatsbezoek_scheduled_at = events.plaatsbezoek.scheduledAt;
+        }
       }
 
       if (Object.keys(patch).length > 0) {
@@ -656,16 +668,20 @@ function ConfirmMailBlock({
   leadVoornaam: string;
   meetLink?: string;
 }) {
-  const datePart = scheduledAt ? scheduledAt.split('T')[0] : '';
-  const timePart = scheduledAt ? (scheduledAt.split('T')[1]?.substring(0, 5) || '10:00') : '';
+  // Het opgeslagen moment staat in UTC, de invoervelden tonen lokale tijd.
+  // In de ISO-string knippen las de UTC-tijd als lokale tijd: een afspraak van
+  // 16:30 Brussel verscheen als 14:30, en wat je invulde ging zonder tijdzone
+  // terug naar de database.
+  const datePart = isoNaarLokaleDatum(scheduledAt);
+  const timePart = isoNaarLokaleTijd(scheduledAt, '');
 
   const setDate = (d: string) => {
     if (!d) { onChangeScheduled(null); return; }
-    onChangeScheduled(`${d}T${timePart || '10:00'}`);
+    onChangeScheduled(lokaalNaarIso(d, timePart || '10:00'));
   };
   const setTime = (t: string) => {
-    const base = datePart || new Date().toISOString().split('T')[0];
-    onChangeScheduled(`${base}T${t || '10:00'}`);
+    const base = datePart || isoNaarLokaleDatum(new Date().toISOString());
+    onChangeScheduled(lokaalNaarIso(base, t || '10:00'));
   };
 
   const canMail = !!scheduledAt && !!leadEmail;
