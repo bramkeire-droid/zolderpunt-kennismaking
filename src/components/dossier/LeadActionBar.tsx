@@ -1,4 +1,4 @@
-import { X, FolderOpen, Phone, Bot, Image as ImageIcon, Globe, Calculator, FileText, Receipt } from 'lucide-react';
+import { X, FolderOpen, Phone, Bot, Image as ImageIcon, Globe, Calculator, Euro, FileText, Receipt } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface Props {
@@ -10,6 +10,7 @@ interface Props {
   onPhotos: () => void;
   onPortal: () => void;
   onCalculator: () => void;
+  onPrijscalculator: () => void;
   onVoorblad: () => void;
   onOfferte: () => void;
 }
@@ -19,7 +20,7 @@ interface Props {
  * alles van dat dossier, zonder het bord te verlaten.
  */
 export default function LeadActionBar({
-  lead, onClose, onOpenDossier, onCall, onIntake, onPhotos, onPortal, onCalculator, onVoorblad, onOfferte,
+  lead, onClose, onOpenDossier, onCall, onIntake, onPhotos, onPortal, onCalculator, onPrijscalculator, onVoorblad, onOfferte,
 }: Props) {
   const naam = `${lead.voornaam ?? ''} ${lead.achternaam ?? ''}`.trim() || 'Naamloos dossier';
 
@@ -29,7 +30,8 @@ export default function LeadActionBar({
     { label: 'Telefoongesprek', icon: Phone, onClick: onCall },
     { label: 'Intakegesprek', icon: Bot, onClick: onIntake },
     { label: 'Portaal', icon: Globe, onClick: onPortal },
-    { label: 'Calculator', icon: Calculator, onClick: onCalculator },
+    { label: 'Prijscalculator', icon: Euro, onClick: onPrijscalculator },
+    { label: 'Meerwaarde', icon: Calculator, onClick: onCalculator },
     { label: 'Voorblad', icon: FileText, onClick: onVoorblad },
     { label: 'Offerte & bijlage', icon: Receipt, onClick: onOfferte },
   ];

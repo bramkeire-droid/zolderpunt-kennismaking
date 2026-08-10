@@ -31,6 +31,8 @@ function leadToRow(lead: LeadData) {
     budget_incl6: lead.budget_incl6,
     budget_incl21: lead.budget_incl21,
     budget_excl: lead.budget_excl,
+    budget_min_excl: lead.budget_min_excl,
+    budget_max_excl: lead.budget_max_excl,
     btw_percentage: lead.btw_percentage,
     calculator_state: lead.calculator_state as any,
     prijs_min_incl_btw: lead.prijs_min_incl_btw,

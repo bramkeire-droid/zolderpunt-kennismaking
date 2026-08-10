@@ -30,18 +30,10 @@ export interface FeitjeItem {
   label_positie: { x: number; y: number } | null;
 }
 
-export interface CalcState {
-  dak_bekleed: boolean;
-  dakisolatie_type: 'geen' | 'spantendak' | 'gordingendak';
-  vloer: boolean;
-  velux: number;
-  trap: boolean;
-  trapgat: 'hout' | 'beton' | 'geen';
-  airco: number;
-  schilderwerken: boolean;
-  netto_m2: number | null;
-  netto_manually_set: boolean;
-}
+// De vorm staat bij de rekenkern, zodat de calculator in het gesprek en de
+// losse calculator op de dossierpagina niet uit elkaar kunnen lopen.
+import type { CalcState } from '@/lib/prijscalculator';
+export type { CalcState };
 
 export interface LeadData {
   id?: string;
@@ -67,6 +59,8 @@ export interface LeadData {
   budget_incl6: number | null;
   budget_incl21: number | null;
   budget_excl: number | null;
+  budget_min_excl: number | null;
+  budget_max_excl: number | null;
   btw_percentage: 6 | 21;
   prijs_min_incl_btw: number;
   prijs_max_incl_btw: number;
@@ -147,6 +141,8 @@ export const defaultLeadData: LeadData = {
   budget_incl6: null,
   budget_incl21: null,
   budget_excl: null,
+  budget_min_excl: null,
+  budget_max_excl: null,
   btw_percentage: 6,
   prijs_min_incl_btw: 0,
   prijs_max_incl_btw: 0,

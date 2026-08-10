@@ -26,6 +26,9 @@ export interface ReportData {
   prijs_incl6: number;
   prijs_incl21: number;
   budget_excl: number;
+  /** Bandbreedte excl. btw. Leeg bij dossiers van vóór de min/max-elementen. */
+  budget_min_excl?: number | null;
+  budget_max_excl?: number | null;
   btw_percentage: 6 | 21;
   prijs_min_incl_btw: number;
   prijs_max_incl_btw: number;
@@ -34,6 +37,13 @@ export interface ReportData {
   fotos: string[]; // storage URLs
   fotos_met_path: { url: string; storage_path: string }[];
   waarde_tekst_ai: string; // AI-generated or fallback
-  inbegrepen_posten: { post: string; bedrag: number }[];
+  inbegrepen_posten: {
+    post: string;
+    bedrag: number;
+    categorie?: 'standaard' | 'badkamer' | 'maatwerk' | 'extra';
+    min?: number;
+    max?: number;
+    omschrijving?: string;
+  }[];
   project_feiten: FeitjeItem[];
 }

@@ -368,6 +368,8 @@ export type Database = {
           btw_percentage: number | null
           budget_excl: number | null
           budget_incl21: number | null
+          budget_max_excl: number | null
+          budget_min_excl: number | null
           budget_incl6: number | null
           budget_max: number | null
           budget_min: number | null
@@ -434,6 +436,8 @@ export type Database = {
           btw_percentage?: number | null
           budget_excl?: number | null
           budget_incl21?: number | null
+          budget_max_excl?: number | null
+          budget_min_excl?: number | null
           budget_incl6?: number | null
           budget_max?: number | null
           budget_min?: number | null
@@ -500,6 +504,8 @@ export type Database = {
           btw_percentage?: number | null
           budget_excl?: number | null
           budget_incl21?: number | null
+          budget_max_excl?: number | null
+          budget_min_excl?: number | null
           budget_incl6?: number | null
           budget_max?: number | null
           budget_min?: number | null

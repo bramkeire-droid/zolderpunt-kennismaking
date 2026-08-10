@@ -1,6 +1,7 @@
 import { useSession } from '@/contexts/SessionContext';
 import SlideLayout from '@/components/SlideLayout';
 import SlideLabel from '@/components/SlideLabel';
+import { CATEGORIE_MET_BEDRAG, leesPosten } from '@/lib/prijscalculator';
 
 const fmt = (n: number) =>
   '€ ' + Math.round(n).toLocaleString('nl-BE', { minimumFractionDigits: 0 });
@@ -67,12 +68,16 @@ function CurveSvg({ min, max, peak }: { min: number; max: number; peak: number }
 export default function Slide6() {
   const { lead } = useSession();
   const hasData = lead.budget_min && lead.budget_max && lead.budget_incl6;
+  const posten = leesPosten(lead.inbegrepen_posten);
 
   // Always compute from excl value — both BTW variants always shown
   const excl = lead.budget_excl ?? (lead.budget_incl6 ? Math.round(lead.budget_incl6 / 1.06) : 0);
   const peakExcl = excl;
-  const minExcl = Math.round(excl * 0.85);
-  const maxExcl = Math.round(excl * 1.15);
+  // Elementen met een eigen min/max (badkamer, maatwerk, extra) hebben een
+  // eigen bandbreedte die de calculator apart wegschrijft. Alleen terugvallen
+  // op ±15% voor dossiers van vóór die uitbreiding.
+  const minExcl = Math.round(lead.budget_min_excl ?? excl * 0.85);
+  const maxExcl = Math.round(lead.budget_max_excl ?? excl * 1.15);
 
   return (
     <SlideLayout variant="blue">
@@ -273,22 +278,32 @@ export default function Slide6() {
               </div>
             </div>
 
-            {/* ── Inbegrepen chips ── */}
-            {lead.inbegrepen_posten.length > 0 && (
+            {/* ── Inbegrepen chips ──
+                Alleen badkamer, maatwerk en vrije elementen krijgen een
+                deelbedrag: die zijn een aparte keuze met een eigen prijs. De
+                tariefposten horen bij het basiswerk en worden zonder bedrag
+                getoond, anders leest de klant het als een offerte per post. */}
+            {posten.length > 0 && (
               <div className="flex flex-wrap justify-center gap-2 mt-8 max-w-3xl">
-                {(lead.inbegrepen_posten as { post: string; bedrag: number }[]).map((post, i) => (
-                  <span
-                    key={i}
-                    className="bg-primary-foreground/10 text-primary-foreground px-3 py-1.5 text-sm font-medium whitespace-nowrap"
-                  >
-                    ✓ {post.post} — {fmt(post.bedrag)}
-                  </span>
-                ))}
+                {posten.map((post, i) => {
+                  const metBedrag = CATEGORIE_MET_BEDRAG.includes(post.categorie);
+                  const bereik = post.min != null && post.max != null && post.min !== post.max
+                    ? `${fmt(post.min)} — ${fmt(post.max)}`
+                    : fmt(post.bedrag);
+                  return (
+                    <span
+                      key={i}
+                      className="bg-primary-foreground/10 text-primary-foreground px-3 py-1.5 text-sm font-medium whitespace-nowrap"
+                    >
+                      ✓ {post.post}{metBedrag ? ` — ${bereik}` : ''}
+                    </span>
+                  );
+                })}
               </div>
             )}
 
             <p className="text-primary-foreground/50 text-xs mt-6 text-center">
-              Indicatieve raming ±15%. Definitieve prijs na plaatsbezoek.
+              Indicatieve raming. Definitieve prijs na plaatsbezoek.
             </p>
           </div>
         ) : (

@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { Search, FolderOpen, Users, TrendingUp, DollarSign, Eye, RefreshCw, Trash2, CheckCircle, Globe, Phone, Bot, FileDown, MoreVertical, ArrowUp, ArrowDown, ArrowUpDown, FileText, Receipt, Hammer, ArrowRightLeft, ChevronDown, ChevronRight, GripVertical, Send } from 'lucide-react';
+import { Search, FolderOpen, Users, TrendingUp, DollarSign, Eye, RefreshCw, Trash2, CheckCircle, Globe, Phone, Bot, FileDown, MoreVertical, ArrowUp, ArrowDown, ArrowUpDown, FileText, Receipt, Hammer, ArrowRightLeft, ChevronDown, ChevronRight, GripVertical, Send, Euro } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { defaultTechnisch } from '@/contexts/SessionContext';
 import type { LeadData } from '@/contexts/SessionContext';
@@ -41,6 +41,7 @@ import {
 import LeadActionBar from '@/components/dossier/LeadActionBar';
 import KlantDossiers from '@/components/dossier/KlantDossiers';
 import CalculatorDialog from '@/components/dossier/CalculatorDialog';
+import PrijscalculatorDialog from '@/components/dossier/PrijscalculatorDialog';
 import { LayoutGrid, Rows3 } from 'lucide-react';
 import { INBOUND_HINT_TEXT } from '@/components/dossier/InboundHint';
 import { normalizeLeadMedia, imagesOnly } from '@/lib/leadMedia';
@@ -137,6 +138,8 @@ function rowToLead(row: any): LeadData {
     budget_incl6: row.budget_incl6 ?? null,
     budget_incl21: row.budget_incl21 ?? null,
     budget_excl: (row as any).budget_excl ?? null,
+    budget_min_excl: (row as any).budget_min_excl ?? null,
+    budget_max_excl: (row as any).budget_max_excl ?? null,
     btw_percentage: ((row as any).btw_percentage === 21 ? 21 : 6) as 6 | 21,
     calculator_state: (row as any).calculator_state ?? null,
     prijs_min_incl_btw: (row as any).prijs_min_incl_btw ?? 0,
@@ -184,6 +187,7 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
   const [genericVoorblad, setGenericVoorblad] = useState<{ lead: any } | null>(null);
   const [photoLead, setPhotoLead] = useState<any>(null);
   const [calcLead, setCalcLead] = useState<any>(null);
+  const [prijsCalcLead, setPrijsCalcLead] = useState<any>(null);
   // Kaart aangeklikt in kanban: dossier-actiebalk bovenaan tonen.
   const [activeLeadId, setActiveLeadId] = useState<string | null>(null);
   const [bouwflowLead, setBouwflowLead] = useState<any>(null);
@@ -499,6 +503,8 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
         prijs_min: lead.budget_min || 0, prijs_max: lead.budget_max || 0,
         prijs_incl6: lead.budget_incl6 || 0, prijs_incl21: lead.budget_incl21 || 0,
         budget_excl: lead.budget_excl || 0,
+        budget_min_excl: lead.budget_min_excl ?? null,
+        budget_max_excl: lead.budget_max_excl ?? null,
         btw_percentage: lead.btw_percentage ?? 6,
         prijs_min_incl_btw: lead.prijs_min_incl_btw ?? 0,
         prijs_max_incl_btw: lead.prijs_max_incl_btw ?? 0,
@@ -712,6 +718,7 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
                     onPhotos={() => setPhotoLead(activeLead)}
                     onPortal={() => setPortalLead(activeLead)}
                     onCalculator={() => setCalcLead(activeLead)}
+                    onPrijscalculator={() => setPrijsCalcLead(activeLead)}
                     onVoorblad={() => setGenericVoorblad({ lead: activeLead })}
                     onOfferte={() => setOfferteLead(activeLead)}
                   />
@@ -818,6 +825,9 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => setPhotoLead(lead)}>
                           <ImageIcon className="h-4 w-4 mr-2 text-primary" /> Foto's
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setPrijsCalcLead(lead)}>
+                          <Euro className="h-4 w-4 mr-2 text-primary" /> Prijscalculator
                         </DropdownMenuItem>
 
                         <DropdownMenuSeparator />
@@ -1084,6 +1094,11 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
           onUpdate={(leadId, patch) => setLeads(prev => prev.map(l => l.id === leadId ? { ...l, ...patch } : l))}
         />
       )}
+      <PrijscalculatorDialog
+        lead={prijsCalcLead}
+        onOpenChange={(open) => { if (!open) setPrijsCalcLead(null); }}
+        onSaved={() => { void fetchLeads(); }}
+      />
 
       <InboundInboxDialog
         open={inboxOpen}

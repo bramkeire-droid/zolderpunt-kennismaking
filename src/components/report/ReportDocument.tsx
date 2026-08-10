@@ -9,6 +9,7 @@ import {
   STANDAARD_INBEGREPEN, formatDatum,
 } from './reportConstants';
 import type { ReportData, FeitjeItem } from './reportTypes';
+import { CATEGORIE_MET_BEDRAG, leesPosten } from '@/lib/prijscalculator';
 import PdfIcon from './PdfIcon';
 import LogoPdf from './LogoPdf';
 
@@ -494,23 +495,37 @@ function getTitelKader2(gewenstResultaat: string): string {
   return 'Extra leefruimte';
 }
 
+interface ChecklistItem {
+  label: string;
+  /** Alleen gevuld voor badkamer, maatwerk en vrije elementen. */
+  bedrag?: string;
+}
+
 /**
  * Build the "inbegrepen" checklist. Only shows items that ARE included:
  * 1. Explicit calculator items (inbegrepen_posten) — only when selected
  * 2. 6 standard items always included (vloerafwerking, elektriciteit, etc.)
- * Items like Badkamer, Maatwerk kasten, Verwarming, Isolatie wanden are never shown.
+ *
+ * Badkamer, maatwerk en vrij toegevoegde elementen krijgen wél een deelbedrag:
+ * dat zijn aparte keuzes met een eigen prijs. De tariefposten horen bij het
+ * basiswerk en blijven zonder bedrag, anders leest het rapport als een offerte
+ * per post terwijl het een raming is.
  */
-function buildChecklist(inbegrepen: { post: string; bedrag: number }[]): string[] {
+function buildChecklist(inbegrepen: unknown): ChecklistItem[] {
   const seen = new Set<string>();
-  const items: string[] = [];
+  const items: ChecklistItem[] = [];
 
   // 1. Calculator items first
-  for (const p of inbegrepen) {
+  for (const p of leesPosten(inbegrepen)) {
     const key = p.post.toLowerCase().trim();
-    if (!seen.has(key)) {
-      seen.add(key);
-      items.push(p.post);
-    }
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const metBedrag = CATEGORIE_MET_BEDRAG.includes(p.categorie);
+    const bereik =
+      p.min != null && p.max != null && p.min !== p.max
+        ? `${euroPdf(p.min)} — ${euroPdf(p.max)}`
+        : euroPdf(p.bedrag);
+    items.push({ label: p.post, ...(metBedrag ? { bedrag: bereik } : {}) });
   }
 
   // 2. Add standard items (dedup against calculator items)
@@ -518,26 +533,30 @@ function buildChecklist(inbegrepen: { post: string; bedrag: number }[]): string[
     const key = std.toLowerCase().trim();
     if (!seen.has(key)) {
       seen.add(key);
-      items.push(std);
+      items.push({ label: std });
     }
   }
 
   return items;
 }
 
+const euroPdf = (n: number) => '€ ' + Math.round(n).toLocaleString('nl-BE');
+
 function InvesteringPage({ data }: { data: ReportData }) {
   // Always compute from excl value — both BTW variants always shown
   const excl = data.budget_excl ?? (data.prijs_incl6 ? Math.round(data.prijs_incl6 / 1.06) : 0);
   const peakExcl = excl;
-  const minExcl = Math.round(excl * 0.85);
-  const maxExcl = Math.round(excl * 1.15);
+  // Elementen met een eigen min/max hebben hun eigen bandbreedte; die schrijft
+  // de calculator apart weg. ±15% blijft de terugval voor oudere dossiers.
+  const minExcl = Math.round(data.budget_min_excl ?? excl * 0.85);
+  const maxExcl = Math.round(data.budget_max_excl ?? excl * 1.15);
   const incl6Pdf = (e: number) => Math.round(e * 1.06);
   const incl21Pdf = (e: number) => Math.round(e * 1.21);
 
-  const checklist = buildChecklist(data.inbegrepen_posten || []);
+  const checklist = buildChecklist(data.inbegrepen_posten);
 
   // Split checklist into rows of 3
-  const rows: string[][] = [];
+  const rows: ChecklistItem[][] = [];
   for (let i = 0; i < checklist.length; i += 3) {
     rows.push(checklist.slice(i, i + 3));
   }
@@ -713,24 +732,31 @@ function InvesteringPage({ data }: { data: ReportData }) {
 
       {rows.map((row, ri) => (
         <View key={ri} style={{ flexDirection: 'row' as const, marginBottom: 4 }}>
-          {row.map((label, ci) => (
+          {row.map((item, ci) => (
             <View key={ci} style={{
               width: '33%',
               flexDirection: 'row' as const,
-              alignItems: 'center' as const,
+              alignItems: 'flex-start' as const,
               paddingRight: 6,
               marginBottom: 4,
             }}>
-              <View style={{ marginRight: 6 }}>
+              <View style={{ marginRight: 6, marginTop: 1 }}>
                 <PdfIcon name="CheckCircle" size={11} color={COLORS.checkGreen} />
               </View>
-              <Text style={[s.bodyKlein, {
-                flex: 1,
-                color: COLORS.dark,
-                fontWeight: 600,
-              }]}>
-                {label}
-              </Text>
+              <View style={{ flex: 1 }}>
+                <Text style={[s.bodyKlein, {
+                  color: COLORS.dark,
+                  fontWeight: 600,
+                }]}>
+                  {item.label}
+                </Text>
+                {/* Alleen badkamer, maatwerk en extra elementen dragen een bedrag. */}
+                {item.bedrag && (
+                  <Text style={[s.bodyKlein, { color: COLORS.primary, fontWeight: 600 }]}>
+                    {item.bedrag}
+                  </Text>
+                )}
+              </View>
             </View>
           ))}
           {/* Fill empty cols if row has < 3 items */}
