@@ -39,6 +39,7 @@ import {
   FASE_GROEPEN, bepaalVolgendeActie, dossierWaarde, type FaseGroepKey,
 } from '@/lib/pipeline';
 import LeadActionBar from '@/components/dossier/LeadActionBar';
+import KlantDossiers from '@/components/dossier/KlantDossiers';
 import CalculatorDialog from '@/components/dossier/CalculatorDialog';
 import { LayoutGrid, Rows3 } from 'lucide-react';
 import { INBOUND_HINT_TEXT } from '@/components/dossier/InboundHint';
@@ -696,18 +697,26 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
             ) : (() => {
               const activeLead = leads.find(l => l.id === activeLeadId) ?? null;
               const actionBar = activeLead ? (
-                <LeadActionBar
-                  lead={activeLead}
-                  onClose={() => setActiveLeadId(null)}
-                  onOpenDossier={() => handleOpen(activeLead)}
-                  onCall={() => onOpenCall?.(activeLead.id)}
-                  onIntake={() => handleStartVideocall(activeLead)}
-                  onPhotos={() => setPhotoLead(activeLead)}
-                  onPortal={() => setPortalLead(activeLead)}
-                  onCalculator={() => setCalcLead(activeLead)}
-                  onVoorblad={() => setGenericVoorblad({ lead: activeLead })}
-                  onOfferte={() => setOfferteLead(activeLead)}
-                />
+                <div className="space-y-3">
+                  <LeadActionBar
+                    lead={activeLead}
+                    onClose={() => setActiveLeadId(null)}
+                    onOpenDossier={() => handleOpen(activeLead)}
+                    onCall={() => onOpenCall?.(activeLead.id)}
+                    onIntake={() => handleStartVideocall(activeLead)}
+                    onPhotos={() => setPhotoLead(activeLead)}
+                    onPortal={() => setPortalLead(activeLead)}
+                    onCalculator={() => setCalcLead(activeLead)}
+                    onVoorblad={() => setGenericVoorblad({ lead: activeLead })}
+                    onOfferte={() => setOfferteLead(activeLead)}
+                  />
+                  {/* Verschijnt alleen als deze klant meer dan één project heeft. */}
+                  <KlantDossiers
+                    leadId={activeLead.id}
+                    customerId={activeLead.customer_id}
+                    onOpenDossier={(id) => setActiveLeadId(id)}
+                  />
+                </div>
               ) : null;
 
               const renderRow = (lead: any) => (
