@@ -918,7 +918,9 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
                 <div className="space-y-4">
 
 
-                  {CATEGORIES.map(cat => {
+                  {/* Zelfde fasegroep en lege-fases-instelling als de kanban,
+                      anders tonen de twee weergaven iets anders. */}
+                  {zichtbareKolommen.map(cat => {
                     const rows = groupedByCategory[cat.key];
                     const isOpen = !collapsed[cat.key];
                     const isDragTarget = dragOverCat === cat.key;
