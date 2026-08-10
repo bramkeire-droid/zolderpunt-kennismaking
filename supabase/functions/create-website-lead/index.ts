@@ -74,28 +74,33 @@ Deno.serve(async (req) => {
   // website-lead) haalt het dan alsnog op. De lead zelf is hoe dan ook al
   // veilig opgeslagen, dus een mislukte koppeling mag deze functie niet doen
   // falen: de Zap zou hem dan als fout aanrekenen en mogelijk opnieuw sturen.
-  let gekoppeld: boolean | null = null;
-  try {
-    const syncRes = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/pull-bouwflow-projects`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
-      },
-      body: JSON.stringify({ dry_run: false }),
+  // BEWUST NIET AWAITEN: de sync loopt over alle BouwFlow-projecten en duurt
+  // seconden. Zou de Zap daarop moeten wachten, dan riskeert die een timeout,
+  // beschouwt de lead als mislukt en stuurt hem opnieuw — met een dubbel
+  // dossier tot gevolg. waitUntil houdt de functie in leven tot de sync klaar
+  // is, terwijl het antwoord meteen vertrekt.
+  const syncTaak = fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/pull-bouwflow-projects`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+    },
+    body: JSON.stringify({ dry_run: false }),
+  })
+    .then(async (r) => {
+      console.log('create-website-lead: sync na aanmaken, status', r.status);
+    })
+    .catch((err) => {
+      // De lead staat er al; een mislukte koppeling wordt door de volgende
+      // sync alsnog gelegd en mag deze functie nooit doen falen.
+      console.error('create-website-lead: koppelen aan BouwFlow mislukt', err);
     });
-    const syncData = await syncRes.json().catch(() => null);
-    console.log('create-website-lead: sync na aanmaken', syncRes.status, JSON.stringify(syncData)?.slice(0, 300));
 
-    const { data: naSync } = await supabase
-      .from('leads')
-      .select('bouwflow_project_number')
-      .eq('id', data.id)
-      .maybeSingle();
-    gekoppeld = Boolean(naSync?.bouwflow_project_number);
-  } catch (err) {
-    console.error('create-website-lead: koppelen aan BouwFlow mislukt', err);
+  try {
+    (globalThis as any).EdgeRuntime?.waitUntil?.(syncTaak);
+  } catch {
+    // Draait niet op Supabase Edge Runtime: dan gewoon laten lopen.
   }
 
-  return json({ id: data.id, bouwflow_gekoppeld: gekoppeld }, 200);
+  return json({ id: data.id }, 200);
 });
