@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { isoNaarLokaleDatum, isoNaarLokaleTijd, lokaalNaarIso } from '@/lib/localDateTime';
+import AangeleverdDoorKlant from '@/components/dossier/AangeleverdDoorKlant';
 
 
 type CallingStep = 'select-lead' | 'calling';
@@ -511,6 +512,8 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
             })()}
           </div>
 
+          {/* ⑤ AANGELEVERD DOOR DE KLANT */}
+          <AangeleverdDoorKlant leadId={data.lead_id || undefined} />
 
         </div>
       </div>

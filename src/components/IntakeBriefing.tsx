@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowRight, ArrowLeft, Phone, Bot, MapPin, User, Calendar, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
 import type { LeadData } from '@/contexts/SessionContext';
 import AppTopBar from '@/components/AppTopBar';
+import AangeleverdDoorKlant from '@/components/dossier/AangeleverdDoorKlant';
 
 
 const QUESTION_LABELS: Record<string, string> = {
@@ -252,6 +253,10 @@ export default function IntakeBriefing({ lead, onStart, onBack }: Props) {
             )}
           </Section>
         )}
+
+        {/* Wat de klant zelf doorstuurde, ook hier zichtbaar zodat je het vóór
+            het gesprek al gelezen hebt. */}
+        <AangeleverdDoorKlant leadId={lead.id} />
 
         </div>
       </div>

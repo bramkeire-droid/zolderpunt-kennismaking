@@ -134,10 +134,13 @@ function AppContent() {
     setView('dossiers');
   };
 
-  // Videocall-intake voor een bestaand dossier: zorg dat er een pre_intake
-  // bestaat (daar hangt de planning van de videocall aan) en open het gesprek.
+  // Videocall-intake: zorg dat er een pre_intake bestaat (daar hangt de planning
+  // aan) en open het INTAKEGESPREK, oftewel de slidesflow. Dit stuurde eerder
+  // naar de calling-view, waardoor "intakegesprek" uitkwam bij het
+  // telefoongesprek.
   const handleStartVideocall = async (leadId: string) => {
     if (view === 'slides') await flushSave();
+
     const { data: bestaand } = await supabase
       .from('pre_intake')
       .select('id')
@@ -146,10 +149,15 @@ function AppContent() {
     if (!bestaand?.id) {
       await supabase.from('pre_intake').insert({ lead_id: leadId, videocall_planned: true } as any);
     }
+
+    const { data: leadRij } = await supabase.from('leads').select('*').eq('id', leadId).maybeSingle();
+    if (!leadRij) return;
+
     setActiveDossierId(leadId);
-    setCallingLeadId(leadId);
-    setCallingInitialStep('calling');
-    setView('calling');
+    // Er is nu altijd een pre_intake, dus de briefing toont wat er uit het
+    // telefoongesprek kwam voordat het intakegesprek begint.
+    setBriefingLead(leadRij as unknown as LeadData);
+    setView('briefing');
   };
 
   const handleOpenValidation = (leadId: string, preIntakeId: string) => {
