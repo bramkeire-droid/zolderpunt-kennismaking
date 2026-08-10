@@ -72,6 +72,63 @@ export function parseMemoCommand(text: string): string | null {
 
 // Steps 1-3: only returns a result when we're confident (explicit id, exact
 // phone/email match, or a recent remembered conversation). Never guesses.
+/**
+ * Zoekt de klant op e-mail of telefoon en levert diens dossier op. Heeft die
+ * klant meerdere dossiers, dan wint het meest recente: daar loopt het gesprek.
+ * Bij twijfel liever niets teruggeven dan het verkeerde project kiezen.
+ */
+async function zoekViaKlant(
+  supabase: SupabaseClient,
+  email: string | null,
+  telefoon: string | null,
+): Promise<MatchResult | null> {
+  let klantId: string | null = null;
+  let hoe = '';
+
+  if (email) {
+    const { data } = await supabase
+      .from('customers')
+      .select('id')
+      .ilike('email', email)
+      .limit(1)
+      .maybeSingle();
+    if (data?.id) { klantId = data.id; hoe = 'e-mailadres'; }
+  }
+
+  if (!klantId && telefoon) {
+    const kort = normalizePhone(telefoon).slice(-9);
+    if (kort.length >= 9) {
+      const { data } = await supabase.from('customers').select('id, telefoon').not('telefoon', 'is', null).limit(500);
+      const hit = (data || []).find((c: any) => normalizePhone(c.telefoon || '').endsWith(kort));
+      if (hit) { klantId = hit.id; hoe = 'telefoonnummer'; }
+    }
+  }
+
+  if (!klantId) return null;
+
+  const { data: dossiers } = await supabase
+    .from('leads')
+    .select('id, bouwflow_phase, created_at')
+    .eq('customer_id', klantId)
+    .order('created_at', { ascending: false });
+
+  if (!dossiers || dossiers.length === 0) return null;
+
+  // Een afgerond of geweigerd project is zelden waar een nieuwe mail over gaat.
+  // Meir Bank had een voltooid project dat nieuwer in Compass stond dan zijn
+  // lopende offerte; puur op datum sorteren koos dan het verkeerde dossier.
+  const AFGEROND = new Set(['8', '20', '19', '18', '17']);
+  const lopend = dossiers.filter(d => !d.bouwflow_phase || !AFGEROND.has(String(d.bouwflow_phase)));
+  const kandidaten = lopend.length > 0 ? lopend : dossiers;
+
+  return {
+    leadId: kandidaten[0].id,
+    reason: dossiers.length > 1
+      ? `${hoe} matcht klant met ${dossiers.length} dossiers — lopend dossier gekozen, controleer dit`
+      : `${hoe} matcht klant`,
+  };
+}
+
 export async function matchLeadDeterministic(
   supabase: SupabaseClient,
   payload: InboundPayload,
@@ -112,6 +169,13 @@ export async function matchLeadDeterministic(
       .maybeSingle();
     if (data?.id) return { leadId: data.id, reason: `E-mailadres matcht klant` };
   }
+
+  // 2a) Via de klantfiche. Een klant kan meerdere dossiers hebben en zijn
+  // gegevens kunnen op een ánder dossier staan dan waar de mail bij hoort.
+  // Zoeken op klantniveau vindt die gevallen alsnog.
+  const viaKlant = await zoekViaKlant(supabase, payload.source === 'wa' ? null : payload.fromIdentifier,
+                                      payload.source === 'wa' ? payload.fromIdentifier : null);
+  if (viaKlant) return viaKlant;
 
   // 2b) Adressen en nummers ÍN de tekst. Een doorgestuurde klantmail komt van
   // ons eigen adres, dus de afzender levert dan niets op terwijl het adres van
