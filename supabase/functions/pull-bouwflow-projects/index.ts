@@ -275,6 +275,34 @@ Deno.serve(async (req) => {
     if (e && !leadByEmail.has(e)) leadByEmail.set(e, entry);
   }
 
+  // Ook de klantfiches meenemen. Een klant kan meerdere dossiers hebben en zijn
+  // e-mail of telefoon kan op een ánder dossier staan dan het dossier dat bij
+  // dit BouwFlow-project hoort; zonder deze stap maakt de sync dan een duplicaat.
+  const { data: klanten } = await supabase
+    .from('customers')
+    .select('id, email, telefoon, leads(id, bouwflow_project_number, bouwflow_phase, created_at)');
+
+  for (const klant of (klanten ?? []) as Record<string, unknown>[]) {
+    const dossiers = (klant.leads as Record<string, unknown>[]) ?? [];
+    if (dossiers.length === 0) continue;
+
+    // Zelfde keuze als bij inbound: een afgerond of geweigerd dossier is zelden
+    // waar een nieuwe koppeling over gaat.
+    const AFGEROND = new Set(['8', '20', '19', '18', '17']);
+    const lopend = dossiers.filter(d => !d.bouwflow_phase || !AFGEROND.has(String(d.bouwflow_phase)));
+    const gekozen = (lopend.length > 0 ? lopend : dossiers)
+      .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))[0];
+
+    const entry = {
+      id: String(gekozen.id),
+      bouwflow_project_number: (gekozen.bouwflow_project_number as string) ?? null,
+    };
+    const p = normPhone(klant.telefoon);
+    if (p && !leadByPhone.has(p)) leadByPhone.set(p, entry);
+    const e = normEmail(klant.email);
+    if (e && !leadByEmail.has(e)) leadByEmail.set(e, entry);
+  }
+
   // Eén Compass-dossier hoort bij één Bouwflow-project; houdt bij welke
   // dossiers in deze run al vergeven zijn.
   const claimedLeadIds = new Set<string>();
