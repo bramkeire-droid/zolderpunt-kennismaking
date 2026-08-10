@@ -52,6 +52,17 @@ export function normalizeEmail(raw: string): string {
   return (raw || '').trim().toLowerCase();
 }
 
+// Onze eigen toestellen, op de laatste 9 cijfers (nationale vorm zonder
+// landcode). Berichten hiervandaan zijn dóórgestuurde klantberichten: het
+// nummer identificeert de klant dus niet, en mag nooit een dossier kiezen.
+// De tekst die erbij getypt wordt, is dan het enige echte signaal.
+const EIGEN_NUMMERS = new Set(['492400954']);
+
+export function isEigenNummer(raw: string): boolean {
+  const digits = normalizePhone(raw);
+  return digits.length >= 9 && EIGEN_NUMMERS.has(digits.slice(-9));
+}
+
 const UUID_RE = /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/i;
 
 // The keyword that turns a WhatsApp message into a follow-up mail instead of
@@ -153,16 +164,23 @@ export async function matchLeadDeterministic(
   // 2) Sender identifier (phone/email)
   if (payload.source === 'wa') {
     const phone = payload.fromIdentifier;
-    // try last 9 digits (BE) or full
-    const short = phone.slice(-9);
-    const { data } = await supabase
-      .from('leads')
-      .select('id, telefoon, created_at')
-      .not('telefoon', 'eq', '')
-      .order('created_at', { ascending: false })
-      .limit(50);
-    const hit = (data || []).find((l) => normalizePhone(l.telefoon || '').endsWith(short));
-    if (hit) return { leadId: hit.id, reason: `WhatsApp-nummer matcht klant (${hit.telefoon})` };
+    // Ons eigen nummer zegt niets over de klant. Bram stuurt klantfoto's door
+    // vanaf zijn eigen toestel, en dat nummer staat óók als telefoon op een
+    // eigen dossier (belhouse-atelier). Zonder deze uitzondering belandde elke
+    // doorgestuurde reeks daar, ongeacht welke klantnaam erbij getypt werd.
+    // Zelfde gedachte als EIGEN_DOMEINEN hieronder.
+    if (!isEigenNummer(phone)) {
+      // try last 9 digits (BE) or full
+      const short = phone.slice(-9);
+      const { data } = await supabase
+        .from('leads')
+        .select('id, telefoon, created_at')
+        .not('telefoon', 'eq', '')
+        .order('created_at', { ascending: false })
+        .limit(1000);
+      const hit = (data || []).find((l) => normalizePhone(l.telefoon || '').endsWith(short));
+      if (hit) return { leadId: hit.id, reason: `WhatsApp-nummer matcht klant (${hit.telefoon})` };
+    }
   } else {
     const email = payload.fromIdentifier;
     const { data } = await supabase
@@ -177,8 +195,13 @@ export async function matchLeadDeterministic(
   // 2a) Via de klantfiche. Een klant kan meerdere dossiers hebben en zijn
   // gegevens kunnen op een ánder dossier staan dan waar de mail bij hoort.
   // Zoeken op klantniveau vindt die gevallen alsnog.
-  const viaKlant = await zoekViaKlant(supabase, payload.source === 'wa' ? null : payload.fromIdentifier,
-                                      payload.source === 'wa' ? payload.fromIdentifier : null);
+  // Ons eigen nummer ook hier niet gebruiken — anders vindt de klantfiche
+  // alsnog het dossier waar dat nummer op staat.
+  const viaKlant = await zoekViaKlant(
+    supabase,
+    payload.source === 'wa' ? null : payload.fromIdentifier,
+    payload.source === 'wa' && !isEigenNummer(payload.fromIdentifier) ? payload.fromIdentifier : null,
+  );
   if (viaKlant) return viaKlant;
 
   // 2b) Adressen en nummers ÍN de tekst. Een doorgestuurde klantmail komt van
@@ -888,6 +911,20 @@ async function setFlushState(
 // Runs from the scheduled flush pass, after that sender has been quiet — so
 // unlike the old per-webhook logic it sees the complete batch, and the
 // ordering of photos vs. text no longer matters.
+// Naam + adres van een dossier, voor bevestigingsberichten. Zonder deze naam
+// weet de afzender niet waar zijn foto's beland zijn.
+async function leadLabel(supabase: SupabaseClient, leadId: string): Promise<string> {
+  const { data } = await supabase
+    .from('leads')
+    .select('voornaam, achternaam, adres')
+    .eq('id', leadId)
+    .maybeSingle();
+  if (!data) return 'het dossier';
+  const naam = `${data.voornaam ?? ''} ${data.achternaam ?? ''}`.trim();
+  const adres = (data.adres ?? '').trim();
+  return [naam || 'naamloos dossier', adres].filter(Boolean).join(' — ');
+}
+
 export async function flushGroup(
   supabase: SupabaseClient,
   fromIdentifier: string,
@@ -917,8 +954,29 @@ export async function flushGroup(
   );
   const liveIds = live.map((r: any) => r.id);
 
-  // The sender's own number belonging to a customer means the customer sent
-  // these themselves — safe to link without asking.
+  // Wie er een naam bij typt, zegt expliciet voor welk dossier de foto's zijn.
+  // Dat signaal gaat vóór het afzendernummer: een doorgestuurde reeks komt van
+  // ons eigen toestel, en dat nummer wees eerder hardnekkig naar het verkeerde
+  // dossier terwijl de klantnaam er gewoon bij stond.
+  //
+  // Search each caption and note separately: trigram similarity is a ratio
+  // over the whole string, so folding a long work description in with a
+  // short name would push a correct match below the cutoff.
+  const segments = [notes, ...live.map((r: any) => r.body || '')].filter((s) => s.trim());
+  const candidates = segments.length ? await fuzzyCandidatesMulti(supabase, segments, 5) : [];
+
+  const sure = highConfidenceMatch(candidates);
+  if (sure) {
+    const added = await assignPendingGroupToLead(supabase, liveIds, sure.id, 'wa');
+    await clearWindow(supabase, 'wa', fromIdentifier);
+    await setFlushState(supabase, fromIdentifier, 'idle');
+    await sendWhatsApp(fromIdentifier, `✅ ${added} foto('s) gekoppeld aan ${sure.label}. Bedankt!`);
+    return;
+  }
+
+  // Geen bruikbare naam meegestuurd: dan pas het afzendernummer. Een klant die
+  // vanaf zijn eigen toestel stuurt hoeft niets te typen. Eigen nummers vallen
+  // hier af (zie isEigenNummer), want die identificeren geen klant.
   const byPhone = await matchLeadDeterministic(supabase, {
     source: 'wa',
     fromIdentifier,
@@ -929,22 +987,12 @@ export async function flushGroup(
     const added = await assignPendingGroupToLead(supabase, liveIds, byPhone.leadId, 'wa');
     await clearWindow(supabase, 'wa', fromIdentifier);
     await setFlushState(supabase, fromIdentifier, 'idle');
-    await sendWhatsApp(fromIdentifier, `✅ ${added} foto('s) toegevoegd aan je dossier. Bedankt!`);
-    return;
-  }
-
-  // Search each caption and note separately: trigram similarity is a ratio
-  // over the whole string, so folding a long work description in with a
-  // short name would push a correct match below the cutoff.
-  const segments = [notes, ...live.map((r: any) => r.body || '')];
-  const candidates = await fuzzyCandidatesMulti(supabase, segments, 5);
-
-  const sure = highConfidenceMatch(candidates);
-  if (sure) {
-    const added = await assignPendingGroupToLead(supabase, liveIds, sure.id, 'wa');
-    await clearWindow(supabase, 'wa', fromIdentifier);
-    await setFlushState(supabase, fromIdentifier, 'idle');
-    await sendWhatsApp(fromIdentifier, `✅ ${added} foto('s) gekoppeld aan ${sure.label}. Bedankt!`);
+    // Altijd benoemen wélk dossier: "toegevoegd aan je dossier" liet niet zien
+    // waar de foto's terechtkwamen, dus een misser bleef onopgemerkt.
+    await sendWhatsApp(
+      fromIdentifier,
+      `✅ ${added} foto('s) toegevoegd aan ${await leadLabel(supabase, byPhone.leadId)}. Bedankt!`,
+    );
     return;
   }
 
