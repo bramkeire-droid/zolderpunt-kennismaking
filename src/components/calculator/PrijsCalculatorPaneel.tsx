@@ -36,13 +36,15 @@ interface Props {
   oppervlakteM2: number | null | undefined;
   calculatorState: CalcState | null | undefined;
   btwPercentage: number;
+  /** Wat er nu op het dossier staat. Beschermt tegen overschrijven bij openen. */
+  opgeslagenBudgetExcl?: number | null;
   onChange: (patch: CalcPatch) => void;
   /** Ook oppervlakte_m2 op het dossier bijwerken als de bruto hier wijzigt. */
   schrijfOppervlakte?: boolean;
 }
 
 export default function PrijsCalculatorPaneel({
-  oppervlakteM2, calculatorState, btwPercentage, onChange, schrijfOppervlakte = false,
+  oppervlakteM2, calculatorState, btwPercentage, opgeslagenBudgetExcl, onChange, schrijfOppervlakte = false,
 }: Props) {
   const cs = normaliseerCalcState(calculatorState);
 
@@ -109,6 +111,7 @@ export default function PrijsCalculatorPaneel({
   // nu ook de band en de posten: een extra element dat het gemiddelde niet
   // verandert, moet tóch bewaard worden.
   const vorigeSleutel = useRef<string>('');
+  const eersteRonde = useRef(true);
   useEffect(() => {
     if (!result) return;
     const posten = naarOpgeslagenPosten(result.items);
@@ -116,6 +119,16 @@ export default function PrijsCalculatorPaneel({
       Math.round(result.excl), Math.round(result.exclMin), Math.round(result.exclMax), btwPercentage, posten,
     ]);
     if (sleutel === vorigeSleutel.current) return;
+
+    // Bij het openen niets overschrijven zolang er al een berekening op het
+    // dossier staat. Een ouder dossier kan bedragen hebben zonder bewaarde
+    // calculator-instellingen; die zouden hier anders meteen vervangen worden
+    // door een lege herberekening, enkel door de calculator te openen.
+    if (eersteRonde.current) {
+      eersteRonde.current = false;
+      vorigeSleutel.current = sleutel;
+      if ((opgeslagenBudgetExcl ?? 0) > 0) return;
+    }
     vorigeSleutel.current = sleutel;
     const multiplier = 1 + btwPercentage / 100;
     onChange({

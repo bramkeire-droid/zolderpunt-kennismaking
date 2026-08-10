@@ -30,7 +30,7 @@ export default function PrijscalculatorDialog({ lead, onOpenChange, onSaved }: P
     gewijzigd.current = false;
     supabase
       .from('leads')
-      .select('id, oppervlakte_m2, calculator_state, btw_percentage')
+      .select('id, oppervlakte_m2, calculator_state, btw_percentage, budget_excl')
       .eq('id', lead.id)
       .single()
       .then(({ data, error }) => {
@@ -89,6 +89,7 @@ export default function PrijscalculatorDialog({ lead, onOpenChange, onSaved }: P
             oppervlakteM2={rij.oppervlakte_m2 as number | null}
             calculatorState={rij.calculator_state as never}
             btwPercentage={(rij.btw_percentage as number) ?? 6}
+            opgeslagenBudgetExcl={rij.budget_excl as number | null}
             onChange={onChange}
             // Hier is geen intake-slide die de oppervlakte al zette, dus die
             // hoort vanuit de calculator zelf op het dossier terecht te komen.

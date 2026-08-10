@@ -25,6 +25,7 @@ export default function Slide5B() {
           oppervlakteM2={lead.oppervlakte_m2}
           calculatorState={lead.calculator_state}
           btwPercentage={lead.btw_percentage ?? 6}
+          opgeslagenBudgetExcl={lead.budget_excl}
           onChange={onChange}
         />
       </div>
