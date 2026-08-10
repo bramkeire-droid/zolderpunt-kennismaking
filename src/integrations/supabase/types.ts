@@ -80,6 +80,54 @@ export type Database = {
         }
         Relationships: []
       }
+      customers: {
+        Row: {
+          achternaam: string
+          adres: string | null
+          adres_lat: number | null
+          adres_lng: number | null
+          bouwflow_customer_id: string | null
+          created_at: string
+          email: string | null
+          id: string
+          klant_sleutel: string
+          partner_naam: string | null
+          telefoon: string | null
+          updated_at: string
+          voornaam: string
+        }
+        Insert: {
+          achternaam?: string
+          adres?: string | null
+          adres_lat?: number | null
+          adres_lng?: number | null
+          bouwflow_customer_id?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          klant_sleutel: string
+          partner_naam?: string | null
+          telefoon?: string | null
+          updated_at?: string
+          voornaam?: string
+        }
+        Update: {
+          achternaam?: string
+          adres?: string | null
+          adres_lat?: number | null
+          adres_lng?: number | null
+          bouwflow_customer_id?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          klant_sleutel?: string
+          partner_naam?: string | null
+          telefoon?: string | null
+          updated_at?: string
+          voornaam?: string
+        }
+        Relationships: []
+      }
       google_reviews_cache: {
         Row: {
           fetched_at: string
@@ -326,6 +374,7 @@ export type Database = {
           calculator_state: Json | null
           category_override: string | null
           created_at: string
+          customer_id: string | null
           email: string
           fotos: Json
           gesprek_datum: string | null
@@ -391,6 +440,7 @@ export type Database = {
           calculator_state?: Json | null
           category_override?: string | null
           created_at?: string
+          customer_id?: string | null
           email?: string
           fotos?: Json
           gesprek_datum?: string | null
@@ -456,6 +506,7 @@ export type Database = {
           calculator_state?: Json | null
           category_override?: string | null
           created_at?: string
+          customer_id?: string | null
           email?: string
           fotos?: Json
           gesprek_datum?: string | null
@@ -499,7 +550,15 @@ export type Database = {
           waarde_tekst_ai?: string
           website_omschrijving?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "leads_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       portal_email_attempts: {
         Row: {
