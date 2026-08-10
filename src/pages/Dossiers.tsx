@@ -823,6 +823,7 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
                     grouped={groupedByCategory}
                     draggingId={draggingId}
                     dragOverKey={dragOverCat}
+                    activeLeadId={activeLeadId}
                     showEmpty={toonLegeKolommen}
                     onDragStart={setDraggingId}
                     onDragEnd={() => { setDraggingId(null); setDragOverCat(null); }}
@@ -838,7 +839,10 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
                       setDraggingId(null);
                       setDragOverCat(null);
                     }}
-                    onOpenLead={(l) => setActiveLeadId(l.id)}
+                    // Klikken op een kaart opent het dossier, net als een rij in
+                    // de tabel. Enkel de actiebalk tonen liet de kaart dood aanvoelen.
+                    onOpenLead={(l) => handleOpen(l)}
+                    onSelectLead={(l) => setActiveLeadId(l.id)}
                   />
                   </>
                 );
