@@ -115,10 +115,31 @@ export const BADKAMER_ONDERDELEN: { key: string; label: string }[] = [
   { key: 'wastafel', label: 'Wastafel en wastafelmeubel' },
 ];
 
+/**
+ * Standaardbedragen die een nieuw element meekrijgt. Hier vul je ze in — de
+ * calculator neemt ze over als beginwaarde, per dossier nog aanpasbaar.
+ *
+ * Alleen van toepassing op een element dat nog nooit op dit dossier stond. Een
+ * bedrag dat bewust leeggemaakt is blijft leeg; anders zou het standaardbedrag
+ * telkens terugkomen.
+ */
+export const STANDAARD_BEDRAGEN: Record<string, { min: number | null; max: number | null }> = {
+  // bv. douche: { min: 2000, max: 3500 },
+  tegelwerken: { min: null, max: null },
+  douche: { min: null, max: null },
+  bad: { min: null, max: null },
+  boiler: { min: null, max: null },
+  ventilatie: { min: null, max: null },
+  wastafel: { min: null, max: null },
+  maatwerk: { min: null, max: null },
+};
+
+const standaardVoor = (key: string) => STANDAARD_BEDRAGEN[key] ?? { min: null, max: null };
+
 export function legeBadkamer(): { actief: boolean; onderdelen: BadkamerOnderdeel[] } {
   return {
     actief: false,
-    onderdelen: BADKAMER_ONDERDELEN.map((o) => ({ ...o, actief: false, min: null, max: null })),
+    onderdelen: BADKAMER_ONDERDELEN.map((o) => ({ ...o, actief: false, ...standaardVoor(o.key) })),
   };
 }
 
@@ -132,18 +153,21 @@ export function normaliseerCalcState(cs: CalcState | null | undefined): CalcStat
   const bestaand = basis.badkamer;
   const onderdelen = BADKAMER_ONDERDELEN.map((o) => {
     const gevonden = bestaand?.onderdelen?.find((x) => x.key === o.key);
+    // Nog nooit opgeslagen → standaardbedrag. Wél opgeslagen → die waarde
+    // respecteren, ook als ze leeggemaakt is.
+    if (!gevonden) return { key: o.key, label: o.label, actief: false, ...standaardVoor(o.key) };
     return {
       key: o.key,
       label: o.label,
-      actief: gevonden?.actief ?? false,
-      min: gevonden?.min ?? null,
-      max: gevonden?.max ?? null,
+      actief: gevonden.actief ?? false,
+      min: gevonden.min ?? null,
+      max: gevonden.max ?? null,
     };
   });
   return {
     ...basis,
     badkamer: { actief: bestaand?.actief ?? false, onderdelen },
-    maatwerk: basis.maatwerk ?? { actief: false, min: null, max: null },
+    maatwerk: basis.maatwerk ?? { actief: false, ...standaardVoor('maatwerk') },
     extras: Array.isArray(basis.extras) ? basis.extras : [],
   };
 }

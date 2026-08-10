@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { berekenPrijs, legeBadkamer, leesPosten, naarOpgeslagenPosten } from '@/lib/prijscalculator';
+import { berekenPrijs, legeBadkamer, leesPosten, naarOpgeslagenPosten, normaliseerCalcState, STANDAARD_BEDRAGEN } from '@/lib/prijscalculator';
 
 const basis = {
   dak_bekleed: false, dakisolatie_type: 'spantendak' as const, vloer: true, velux: 2,
@@ -96,5 +96,38 @@ describe('opslag van posten', () => {
   it('overleeft rommel in de opgeslagen data', () => {
     expect(leesPosten(null)).toEqual([]);
     expect(leesPosten([null, { bedrag: 5 }, 'x'])).toEqual([]);
+  });
+});
+
+describe('standaardbedragen', () => {
+  it('geeft een nieuw element het standaardbedrag mee', () => {
+    STANDAARD_BEDRAGEN.douche = { min: 2000, max: 3500 };
+    try {
+      const vers = normaliseerCalcState(null).badkamer!;
+      expect(vers.onderdelen.find((o) => o.key === 'douche')).toMatchObject({ min: 2000, max: 3500 });
+    } finally {
+      STANDAARD_BEDRAGEN.douche = { min: null, max: null };
+    }
+  });
+
+  it('laat een bewust leeggemaakt bedrag leeg', () => {
+    STANDAARD_BEDRAGEN.douche = { min: 2000, max: 3500 };
+    try {
+      // Dossier waar het bedrag al eens bewaard is, maar leeg.
+      const bewaard = normaliseerCalcState({
+        badkamer: {
+          actief: true,
+          onderdelen: [{ key: 'douche', label: 'Douche', actief: true, min: null, max: null }],
+        },
+      }).badkamer!;
+      expect(bewaard.onderdelen.find((o) => o.key === 'douche')).toMatchObject({ min: null, max: null });
+    } finally {
+      STANDAARD_BEDRAGEN.douche = { min: null, max: null };
+    }
+  });
+
+  it('verandert vandaag niets, want alle standaarden staan leeg', () => {
+    const vers = normaliseerCalcState(null).badkamer!;
+    expect(vers.onderdelen.every((o) => o.min === null && o.max === null)).toBe(true);
   });
 });
