@@ -147,7 +147,9 @@ export default function PrijsCalculatorPaneel({
     });
   }, [result, btwPercentage, onChange]);
 
-  const heeftEigenBand = !!result && result.exclMin !== result.standaardExcl * 0.85;
+  // Op de aanwezigheid van zulke posten checken, niet op een verschil tussen
+  // twee kommagetallen — dat laatste is afrondingsgevoelig.
+  const heeftEigenBand = !!result?.items.some((i) => i.categorie !== 'standaard');
 
   return (
     <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_360px]">
