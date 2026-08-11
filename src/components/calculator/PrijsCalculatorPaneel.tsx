@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import ExtraElementen from './ExtraElementen';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import HandmatigBedrag, { HandmatigPotlood } from './HandmatigBedrag';
 import MargeBalk from './MargeBalk';
 import MargeRedenDialog from './MargeRedenDialog';
@@ -118,6 +119,22 @@ export default function PrijsCalculatorPaneel({
 
   // Welke optie staat open in de handmatige-bedrageditor.
   const [bewerkt, setBewerkt] = useState<string | null>(null);
+
+  // Inklappen van een optie met een subkeuze. Los van aanvinken: dichtklappen
+  // laat het bedrag gewoon meetellen en raakt de gekozen waarden niet.
+  const [dicht, setDicht] = useState<Record<string, boolean>>({});
+  const klapper = (sleutel: string) => (
+    <button
+      type="button"
+      onClick={(ev) => { ev.stopPropagation(); setDicht((v) => ({ ...v, [sleutel]: !v[sleutel] })); }}
+      title={dicht[sleutel] ? 'Uitklappen' : 'Inklappen — de keuze blijft staan'}
+      aria-label={dicht[sleutel] ? 'Uitklappen' : 'Inklappen'}
+      aria-expanded={!dicht[sleutel]}
+      className="shrink-0 rounded p-1 text-muted-foreground/60 hover:bg-muted hover:text-foreground"
+    >
+      {dicht[sleutel] ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+    </button>
+  );
 
   // Na het loslaten van een handvat: welke kant is versleept, en wat stond er
   // vóór het slepen — zodat "Marge terugzetten" echt terugzet.
@@ -331,11 +348,12 @@ export default function PrijsCalculatorPaneel({
                   <div className="flex items-center gap-1">
                     <span className="text-sm font-bold text-primary">{fmt(RATES.trap + (trapgat === 'beton' ? RATES.trapgatBeton : trapgat === 'hout' ? RATES.trapgatHout : 0))}</span>
                     {potlood('tr', 'Trap', RATES.trap)}
+                    {klapper('trap')}
                   </div>
                 )}
               </div>
               {trap && editor('tr')}
-              {trap && (
+              {trap && !dicht.trap && (
                 <div className="border-t border-primary/20 px-3.5 pb-3.5 pt-2" onClick={(e) => e.stopPropagation()}>
                   <div className="mb-2 text-xs font-bold text-secondary">Trapgat (optioneel)</div>
                   <div className="flex gap-1.5">
