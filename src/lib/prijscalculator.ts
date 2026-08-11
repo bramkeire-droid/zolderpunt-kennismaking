@@ -214,6 +214,24 @@ export function overrideBedrag(o: PostOverride | undefined | null): number | nul
   return meetellend.reduce((som, r) => som + regelBedrag(r), 0);
 }
 
+/** Eén argument waarom de marge verschoven is, per gedetecteerd kader. */
+export interface MargeArgument {
+  kader: string;
+  tekst: string;
+}
+
+/**
+ * Verschoven marge voor dít dossier. `min` en `max` zijn factoren op het
+ * tariefdeel (0.85 = 15% onder de raming), en vervangen de standaard
+ * bandbreedte. Elementen met een eigen minimum en maximum blijven ongemoeid:
+ * daar is de marge al bekend en zou een tweede marge dubbeltellen.
+ */
+export interface MargeVerschuiving {
+  min: number;
+  max: number;
+  argumenten: MargeArgument[];
+}
+
 export interface CalcState {
   dak_bekleed?: boolean;
   dakisolatie_type?: DakisolatieType;
@@ -231,6 +249,8 @@ export interface CalcState {
   extras?: ExtraElement[];
   /** Handmatig gezette bedragen per postsleutel, alleen voor dit dossier. */
   overrides?: Record<string, PostOverride>;
+  /** Handmatig verschoven marge op het tariefdeel, met onderbouwing. */
+  marge?: MargeVerschuiving;
 }
 
 export interface PostItem {
@@ -259,6 +279,11 @@ export interface CalcResult {
   /** Band incl. 6% btw — historische betekenis van budget_min/budget_max. */
   min: number;
   max: number;
+  /** Factoren die op het tariefdeel zijn toegepast. */
+  factorMin: number;
+  factorMax: number;
+  /** True zodra de marge handmatig verschoven is voor dit dossier. */
+  margeVerschoven: boolean;
 }
 
 export const BADKAMER_ONDERDELEN: { key: string; label: string }[] = [
@@ -318,6 +343,7 @@ export function normaliseerCalcState(cs: CalcState | null | undefined, t: Tariev
     maatwerk: basis.maatwerk ?? { actief: false, ...standaardVoor('maatwerk', t) },
     extras: Array.isArray(basis.extras) ? basis.extras : [],
     overrides: basis.overrides ?? {},
+    marge: basis.marge,
   };
 }
 
@@ -406,8 +432,13 @@ export function berekenPrijs(
   }
 
   const excl = standaardExcl + (extraMin + extraMax) / 2;
-  const exclMin = standaardExcl * bandMin(t) + extraMin;
-  const exclMax = standaardExcl * bandMax(t) + extraMax;
+  // Een handmatig verschoven marge vervangt de standaard bandbreedte, maar
+  // enkel op het tariefdeel: extraMin/extraMax komen uit elementen die hun
+  // eigen minimum en maximum al meebrengen.
+  const factorMin = state.marge ? state.marge.min : bandMin(t);
+  const factorMax = state.marge ? state.marge.max : bandMax(t);
+  const exclMin = standaardExcl * factorMin + extraMin;
+  const exclMax = standaardExcl * factorMax + extraMax;
 
   return {
     items,
@@ -419,6 +450,9 @@ export function berekenPrijs(
     incl21: excl * 1.21,
     min: exclMin * 1.06,
     max: exclMax * 1.06,
+    factorMin,
+    factorMax,
+    margeVerschoven: !!state.marge,
   };
 }
 

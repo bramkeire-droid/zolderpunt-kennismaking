@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import ExtraElementen from './ExtraElementen';
 import HandmatigBedrag, { HandmatigPotlood } from './HandmatigBedrag';
+import MargeBalk from './MargeBalk';
+import MargeRedenDialog from './MargeRedenDialog';
 import {
   berekenPrijs,
   effectieveTarieven,
@@ -9,6 +11,7 @@ import {
   normaliseerCalcState,
   type CalcState,
   type OverrideRegel,
+  type MargeArgument,
   type DakisolatieType,
 } from '@/lib/prijscalculator';
 import { useTarieven } from '@/hooks/useTarieven';
@@ -115,6 +118,12 @@ export default function PrijsCalculatorPaneel({
 
   // Welke optie staat open in de handmatige-bedrageditor.
   const [bewerkt, setBewerkt] = useState<string | null>(null);
+
+  // Na het loslaten van een handvat: welke kant is versleept, en wat stond er
+  // vóór het slepen — zodat "Marge terugzetten" echt terugzet.
+  const [margeVraag, setMargeVraag] = useState<'min' | 'max' | null>(null);
+  const margeVoor = useRef<CalcState['marge']>(undefined);
+  if (!margeVraag && !margeVoor.current) margeVoor.current = cs.marge;
 
   /** Potlood naast het bedrag van een optie. */
   const potlood = (key: string, label: string, tariefBedrag: number) => (
@@ -356,6 +365,27 @@ export default function PrijsCalculatorPaneel({
         </div>
 
         <ExtraElementen state={{ ...cs, netto_m2: nettoNum || null }} onChange={zet} />
+
+      {margeVraag && result && (
+        <MargeRedenDialog
+          open
+          kant={margeVraag}
+          items={result.items}
+          bedrag={margeVraag === 'min' ? result.min : result.max}
+          argumenten={cs.marge?.argumenten ?? []}
+          onOpslaan={(argumenten: MargeArgument[]) => {
+            if (cs.marge) zet({ marge: { ...cs.marge, argumenten } });
+            margeVoor.current = undefined;
+            setMargeVraag(null);
+          }}
+          onAnnuleer={() => {
+            // Geen onderbouwing? Dan gaat de marge terug zoals ze was.
+            zet({ marge: margeVoor.current });
+            margeVoor.current = undefined;
+            setMargeVraag(null);
+          }}
+        />
+      )}
       </div>
 
       {/* Rechts: resultaat */}
@@ -375,23 +405,21 @@ export default function PrijsCalculatorPaneel({
                 </span>
               </div>
 
-              <div className="mb-5">
-                <div className="mb-3.5 h-1.5 overflow-hidden rounded-full bg-primary-foreground/10">
-                  <div className="h-full w-full rounded-full bg-gradient-to-r from-primary to-cyan-400" />
-                </div>
-                <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-1">
-                  <div className="text-xs text-primary-foreground/40">
-                    <span className="mb-0.5 block text-base font-bold text-primary-foreground/60">{fmt(result.min)}</span>minimum
-                  </div>
-                  <div className="text-center">
-                    <span className="text-xs tracking-wider text-primary-foreground/40">INCL. 6% BTW</span>
-                    <span className="block text-2xl font-bold tracking-tight text-primary">{fmt(result.incl6)}</span>
-                  </div>
-                  <div className="text-right text-xs text-primary-foreground/40">
-                    <span className="mb-0.5 block text-base font-bold text-primary-foreground/60">{fmt(result.max)}</span>maximum
-                  </div>
-                </div>
+              <div className="mb-1 text-center">
+                <span className="text-xs tracking-wider text-primary-foreground/40">INCL. 6% BTW</span>
+                <span className="block text-2xl font-bold tracking-tight text-primary">{fmt(result.incl6)}</span>
               </div>
+
+              <MargeBalk
+                min={result.min}
+                max={result.max}
+                factorMin={result.factorMin}
+                factorMax={result.factorMax}
+                verschoven={result.margeVerschoven}
+                onSleep={(fMin, fMax) => zet({ marge: { min: fMin, max: fMax, argumenten: cs.marge?.argumenten ?? [] } })}
+                onLos={(kant) => setMargeVraag(kant)}
+                onHerstel={() => zet({ marge: undefined })}
+              />
 
               <div className="mb-5 grid grid-cols-2 gap-2">
                 <div className="rounded-lg border border-primary-foreground/10 bg-primary-foreground/5 p-3">
