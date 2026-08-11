@@ -176,6 +176,26 @@ export interface ExtraElement {
   max: number | null;
 }
 
+/**
+ * Handmatig gezet bedrag voor één tariefpost, voor dít dossier.
+ *
+ * De factoren worden vermenigvuldigd: één factor is gewoon een bedrag,
+ * meerdere factoren vormen een rekensom (bv. 12 x 3 x 45). Wat er in het
+ * rapport en op de klantslide terechtkomt is enkel de uitkomst — de som zelf
+ * blijft intern.
+ */
+export interface PostOverride {
+  factoren: (number | null)[];
+}
+
+/** De uitkomst van een override, of null als er niets bruikbaars staat. */
+export function overrideBedrag(o: PostOverride | undefined | null): number | null {
+  if (!o) return null;
+  const f = (o.factoren ?? []).filter((x): x is number => typeof x === 'number' && isFinite(x));
+  if (f.length === 0) return null;
+  return f.reduce((a, b) => a * b, 1);
+}
+
 export interface CalcState {
   dak_bekleed?: boolean;
   dakisolatie_type?: DakisolatieType;
@@ -191,6 +211,8 @@ export interface CalcState {
   badkamer?: { actief: boolean; onderdelen: BadkamerOnderdeel[] };
   maatwerk?: { actief: boolean; min: number | null; max: number | null };
   extras?: ExtraElement[];
+  /** Handmatig gezette bedragen per postsleutel, alleen voor dit dossier. */
+  overrides?: Record<string, PostOverride>;
 }
 
 export interface PostItem {
@@ -202,6 +224,8 @@ export interface PostItem {
   min?: number;
   max?: number;
   omschrijving?: string;
+  /** Bedrag is handmatig gezet voor dit dossier i.p.v. uit het tarief. */
+  handmatig?: boolean;
 }
 
 export interface CalcResult {
@@ -275,6 +299,7 @@ export function normaliseerCalcState(cs: CalcState | null | undefined, t: Tariev
     badkamer: { actief: bestaand?.actief ?? false, onderdelen },
     maatwerk: basis.maatwerk ?? { actief: false, ...standaardVoor('maatwerk', t) },
     extras: Array.isArray(basis.extras) ? basis.extras : [],
+    overrides: basis.overrides ?? {},
   };
 }
 
@@ -307,8 +332,15 @@ export function berekenPrijs(
   const ix = (basis: number) => basis * t.index;
 
   const items: PostItem[] = [];
-  const std = (key: string, label: string, amount: number) =>
-    items.push({ key, label, categorie: 'standaard', amount });
+  const std = (key: string, label: string, amount: number) => {
+    // Een handmatig bedrag voor dit dossier gaat voor op het tarief.
+    const eigen = overrideBedrag(state.overrides?.[key]);
+    items.push({
+      key, label, categorie: 'standaard',
+      amount: eigen ?? amount,
+      ...(eigen != null ? { handmatig: true } : {}),
+    });
+  };
 
   const bpa = state.dak_bekleed ? ix(t.perM2.binnenplaatAfgedekt) : ix(t.perM2.binnenplaatafwerking);
   std('bpa', 'Binnenplaatafwerking', brutoNum * bpa);

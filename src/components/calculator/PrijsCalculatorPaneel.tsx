@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
+import { Pencil, Plus, X as Kruis, RotateCcw } from 'lucide-react';
 import ExtraElementen from './ExtraElementen';
 import {
   berekenPrijs,
   effectieveTarieven,
+  overrideBedrag,
   fmtEuro as fmt,
   naarOpgeslagenPosten,
   normaliseerCalcState,
@@ -103,6 +105,16 @@ export default function PrijsCalculatorPaneel({
   const RATES = effectieveTarieven(tarieven);
 
   const result = berekenPrijs({ ...cs, netto_m2: nettoNum || null }, brutoNum, tarieven);
+
+  // Welke regel staat open in de handmatige-bedrageditor.
+  const [bewerkt, setBewerkt] = useState<string | null>(null);
+
+  const zetOverride = (key: string, factoren: (number | null)[] | null) => {
+    const huidig = { ...(cs.overrides ?? {}) };
+    if (factoren === null) delete huidig[key];
+    else huidig[key] = { factoren };
+    zet({ overrides: huidig });
+  };
 
   const setBtwPercentage = (nieuwTarief: 6 | 21) => {
     const multiplier = 1 + nieuwTarief / 100;
@@ -351,19 +363,102 @@ export default function PrijsCalculatorPaneel({
               </div>
 
               <hr className="my-3 border-primary-foreground/10" />
-              {result.items.map((item) => (
-                <div key={item.key} className="flex items-baseline justify-between py-1">
-                  <span className="text-xs text-primary-foreground/55">
-                    {item.label}
-                    {item.categorie !== 'standaard' && <span className="ml-1 text-[10px] uppercase text-cyan-300/70">eigen bereik</span>}
-                  </span>
-                  <span className="text-xs font-semibold text-primary-foreground/85">
-                    {item.min != null && item.max != null && item.min !== item.max
-                      ? `${fmt(item.min)} — ${fmt(item.max)}`
-                      : fmt(item.amount)}
-                  </span>
-                </div>
-              ))}
+              {result.items.map((item) => {
+                const kanHandmatig = item.categorie === 'standaard';
+                const override = cs.overrides?.[item.key];
+                const open = bewerkt === item.key;
+                return (
+                  <div key={item.key} className="py-1">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="text-xs text-primary-foreground/55">
+                        {item.label}
+                        {item.categorie !== 'standaard' && <span className="ml-1 text-[10px] uppercase text-cyan-300/70">eigen bereik</span>}
+                        {item.handmatig && <span className="ml-1 text-[10px] uppercase text-amber-300/80">handmatig</span>}
+                      </span>
+                      <span className="flex items-baseline gap-1.5">
+                        <span className="text-xs font-semibold text-primary-foreground/85">
+                          {item.min != null && item.max != null && item.min !== item.max
+                            ? `${fmt(item.min)} — ${fmt(item.max)}`
+                            : fmt(item.amount)}
+                        </span>
+                        {kanHandmatig && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              // Begin bij het huidige bedrag: aanpassen is meestal
+                              // corrigeren, niet vanaf nul opnieuw invullen.
+                              if (!override) zetOverride(item.key, [Math.round(item.amount)]);
+                              setBewerkt(open ? null : item.key);
+                            }}
+                            title="Bedrag handmatig aanpassen voor dit dossier"
+                            aria-label={`${item.label} handmatig aanpassen`}
+                            className="rounded p-0.5 text-primary-foreground/40 hover:bg-primary-foreground/10 hover:text-primary-foreground/80"
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </button>
+                        )}
+                      </span>
+                    </div>
+
+                    {open && override && (
+                      <div className="mt-1.5 rounded-md bg-primary-foreground/5 p-2">
+                        <div className="flex flex-wrap items-center gap-1">
+                          {override.factoren.map((f, i) => (
+                            <span key={i} className="flex items-center gap-1">
+                              {i > 0 && <span className="text-[11px] text-primary-foreground/40">×</span>}
+                              <input
+                                value={f ?? ''}
+                                onChange={(e) => {
+                                  const v = e.target.value.replace(',', '.');
+                                  const nieuw = [...override.factoren];
+                                  nieuw[i] = v.trim() === '' ? null : Number(v);
+                                  zetOverride(item.key, nieuw);
+                                }}
+                                inputMode="decimal"
+                                aria-label={`Factor ${i + 1}`}
+                                className="w-16 rounded border border-primary-foreground/20 bg-transparent px-1.5 py-0.5 text-right text-xs tabular-nums text-primary-foreground outline-none focus:border-primary-foreground/50"
+                              />
+                              {override.factoren.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => zetOverride(item.key, override.factoren.filter((_, j) => j !== i))}
+                                  title="Deze factor weghalen"
+                                  className="text-primary-foreground/30 hover:text-primary-foreground/70"
+                                >
+                                  <Kruis className="h-3 w-3" />
+                                </button>
+                              )}
+                            </span>
+                          ))}
+                          <button
+                            type="button"
+                            onClick={() => zetOverride(item.key, [...override.factoren, null])}
+                            title="Nog een factor toevoegen"
+                            aria-label="Factor toevoegen"
+                            className="rounded p-0.5 text-primary-foreground/50 hover:bg-primary-foreground/10 hover:text-primary-foreground"
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                          </button>
+                          <span className="ml-1 text-xs font-semibold text-primary-foreground/85">
+                            = {fmt(overrideBedrag(override) ?? 0)}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => { zetOverride(item.key, null); setBewerkt(null); }}
+                            title="Terug naar het tarief"
+                            className="ml-auto flex items-center gap-1 rounded px-1 py-0.5 text-[11px] text-primary-foreground/50 hover:bg-primary-foreground/10 hover:text-primary-foreground/90"
+                          >
+                            <RotateCcw className="h-3 w-3" /> tarief
+                          </button>
+                        </div>
+                        <p className="mt-1 text-[10px] text-primary-foreground/35">
+                          Geldt alleen voor dit dossier. De rekensom blijft intern — de klant ziet enkel de uitkomst.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
               <hr className="my-3 border-primary-foreground/10" />
               <div className="flex items-baseline justify-between">
                 <span className="text-sm font-bold text-primary-foreground/80">Totaal excl. BTW</span>
