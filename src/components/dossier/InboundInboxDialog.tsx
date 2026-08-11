@@ -9,7 +9,7 @@ import { Inbox, Mail, MessageCircle, Check, ChevronsUpDown, Trash2 } from 'lucid
 import { isVideoPath } from '@/lib/leadMedia';
 import InboundHint from '@/components/dossier/InboundHint';
 import { cn } from '@/lib/utils';
-import { groupInbound, type InboundGroup, type InboundRow } from '@/lib/inboundGroups';
+import { groupInbound, paden, type InboundGroup, type InboundRow } from '@/lib/inboundGroups';
 
 interface PendingItem extends InboundRow {
   source: 'wa' | 'mail';
@@ -74,7 +74,9 @@ export default function InboundInboxDialog({ open, onOpenChange, onAssigned }: P
     // signed URLs for previews
     const map: Record<string, string> = {};
     await Promise.all(list.flatMap((it) =>
-      it.storage_paths.map(async (p) => {
+      // storage_paths komt als jsonb binnen; paden() maakt er een echte
+      // stringlijst van, net als de groepering doet.
+      paden(it.storage_paths).map(async (p) => {
         const { data } = await supabase.storage.from('lead-fotos').createSignedUrl(p, 3600);
         if (data?.signedUrl) map[p] = data.signedUrl;
       }),

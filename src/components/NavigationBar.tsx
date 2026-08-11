@@ -1,7 +1,8 @@
 import { useSession, SLIDE_ORDER, SLIDE_MODES, SlideId } from '@/contexts/SessionContext';
+import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { useAuth } from '@/contexts/AuthContext';
 import logoBlauw from '@/assets/logo-blauw.svg';
-import { LogOut, Phone, FolderOpen, Plus, ChevronDown, Video, FilePlus2 } from 'lucide-react';
+import { LogOut, Phone, FolderOpen, Plus, ChevronDown, Video, FilePlus2, Settings } from 'lucide-react';
 import ExtraInfoMenu from './ExtraInfoMenu';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
@@ -23,13 +24,17 @@ interface NavigationBarProps {
   /** Videocall-intake starten. */
   onNewIntake?: () => void;
   onGoDossiers?: () => void;
+  onGoBeheer?: () => void;
+  /** Beheer is een App-view, geen sessiemodus — vandaar apart meegegeven. */
+  beheerActief?: boolean;
 }
 
 export default function NavigationBar({
-  onGoHome, onNewCall, onNewDossier, onNewIntake, onGoDossiers,
+  onGoHome, onNewCall, onNewDossier, onNewIntake, onGoDossiers, onGoBeheer, beheerActief,
 }: NavigationBarProps) {
   const { currentMode, currentSlide } = useSession();
   const { signOut } = useAuth();
+  const { isAdmin } = useIsAdmin();
 
   const modeSlides = SLIDE_ORDER.filter(s => SLIDE_MODES[s] === currentMode);
   const slideIndex = modeSlides.indexOf(currentSlide) + 1;
@@ -77,7 +82,7 @@ export default function NavigationBar({
         <button
           onClick={() => onGoDossiers?.()}
           className={`flex items-center gap-2 px-4 py-2 text-sm font-headline font-semibold transition-colors ${
-            currentMode === 'dossiers'
+            currentMode === 'dossiers' && !beheerActief
               ? 'bg-primary text-primary-foreground'
               : 'text-muted-foreground hover:text-foreground hover:bg-muted'
           }`}
@@ -85,6 +90,21 @@ export default function NavigationBar({
           <FolderOpen className="h-4 w-4" />
           Dossiers
         </button>
+
+        {/* Alleen voor beheerders: de calculatorprijzen raken elke offerte. */}
+        {isAdmin && (
+          <button
+            onClick={() => onGoBeheer?.()}
+            className={`flex items-center gap-2 px-4 py-2 text-sm font-headline font-semibold transition-colors ${
+              beheerActief
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+            }`}
+          >
+            <Settings className="h-4 w-4" />
+            Beheer
+          </button>
+        )}
       </div>
 
       {currentMode !== 'dossiers' && (

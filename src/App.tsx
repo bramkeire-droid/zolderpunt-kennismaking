@@ -5,6 +5,7 @@ import { PreIntakeProvider } from '@/contexts/PreIntakeContext';
 import { useLeadSave } from '@/hooks/useLeadSave';
 import NavigationBar from '@/components/NavigationBar';
 import Dossiers from '@/pages/Dossiers';
+import TarievenBeheer from '@/components/beheer/TarievenBeheer';
 import LoginPage from '@/pages/LoginPage';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
 import LiveCalling from '@/pages/LiveCalling';
@@ -52,7 +53,7 @@ const SLIDE_COMPONENTS: Record<SlideId, React.ComponentType> = {
   '8': Slide8, '9': Slide9, '10': Slide10,
 };
 
-export type AppView = 'start' | 'slides' | 'dossiers' | 'calling' | 'validation' | 'briefing';
+export type AppView = 'start' | 'slides' | 'dossiers' | 'calling' | 'validation' | 'briefing' | 'beheer';
 
 function AppContent() {
   const [view, setView] = useState<AppView>('start');
@@ -276,7 +277,7 @@ function AppContent() {
     );
   }
 
-  const actualMode = view === 'dossiers' ? 'dossiers' : currentMode;
+  const actualMode = view === 'beheer' ? 'beheer' : view === 'dossiers' ? 'dossiers' : currentMode;
 
   return (
     <div className="h-screen flex flex-col">
@@ -286,8 +287,16 @@ function AppContent() {
         onNewDossier={handleNewIntake}
         onNewIntake={handleNewIntake}
         onGoDossiers={handleGoDossiers}
+        onGoBeheer={() => setView('beheer')}
+        beheerActief={view === 'beheer'}
       />
-      {actualMode === 'dossiers' ? (
+      {actualMode === 'beheer' ? (
+        <div className="flex-1 overflow-y-auto bg-slate-50 px-6 py-6">
+          <div className="mx-auto max-w-4xl">
+            <TarievenBeheer />
+          </div>
+        </div>
+      ) : actualMode === 'dossiers' ? (
         <Dossiers
           onOpenLead={handleOpenLead}
           onOpenValidation={handleOpenValidation}

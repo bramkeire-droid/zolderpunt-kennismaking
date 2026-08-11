@@ -16,30 +16,143 @@
 
 export const INDEX = 1.05;
 
-export const RATES = {
-  binnenplaatafwerking: 230 * INDEX,
-  binnenplaatAfgedekt: 115 * INDEX,
-  dakisolatieSpantendak: 85 * INDEX,
-  dakisolatieGordingendak: 100 * INDEX,
-  vloer: 70 * INDEX,
-  velux: 2250 * INDEX,
-  trap: 6000 * INDEX,
-  trapgatHout: 1750 * INDEX,
-  trapgatBeton: 5500 * INDEX,
-  algemeenAfwerking: 230 * INDEX,
-  airco: { 1: 4000 * INDEX, 2: 6000 * INDEX, 3: 7500 * INDEX, 4: 10000 * INDEX, 5: 11000 * INDEX } as Record<number, number>,
-  plamuur: (netto: number) => {
-    if (netto < 40) return Math.round(3250 * INDEX);
-    if (netto < 65) return Math.round(4500 * INDEX);
-    if (netto < 85) return Math.round(5750 * INDEX);
-    return Math.round(8000 * INDEX);
-  },
-  schilderwerken: (netto: number) => (netto < 40 ? 2500 : 4000),
+/**
+ * Eén trede van een staffel: geldt zolang de netto-oppervlakte kleiner is dan
+ * `tot`. De laatste trede heeft `tot: null` en vangt de rest op.
+ */
+export interface Staffel {
+  tot: number | null;
+  bedrag: number;
+}
+
+export interface StaffelGroep {
+  /** Of de indexatie op deze bedragen wordt toegepast. */
+  geindexeerd: boolean;
+  treden: Staffel[];
+}
+
+/**
+ * Alle instelbare prijzen. Bewerkbaar in de beheerdersconsole; wat daar niet
+ * (of nog niet) is ingevuld valt terug op STANDAARD_TARIEVEN hieronder, zodat
+ * de calculator ook zonder database-rij blijft rekenen zoals voorheen.
+ *
+ * De basisbedragen staan hier ONGEÏNDEXEERD: het effectieve tarief is
+ * `basisbedrag × index`. Zo blijft een jaarlijkse indexatie één veld.
+ */
+export interface Tarieven {
+  index: number;
+  bandbreedte: number;
+  /** Tarieven per m². */
+  perM2: {
+    binnenplaatafwerking: number;
+    binnenplaatAfgedekt: number;
+    dakisolatieSpantendak: number;
+    dakisolatieGordingendak: number;
+    vloer: number;
+    algemeenAfwerking: number;
+  };
+  /** Vaste bedragen per stuk. */
+  vast: {
+    velux: number;
+    trap: number;
+    trapgatHout: number;
+    trapgatBeton: number;
+  };
+  /** Bedrag per aantal toestellen (1 t/m 5). */
+  airco: Record<number, number>;
+  plamuur: StaffelGroep;
+  schilderwerken: StaffelGroep;
+  /** Beginwaarden voor badkamer-onderdelen, maatwerk en vrije elementen. */
+  standaardBedragen: Record<string, { min: number | null; max: number | null }>;
+}
+
+export const STANDAARD_TARIEVEN: Tarieven = {
+  index: INDEX,
   bandbreedte: 0.15,
+  perM2: {
+    binnenplaatafwerking: 230,
+    binnenplaatAfgedekt: 115,
+    dakisolatieSpantendak: 85,
+    dakisolatieGordingendak: 100,
+    vloer: 70,
+    algemeenAfwerking: 230,
+  },
+  vast: {
+    velux: 2250,
+    trap: 6000,
+    trapgatHout: 1750,
+    trapgatBeton: 5500,
+  },
+  airco: { 1: 4000, 2: 6000, 3: 7500, 4: 10000, 5: 11000 },
+  plamuur: {
+    geindexeerd: true,
+    treden: [
+      { tot: 40, bedrag: 3250 },
+      { tot: 65, bedrag: 4500 },
+      { tot: 85, bedrag: 5750 },
+      { tot: null, bedrag: 8000 },
+    ],
+  },
+  // Let op: schilderwerken werd historisch NIET geïndexeerd, in tegenstelling
+  // tot alle andere posten. Bewust zo gelaten om bestaande prijzen niet stil
+  // met 5% te verhogen — in de beheerdersconsole om te zetten.
+  schilderwerken: {
+    geindexeerd: false,
+    treden: [
+      { tot: 40, bedrag: 2500 },
+      { tot: null, bedrag: 4000 },
+    ],
+  },
+  standaardBedragen: {
+    tegelwerken: { min: null, max: null },
+    douche: { min: null, max: null },
+    bad: { min: null, max: null },
+    boiler: { min: null, max: null },
+    ventilatie: { min: null, max: null },
+    wastafel: { min: null, max: null },
+    maatwerk: { min: null, max: null },
+  },
 };
 
-export const BAND_MIN = 1 - RATES.bandbreedte; // 0.85
-export const BAND_MAX = 1 + RATES.bandbreedte; // 1.15
+/** Zoekt de trede die bij deze oppervlakte hoort en past de indexatie toe. */
+export function staffelBedrag(groep: StaffelGroep, netto: number, index: number): number {
+  const trede = groep.treden.find((t) => t.tot === null || netto < t.tot)
+    ?? groep.treden[groep.treden.length - 1];
+  if (!trede) return 0;
+  return Math.round(trede.bedrag * (groep.geindexeerd ? index : 1));
+}
+
+/**
+ * De tarieven zoals ze effectief gerekend worden: basisbedrag × index, met de
+ * staffels als functie. Handig voor de UI, die per optie het bedrag toont —
+ * zo staat de indexatie op één plek en niet verspreid over de schermen.
+ */
+export function effectieveTarieven(t: Tarieven) {
+  const ix = (n: number) => n * t.index;
+  return {
+    binnenplaatafwerking: ix(t.perM2.binnenplaatafwerking),
+    binnenplaatAfgedekt: ix(t.perM2.binnenplaatAfgedekt),
+    dakisolatieSpantendak: ix(t.perM2.dakisolatieSpantendak),
+    dakisolatieGordingendak: ix(t.perM2.dakisolatieGordingendak),
+    vloer: ix(t.perM2.vloer),
+    algemeenAfwerking: ix(t.perM2.algemeenAfwerking),
+    velux: ix(t.vast.velux),
+    trap: ix(t.vast.trap),
+    trapgatHout: ix(t.vast.trapgatHout),
+    trapgatBeton: ix(t.vast.trapgatBeton),
+    airco: Object.fromEntries(
+      Object.entries(t.airco).map(([k, v]) => [k, ix(v)]),
+    ) as Record<number, number>,
+    plamuur: (netto: number) => staffelBedrag(t.plamuur, netto, t.index),
+    schilderwerken: (netto: number) => staffelBedrag(t.schilderwerken, netto, t.index),
+  };
+}
+
+export const bandMin = (t: Tarieven) => 1 - t.bandbreedte;
+export const bandMax = (t: Tarieven) => 1 + t.bandbreedte;
+
+export const BAND_MIN = bandMin(STANDAARD_TARIEVEN); // 0.85
+export const BAND_MAX = bandMax(STANDAARD_TARIEVEN); // 1.15
 
 export type DakisolatieType = 'geen' | 'spantendak' | 'gordingendak';
 export type PostCategorie = 'standaard' | 'badkamer' | 'maatwerk' | 'extra';
@@ -116,30 +229,23 @@ export const BADKAMER_ONDERDELEN: { key: string; label: string }[] = [
 ];
 
 /**
- * Standaardbedragen die een nieuw element meekrijgt. Hier vul je ze in — de
- * calculator neemt ze over als beginwaarde, per dossier nog aanpasbaar.
+ * Standaardbedragen die een nieuw element meekrijgt. Staan in de tarieven en
+ * zijn dus instelbaar in de beheerdersconsole; de calculator neemt ze over als
+ * beginwaarde, per dossier nog aanpasbaar.
  *
  * Alleen van toepassing op een element dat nog nooit op dit dossier stond. Een
  * bedrag dat bewust leeggemaakt is blijft leeg; anders zou het standaardbedrag
  * telkens terugkomen.
  */
-export const STANDAARD_BEDRAGEN: Record<string, { min: number | null; max: number | null }> = {
-  // bv. douche: { min: 2000, max: 3500 },
-  tegelwerken: { min: null, max: null },
-  douche: { min: null, max: null },
-  bad: { min: null, max: null },
-  boiler: { min: null, max: null },
-  ventilatie: { min: null, max: null },
-  wastafel: { min: null, max: null },
-  maatwerk: { min: null, max: null },
-};
+export const STANDAARD_BEDRAGEN = STANDAARD_TARIEVEN.standaardBedragen;
 
-const standaardVoor = (key: string) => STANDAARD_BEDRAGEN[key] ?? { min: null, max: null };
+const standaardVoor = (key: string, t: Tarieven = STANDAARD_TARIEVEN) =>
+  t.standaardBedragen?.[key] ?? { min: null, max: null };
 
-export function legeBadkamer(): { actief: boolean; onderdelen: BadkamerOnderdeel[] } {
+export function legeBadkamer(t: Tarieven = STANDAARD_TARIEVEN): { actief: boolean; onderdelen: BadkamerOnderdeel[] } {
   return {
     actief: false,
-    onderdelen: BADKAMER_ONDERDELEN.map((o) => ({ ...o, actief: false, ...standaardVoor(o.key) })),
+    onderdelen: BADKAMER_ONDERDELEN.map((o) => ({ ...o, actief: false, ...standaardVoor(o.key, t) })),
   };
 }
 
@@ -148,14 +254,14 @@ export function legeBadkamer(): { actief: boolean; onderdelen: BadkamerOnderdeel
  * Zo opent een dossier van vóór deze uitbreiding gewoon met lege secties, en
  * blijft het opnieuw opslaan idempotent.
  */
-export function normaliseerCalcState(cs: CalcState | null | undefined): CalcState {
+export function normaliseerCalcState(cs: CalcState | null | undefined, t: Tarieven = STANDAARD_TARIEVEN): CalcState {
   const basis = cs ?? {};
   const bestaand = basis.badkamer;
   const onderdelen = BADKAMER_ONDERDELEN.map((o) => {
     const gevonden = bestaand?.onderdelen?.find((x) => x.key === o.key);
     // Nog nooit opgeslagen → standaardbedrag. Wél opgeslagen → die waarde
     // respecteren, ook als ze leeggemaakt is.
-    if (!gevonden) return { key: o.key, label: o.label, actief: false, ...standaardVoor(o.key) };
+    if (!gevonden) return { key: o.key, label: o.label, actief: false, ...standaardVoor(o.key, t) };
     return {
       key: o.key,
       label: o.label,
@@ -167,7 +273,7 @@ export function normaliseerCalcState(cs: CalcState | null | undefined): CalcStat
   return {
     ...basis,
     badkamer: { actief: bestaand?.actief ?? false, onderdelen },
-    maatwerk: basis.maatwerk ?? { actief: false, ...standaardVoor('maatwerk') },
+    maatwerk: basis.maatwerk ?? { actief: false, ...standaardVoor('maatwerk', t) },
     extras: Array.isArray(basis.extras) ? basis.extras : [],
   };
 }
@@ -186,33 +292,42 @@ function minMaxVan(el: { min: number | null; max: number | null }): { min: numbe
   return { min, max: Math.max(min, max) };
 }
 
-export function berekenPrijs(stateIn: CalcState | null | undefined, brutoNum: number): CalcResult | null {
+export function berekenPrijs(
+  stateIn: CalcState | null | undefined,
+  brutoNum: number,
+  tarieven: Tarieven = STANDAARD_TARIEVEN,
+): CalcResult | null {
   if (!(brutoNum > 0)) return null;
-  const state = normaliseerCalcState(stateIn);
+  const t = tarieven;
+  const state = normaliseerCalcState(stateIn, t);
   const nettoNum = getal(state.netto_m2) || brutoNum;
+
+  // Basisbedragen staan ongeïndexeerd in de tarieven; hier wordt de index
+  // toegepast, precies zoals de vorige hardgecodeerde tabel deed.
+  const ix = (basis: number) => basis * t.index;
 
   const items: PostItem[] = [];
   const std = (key: string, label: string, amount: number) =>
     items.push({ key, label, categorie: 'standaard', amount });
 
-  const bpa = state.dak_bekleed ? RATES.binnenplaatAfgedekt : RATES.binnenplaatafwerking;
+  const bpa = state.dak_bekleed ? ix(t.perM2.binnenplaatAfgedekt) : ix(t.perM2.binnenplaatafwerking);
   std('bpa', 'Binnenplaatafwerking', brutoNum * bpa);
-  std('alg', 'Algemene afwerking', nettoNum * RATES.algemeenAfwerking);
-  std('pla', 'Plamuur & wandafwerking', RATES.plamuur(nettoNum));
-  if (state.dakisolatie_type === 'spantendak') std('iso', 'Dakisolatie spantendak', brutoNum * RATES.dakisolatieSpantendak);
-  if (state.dakisolatie_type === 'gordingendak') std('iso', 'Dakisolatie gordingendak', brutoNum * RATES.dakisolatieGordingendak);
-  if (state.vloer) std('vl', 'Vloer (chape/uitpassen)', nettoNum * RATES.vloer);
+  std('alg', 'Algemene afwerking', nettoNum * ix(t.perM2.algemeenAfwerking));
+  std('pla', 'Plamuur & wandafwerking', staffelBedrag(t.plamuur, nettoNum, t.index));
+  if (state.dakisolatie_type === 'spantendak') std('iso', 'Dakisolatie spantendak', brutoNum * ix(t.perM2.dakisolatieSpantendak));
+  if (state.dakisolatie_type === 'gordingendak') std('iso', 'Dakisolatie gordingendak', brutoNum * ix(t.perM2.dakisolatieGordingendak));
+  if (state.vloer) std('vl', 'Vloer (chape/uitpassen)', nettoNum * ix(t.perM2.vloer));
   const velux = getal(state.velux);
-  if (velux > 0) std('vx', `Velux dakramen (${velux}×)`, velux * RATES.velux);
+  if (velux > 0) std('vx', `Velux dakramen (${velux}×)`, velux * ix(t.vast.velux));
   if (state.trap) {
-    std('tr', 'Trap', RATES.trap);
+    std('tr', 'Trap', ix(t.vast.trap));
     if (state.trapgat && state.trapgat !== 'geen') {
-      std('tg', `Trapgat (${state.trapgat})`, state.trapgat === 'beton' ? RATES.trapgatBeton : RATES.trapgatHout);
+      std('tg', `Trapgat (${state.trapgat})`, ix(state.trapgat === 'beton' ? t.vast.trapgatBeton : t.vast.trapgatHout));
     }
   }
   const airco = getal(state.airco);
-  if (airco > 0) std('ac', `Airco (${airco} toestel${airco > 1 ? 'len' : ''})`, RATES.airco[Math.min(airco, 5)]);
-  if (state.schilderwerken) std('sw', 'Schilderwerken', RATES.schilderwerken(nettoNum));
+  if (airco > 0) std('ac', `Airco (${airco} toestel${airco > 1 ? 'len' : ''})`, ix(t.airco[Math.min(airco, 5)] ?? 0));
+  if (state.schilderwerken) std('sw', 'Schilderwerken', staffelBedrag(t.schilderwerken, nettoNum, t.index));
 
   const standaardExcl = items.reduce((s, i) => s + i.amount, 0);
 
@@ -241,8 +356,8 @@ export function berekenPrijs(stateIn: CalcState | null | undefined, brutoNum: nu
   }
 
   const excl = standaardExcl + (extraMin + extraMax) / 2;
-  const exclMin = standaardExcl * BAND_MIN + extraMin;
-  const exclMax = standaardExcl * BAND_MAX + extraMax;
+  const exclMin = standaardExcl * bandMin(t) + extraMin;
+  const exclMax = standaardExcl * bandMax(t) + extraMax;
 
   return {
     items,

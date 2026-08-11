@@ -1,14 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import ExtraElementen from './ExtraElementen';
 import {
-  RATES,
   berekenPrijs,
+  effectieveTarieven,
   fmtEuro as fmt,
   naarOpgeslagenPosten,
   normaliseerCalcState,
   type CalcState,
   type DakisolatieType,
 } from '@/lib/prijscalculator';
+import { useTarieven } from '@/hooks/useTarieven';
 
 // De volledige prijscalculator, los van waar hij getoond wordt. Stond eerst
 // helemaal in src/slides/Slide5B.tsx; nu gedeeld met de losse calculator op de
@@ -91,7 +92,12 @@ export default function PrijsCalculatorPaneel({
     }
   }, [oppervlakteM2, nettoManuallySet]);
 
-  const result = berekenPrijs({ ...cs, netto_m2: nettoNum || null }, brutoNum);
+  // Prijzen komen uit de beheerdersconsole; zolang die niet geladen zijn wordt
+  // met de standaardtarieven gerekend, zodat het paneel nooit leeg staat.
+  const { tarieven } = useTarieven();
+  const RATES = effectieveTarieven(tarieven);
+
+  const result = berekenPrijs({ ...cs, netto_m2: nettoNum || null }, brutoNum, tarieven);
 
   const setBtwPercentage = (nieuwTarief: 6 | 21) => {
     const multiplier = 1 + nieuwTarief / 100;
