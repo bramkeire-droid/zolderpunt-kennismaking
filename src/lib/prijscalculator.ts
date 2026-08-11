@@ -110,6 +110,7 @@ export const STANDAARD_TARIEVEN: Tarieven = {
     boiler: { min: null, max: null },
     ventilatie: { min: null, max: null },
     wastafel: { min: null, max: null },
+    technieken: { min: null, max: null },
     maatwerk: { min: null, max: null },
   },
 };
@@ -293,6 +294,7 @@ export const BADKAMER_ONDERDELEN: { key: string; label: string }[] = [
   { key: 'boiler', label: 'Boiler' },
   { key: 'ventilatie', label: 'Ventilatie' },
   { key: 'wastafel', label: 'Wastafel en wastafelmeubel' },
+  { key: 'technieken', label: 'Technieken — druknet en afvoeren' },
 ];
 
 /**

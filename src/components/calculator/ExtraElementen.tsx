@@ -1,4 +1,5 @@
-import { Plus, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { ChevronDown, ChevronRight, Plus, Trash2 } from 'lucide-react';
 import {
   fmtEuro,
   normaliseerCalcState,
@@ -71,6 +72,25 @@ export default function ExtraElementen({ state, onChange }: Props) {
   const maatwerk = s.maatwerk!;
   const extras = s.extras!;
 
+  // Inklappen is puur visueel: het staat los van `actief`, zodat een
+  // dichtgeklapt element gewoon in de prijs blijft meetellen en de ingevulde
+  // bedragen behouden blijven. Daarom lokale state en niets in calculator_state.
+  const [ingeklapt, setIngeklapt] = useState<Record<string, boolean>>({});
+  const klapOm = (sleutel: string) => setIngeklapt((v) => ({ ...v, [sleutel]: !v[sleutel] }));
+
+  const Klapper = ({ sleutel }: { sleutel: string }) => (
+    <button
+      type="button"
+      onClick={(ev) => { ev.stopPropagation(); klapOm(sleutel); }}
+      title={ingeklapt[sleutel] ? 'Uitklappen' : 'Inklappen — ingevulde bedragen blijven staan'}
+      aria-label={ingeklapt[sleutel] ? 'Uitklappen' : 'Inklappen'}
+      aria-expanded={!ingeklapt[sleutel]}
+      className="shrink-0 rounded p-1 text-muted-foreground/60 hover:bg-muted hover:text-foreground"
+    >
+      {ingeklapt[sleutel] ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+    </button>
+  );
+
   const zetOnderdeel = (key: string, patch: Partial<{ actief: boolean; min: number | null; max: number | null }>) =>
     onChange({
       badkamer: {
@@ -120,9 +140,10 @@ export default function ExtraElementen({ state, onChange }: Props) {
               </div>
             </div>
             {badkamer.actief && <Bereik min={badkamerTotaal.min} max={badkamerTotaal.max} />}
+            {badkamer.actief && <Klapper sleutel="badkamer" />}
           </div>
 
-          {badkamer.actief && (
+          {badkamer.actief && !ingeklapt.badkamer && (
             <div className="space-y-1.5 border-t border-primary/20 px-3.5 pb-3.5 pt-2.5" onClick={(e) => e.stopPropagation()}>
               {badkamer.onderdelen.map((o) => (
                 <div key={o.key} className={`rounded-lg border p-2.5 ${o.actief ? 'border-primary/40 bg-card' : 'border-border/60 bg-card/50'}`}>
@@ -155,8 +176,9 @@ export default function ExtraElementen({ state, onChange }: Props) {
               <div className="text-xs text-muted-foreground">Kasten en ander schrijnwerk op maat</div>
             </div>
             {maatwerk.actief && <Bereik min={maatwerk.min} max={maatwerk.max} />}
+            {maatwerk.actief && <Klapper sleutel="maatwerk" />}
           </div>
-          {maatwerk.actief && (
+          {maatwerk.actief && !ingeklapt.maatwerk && (
             <div className="flex gap-2 border-t border-primary/20 px-3.5 pb-3.5 pt-2.5" onClick={(e) => e.stopPropagation()}>
               <BedragVeld label="Minimum" waarde={maatwerk.min} onWaarde={(v) => onChange({ maatwerk: { ...maatwerk, min: v } })} />
               <BedragVeld label="Maximum" waarde={maatwerk.max} onWaarde={(v) => onChange({ maatwerk: { ...maatwerk, max: v } })} />
@@ -167,6 +189,15 @@ export default function ExtraElementen({ state, onChange }: Props) {
         {/* ── Vrije elementen ── */}
         {extras.map((e) => (
           <div key={e.id} className="rounded-xl border-2 border-primary/40 bg-card p-3.5">
+            {ingeklapt[`extra:${e.id}`] ? (
+              <div className="flex items-center gap-2">
+                <span className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">
+                  {e.titel.trim() || 'Naamloos element'}
+                </span>
+                <Bereik min={e.min} max={e.max} />
+                <Klapper sleutel={`extra:${e.id}`} />
+              </div>
+            ) : (
             <div className="flex items-start gap-2">
               <div className="min-w-0 flex-1 space-y-2">
                 <input
@@ -188,17 +219,21 @@ export default function ExtraElementen({ state, onChange }: Props) {
                   <BedragVeld label="Maximum" waarde={e.max} onWaarde={(v) => zetExtra(e.id, { max: v })} />
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => onChange({ extras: extras.filter((x) => x.id !== e.id) })}
-                title="Element verwijderen"
-                aria-label="Element verwijderen"
-                className="shrink-0 rounded-lg p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
+              <div className="flex shrink-0 flex-col items-center gap-1">
+                <Klapper sleutel={`extra:${e.id}`} />
+                <button
+                  type="button"
+                  onClick={() => onChange({ extras: extras.filter((x) => x.id !== e.id) })}
+                  title="Element verwijderen"
+                  aria-label="Element verwijderen"
+                  className="rounded-lg p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
             </div>
-            {!e.titel.trim() && (
+            )}
+            {!ingeklapt[`extra:${e.id}`] && !e.titel.trim() && (
               <p className="mt-2 text-[11px] text-muted-foreground">
                 Geef een titel — zonder titel telt dit element niet mee in de prijs.
               </p>

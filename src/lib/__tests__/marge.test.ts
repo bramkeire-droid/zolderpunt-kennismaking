@@ -90,3 +90,40 @@ describe('marge verschuiven', () => {
     expect(normaliseerCalcState({ marge }).marge).toEqual(marge);
   });
 });
+
+describe('badkamer-onderdelen', () => {
+  it('bevat de techniekenregel en die telt mee in de prijs', () => {
+    const badkamer = legeBadkamer();
+    badkamer.actief = true;
+    badkamer.onderdelen = badkamer.onderdelen.map((o) =>
+      o.key === 'technieken' ? { ...o, actief: true, min: 1200, max: 2400 } : o,
+    );
+    expect(badkamer.onderdelen.map((o) => o.key)).toContain('technieken');
+
+    const zonder = berekenPrijs(basis, 60)!;
+    const met = berekenPrijs({ ...basis, badkamer }, 60)!;
+    const post = met.items.find((i) => i.key === 'bk-technieken')!;
+
+    expect(post.label).toContain('Technieken');
+    expect([post.min, post.max]).toEqual([1200, 2400]);
+    // Telt exact mee, zonder dat de bandbreedte er nog eens overheen gaat.
+    expect(Math.round(met.exclMin)).toBe(Math.round(zonder.exclMin + 1200));
+    expect(Math.round(met.exclMax)).toBe(Math.round(zonder.exclMax + 2400));
+  });
+
+  it('een leeg dossier krijgt de techniekenregel er gewoon bij', () => {
+    expect(normaliseerCalcState({}).badkamer!.onderdelen.map((o) => o.key)).toContain('technieken');
+  });
+
+  it('een bestaand dossier behoudt zijn ingevulde bedragen', () => {
+    // Zoals een dossier dat opgeslagen werd vóór de techniekenregel bestond.
+    const oud = {
+      actief: true,
+      onderdelen: [{ key: 'douche', label: 'Douche', actief: true, min: 2000, max: 3000 }],
+    };
+    const genormaliseerd = normaliseerCalcState({ badkamer: oud } as never).badkamer!;
+    const douche = genormaliseerd.onderdelen.find((o) => o.key === 'douche')!;
+    expect([douche.min, douche.max]).toEqual([2000, 3000]);
+    expect(genormaliseerd.onderdelen.find((o) => o.key === 'technieken')).toBeDefined();
+  });
+});
