@@ -46,6 +46,8 @@ interface Props {
   btwPercentage: number;
   /** Wat er nu op het dossier staat. Beschermt tegen overschrijven bij openen. */
   opgeslagenBudgetExcl?: number | null;
+  /** Opgeslagen excl-vork; gebruikt bij een btw-wissel zonder herberekening. */
+  opgeslagenVorkExcl?: { min: number | null; max: number | null } | null;
   onChange: (patch: CalcPatch) => void;
   /** Ook oppervlakte_m2 op het dossier bijwerken als de bruto hier wijzigt. */
   schrijfOppervlakte?: boolean;
@@ -55,10 +57,17 @@ interface Props {
 }
 
 export default function PrijsCalculatorPaneel({
-  oppervlakteM2, calculatorState, btwPercentage, opgeslagenBudgetExcl, onChange, schrijfOppervlakte = false,
+  oppervlakteM2, calculatorState, btwPercentage, opgeslagenBudgetExcl, opgeslagenVorkExcl, onChange, schrijfOppervlakte = false,
   leadId, bron,
 }: Props) {
-  const cs = normaliseerCalcState(calculatorState);
+  // Prijzen komen uit de beheerdersconsole; zolang die niet geladen zijn wordt
+  // met de standaardtarieven gerekend, zodat het paneel nooit leeg staat.
+  const { tarieven } = useTarieven();
+  const RATES = effectieveTarieven(tarieven);
+
+  // Normaliseren met dezelfde tarieven als de berekening, anders zouden de
+  // admin-beginwaarden voor badkamer/maatwerk hier al platgeslagen worden.
+  const cs = normaliseerCalcState(calculatorState, tarieven);
 
   const [bruto, setBruto] = useState(String(oppervlakteM2 || ''));
   const [nettoStr, setNettoStr] = useState(
@@ -69,10 +78,18 @@ export default function PrijsCalculatorPaneel({
   const brutoNum = parseFloat(bruto) || 0;
   const nettoNum = parseFloat(nettoStr) || 0;
 
+  // Pas na een echte invoerwijziging mag er over een opgeslagen berekening
+  // heen geschreven worden. Een one-shot guard bleek niet genoeg: de tarieven
+  // komen asynchroon binnen en ook een btw-klik triggerde een herberekening,
+  // waardoor alleen al het openen van een oud dossier het budget kon vervangen.
+  const interactie = useRef(false);
+
   // Eén bron van waarheid voor de opties: alles zit in calculator_state, zodat
   // een patch vanuit ExtraElementen en een klik op een optie hetzelfde pad volgen.
-  const zet = (patch: Partial<CalcState>) =>
+  const zet = (patch: Partial<CalcState>) => {
+    interactie.current = true;
     onChange({ calculator_state: { ...cs, ...patch, netto_m2: nettoNum || null, netto_manually_set: nettoManuallySet } });
+  };
 
   const dakBekleed = cs.dak_bekleed ?? false;
   const dakisolatieType: DakisolatieType = cs.dakisolatie_type ?? 'geen';
@@ -84,12 +101,14 @@ export default function PrijsCalculatorPaneel({
   const schilderwerken = cs.schilderwerken ?? false;
 
   const handleBrutoChange = (value: string) => {
+    interactie.current = true;
     setBruto(value);
     if (!nettoManuallySet) setNettoStr(value);
     if (schrijfOppervlakte) onChange({ oppervlakte_m2: parseFloat(value) || null });
   };
 
   const handleNettoChange = (value: string) => {
+    interactie.current = true;
     setNettoStr(value);
     setNettoManuallySet(true);
     onChange({ calculator_state: { ...cs, netto_m2: parseFloat(value) || null, netto_manually_set: true } });
@@ -103,10 +122,11 @@ export default function PrijsCalculatorPaneel({
     }
   }, [oppervlakteM2, nettoManuallySet]);
 
-  // Prijzen komen uit de beheerdersconsole; zolang die niet geladen zijn wordt
-  // met de standaardtarieven gerekend, zodat het paneel nooit leeg staat.
-  const { tarieven } = useTarieven();
-  const RATES = effectieveTarieven(tarieven);
+  // Tarieven in labels tonen zoals er gerekend wordt (basis x index): een
+  // zichtbare rekensom die een ander bedrag oplevert dan wat ernaast staat is
+  // erger dan geen rekensom.
+  const eurT = (n: number) =>
+    '\u20ac' + (Math.round(n * 100) / 100).toLocaleString('nl-BE', { maximumFractionDigits: 2 });
 
   const result = berekenPrijs({ ...cs, netto_m2: nettoNum || null }, brutoNum, tarieven);
 
@@ -147,8 +167,10 @@ export default function PrijsCalculatorPaneel({
   // Na het loslaten van een handvat: welke kant is versleept, en wat stond er
   // vóór het slepen — zodat "Marge terugzetten" echt terugzet.
   const [margeVraag, setMargeVraag] = useState<'min' | 'max' | null>(null);
-  const margeVoor = useRef<CalcState['marge']>(undefined);
-  if (!margeVraag && !margeVoor.current) margeVoor.current = cs.marge;
+  // Omhullende doos: undefined ("geen verschuiving") is een geldige waarde om
+  // te onthouden. De vorige lazy capture pikte de eerste sleeppositie op,
+  // waardoor annuleren niet naar de standaardband terugkeerde.
+  const margeVoor = useRef<{ waarde: CalcState['marge'] } | null>(null);
 
   /** Potlood naast het bedrag van een optie. */
   const potlood = (key: string, label: string, tariefBedrag: number) => (
@@ -175,11 +197,21 @@ export default function PrijsCalculatorPaneel({
       </div>
     ) : null;
 
+  const beschermd = (opgeslagenBudgetExcl ?? 0) > 0 && !interactie.current;
+
   const setBtwPercentage = (nieuwTarief: 6 | 21) => {
     const multiplier = 1 + nieuwTarief / 100;
-    const exclMin = result?.exclMin ?? 0;
-    const exclMax = result?.exclMax ?? 0;
-    const excl = result?.excl ?? 0;
+    // Een tariefwissel is een labelkeuze, geen herberekening. Op een dossier
+    // waar nog niets gewijzigd is komt de vork dus van het dossier zelf — de
+    // verse berekening kan daar compleet naast zitten (bv. een oud dossier
+    // zonder bewaarde calculator-instellingen).
+    const exclMin = beschermd
+      ? (opgeslagenVorkExcl?.min ?? (opgeslagenBudgetExcl ?? 0) * 0.85)
+      : (result?.exclMin ?? 0);
+    const exclMax = beschermd
+      ? (opgeslagenVorkExcl?.max ?? (opgeslagenBudgetExcl ?? 0) * 1.15)
+      : (result?.exclMax ?? 0);
+    const excl = beschermd ? (opgeslagenBudgetExcl ?? 0) : (result?.excl ?? 0);
     onChange({
       btw_percentage: nieuwTarief,
       prijs_min_incl_btw: Math.round(exclMin * multiplier),
@@ -198,25 +230,23 @@ export default function PrijsCalculatorPaneel({
   if (leadId && bron && !sessie.current) sessie.current = maakCalculatieSessie(leadId, bron);
 
   const vorigeSleutel = useRef<string>('');
-  const eersteRonde = useRef(true);
   useEffect(() => {
     if (!result) return;
     const posten = naarOpgeslagenPosten(result.items);
+    // overrides en marge zitten mee in de sleutel: ook een wijziging die het
+    // bedrag toevallig niet verandert (bv. marge-argumenten invullen) moet
+    // bewaard worden, anders loopt de historiek achter op het dossier.
     const sleutel = JSON.stringify([
       Math.round(result.excl), Math.round(result.exclMin), Math.round(result.exclMax), btwPercentage, posten,
+      cs.overrides, cs.marge,
     ]);
     if (sleutel === vorigeSleutel.current) return;
-
-    // Bij het openen niets overschrijven zolang er al een berekening op het
-    // dossier staat. Een ouder dossier kan bedragen hebben zonder bewaarde
-    // calculator-instellingen; die zouden hier anders meteen vervangen worden
-    // door een lege herberekening, enkel door de calculator te openen.
-    if (eersteRonde.current) {
-      eersteRonde.current = false;
-      vorigeSleutel.current = sleutel;
-      if ((opgeslagenBudgetExcl ?? 0) > 0) return;
-    }
     vorigeSleutel.current = sleutel;
+
+    // Zolang er al een berekening op het dossier staat en er hier nog niets
+    // gewijzigd is, wordt er niet geschreven — ongeacht hoe vaak de async
+    // tarieven of een btw-klik het resultaat doen verspringen.
+    if (beschermd) return;
     const multiplier = 1 + btwPercentage / 100;
     onChange({
       budget_excl: Math.round(result.excl),
@@ -281,10 +311,10 @@ export default function PrijsCalculatorPaneel({
             <div className="mb-2 text-sm font-semibold text-muted-foreground">Dakbekleding aanwezig?</div>
             <div className="flex gap-1.5">
               <button onClick={() => zet({ dak_bekleed: false })} className={`flex-1 rounded-lg border-2 px-2.5 py-2.5 text-center font-body text-sm font-semibold transition-all ${!dakBekleed ? 'border-secondary bg-secondary text-secondary-foreground' : 'border-border text-muted-foreground hover:border-secondary hover:text-secondary'}`}>
-                Nog te bekleden<br /><span className="opacity-75">tarief €230/m²</span>
+                Nog te bekleden<br /><span className="opacity-75">tarief {eurT(RATES.binnenplaatafwerking)}/m²</span>
               </button>
               <button onClick={() => zet({ dak_bekleed: true })} className={`flex-1 rounded-lg border-2 px-2.5 py-2.5 text-center font-body text-sm font-semibold transition-all ${dakBekleed ? 'border-secondary bg-secondary text-secondary-foreground' : 'border-border text-muted-foreground hover:border-secondary hover:text-secondary'}`}>
-                Al bekleed met platen<br /><span className="opacity-75">tarief €115/m²</span>
+                Al bekleed met platen<br /><span className="opacity-75">tarief {eurT(RATES.binnenplaatAfgedekt)}/m²</span>
               </button>
             </div>
           </div>
@@ -300,7 +330,6 @@ export default function PrijsCalculatorPaneel({
               {(['spantendak', 'gordingendak'] as const).map((soort) => {
                 const actief = dakisolatieType === soort;
                 const tarief = soort === 'spantendak' ? RATES.dakisolatieSpantendak : RATES.dakisolatieGordingendak;
-                const perM2 = soort === 'spantendak' ? 85 : 100;
                 return (
                   <div key={soort}
                     className={`cursor-pointer rounded-xl border-2 transition-all ${actief ? 'border-primary bg-accent' : 'border-border bg-card hover:border-primary/30'}`}
@@ -311,7 +340,7 @@ export default function PrijsCalculatorPaneel({
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="text-sm font-semibold text-foreground">Dakisolatie {soort === 'spantendak' ? 'Spantendak' : 'Gordingendak'}</div>
-                        <div className="text-xs text-muted-foreground">{brutoNum > 0 ? `${brutoNum} m² × €${perM2}` : `€${perM2} per m² bruto`}</div>
+                        <div className="text-xs text-muted-foreground">{brutoNum > 0 ? `${brutoNum} m² × ${eurT(tarief)}` : `${eurT(tarief)} per m² bruto`}</div>
                       </div>
                     </div>
                     {actief && brutoNum > 0 && (
@@ -328,13 +357,13 @@ export default function PrijsCalculatorPaneel({
               })}
             </div>
 
-            <ToggleOption label="Vloer — chape of uitpassen" desc={nettoNum > 0 ? `${nettoNum} m² netto × €70` : '€70 per m² netto'}
+            <ToggleOption label="Vloer — chape of uitpassen" desc={nettoNum > 0 ? `${nettoNum} m² netto × ${eurT(RATES.vloer)}` : `${eurT(RATES.vloer)} per m² netto`}
               active={vloer} onToggle={() => zet({ vloer: !vloer })} amount={vloer && nettoNum > 0 ? fmt(nettoNum * RATES.vloer) : undefined}
               extra={vloer && nettoNum > 0 ? potlood('vl', 'Vloer', nettoNum * RATES.vloer) : undefined}
               onder={editor('vl')} />
 
             <TellerOptie label="Dakramen (Velux)"
-              desc={velux > 0 ? `${velux} × €2.250` : '€2.250 per dakraam'}
+              desc={velux > 0 ? `${velux} × ${eurT(RATES.velux)}` : `${eurT(RATES.velux)} per dakraam`}
               waarde={velux} max={6} onWaarde={(v) => zet({ velux: v })}
               bedrag={velux > 0 ? fmt(velux * RATES.velux) : undefined} tellerLabel="Aantal dakramen"
               extra={velux > 0 ? potlood('vx', 'Dakramen', velux * RATES.velux) : undefined}
@@ -347,9 +376,9 @@ export default function PrijsCalculatorPaneel({
                   <div className="text-sm font-semibold text-foreground">Trap</div>
                   <div className="text-xs text-muted-foreground">
                     {trap
-                      ? trapgat === 'geen' ? 'Trap €6.000 — geen trapgat'
-                        : `Trap €6.000 + ${trapgat === 'beton' ? 'betonnen trapgat €5.500' : 'houten trapgat €1.750'}`
-                      : 'Trap €6.000 + trapgat (optioneel)'}
+                      ? trapgat === 'geen' ? `Trap ${eurT(RATES.trap)} — geen trapgat`
+                        : `Trap ${eurT(RATES.trap)} + ${trapgat === 'beton' ? `betonnen trapgat ${eurT(RATES.trapgatBeton)}` : `houten trapgat ${eurT(RATES.trapgatHout)}`}`
+                      : `Trap ${eurT(RATES.trap)} + trapgat (optioneel)`}
                   </div>
                 </div>
                 {trap && (
@@ -365,7 +394,7 @@ export default function PrijsCalculatorPaneel({
                 <div className="border-t border-primary/20 px-3.5 pb-3.5 pt-2" onClick={(e) => e.stopPropagation()}>
                   <div className="mb-2 text-xs font-bold text-secondary">Trapgat (optioneel)</div>
                   <div className="flex gap-1.5">
-                    {([['geen', 'Geen trapgat'], ['hout', 'Hout — €1.750'], ['beton', 'Beton — €5.500']] as const).map(([k, l]) => (
+                    {([['geen', 'Geen trapgat'], ['hout', `Hout — ${eurT(RATES.trapgatHout)}`], ['beton', `Beton — ${eurT(RATES.trapgatBeton)}`]] as const).map(([k, l]) => (
                       <button key={k} onClick={() => zet({ trapgat: k })}
                         className={`rounded-lg border-2 px-4 py-1.5 text-xs font-semibold transition-all ${trapgat === k ? 'border-secondary bg-secondary text-secondary-foreground' : 'border-primary/30 text-secondary'}`}>{l}</button>
                     ))}
@@ -375,14 +404,14 @@ export default function PrijsCalculatorPaneel({
             </div>
 
             <TellerOptie label="Airco"
-              desc={airco > 0 ? `${airco} toestel${airco > 1 ? 'len' : ''} — staffelprijs` : '1→€4K · 2→€6K · 3→€7,5K · 4→€10K · 5→€11K'}
+              desc={airco > 0 ? `${airco} toestel${airco > 1 ? 'len' : ''} — staffelprijs` : Object.entries(RATES.airco).map(([k, v]) => `${k}→${eurT(v)}`).join(' · ')}
               waarde={airco} max={5} onWaarde={(v) => zet({ airco: v })}
               bedrag={airco > 0 ? fmt(RATES.airco[Math.min(airco, 5)]) : undefined} tellerLabel="Aantal toestellen"
               extra={airco > 0 ? potlood('ac', 'Airco', RATES.airco[Math.min(airco, 5)]) : undefined}
               onder={editor('ac')} />
 
             <ToggleOption label="Schilderwerken"
-              desc={nettoNum > 0 ? `Forfait: ${nettoNum < 40 ? '€2.500 (< 40m²)' : '€4.000 (≥ 40m²)'}` : '€2.500 (< 40m²) of €4.000 (≥ 40m²)'}
+              desc={nettoNum > 0 ? `Forfait: ${eurT(RATES.schilderwerken(nettoNum))}` : 'Forfait volgens oppervlakte-staffel'}
               active={schilderwerken} onToggle={() => zet({ schilderwerken: !schilderwerken })}
               amount={schilderwerken && nettoNum > 0 ? fmt(RATES.schilderwerken(nettoNum)) : undefined}
               extra={schilderwerken && nettoNum > 0 ? potlood('sw', 'Schilderwerken', RATES.schilderwerken(nettoNum)) : undefined}
@@ -401,13 +430,14 @@ export default function PrijsCalculatorPaneel({
           argumenten={cs.marge?.argumenten ?? []}
           onOpslaan={(argumenten: MargeArgument[]) => {
             if (cs.marge) zet({ marge: { ...cs.marge, argumenten } });
-            margeVoor.current = undefined;
+            margeVoor.current = null;
             setMargeVraag(null);
           }}
           onAnnuleer={() => {
-            // Geen onderbouwing? Dan gaat de marge terug zoals ze was.
-            zet({ marge: margeVoor.current });
-            margeVoor.current = undefined;
+            // Geen onderbouwing? Dan gaat de marge terug zoals ze was — ook
+            // als dat "geen verschuiving" was.
+            zet({ marge: margeVoor.current ? margeVoor.current.waarde : undefined });
+            margeVoor.current = null;
             setMargeVraag(null);
           }}
         />
@@ -439,10 +469,16 @@ export default function PrijsCalculatorPaneel({
               <MargeBalk
                 min={toonMin}
                 max={toonMax}
+                midden={toonExcl}
                 factorMin={result.factorMin}
                 factorMax={result.factorMax}
                 verschoven={result.margeVerschoven}
-                onSleep={(fMin, fMax) => zet({ marge: { min: fMin, max: fMax, argumenten: cs.marge?.argumenten ?? [] } })}
+                onSleep={(fMin, fMax) => {
+                  // Toestand van vóór de allereerste beweging vastleggen, zodat
+                  // annuleren in de reden-popup daar echt naar terugkeert.
+                  if (!margeVoor.current) margeVoor.current = { waarde: cs.marge };
+                  zet({ marge: { min: fMin, max: fMax, argumenten: cs.marge?.argumenten ?? [] } });
+                }}
                 onLos={(kant) => setMargeVraag(kant)}
                 onHerstel={() => zet({ marge: undefined })}
                 bedragNaarFactor={(bedragInclBtw, kant) => {
@@ -505,7 +541,7 @@ export default function PrijsCalculatorPaneel({
           )}
         </div>
         <div className="mt-3 px-0.5 text-xs leading-relaxed text-muted-foreground">
-          ⚠ Indicatieve raming. Definitieve prijs na plaatsbezoek en opmeting. Bandbreedte ±15% op de tariefposten
+          ⚠ Indicatieve raming. Definitieve prijs na plaatsbezoek en opmeting. Bandbreedte ±{Math.round(tarieven.bandbreedte * 100)}% op de tariefposten
           {heeftEigenBand && '; elementen met een eigen minimum en maximum tellen exact mee zoals ingevuld'}.
         </div>
       </div>

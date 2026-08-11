@@ -208,8 +208,14 @@ export default function Slide10() {
           <SummaryRow label="Adres" value={lead.adres || '—'} />
           <SummaryRow label="Datum gesprek" value={formatDatum(lead.gesprek_datum)} />
           <SummaryRow
-            label="Budget indicatie"
-            value={lead.budget_min && lead.budget_max ? `${fmt(lead.budget_min)} — ${fmt(lead.budget_max)}` : '—'}
+            label={`Budget indicatie (incl. ${lead.btw_percentage ?? 6}% btw)`}
+            value={(() => {
+              // De vork tegen het GEKOZEN tarief; de oude weergave toonde
+              // ongelabelde incl-6%-bedragen, ook op een 21%-dossier.
+              const min = (lead as any).prijs_min_incl_btw || lead.budget_min;
+              const max = (lead as any).prijs_max_incl_btw || lead.budget_max;
+              return min && max ? `${fmt(min)} — ${fmt(max)}` : '—';
+            })()}
           />
           <SummaryRow label="AI samenvatting" value={hasAiSummary ? '✓ Gereed' : '○ Nog niet gegenereerd'} />
         </div>

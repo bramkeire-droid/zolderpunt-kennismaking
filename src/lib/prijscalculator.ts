@@ -458,6 +458,27 @@ export function berekenPrijs(
   };
 }
 
+/**
+ * De prijsvork EXCL btw van een dossier, met terugvallen voor oudere dossiers:
+ * eerst de expliciete excl-kolommen, dan budget_excl × band, en als laatste de
+ * historische incl-6%-kolommen teruggerekend. Eén plek voor deze keten, zodat
+ * badge, offertedialoog en pipelinewaarde nooit excl met incl vergelijken.
+ */
+export function exclVorkVanLead(l: {
+  budget_min_excl?: number | null; budget_max_excl?: number | null;
+  budget_excl?: number | null; budget_min?: number | null; budget_max?: number | null;
+}): { min: number; max: number } | null {
+  const n = (v: number | null | undefined) => (typeof v === 'number' && isFinite(v) && v > 0 ? v : null);
+  const min = n(l.budget_min_excl)
+    ?? (n(l.budget_excl) != null ? n(l.budget_excl)! * BAND_MIN : null)
+    ?? (n(l.budget_min) != null ? n(l.budget_min)! / 1.06 : null);
+  const max = n(l.budget_max_excl)
+    ?? (n(l.budget_excl) != null ? n(l.budget_excl)! * BAND_MAX : null)
+    ?? (n(l.budget_max) != null ? n(l.budget_max)! / 1.06 : null);
+  if (min == null || max == null) return null;
+  return { min: Math.round(min), max: Math.round(max) };
+}
+
 /** Vorm waarin de posten in leads.inbegrepen_posten bewaard worden. */
 export interface OpgeslagenPost {
   post: string;

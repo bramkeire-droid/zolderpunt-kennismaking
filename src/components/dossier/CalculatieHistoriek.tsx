@@ -84,7 +84,7 @@ export default function CalculatieHistoriek({ leadId }: { leadId: string | undef
                     className="min-w-0 flex-1 text-left"
                   >
                     <p className="truncate text-sm font-medium text-slate-900">
-                      {r.budget_excl != null ? fmtEuro(r.budget_excl) : 'geen bedrag'}
+                      {r.budget_excl != null ? <>{fmtEuro(r.budget_excl)} <span className="font-normal text-slate-400">excl. btw</span></> : 'geen bedrag'}
                       {r.budget_min_excl != null && r.budget_max_excl != null && (
                         <span className="ml-1.5 font-normal text-slate-500">
                           ({fmtEuro(r.budget_min_excl)} — {fmtEuro(r.budget_max_excl)})

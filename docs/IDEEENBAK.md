@@ -20,3 +20,13 @@ Nummers zijn doorlopend en worden nooit hergebruikt.
   2. De **reden-popup verschijnt ook bij intypen**: het gevolg is hetzelfde als bij slepen.
   3. **Zelfde grenzen als slepen**: minimum blijft onder de raming, maximum erboven, en alles binnen 40–160%.
 - **Status**: afgewerkt (2026-08-11) — min en max zijn klikbare invoervelden in MargeBalk.tsx; het handvat schuift mee via bedragNaarFactor in PrijsCalculatorPaneel.tsx, met vier tests in src/lib/__tests__/marge.test.ts
+
+## IDEE-2 — Minimumslider stopt op 99% maar bedrag lijkt niet te kloppen
+- **Datum**: 2026-08-11
+- **Bram zei letterlijk**: "Ik sleep de minimumslider helemaal naar rechts en links onderaan wordt dit begrensd dfoor €80 287 terwijl het bedrag in het midden €90591 is. Fout?"
+- **Screenshot (cijfers overgenomen)**: midden €90.591 incl. 6% · minimum €80.287 met label "99%" · maximum €109.738 "115%" · excl. €85.463 · btw-keuze 6%.
+- **Waar ik mee bezig was**: calculator-doorlichting (workflow wf_0d358990-656) draait — audit van berekening/weergave/btw/export.
+- **Eerste inschatting**: 80.287/90.591 ≈ 88,6%, geen 99%. Vermoedelijk: het %-label toont de factor op het TARIEFDEEL, terwijl het bedrag ook eigen-bereik-elementen (badkamer/maatwerk/extra, die niet meeschuiven) bevat — dan is het bedrag correct maar het label misleidend. Alternatief: de begrenzing op 0.99 werkt op het verkeerde totaal. Raakt MargeBalk.tsx (naarPct/labels) en berekenPrijs (exclMin-opbouw).
+- **Mijn open vragen erover**: moet het %-label de verhouding t.o.v. het middenbedrag tonen i.p.v. de tariefdeel-factor?
+- **Behandeling**: meegenomen in de fix-ronde van de calculator-doorlichting. De audit vond het onafhankelijk ook (MargeBalk %-label toont de tariefdeel-factor, terwijl de bedragen ook eigen-bereik-elementen bevatten).
+- **Status**: afgewerkt (2026-08-11) — de %-labels naast minimum en maximum tonen nu de verhouding van het GETOONDE bedrag tot het meest waarschijnlijke bedrag (80.287/90.591 → 89%), niet langer de interne factor. De begrenzing zelf was correct: het minimum-handvat stopt waar het tariefdeel de raming raakt.

@@ -48,7 +48,7 @@ export default function PipelineHeader({
             {kpi.pipelinewaarde > 0 ? euro(kpi.pipelinewaarde) : '—'}
           </p>
           {kpi.pipelinewaarde > 0 && (
-            <p className="text-[11px] text-slate-400">op basis van {kpi.waardeVanAantal} dossiers met bedrag</p>
+            <p className="text-[11px] text-slate-400">excl. btw · op basis van {kpi.waardeVanAantal} dossiers met bedrag</p>
           )}
         </div>
         <div className="flex-1 min-w-[150px] bg-white px-4 py-2.5">

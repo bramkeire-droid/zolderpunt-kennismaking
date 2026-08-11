@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { exclVorkVanLead } from '@/lib/prijscalculator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,8 +26,10 @@ interface Props {
 
 export default function OffertebijlageDialog({ open, onClose, lead, onUpdate }: Props) {
   const initialSettings = lead?.offerte_bijlage_settings || {};
+  // Voorvullen uitsluitend met excl-bronnen: budget_min is incl. 6% en hoort
+  // dus nooit ongecorrigeerd in een veld dat "excl. BTW" heet.
   const [bedrag, setBedrag] = useState<number>(
-    Number(lead?.offerte_bedrag_excl) || Number(lead?.budget_excl) || Number(lead?.budget_min) || 30000
+    Number(lead?.offerte_bedrag_excl) || Number(lead?.budget_excl) || exclVorkVanLead(lead ?? {})?.min || 30000
   );
   const [offerteNummer, setOfferteNummer] = useState<string>(lead?.offerte_nummer || '');
   const [offerteDatum, setOfferteDatum] = useState<string>(lead?.offerte_datum || new Date().toISOString().split('T')[0]);
@@ -44,7 +47,7 @@ export default function OffertebijlageDialog({ open, onClose, lead, onUpdate }: 
 
   useEffect(() => {
     if (!open) return;
-    setBedrag(Number(lead?.offerte_bedrag_excl) || Number(lead?.budget_excl) || Number(lead?.budget_min) || 30000);
+    setBedrag(Number(lead?.offerte_bedrag_excl) || Number(lead?.budget_excl) || exclVorkVanLead(lead ?? {})?.min || 30000);
     setOfferteNummer(lead?.offerte_nummer || '');
     setOfferteDatum(lead?.offerte_datum || new Date().toISOString().split('T')[0]);
     setWeken(lead?.offerte_bijlage_settings?.weken || 5);
@@ -66,9 +69,11 @@ export default function OffertebijlageDialog({ open, onClose, lead, onUpdate }: 
     return () => { cancelled = true; };
   }, [open]);
 
-  // Vergelijking met intake-range (excl. BTW). Fallback op budget_min/max indien geen excl beschikbaar.
-  const intakeMin = Number(lead?.budget_min) || 0;
-  const intakeMax = Number(lead?.budget_max) || 0;
+  // Vergelijking met de intake-range, excl tegen excl. budget_min/budget_max
+  // zijn incl. 6% btw; daartegen vergelijken kleurde een te hoge offerte groen.
+  const intakeVork = exclVorkVanLead(lead ?? {});
+  const intakeMin = intakeVork?.min ?? 0;
+  const intakeMax = intakeVork?.max ?? 0;
   const vergelijking = useMemo(() => {
     if (!intakeMin || !intakeMax) return null;
     if (bedrag >= intakeMin && bedrag <= intakeMax) {

@@ -16,6 +16,8 @@ const GRENS_MAX = 1.6;
 interface Props {
   min: number;
   max: number;
+  /** Het meest waarschijnlijke bedrag, in dezelfde eenheid als min en max. */
+  midden: number;
   factorMin: number;
   factorMax: number;
   verschoven: boolean;
@@ -33,8 +35,13 @@ interface Props {
 }
 
 export default function MargeBalk({
-  min, max, factorMin, factorMax, verschoven, onSleep, onLos, onHerstel, bedragNaarFactor,
+  min, max, midden, factorMin, factorMax, verschoven, onSleep, onLos, onHerstel, bedragNaarFactor,
 }: Props) {
+  // Labelpercentages: verhouding van het GETOONDE bedrag tot het midden. De
+  // interne factoren gelden alleen op het tariefdeel en wijken daarvan af
+  // zodra elementen met een eigen bereik meetellen — het label moet kloppen
+  // met de bedragen die ernaast staan.
+  const pctVan = (bedrag: number) => (midden > 0 ? Math.round((bedrag / midden) * 100) : 0);
   const baan = useRef<HTMLDivElement>(null);
   const [sleept, setSleept] = useState<'min' | 'max' | null>(null);
 
@@ -142,8 +149,8 @@ export default function MargeBalk({
               type="button"
               onPointerDown={begin(kant)}
               aria-label={`${kant === 'min' ? 'Minimum' : 'Maximum'} verschuiven`}
-              aria-valuenow={Math.round(factor * 100)}
-              title={`${Math.round(factor * 100)}% van de raming — sleep om de marge te verschuiven`}
+              aria-valuenow={pctVan(kant === 'min' ? min : max)}
+              title={`${pctVan(kant === 'min' ? min : max)}% van het meest waarschijnlijke bedrag — sleep om de marge te verschuiven`}
               className={`absolute top-1/2 h-5 w-3 -translate-x-1/2 -translate-y-1/2 cursor-ew-resize rounded-sm border border-primary-foreground/40 bg-primary-foreground/90 shadow transition-transform hover:scale-110 ${
                 sleept === kant ? 'scale-110 ring-2 ring-primary' : ''
               }`}
@@ -157,7 +164,7 @@ export default function MargeBalk({
         <div className="text-xs text-primary-foreground/40">
           {bedragVeld('min', min)}
           minimum
-          <span className="ml-1 tabular-nums text-primary-foreground/30">{Math.round(factorMin * 100)}%</span>
+          <span className="ml-1 tabular-nums text-primary-foreground/30">{pctVan(min)}%</span>
         </div>
         <div className="text-center">
           <span className="text-xs tracking-wider text-primary-foreground/40">MEEST WAARSCHIJNLIJK</span>
@@ -165,7 +172,7 @@ export default function MargeBalk({
         <div className="text-right text-xs text-primary-foreground/40">
           {bedragVeld('max', max)}
           maximum
-          <span className="ml-1 tabular-nums text-primary-foreground/30">{Math.round(factorMax * 100)}%</span>
+          <span className="ml-1 tabular-nums text-primary-foreground/30">{pctVan(max)}%</span>
         </div>
       </div>
 

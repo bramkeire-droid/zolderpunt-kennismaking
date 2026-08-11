@@ -35,6 +35,7 @@ import PushToBouwflowDialog from '@/components/dossier/PushToBouwflowDialog';
 import MoveBouwflowPhaseDialog, { type PhaseOption } from '@/components/dossier/MoveBouwflowPhaseDialog';
 import KanbanBoard from '@/components/dossier/KanbanBoard';
 import PipelineHeader from '@/components/dossier/PipelineHeader';
+import { exclVorkVanLead } from '@/lib/prijscalculator';
 import {
   FASE_GROEPEN, bepaalVolgendeActie, dossierWaarde, type FaseGroepKey,
 } from '@/lib/pipeline';
@@ -783,16 +784,26 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
                     <div className="flex flex-col gap-1">
                       <StatusBadge status={lead.status} />
                       {lead.offerte_bedrag_excl != null && (
+                        // Excl tegen excl: budget_min/budget_max zijn incl. 6%
+                        // en kleurden een te hoge offerte ten onrechte groen.
                         <OfferteCompareBadge
                           bedrag={Number(lead.offerte_bedrag_excl)}
-                          min={Number(lead.budget_min) || 0}
-                          max={Number(lead.budget_max) || 0}
+                          min={exclVorkVanLead(lead)?.min ?? 0}
+                          max={exclVorkVanLead(lead)?.max ?? 0}
                         />
                       )}
                     </div>
                   </TableCell>
                   <TableCell className="font-body">
-                    {lead.budget_min ? `${fmt(lead.budget_min)} — ${fmt(lead.budget_max)}` : '—'}
+                    {(() => {
+                      // Zelfde eenheid als de pipelinewaarde: excl. btw, en dat
+                      // staat erbij — ongelabelde incl-6%-bedragen lazen als
+                      // "de prijs", wat bij een 21%-dossier dubbel misleidde.
+                      const vork = exclVorkVanLead(lead);
+                      return vork
+                        ? <>{fmt(vork.min)} — {fmt(vork.max)} <span className="text-xs text-muted-foreground">excl.</span></>
+                        : '—';
+                    })()}
                   </TableCell>
                   <TableCell>
                     <PortalStatusBadge status={lead.portal_status || 'draft'} />

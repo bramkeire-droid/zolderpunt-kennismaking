@@ -98,7 +98,11 @@ export function useLeadSave() {
   const { toast } = useToast();
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   const lastSavedRef = useRef<string>('');
-  const isSavingRef = useRef(false);
+  // De lopende save als promise, zodat een volgende aanvraag erop wacht in
+  // plaats van stil gedropt te worden. De oude boolean-guard liet de laatste
+  // wijziging verloren gaan wanneer de autosave vuurde tijdens een trage save
+  // — en flushSave (bij wegnavigeren) liep op precies dezelfde guard stuk.
+  const inFlightRef = useRef<Promise<void> | null>(null);
 
   const persistLead = useCallback(async (leadData: LeadData, showToast: boolean) => {
     // Skip only if there is truly NOTHING to save
@@ -107,12 +111,14 @@ export function useLeadSave() {
     // INSERT vereist minimaal naam/email/telefoon — anders ontstaan lege spookdossiers
     if (!leadData.id && !hasMinimumForInsert(leadData)) return;
 
+    // Serialiseer: wachten tot de vorige save klaar is (de lus vangt het geval
+    // waarin er intussen alwéér een nieuwe gestart is).
+    while (inFlightRef.current) await inFlightRef.current;
+
     const serialized = JSON.stringify(leadToRow(leadData));
     if (serialized === lastSavedRef.current) return; // no changes
 
-    if (isSavingRef.current) return;
-    isSavingRef.current = true;
-
+    const werk = (async () => {
     try {
       // Auto-promote naar 'intake' wanneer er duidelijke intake-data is.
       // 'telefoongesprek' wordt expliciet gezet via wrap-up. 'intake' via deze hint of via Slide10.
@@ -176,8 +182,14 @@ export function useLeadSave() {
       if (showToast) {
         toast({ title: 'Fout bij opslaan', description: err.message || 'Probeer opnieuw.', variant: 'destructive' });
       }
+    }
+    })();
+
+    inFlightRef.current = werk;
+    try {
+      await werk;
     } finally {
-      isSavingRef.current = false;
+      inFlightRef.current = null;
     }
   }, [updateLead, toast]);
 

@@ -26,6 +26,10 @@ export default function Slide5B() {
           calculatorState={lead.calculator_state}
           btwPercentage={lead.btw_percentage ?? 6}
           opgeslagenBudgetExcl={lead.budget_excl}
+          opgeslagenVorkExcl={{
+            min: (lead as any).budget_min_excl ?? null,
+            max: (lead as any).budget_max_excl ?? null,
+          }}
           onChange={onChange}
           leadId={lead.id ?? null}
           bron="intake"

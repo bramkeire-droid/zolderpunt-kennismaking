@@ -1,3 +1,4 @@
+import { exclVorkVanLead } from '@/lib/prijscalculator';
 // Gedeelde pipeline-logica voor de Dossiers-pagina: fasegroepen, urgentie en
 // waarde. Bewust hier en niet in de componenten, zodat kanban, tabel en de
 // KPI-balk gegarandeerd dezelfde definities gebruiken.
@@ -88,11 +89,14 @@ export const URGENTIE_STIJL: Record<UrgentieNiveau, string> = {
   ok: 'bg-slate-50 text-slate-600 border-slate-200',
 };
 
-/** Offertebedrag heeft voorrang op de budgetraming uit de intake. */
+/**
+ * Offertebedrag heeft voorrang op de budgetraming uit de intake.
+ * Alles excl. btw: de oude terugval op budget_min (incl. 6%) telde bedragen
+ * van verschillende eenheden op tot een pipelinewaarde die nergens op sloeg.
+ */
 export function dossierWaarde(lead: any): number | null {
   if (lead.offerte_bedrag_excl != null) return Number(lead.offerte_bedrag_excl);
-  if (lead.budget_min != null) return Number(lead.budget_min);
-  return null;
+  return exclVorkVanLead(lead)?.min ?? null;
 }
 
 export const euro = (n: number) =>

@@ -75,7 +75,11 @@ export default function PortalMeerwaarde({ data, onCalculate }: Props) {
 
   const gemeenteData = findGemeente(data.adres);
   const oppervlakte = data.oppervlakte_m2;
-  const investering = data.budget_excl;
+  // De klant betaalt incl. btw; de netto-winst tegen een excl-bedrag afzetten
+  // was tot 12.600 euro te rooskleurig op een 21%-dossier.
+  const investering = data.budget_excl != null && data.budget_excl > 0
+    ? Math.round(data.budget_excl * (1 + (data.btw_percentage ?? 6) / 100))
+    : data.budget_excl;
 
   if (!gemeenteData || !oppervlakte || oppervlakte <= 0) return null;
 
@@ -137,7 +141,7 @@ export default function PortalMeerwaarde({ data, onCalculate }: Props) {
               {investering != null && investering > 0 && (
                 <div className="flex items-center justify-center gap-6 mt-4">
                   <span className="font-body text-base text-white/60">
-                    Investering: {fmt(investering)}
+                    Investering (incl. {data.btw_percentage ?? 6}% btw): {fmt(investering)}
                   </span>
                   <span className="font-headline text-2xl font-bold text-[#F8F3EB]">
                     Netto: +{fmt(result.nettoWinst)}

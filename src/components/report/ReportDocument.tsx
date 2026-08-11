@@ -554,7 +554,10 @@ const euroPdf = (n: number) => '€ ' + Math.round(n).toLocaleString('nl-BE');
 
 function InvesteringPage({ data }: { data: ReportData }) {
   // Always compute from excl value — both BTW variants always shown
-  const excl = data.budget_excl ?? (data.prijs_incl6 ? Math.round(data.prijs_incl6 / 1.06) : 0);
+  // || in plaats van ??: de aanroepers mappen budget_excl met "|| 0", waardoor
+  // de terugval op prijs_incl6 anders nooit kon triggeren en een legacy-PDF
+  // zonder enig bedrag verscheen.
+  const excl = data.budget_excl || (data.prijs_incl6 ? Math.round(data.prijs_incl6 / 1.06) : 0);
   const peakExcl = excl;
   // Elementen met een eigen min/max hebben hun eigen bandbreedte; die schrijft
   // de calculator apart weg. ±15% blijft de terugval voor oudere dossiers.

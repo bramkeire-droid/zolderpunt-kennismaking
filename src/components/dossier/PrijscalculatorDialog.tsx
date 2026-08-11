@@ -33,7 +33,7 @@ export default function PrijscalculatorDialog({ lead, bron = 'los', onOpenChange
     gewijzigd.current = false;
     supabase
       .from('leads')
-      .select('id, oppervlakte_m2, calculator_state, btw_percentage, budget_excl')
+      .select('id, oppervlakte_m2, calculator_state, btw_percentage, budget_excl, budget_min_excl, budget_max_excl')
       .eq('id', lead.id)
       .single()
       .then(({ data, error }) => {
@@ -93,6 +93,10 @@ export default function PrijscalculatorDialog({ lead, bron = 'los', onOpenChange
             calculatorState={rij.calculator_state as never}
             btwPercentage={(rij.btw_percentage as number) ?? 6}
             opgeslagenBudgetExcl={rij.budget_excl as number | null}
+            opgeslagenVorkExcl={{
+              min: (rij.budget_min_excl as number | null) ?? null,
+              max: (rij.budget_max_excl as number | null) ?? null,
+            }}
             onChange={onChange}
             leadId={lead?.id ?? null}
             bron={bron}
