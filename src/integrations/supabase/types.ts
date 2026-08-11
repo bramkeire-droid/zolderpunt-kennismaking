@@ -80,6 +80,80 @@ export type Database = {
         }
         Relationships: []
       }
+      calculaties: {
+        Row: {
+          bron: string
+          btw_percentage: number | null
+          budget_excl: number | null
+          budget_max_excl: number | null
+          budget_min_excl: number | null
+          calculator_state: Json | null
+          created_at: string
+          created_by: string | null
+          id: string
+          inbegrepen_posten: Json
+          lead_id: string
+          updated_at: string
+        }
+        Insert: {
+          bron?: string
+          btw_percentage?: number | null
+          budget_excl?: number | null
+          budget_max_excl?: number | null
+          budget_min_excl?: number | null
+          calculator_state?: Json | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          inbegrepen_posten?: Json
+          lead_id: string
+          updated_at?: string
+        }
+        Update: {
+          bron?: string
+          btw_percentage?: number | null
+          budget_excl?: number | null
+          budget_max_excl?: number | null
+          budget_min_excl?: number | null
+          calculator_state?: Json | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          inbegrepen_posten?: Json
+          lead_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calculaties_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      calculator_tarieven: {
+        Row: {
+          id: boolean
+          tarieven: Json
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          id?: boolean
+          tarieven: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          id?: boolean
+          tarieven?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       customers: {
         Row: {
           achternaam: string
