@@ -184,16 +184,34 @@ export interface ExtraElement {
  * rapport en op de klantslide terechtkomt is enkel de uitkomst — de som zelf
  * blijft intern.
  */
+export type OverrideRegel = [number | null, number | null, number | null];
+
 export interface PostOverride {
-  factoren: (number | null)[];
+  /** Elke regel is A × B × C; de regels worden bij elkaar opgeteld. */
+  regels: OverrideRegel[];
+}
+
+/** Een verse regel: derde veld op 1, zodat A × B meteen klopt. */
+export const nieuweRegel = (): OverrideRegel => [null, null, 1];
+
+/**
+ * Subtotaal van één regel. Zolang A en B allebei leeg zijn telt de regel niet
+ * mee — anders zou een net toegevoegde regel er meteen € 1 bij optellen.
+ */
+export function regelBedrag(r: OverrideRegel): number {
+  const [a, b] = r;
+  if (a == null && b == null) return 0;
+  return r
+    .filter((x): x is number => typeof x === 'number' && isFinite(x))
+    .reduce((x, y) => x * y, 1);
 }
 
 /** De uitkomst van een override, of null als er niets bruikbaars staat. */
 export function overrideBedrag(o: PostOverride | undefined | null): number | null {
-  if (!o) return null;
-  const f = (o.factoren ?? []).filter((x): x is number => typeof x === 'number' && isFinite(x));
-  if (f.length === 0) return null;
-  return f.reduce((a, b) => a * b, 1);
+  const regels = o?.regels ?? [];
+  const meetellend = regels.filter((r) => regelBedrag(r) !== 0 || r.some((x) => x === 0));
+  if (meetellend.length === 0) return null;
+  return meetellend.reduce((som, r) => som + regelBedrag(r), 0);
 }
 
 export interface CalcState {

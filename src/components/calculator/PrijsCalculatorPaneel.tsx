@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
-import { Pencil, Plus, X as Kruis, RotateCcw } from 'lucide-react';
 import ExtraElementen from './ExtraElementen';
+import HandmatigBedrag, { HandmatigPotlood } from './HandmatigBedrag';
 import {
   berekenPrijs,
   effectieveTarieven,
-  overrideBedrag,
   fmtEuro as fmt,
   naarOpgeslagenPosten,
   normaliseerCalcState,
   type CalcState,
+  type OverrideRegel,
   type DakisolatieType,
 } from '@/lib/prijscalculator';
 import { useTarieven } from '@/hooks/useTarieven';
@@ -106,15 +106,40 @@ export default function PrijsCalculatorPaneel({
 
   const result = berekenPrijs({ ...cs, netto_m2: nettoNum || null }, brutoNum, tarieven);
 
-  // Welke regel staat open in de handmatige-bedrageditor.
-  const [bewerkt, setBewerkt] = useState<string | null>(null);
-
-  const zetOverride = (key: string, factoren: (number | null)[] | null) => {
+  const zetOverride = (key: string, regels: OverrideRegel[] | null) => {
     const huidig = { ...(cs.overrides ?? {}) };
-    if (factoren === null) delete huidig[key];
-    else huidig[key] = { factoren };
+    if (regels === null) delete huidig[key];
+    else huidig[key] = { regels };
     zet({ overrides: huidig });
   };
+
+  // Welke optie staat open in de handmatige-bedrageditor.
+  const [bewerkt, setBewerkt] = useState<string | null>(null);
+
+  /** Potlood naast het bedrag van een optie. */
+  const potlood = (key: string, label: string, tariefBedrag: number) => (
+    <HandmatigPotlood
+      label={label}
+      actief={!!cs.overrides?.[key]}
+      onClick={() => {
+        // Begin bij het huidige bedrag: aanpassen is meestal corrigeren.
+        if (!cs.overrides?.[key]) zetOverride(key, [[Math.round(tariefBedrag), null, 1]]);
+        setBewerkt((b) => (b === key ? null : key));
+      }}
+    />
+  );
+
+  /** Het rekenpaneel, onder de optie waar het bij hoort. */
+  const editor = (key: string) =>
+    bewerkt === key ? (
+      <div className="px-3.5 pb-3">
+        <HandmatigBedrag
+          override={cs.overrides?.[key]}
+          onZet={(regels) => zetOverride(key, regels)}
+          onSluit={() => setBewerkt(null)}
+        />
+      </div>
+    ) : null;
 
   const setBtwPercentage = (nieuwTarief: 6 | 21) => {
     const multiplier = 1 + nieuwTarief / 100;
@@ -255,19 +280,31 @@ export default function PrijsCalculatorPaneel({
                         <div className="text-xs text-muted-foreground">{brutoNum > 0 ? `${brutoNum} m² × €${perM2}` : `€${perM2} per m² bruto`}</div>
                       </div>
                     </div>
-                    {actief && brutoNum > 0 && <div className="px-3.5 pb-3 text-right text-sm font-bold text-primary">{fmt(brutoNum * tarief)}</div>}
+                    {actief && brutoNum > 0 && (
+                      <div className="px-3.5 pb-3">
+                        <div className="flex items-center justify-end gap-1">
+                          <span className="text-sm font-bold text-primary">{fmt(brutoNum * tarief)}</span>
+                          {potlood('iso', 'Dakisolatie', brutoNum * tarief)}
+                        </div>
+                      </div>
+                    )}
+                    {actief && editor('iso')}
                   </div>
                 );
               })}
             </div>
 
             <ToggleOption label="Vloer — chape of uitpassen" desc={nettoNum > 0 ? `${nettoNum} m² netto × €70` : '€70 per m² netto'}
-              active={vloer} onToggle={() => zet({ vloer: !vloer })} amount={vloer && nettoNum > 0 ? fmt(nettoNum * RATES.vloer) : undefined} />
+              active={vloer} onToggle={() => zet({ vloer: !vloer })} amount={vloer && nettoNum > 0 ? fmt(nettoNum * RATES.vloer) : undefined}
+              extra={vloer && nettoNum > 0 ? potlood('vl', 'Vloer', nettoNum * RATES.vloer) : undefined}
+              onder={editor('vl')} />
 
             <TellerOptie label="Dakramen (Velux)"
               desc={velux > 0 ? `${velux} × €2.250` : '€2.250 per dakraam'}
               waarde={velux} max={6} onWaarde={(v) => zet({ velux: v })}
-              bedrag={velux > 0 ? fmt(velux * RATES.velux) : undefined} tellerLabel="Aantal dakramen" />
+              bedrag={velux > 0 ? fmt(velux * RATES.velux) : undefined} tellerLabel="Aantal dakramen"
+              extra={velux > 0 ? potlood('vx', 'Dakramen', velux * RATES.velux) : undefined}
+              onder={editor('vx')} />
 
             <div className={`cursor-pointer rounded-xl border-2 transition-all ${trap ? 'border-primary bg-accent' : 'border-border bg-card hover:border-primary/30'}`}>
               <div className="flex items-center gap-3 p-3.5" onClick={() => zet({ trap: !trap })}>
@@ -281,8 +318,14 @@ export default function PrijsCalculatorPaneel({
                       : 'Trap €6.000 + trapgat (optioneel)'}
                   </div>
                 </div>
-                {trap && <div className="text-sm font-bold text-primary">{fmt(RATES.trap + (trapgat === 'beton' ? RATES.trapgatBeton : trapgat === 'hout' ? RATES.trapgatHout : 0))}</div>}
+                {trap && (
+                  <div className="flex items-center gap-1">
+                    <span className="text-sm font-bold text-primary">{fmt(RATES.trap + (trapgat === 'beton' ? RATES.trapgatBeton : trapgat === 'hout' ? RATES.trapgatHout : 0))}</span>
+                    {potlood('tr', 'Trap', RATES.trap)}
+                  </div>
+                )}
               </div>
+              {trap && editor('tr')}
               {trap && (
                 <div className="border-t border-primary/20 px-3.5 pb-3.5 pt-2" onClick={(e) => e.stopPropagation()}>
                   <div className="mb-2 text-xs font-bold text-secondary">Trapgat (optioneel)</div>
@@ -299,12 +342,16 @@ export default function PrijsCalculatorPaneel({
             <TellerOptie label="Airco"
               desc={airco > 0 ? `${airco} toestel${airco > 1 ? 'len' : ''} — staffelprijs` : '1→€4K · 2→€6K · 3→€7,5K · 4→€10K · 5→€11K'}
               waarde={airco} max={5} onWaarde={(v) => zet({ airco: v })}
-              bedrag={airco > 0 ? fmt(RATES.airco[Math.min(airco, 5)]) : undefined} tellerLabel="Aantal toestellen" />
+              bedrag={airco > 0 ? fmt(RATES.airco[Math.min(airco, 5)]) : undefined} tellerLabel="Aantal toestellen"
+              extra={airco > 0 ? potlood('ac', 'Airco', RATES.airco[Math.min(airco, 5)]) : undefined}
+              onder={editor('ac')} />
 
             <ToggleOption label="Schilderwerken"
               desc={nettoNum > 0 ? `Forfait: ${nettoNum < 40 ? '€2.500 (< 40m²)' : '€4.000 (≥ 40m²)'}` : '€2.500 (< 40m²) of €4.000 (≥ 40m²)'}
               active={schilderwerken} onToggle={() => zet({ schilderwerken: !schilderwerken })}
-              amount={schilderwerken && nettoNum > 0 ? fmt(RATES.schilderwerken(nettoNum)) : undefined} />
+              amount={schilderwerken && nettoNum > 0 ? fmt(RATES.schilderwerken(nettoNum)) : undefined}
+              extra={schilderwerken && nettoNum > 0 ? potlood('sw', 'Schilderwerken', RATES.schilderwerken(nettoNum)) : undefined}
+              onder={editor('sw')} />
           </div>
         </div>
 
@@ -363,102 +410,22 @@ export default function PrijsCalculatorPaneel({
               </div>
 
               <hr className="my-3 border-primary-foreground/10" />
-              {result.items.map((item) => {
-                const kanHandmatig = item.categorie === 'standaard';
-                const override = cs.overrides?.[item.key];
-                const open = bewerkt === item.key;
-                return (
-                  <div key={item.key} className="py-1">
-                    <div className="flex items-baseline justify-between gap-2">
-                      <span className="text-xs text-primary-foreground/55">
-                        {item.label}
-                        {item.categorie !== 'standaard' && <span className="ml-1 text-[10px] uppercase text-cyan-300/70">eigen bereik</span>}
-                        {item.handmatig && <span className="ml-1 text-[10px] uppercase text-amber-300/80">handmatig</span>}
-                      </span>
-                      <span className="flex items-baseline gap-1.5">
-                        <span className="text-xs font-semibold text-primary-foreground/85">
-                          {item.min != null && item.max != null && item.min !== item.max
-                            ? `${fmt(item.min)} — ${fmt(item.max)}`
-                            : fmt(item.amount)}
-                        </span>
-                        {kanHandmatig && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              // Begin bij het huidige bedrag: aanpassen is meestal
-                              // corrigeren, niet vanaf nul opnieuw invullen.
-                              if (!override) zetOverride(item.key, [Math.round(item.amount)]);
-                              setBewerkt(open ? null : item.key);
-                            }}
-                            title="Bedrag handmatig aanpassen voor dit dossier"
-                            aria-label={`${item.label} handmatig aanpassen`}
-                            className="rounded p-0.5 text-primary-foreground/40 hover:bg-primary-foreground/10 hover:text-primary-foreground/80"
-                          >
-                            <Pencil className="h-3 w-3" />
-                          </button>
-                        )}
-                      </span>
-                    </div>
-
-                    {open && override && (
-                      <div className="mt-1.5 rounded-md bg-primary-foreground/5 p-2">
-                        <div className="flex flex-wrap items-center gap-1">
-                          {override.factoren.map((f, i) => (
-                            <span key={i} className="flex items-center gap-1">
-                              {i > 0 && <span className="text-[11px] text-primary-foreground/40">×</span>}
-                              <input
-                                value={f ?? ''}
-                                onChange={(e) => {
-                                  const v = e.target.value.replace(',', '.');
-                                  const nieuw = [...override.factoren];
-                                  nieuw[i] = v.trim() === '' ? null : Number(v);
-                                  zetOverride(item.key, nieuw);
-                                }}
-                                inputMode="decimal"
-                                aria-label={`Factor ${i + 1}`}
-                                className="w-16 rounded border border-primary-foreground/20 bg-transparent px-1.5 py-0.5 text-right text-xs tabular-nums text-primary-foreground outline-none focus:border-primary-foreground/50"
-                              />
-                              {override.factoren.length > 1 && (
-                                <button
-                                  type="button"
-                                  onClick={() => zetOverride(item.key, override.factoren.filter((_, j) => j !== i))}
-                                  title="Deze factor weghalen"
-                                  className="text-primary-foreground/30 hover:text-primary-foreground/70"
-                                >
-                                  <Kruis className="h-3 w-3" />
-                                </button>
-                              )}
-                            </span>
-                          ))}
-                          <button
-                            type="button"
-                            onClick={() => zetOverride(item.key, [...override.factoren, null])}
-                            title="Nog een factor toevoegen"
-                            aria-label="Factor toevoegen"
-                            className="rounded p-0.5 text-primary-foreground/50 hover:bg-primary-foreground/10 hover:text-primary-foreground"
-                          >
-                            <Plus className="h-3.5 w-3.5" />
-                          </button>
-                          <span className="ml-1 text-xs font-semibold text-primary-foreground/85">
-                            = {fmt(overrideBedrag(override) ?? 0)}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => { zetOverride(item.key, null); setBewerkt(null); }}
-                            title="Terug naar het tarief"
-                            className="ml-auto flex items-center gap-1 rounded px-1 py-0.5 text-[11px] text-primary-foreground/50 hover:bg-primary-foreground/10 hover:text-primary-foreground/90"
-                          >
-                            <RotateCcw className="h-3 w-3" /> tarief
-                          </button>
-                        </div>
-                        <p className="mt-1 text-[10px] text-primary-foreground/35">
-                          Geldt alleen voor dit dossier. De rekensom blijft intern — de klant ziet enkel de uitkomst.
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+              {result.items.map((item) => (
+                <div key={item.key} className="flex items-baseline justify-between py-1">
+                  <span className="text-xs text-primary-foreground/55">
+                    {item.label}
+                    {item.categorie !== 'standaard' && <span className="ml-1 text-[10px] uppercase text-cyan-300/70">eigen bereik</span>}
+                    {/* Aanpassen gebeurt links bij de optie zelf; hier alleen tonen
+                        dat dit bedrag niet uit het tarief komt. */}
+                    {item.handmatig && <span className="ml-1 text-[10px] uppercase text-amber-300/80">handmatig</span>}
+                  </span>
+                  <span className="text-xs font-semibold text-primary-foreground/85">
+                    {item.min != null && item.max != null && item.min !== item.max
+                      ? `${fmt(item.min)} — ${fmt(item.max)}`
+                      : fmt(item.amount)}
+                  </span>
+                </div>
+              ))}
               <hr className="my-3 border-primary-foreground/10" />
               <div className="flex items-baseline justify-between">
                 <span className="text-sm font-bold text-primary-foreground/80">Totaal excl. BTW</span>
@@ -489,23 +456,29 @@ function Vink({ aan }: { aan: boolean }) {
   );
 }
 
-function ToggleOption({ label, desc, active, onToggle, amount }: { label: string; desc: string; active: boolean; onToggle: () => void; amount?: string }) {
+// `extra` is de plek voor het potlood waarmee het bedrag handmatig gezet wordt.
+// Het staat buiten de klikbare zone, anders zou aanpassen de optie uitvinken.
+function ToggleOption({ label, desc, active, onToggle, amount, extra, onder }: {
+  label: string; desc: string; active: boolean; onToggle: () => void; amount?: string; extra?: React.ReactNode; onder?: React.ReactNode;
+}) {
   return (
-    <div className={`cursor-pointer rounded-xl border-2 transition-all ${active ? 'border-primary bg-accent' : 'border-border bg-card hover:border-primary/30'}`} onClick={onToggle}>
-      <div className="flex items-center gap-3 p-3.5">
+    <div className={`rounded-xl border-2 transition-all ${active ? 'border-primary bg-accent' : 'border-border bg-card hover:border-primary/30'}`}>
+      <div className="flex cursor-pointer items-center gap-3 p-3.5" onClick={onToggle}>
         <Vink aan={active} />
         <div className="min-w-0 flex-1">
           <div className="text-sm font-semibold text-foreground">{label}</div>
           <div className="text-xs text-muted-foreground">{desc}</div>
         </div>
         {amount && <div className="text-sm font-bold text-primary">{amount}</div>}
+        {extra}
       </div>
+      {onder}
     </div>
   );
 }
 
-function TellerOptie({ label, desc, waarde, max, onWaarde, bedrag, tellerLabel }: {
-  label: string; desc: string; waarde: number; max: number; onWaarde: (v: number) => void; bedrag?: string; tellerLabel: string;
+function TellerOptie({ label, desc, waarde, max, onWaarde, bedrag, tellerLabel, extra, onder }: {
+  label: string; desc: string; waarde: number; max: number; onWaarde: (v: number) => void; bedrag?: string; tellerLabel: string; extra?: React.ReactNode; onder?: React.ReactNode;
 }) {
   return (
     <div className={`cursor-pointer rounded-xl border-2 transition-all ${waarde > 0 ? 'border-primary bg-accent' : 'border-border bg-card hover:border-primary/30'}`}>
@@ -516,6 +489,7 @@ function TellerOptie({ label, desc, waarde, max, onWaarde, bedrag, tellerLabel }
           <div className="text-xs text-muted-foreground">{desc}</div>
         </div>
         {bedrag && <div className="text-sm font-bold text-primary">{bedrag}</div>}
+        {extra}
       </div>
       {waarde > 0 && (
         <div className="border-t border-primary/20 px-3.5 pb-3.5 pt-2" onClick={(e) => e.stopPropagation()}>
@@ -525,6 +499,7 @@ function TellerOptie({ label, desc, waarde, max, onWaarde, bedrag, tellerLabel }
             <span className="w-11 text-center text-lg font-bold">{waarde}</span>
             <button onClick={() => onWaarde(Math.min(max, waarde + 1))} className="flex h-9 w-9 items-center justify-center text-lg font-bold text-primary hover:bg-accent">+</button>
           </div>
+          {onder}
         </div>
       )}
     </div>
