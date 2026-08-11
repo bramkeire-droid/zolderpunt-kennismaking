@@ -10,6 +10,7 @@ import {
   type DakisolatieType,
 } from '@/lib/prijscalculator';
 import { useTarieven } from '@/hooks/useTarieven';
+import { maakCalculatieSessie, type CalculatieBron } from '@/lib/calculaties';
 
 // De volledige prijscalculator, los van waar hij getoond wordt. Stond eerst
 // helemaal in src/slides/Slide5B.tsx; nu gedeeld met de losse calculator op de
@@ -42,10 +43,14 @@ interface Props {
   onChange: (patch: CalcPatch) => void;
   /** Ook oppervlakte_m2 op het dossier bijwerken als de bruto hier wijzigt. */
   schrijfOppervlakte?: boolean;
+  /** Samen ingevuld: elke berekening komt ook in de historiek van dit dossier. */
+  leadId?: string | null;
+  bron?: CalculatieBron;
 }
 
 export default function PrijsCalculatorPaneel({
   oppervlakteM2, calculatorState, btwPercentage, opgeslagenBudgetExcl, onChange, schrijfOppervlakte = false,
+  leadId, bron,
 }: Props) {
   const cs = normaliseerCalcState(calculatorState);
 
@@ -116,6 +121,11 @@ export default function PrijsCalculatorPaneel({
   // Wegschrijven alleen als er iets wezenlijk veranderd is. De sleutel bevat
   // nu ook de band en de posten: een extra element dat het gemiddelde niet
   // verandert, moet tóch bewaard worden.
+  // Eén sessie per keer dat de calculator openstaat; die rij wordt bijgewerkt
+  // in plaats van dat elke toetsaanslag een nieuwe regel in de historiek zet.
+  const sessie = useRef<ReturnType<typeof maakCalculatieSessie> | null>(null);
+  if (leadId && bron && !sessie.current) sessie.current = maakCalculatieSessie(leadId, bron);
+
   const vorigeSleutel = useRef<string>('');
   const eersteRonde = useRef(true);
   useEffect(() => {
@@ -150,6 +160,15 @@ export default function PrijsCalculatorPaneel({
       prijs_max_incl_btw: Math.round(result.exclMax * multiplier),
       prijs_mw_min_incl_btw: Math.round(result.excl * multiplier),
       prijs_mw_max_incl_btw: Math.round(result.excl * multiplier),
+    });
+
+    void sessie.current?.bewaar({
+      calculator_state: { ...cs, netto_m2: nettoNum || null },
+      inbegrepen_posten: posten,
+      budget_excl: Math.round(result.excl),
+      budget_min_excl: Math.round(result.exclMin),
+      budget_max_excl: Math.round(result.exclMax),
+      btw_percentage: btwPercentage,
     });
   }, [result, btwPercentage, onChange]);
 

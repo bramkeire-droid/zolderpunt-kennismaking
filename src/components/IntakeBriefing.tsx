@@ -5,6 +5,7 @@ import { ArrowRight, ArrowLeft, Phone, Bot, MapPin, User, Calendar, CheckCircle2
 import type { LeadData } from '@/contexts/SessionContext';
 import AppTopBar from '@/components/AppTopBar';
 import AangeleverdDoorKlant from '@/components/dossier/AangeleverdDoorKlant';
+import CalculatieHistoriek from '@/components/dossier/CalculatieHistoriek';
 
 
 const QUESTION_LABELS: Record<string, string> = {
@@ -257,6 +258,8 @@ export default function IntakeBriefing({ lead, onStart, onBack }: Props) {
         {/* Wat de klant zelf doorstuurde, ook hier zichtbaar zodat je het vóór
             het gesprek al gelezen hebt. */}
         <AangeleverdDoorKlant leadId={lead.id} />
+
+        <CalculatieHistoriek leadId={lead.id} />
 
         </div>
       </div>

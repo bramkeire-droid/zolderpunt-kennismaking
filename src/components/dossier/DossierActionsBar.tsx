@@ -3,7 +3,8 @@ import { FolderOpen, Phone, Bot, Image as ImageIcon, Globe, Calculator, FileText
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import PhotoUploadDialog from '@/components/dossier/PhotoUploadDialog';
-import CalculatorDialog from '@/components/dossier/CalculatorDialog';
+import PrijscalculatorDialog from '@/components/dossier/PrijscalculatorDialog';
+import type { CalculatieBron } from '@/lib/calculaties';
 import GenericVoorbladDialog from '@/components/dossier/GenericVoorbladDialog';
 import OffertebijlageDialog from '@/components/dossier/OffertebijlageDialog';
 import PortalManageDialog from '@/components/portal/PortalManageDialog';
@@ -14,6 +15,8 @@ type DialogKey = 'fotos' | 'portaal' | 'calculator' | 'voorblad' | 'offerte' | n
 interface Props {
   /** Dossier waarvoor de acties gelden. */
   leadId: string;
+  /** Waar deze balk staat; bepaalt hoe een calculatie in de historiek heet. */
+  bron?: CalculatieBron;
   /** Telefoongesprek openen voor dit dossier. */
   onCall: (leadId: string) => void;
   /** Videocall-intake starten voor dit dossier. */
@@ -27,7 +30,7 @@ interface Props {
  * handbereik zonder de pagina te verlaten. Foto's, portaal, calculator,
  * voorblad en offerte openen als dialoog; gesprek en intake navigeren.
  */
-export default function DossierActionsBar({ leadId, onCall, onIntake, onGoDossiers }: Props) {
+export default function DossierActionsBar({ leadId, bron = 'los', onCall, onIntake, onGoDossiers }: Props) {
   const [lead, setLead] = useState<any | null>(null);
   const [dialog, setDialog] = useState<DialogKey>(null);
   const [portalPreview, setPortalPreview] = useState(false);
@@ -44,6 +47,11 @@ export default function DossierActionsBar({ leadId, onCall, onIntake, onGoDossie
 
   const patchLead = (_id: string, patch: Record<string, any>) =>
     setLead((prev: any) => (prev ? { ...prev, ...patch } : prev));
+
+  const herlaadLead = async () => {
+    const { data } = await supabase.from('leads').select('*').eq('id', leadId).maybeSingle();
+    if (data) setLead(data);
+  };
 
   if (!lead) return null;
 
@@ -104,7 +112,12 @@ export default function DossierActionsBar({ leadId, onCall, onIntake, onGoDossie
       )}
       {portalPreview && <PortalPreview lead={lead} onClose={() => setPortalPreview(false)} />}
       {dialog === 'calculator' && (
-        <CalculatorDialog lead={lead} onClose={() => setDialog(null)} onUpdate={patchLead} />
+        <PrijscalculatorDialog
+          lead={lead}
+          bron={bron}
+          onOpenChange={(open) => { if (!open) setDialog(null); }}
+          onSaved={herlaadLead}
+        />
       )}
       {dialog === 'voorblad' && (
         <GenericVoorbladDialog open onClose={() => setDialog(null)} lead={lead} />

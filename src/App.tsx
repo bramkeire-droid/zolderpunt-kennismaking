@@ -6,6 +6,7 @@ import { useLeadSave } from '@/hooks/useLeadSave';
 import NavigationBar from '@/components/NavigationBar';
 import Dossiers from '@/pages/Dossiers';
 import TarievenBeheer from '@/components/beheer/TarievenBeheer';
+import type { CalculatieBron } from '@/lib/calculaties';
 import LoginPage from '@/pages/LoginPage';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
 import LiveCalling from '@/pages/LiveCalling';
@@ -142,6 +143,14 @@ function AppContent() {
   const handleStartVideocall = async (leadId: string) => {
     if (view === 'slides') await flushSave();
 
+    // Sta je al op de briefing van ditzelfde dossier, dan is deze knop bedoeld
+    // om het gesprek te starten. Zonder dit zette hij je opnieuw naar de
+    // briefing waar je al stond, en leek hij dood.
+    if (view === 'briefing' && briefingLead?.id === leadId) {
+      handleStartFromBriefing();
+      return;
+    }
+
     const { data: bestaand } = await supabase
       .from('pre_intake')
       .select('id')
@@ -221,9 +230,10 @@ function AppContent() {
     );
   }
 
-  const dossierBar = (leadId: string) => (
+  const dossierBar = (leadId: string, bron: CalculatieBron = 'los') => (
     <DossierActionsBar
       leadId={leadId}
+      bron={bron}
       onCall={handleOpenCall}
       onIntake={handleStartVideocall}
       onGoDossiers={handleGoDossiers}
@@ -239,7 +249,7 @@ function AppContent() {
           onOpenValidation={handleOpenValidation}
           initialLeadId={callingLeadId}
           initialStep={callingInitialStep}
-          renderActionsBar={dossierBar}
+          renderActionsBar={(leadId: string) => dossierBar(leadId, 'telefoon')}
         />
       </PreIntakeProvider>
     );
@@ -267,7 +277,7 @@ function AppContent() {
           onNewIntake={handleNewIntake}
           onGoDossiers={handleGoDossiers}
         />
-        {briefingLead.id && dossierBar(briefingLead.id)}
+        {briefingLead.id && dossierBar(briefingLead.id, 'intake')}
         <IntakeBriefing
           lead={briefingLead}
           onStart={handleStartFromBriefing}
@@ -304,7 +314,7 @@ function AppContent() {
         />
       ) : (
         <AppActionsProvider value={{ openCall: handleOpenCall, startVideocall: handleStartVideocall }}>
-          {activeDossierId && dossierBar(activeDossierId)}
+          {activeDossierId && dossierBar(activeDossierId, 'intake')}
           {(() => {
             const SlideComponent = SLIDE_COMPONENTS[currentSlide];
             return SlideComponent ? <SlideComponent /> : null;

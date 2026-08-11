@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Calculator } from 'lucide-react';
 import PrijsCalculatorPaneel, { type CalcPatch } from '@/components/calculator/PrijsCalculatorPaneel';
+import type { CalculatieBron } from '@/lib/calculaties';
 
 // Losse prijscalculator, zonder het intakegesprek te openen. Bestaat vooral om
 // de calculator van een ouder dossier opnieuw te kunnen invullen: badkamer,
@@ -12,12 +13,14 @@ import PrijsCalculatorPaneel, { type CalcPatch } from '@/components/calculator/P
 
 interface Props {
   lead: { id: string; voornaam?: string | null; achternaam?: string | null } | null;
+  /** Waar deze berekening vandaan komt; komt zo in de historiek te staan. */
+  bron?: CalculatieBron;
   onOpenChange: (open: boolean) => void;
   /** Zodat de dossierlijst de nieuwe bedragen toont na sluiten. */
   onSaved?: () => void;
 }
 
-export default function PrijscalculatorDialog({ lead, onOpenChange, onSaved }: Props) {
+export default function PrijscalculatorDialog({ lead, bron = 'los', onOpenChange, onSaved }: Props) {
   const [rij, setRij] = useState<Record<string, unknown> | null>(null);
   const [laden, setLaden] = useState(true);
   const [bezig, setBezig] = useState(false);
@@ -91,6 +94,8 @@ export default function PrijscalculatorDialog({ lead, onOpenChange, onSaved }: P
             btwPercentage={(rij.btw_percentage as number) ?? 6}
             opgeslagenBudgetExcl={rij.budget_excl as number | null}
             onChange={onChange}
+            leadId={lead?.id ?? null}
+            bron={bron}
             // Hier is geen intake-slide die de oppervlakte al zette, dus die
             // hoort vanuit de calculator zelf op het dossier terecht te komen.
             schrijfOppervlakte

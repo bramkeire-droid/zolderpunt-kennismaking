@@ -27,6 +27,8 @@ export default function Slide5B() {
           btwPercentage={lead.btw_percentage ?? 6}
           opgeslagenBudgetExcl={lead.budget_excl}
           onChange={onChange}
+          leadId={lead.id ?? null}
+          bron="intake"
         />
       </div>
     </SlideLayout>
