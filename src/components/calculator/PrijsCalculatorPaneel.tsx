@@ -110,6 +110,14 @@ export default function PrijsCalculatorPaneel({
 
   const result = berekenPrijs({ ...cs, netto_m2: nettoNum || null }, brutoNum, tarieven);
 
+  // De vork volgt het gekozen btw-tarief. result.min/max/incl6 blijven op 6%
+  // staan: die vullen budget_min/budget_max, kolommen die historisch incl. 6%
+  // betekenen. Wat je op het scherm ziet hoort wél de keuze hierboven te volgen.
+  const btwFactor = 1 + btwPercentage / 100;
+  const toonExcl = (result?.excl ?? 0) * btwFactor;
+  const toonMin = (result?.exclMin ?? 0) * btwFactor;
+  const toonMax = (result?.exclMax ?? 0) * btwFactor;
+
   const zetOverride = (key: string, regels: OverrideRegel[] | null) => {
     const huidig = { ...(cs.overrides ?? {}) };
     if (regels === null) delete huidig[key];
@@ -389,7 +397,7 @@ export default function PrijsCalculatorPaneel({
           open
           kant={margeVraag}
           items={result.items}
-          bedrag={margeVraag === 'min' ? result.min : result.max}
+          bedrag={margeVraag === 'min' ? toonMin : toonMax}
           argumenten={cs.marge?.argumenten ?? []}
           onOpslaan={(argumenten: MargeArgument[]) => {
             if (cs.marge) zet({ marge: { ...cs.marge, argumenten } });
@@ -424,13 +432,13 @@ export default function PrijsCalculatorPaneel({
               </div>
 
               <div className="mb-1 text-center">
-                <span className="text-xs tracking-wider text-primary-foreground/40">INCL. 6% BTW</span>
-                <span className="block text-2xl font-bold tracking-tight text-primary">{fmt(result.incl6)}</span>
+                <span className="text-xs tracking-wider text-primary-foreground/40">INCL. {btwPercentage}% BTW</span>
+                <span className="block text-2xl font-bold tracking-tight text-primary">{fmt(toonExcl)}</span>
               </div>
 
               <MargeBalk
-                min={result.min}
-                max={result.max}
+                min={toonMin}
+                max={toonMax}
                 factorMin={result.factorMin}
                 factorMax={result.factorMax}
                 verschoven={result.margeVerschoven}
@@ -439,7 +447,7 @@ export default function PrijsCalculatorPaneel({
                 onHerstel={() => zet({ marge: undefined })}
                 bedragNaarFactor={(bedragInclBtw, kant) => {
                   // De balk toont bedragen incl. 6% btw; reken terug naar excl.
-                  const excl = bedragInclBtw / 1.06;
+                  const excl = bedragInclBtw / btwFactor;
                   // Elementen met een eigen bereik schuiven niet mee, dus die
                   // horen niet in de factor: eerst hun aandeel eraf halen.
                   const eigenBereik = kant === 'min'

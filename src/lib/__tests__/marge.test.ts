@@ -131,9 +131,11 @@ describe('badkamer-onderdelen', () => {
 // De omrekening die de balk gebruikt wanneer je een bedrag intypt: het
 // getoonde bedrag is incl. 6% btw, en de elementen met een eigen bereik
 // schuiven niet mee — die moeten er dus eerst af.
-const bedragNaarFactor = (r: ReturnType<typeof berekenPrijs>, bedragInclBtw: number, kant: 'min' | 'max') => {
+const bedragNaarFactor = (
+  r: ReturnType<typeof berekenPrijs>, bedragInclBtw: number, kant: 'min' | 'max', btw = 6,
+) => {
   const res = r!;
-  const excl = bedragInclBtw / 1.06;
+  const excl = bedragInclBtw / (1 + btw / 100);
   const eigenBereik = kant === 'min'
     ? res.exclMin - res.standaardExcl * res.factorMin
     : res.exclMax - res.standaardExcl * res.factorMax;
@@ -166,6 +168,16 @@ describe('bedrag intypen schuift het handvat mee', () => {
     // Het douche-element blijft onaangeroerd op 2000–3000.
     const douche = na.items.find((i) => i.key === 'bk-douche')!;
     expect([douche.min, douche.max]).toEqual([2000, 3000]);
+  });
+
+  it('volgt het gekozen btw-tarief, niet altijd 6%', () => {
+    const r = berekenPrijs(basis, 60)!;
+    // Wat er bij 21% getoond wordt, moet bij 21% ook weer de huidige factor geven.
+    const toonMin21 = r.exclMin * 1.21;
+    expect(bedragNaarFactor(r, toonMin21, 'min', 21)).toBeCloseTo(r.factorMin, 6);
+    // En met de verkeerde btw eruit halen levert een andere factor op — precies
+    // de fout die dit voorkomt.
+    expect(bedragNaarFactor(r, toonMin21, 'min', 6)).not.toBeCloseTo(r.factorMin, 3);
   });
 
   it('geeft null als er geen tariefdeel is om te verschuiven', () => {
