@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { RotateCcw } from 'lucide-react';
 import { fmtEuro } from '@/lib/prijscalculator';
 
@@ -24,13 +24,57 @@ interface Props {
   /** Bij loslaten — hier komt de vraag naar de onderbouwing. */
   onLos: (kant: 'min' | 'max') => void;
   onHerstel: () => void;
+  /**
+   * Een ingetypt bedrag omrekenen naar een factor op het tariefdeel. Geeft
+   * null als dat niet kan (bv. een dossier dat volledig uit elementen met een
+   * eigen bereik bestaat: dan valt er niets te verschuiven).
+   */
+  bedragNaarFactor: (bedragInclBtw: number, kant: 'min' | 'max') => number | null;
 }
 
 export default function MargeBalk({
-  min, max, factorMin, factorMax, verschoven, onSleep, onLos, onHerstel,
+  min, max, factorMin, factorMax, verschoven, onSleep, onLos, onHerstel, bedragNaarFactor,
 }: Props) {
   const baan = useRef<HTMLDivElement>(null);
   const [sleept, setSleept] = useState<'min' | 'max' | null>(null);
+
+  // Handmatig ingetypte bedragen. Zolang een veld focus heeft blijft de tekst
+  // van de gebruiker staan; daarbuiten volgt ze het berekende bedrag.
+  const [tekst, setTekst] = useState<{ kant: 'min' | 'max'; waarde: string } | null>(null);
+  useEffect(() => { if (sleept) setTekst(null); }, [sleept]);
+
+  const bevestig = (kant: 'min' | 'max') => {
+    const ruw = tekst?.waarde ?? '';
+    setTekst(null);
+    const bedrag = Number(ruw.replace(/[^0-9,.-]/g, '').replace(',', '.'));
+    if (!isFinite(bedrag) || bedrag <= 0) return;
+    const f = bedragNaarFactor(bedrag, kant);
+    if (f === null) return;
+    const begrensd = Math.min(GRENS_MAX, Math.max(GRENS_MIN, f));
+    // Zelfde grenzen als bij slepen: de raming blijft binnen de vork.
+    if (kant === 'min') onSleep(Math.min(begrensd, 0.99), factorMax);
+    else onSleep(factorMin, Math.max(begrensd, 1.01));
+    onLos(kant);
+  };
+
+  const bedragVeld = (kant: 'min' | 'max', bedrag: number) => (
+    <input
+      value={tekst?.kant === kant ? tekst.waarde : Math.round(bedrag).toLocaleString('nl-BE')}
+      onChange={(e) => setTekst({ kant, waarde: e.target.value })}
+      onFocus={(e) => { setTekst({ kant, waarde: String(Math.round(bedrag)) }); e.currentTarget.select(); }}
+      onBlur={() => bevestig(kant)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') e.currentTarget.blur();
+        if (e.key === 'Escape') { setTekst(null); e.currentTarget.blur(); }
+      }}
+      inputMode="decimal"
+      aria-label={`${kant === 'min' ? 'Minimum' : 'Maximum'} bedrag, incl. btw`}
+      title="Typ een bedrag — het handvat schuift mee"
+      className={`mb-0.5 block w-full rounded border border-transparent bg-transparent text-base font-bold tabular-nums text-primary-foreground/60 outline-none hover:border-primary-foreground/20 focus:border-primary focus:bg-primary-foreground/10 ${
+        kant === 'max' ? 'text-right' : ''
+      }`}
+    />
+  );
 
   // De baan loopt van GRENS_MIN tot GRENS_MAX; een factor wordt daarop een
   // percentage, zodat beide handvatten dezelfde schaal delen.
@@ -111,7 +155,7 @@ export default function MargeBalk({
 
       <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-1">
         <div className="text-xs text-primary-foreground/40">
-          <span className="mb-0.5 block text-base font-bold text-primary-foreground/60">{fmtEuro(min)}</span>
+          {bedragVeld('min', min)}
           minimum
           <span className="ml-1 tabular-nums text-primary-foreground/30">{Math.round(factorMin * 100)}%</span>
         </div>
@@ -119,7 +163,7 @@ export default function MargeBalk({
           <span className="text-xs tracking-wider text-primary-foreground/40">MEEST WAARSCHIJNLIJK</span>
         </div>
         <div className="text-right text-xs text-primary-foreground/40">
-          <span className="mb-0.5 block text-base font-bold text-primary-foreground/60">{fmtEuro(max)}</span>
+          {bedragVeld('max', max)}
           maximum
           <span className="ml-1 tabular-nums text-primary-foreground/30">{Math.round(factorMax * 100)}%</span>
         </div>

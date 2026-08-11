@@ -127,3 +127,50 @@ describe('badkamer-onderdelen', () => {
     expect(genormaliseerd.onderdelen.find((o) => o.key === 'technieken')).toBeDefined();
   });
 });
+
+// De omrekening die de balk gebruikt wanneer je een bedrag intypt: het
+// getoonde bedrag is incl. 6% btw, en de elementen met een eigen bereik
+// schuiven niet mee — die moeten er dus eerst af.
+const bedragNaarFactor = (r: ReturnType<typeof berekenPrijs>, bedragInclBtw: number, kant: 'min' | 'max') => {
+  const res = r!;
+  const excl = bedragInclBtw / 1.06;
+  const eigenBereik = kant === 'min'
+    ? res.exclMin - res.standaardExcl * res.factorMin
+    : res.exclMax - res.standaardExcl * res.factorMax;
+  if (res.standaardExcl <= 0) return null;
+  return (excl - eigenBereik) / res.standaardExcl;
+};
+
+describe('bedrag intypen schuift het handvat mee', () => {
+  it('het getoonde bedrag levert exact de huidige factor op', () => {
+    const r = berekenPrijs(basis, 60)!;
+    expect(bedragNaarFactor(r, r.min, 'min')).toBeCloseTo(r.factorMin, 6);
+    expect(bedragNaarFactor(r, r.max, 'max')).toBeCloseTo(r.factorMax, 6);
+  });
+
+  it('een ingetypt bedrag komt er na herberekening ook weer uit', () => {
+    const r = berekenPrijs(basis, 60)!;
+    const gewenst = Math.round(r.min * 0.9);
+    const f = bedragNaarFactor(r, gewenst, 'min')!;
+    const na = berekenPrijs({ ...basis, marge: { min: f, max: r.factorMax, argumenten: [] } }, 60)!;
+    expect(Math.round(na.min)).toBe(gewenst);
+  });
+
+  it('houdt rekening met elementen die hun eigen bereik meebrengen', () => {
+    const state = metEigenBereik();
+    const r = berekenPrijs(state, 60)!;
+    const gewenst = Math.round(r.min * 0.9);
+    const f = bedragNaarFactor(r, gewenst, 'min')!;
+    const na = berekenPrijs({ ...state, marge: { min: f, max: r.factorMax, argumenten: [] } }, 60)!;
+    expect(Math.round(na.min)).toBe(gewenst);
+    // Het douche-element blijft onaangeroerd op 2000–3000.
+    const douche = na.items.find((i) => i.key === 'bk-douche')!;
+    expect([douche.min, douche.max]).toEqual([2000, 3000]);
+  });
+
+  it('geeft null als er geen tariefdeel is om te verschuiven', () => {
+    const r = berekenPrijs(basis, 60)!;
+    const leeg = { ...r, standaardExcl: 0 } as typeof r;
+    expect(bedragNaarFactor(leeg, 10000, 'min')).toBeNull();
+  });
+});

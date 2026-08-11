@@ -437,6 +437,17 @@ export default function PrijsCalculatorPaneel({
                 onSleep={(fMin, fMax) => zet({ marge: { min: fMin, max: fMax, argumenten: cs.marge?.argumenten ?? [] } })}
                 onLos={(kant) => setMargeVraag(kant)}
                 onHerstel={() => zet({ marge: undefined })}
+                bedragNaarFactor={(bedragInclBtw, kant) => {
+                  // De balk toont bedragen incl. 6% btw; reken terug naar excl.
+                  const excl = bedragInclBtw / 1.06;
+                  // Elementen met een eigen bereik schuiven niet mee, dus die
+                  // horen niet in de factor: eerst hun aandeel eraf halen.
+                  const eigenBereik = kant === 'min'
+                    ? result.exclMin - result.standaardExcl * result.factorMin
+                    : result.exclMax - result.standaardExcl * result.factorMax;
+                  if (result.standaardExcl <= 0) return null;
+                  return (excl - eigenBereik) / result.standaardExcl;
+                }}
               />
 
               <div className="mb-5 grid grid-cols-2 gap-2">
