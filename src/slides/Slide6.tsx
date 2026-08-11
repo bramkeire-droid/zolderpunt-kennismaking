@@ -89,51 +89,71 @@ export default function Slide6() {
 
         {hasData ? (
           <div className="w-full max-w-2xl flex flex-col items-center">
-            {/* ── MEEST WAARSCHIJNLIJK — above curve ── */}
-            <div style={{ textAlign: 'center', marginBottom: '8px' }}>
-              {/* Rij 1: hoofdbedrag + excl. BTW label */}
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', justifyContent: 'center' }}>
-                <span style={{
-                  fontSize: '1.75rem',
-                  fontWeight: 800,
-                  color: 'white',
-                  fontFamily: "'Brockmann', 'Space Grotesk', sans-serif",
-                  lineHeight: 1.1,
-                }}>
-                  {fmt(peakExcl)}
-                </span>
-                <span style={{
-                  fontSize: '0.65rem',
-                  color: 'rgba(255,255,255,0.5)',
-                  letterSpacing: '0.05em',
-                  textTransform: 'uppercase',
-                }}>
-                  excl. BTW
-                </span>
+            {/* ── MEEST WAARSCHIJNLIJK — above curve ──
+                Wat de klant echt betaalt is incl. BTW; dat hoort dus het
+                grote, dominante cijfer te zijn. Excl. BTW is de kleine
+                referentieregel erboven — vroeger was dat omgekeerd. */}
+            <div style={{ textAlign: 'center', marginBottom: '10px' }}>
+              {/* Referentieregel: excl. BTW */}
+              <div style={{
+                fontSize: '0.7rem',
+                color: 'rgba(255,255,255,0.45)',
+                fontFamily: "'Rethink Sans', 'DM Sans', sans-serif",
+                letterSpacing: '0.03em',
+              }}>
+                {fmt(peakExcl)} excl. BTW
               </div>
 
-              {/* Rij 2: incl. 6% */}
+              {/* Hoofdbedragen: incl. 6% en incl. 21%, naast elkaar, groot */}
               <div style={{
-                fontSize: '0.78rem',
-                marginTop: '4px',
-                fontFamily: "'Rethink Sans', 'DM Sans', sans-serif",
+                display: 'flex',
+                gap: '28px',
+                justifyContent: 'center',
+                alignItems: 'flex-end',
+                marginTop: '6px',
+                flexWrap: 'wrap',
               }}>
-                <span style={{ color: 'rgba(255,255,255,0.5)' }}>incl. 6% BTW: </span>
-                <span style={{ fontWeight: 700, color: 'white' }}>
-                  {fmt(incl6(peakExcl))}
-                </span>
-              </div>
-
-              {/* Rij 3: incl. 21% */}
-              <div style={{
-                fontSize: '0.78rem',
-                marginTop: '2px',
-                fontFamily: "'Rethink Sans', 'DM Sans', sans-serif",
-              }}>
-                <span style={{ color: 'rgba(255,255,255,0.5)' }}>incl. 21% BTW: </span>
-                <span style={{ fontWeight: 700, color: 'white' }}>
-                  {fmt(incl21(peakExcl))}
-                </span>
+                <div>
+                  <div style={{
+                    fontSize: '0.62rem',
+                    color: 'rgba(255,255,255,0.6)',
+                    letterSpacing: '0.08em',
+                    textTransform: 'uppercase',
+                    marginBottom: '1px',
+                  }}>
+                    incl. 6% btw
+                  </div>
+                  <div style={{
+                    fontSize: '2.1rem',
+                    fontWeight: 800,
+                    color: 'white',
+                    fontFamily: "'Brockmann', 'Space Grotesk', sans-serif",
+                    lineHeight: 1.05,
+                  }}>
+                    {fmt(incl6(peakExcl))}
+                  </div>
+                </div>
+                <div style={{ width: '1px', alignSelf: 'stretch', background: 'rgba(255,255,255,0.2)' }} />
+                <div>
+                  <div style={{
+                    fontSize: '0.62rem',
+                    color: 'rgba(255,255,255,0.6)',
+                    letterSpacing: '0.08em',
+                    textTransform: 'uppercase',
+                    marginBottom: '1px',
+                  }}>
+                    incl. 21% btw
+                  </div>
+                  <div style={{
+                    fontSize: '2.1rem',
+                    fontWeight: 800,
+                    color: 'white',
+                    fontFamily: "'Brockmann', 'Space Grotesk', sans-serif",
+                    lineHeight: 1.05,
+                  }}>
+                    {fmt(incl21(peakExcl))}
+                  </div>
+                </div>
               </div>
 
               {/* Sublabel */}
@@ -142,7 +162,7 @@ export default function Slide6() {
                 color: 'rgba(255,255,255,0.4)',
                 letterSpacing: '0.1em',
                 textTransform: 'uppercase',
-                marginTop: '5px',
+                marginTop: '6px',
               }}>
                 MEEST WAARSCHIJNLIJK
               </div>
@@ -157,50 +177,35 @@ export default function Slide6() {
 
             {/* ── MIN / MAX — below curve, side by side ── */}
             <div className="w-full flex justify-between items-start mt-2 px-2">
-              {/* Minimum */}
-              <div style={{ textAlign: 'left', minWidth: '140px' }}>
-                {/* Rij 1: hoofdbedrag + excl. BTW label */}
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+              {/* Minimum — zelfde omkering: excl. klein bovenaan, incl. groot eronder. */}
+              <div style={{ textAlign: 'left', minWidth: '150px' }}>
+                <div style={{
+                  fontSize: '0.68rem',
+                  color: 'rgba(255,255,255,0.45)',
+                  fontFamily: "'Rethink Sans', 'DM Sans', sans-serif",
+                }}>
+                  {fmt(minExcl)} excl. BTW
+                </div>
+
+                <div style={{ marginTop: '5px' }}>
+                  <span style={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.55)', letterSpacing: '0.05em' }}>incl. 6%: </span>
                   <span style={{
-                    fontSize: '1.25rem',
+                    fontSize: '1.15rem',
                     fontWeight: 700,
                     color: 'white',
                     fontFamily: "'Brockmann', 'Space Grotesk', sans-serif",
                   }}>
-                    {fmt(minExcl)}
-                  </span>
-                  <span style={{
-                    fontSize: '0.65rem',
-                    color: 'rgba(255,255,255,0.5)',
-                    letterSpacing: '0.05em',
-                    textTransform: 'uppercase',
-                  }}>
-                    excl. BTW
-                  </span>
-                </div>
-
-                {/* Rij 2: incl. 6% */}
-                <div style={{
-                  fontSize: '0.75rem',
-                  color: 'rgba(255,255,255,0.75)',
-                  marginTop: '4px',
-                  fontFamily: "'Rethink Sans', 'DM Sans', sans-serif",
-                }}>
-                  <span style={{ color: 'rgba(255,255,255,0.5)' }}>incl. 6% BTW: </span>
-                  <span style={{ fontWeight: 600, color: 'white' }}>
                     {fmt(incl6(minExcl))}
                   </span>
                 </div>
-
-                {/* Rij 3: incl. 21% */}
-                <div style={{
-                  fontSize: '0.75rem',
-                  color: 'rgba(255,255,255,0.75)',
-                  marginTop: '2px',
-                  fontFamily: "'Rethink Sans', 'DM Sans', sans-serif",
-                }}>
-                  <span style={{ color: 'rgba(255,255,255,0.5)' }}>incl. 21% BTW: </span>
-                  <span style={{ fontWeight: 600, color: 'white' }}>
+                <div style={{ marginTop: '2px' }}>
+                  <span style={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.55)', letterSpacing: '0.05em' }}>incl. 21%: </span>
+                  <span style={{
+                    fontSize: '1.15rem',
+                    fontWeight: 700,
+                    color: 'white',
+                    fontFamily: "'Brockmann', 'Space Grotesk', sans-serif",
+                  }}>
                     {fmt(incl21(minExcl))}
                   </span>
                 </div>
@@ -218,49 +223,34 @@ export default function Slide6() {
               </div>
 
               {/* Maximum */}
-              <div style={{ textAlign: 'right', minWidth: '140px' }}>
-                {/* Rij 1: hoofdbedrag + excl. BTW label */}
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', justifyContent: 'flex-end' }}>
+              <div style={{ textAlign: 'right', minWidth: '150px' }}>
+                <div style={{
+                  fontSize: '0.68rem',
+                  color: 'rgba(255,255,255,0.45)',
+                  fontFamily: "'Rethink Sans', 'DM Sans', sans-serif",
+                }}>
+                  {fmt(maxExcl)} excl. BTW
+                </div>
+
+                <div style={{ marginTop: '5px' }}>
+                  <span style={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.55)', letterSpacing: '0.05em' }}>incl. 6%: </span>
                   <span style={{
-                    fontSize: '1.25rem',
+                    fontSize: '1.15rem',
                     fontWeight: 700,
                     color: 'white',
                     fontFamily: "'Brockmann', 'Space Grotesk', sans-serif",
                   }}>
-                    {fmt(maxExcl)}
-                  </span>
-                  <span style={{
-                    fontSize: '0.65rem',
-                    color: 'rgba(255,255,255,0.5)',
-                    letterSpacing: '0.05em',
-                    textTransform: 'uppercase',
-                  }}>
-                    excl. BTW
-                  </span>
-                </div>
-
-                {/* Rij 2: incl. 6% */}
-                <div style={{
-                  fontSize: '0.75rem',
-                  color: 'rgba(255,255,255,0.75)',
-                  marginTop: '4px',
-                  fontFamily: "'Rethink Sans', 'DM Sans', sans-serif",
-                }}>
-                  <span style={{ color: 'rgba(255,255,255,0.5)' }}>incl. 6% BTW: </span>
-                  <span style={{ fontWeight: 600, color: 'white' }}>
                     {fmt(incl6(maxExcl))}
                   </span>
                 </div>
-
-                {/* Rij 3: incl. 21% */}
-                <div style={{
-                  fontSize: '0.75rem',
-                  color: 'rgba(255,255,255,0.75)',
-                  marginTop: '2px',
-                  fontFamily: "'Rethink Sans', 'DM Sans', sans-serif",
-                }}>
-                  <span style={{ color: 'rgba(255,255,255,0.5)' }}>incl. 21% BTW: </span>
-                  <span style={{ fontWeight: 600, color: 'white' }}>
+                <div style={{ marginTop: '2px' }}>
+                  <span style={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.55)', letterSpacing: '0.05em' }}>incl. 21%: </span>
+                  <span style={{
+                    fontSize: '1.15rem',
+                    fontWeight: 700,
+                    color: 'white',
+                    fontFamily: "'Brockmann', 'Space Grotesk', sans-serif",
+                  }}>
                     {fmt(incl21(maxExcl))}
                   </span>
                 </div>
