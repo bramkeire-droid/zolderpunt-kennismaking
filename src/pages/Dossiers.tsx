@@ -848,7 +848,11 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
 
                         <DropdownMenuSeparator />
                         <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">Bouwflow</DropdownMenuLabel>
-                        {lead.bouwflow_project_id ? (
+                        {/* Het PROJECTnummer bepaalt of dit dossier al in
+                            BouwFlow staat; bouwflow_project_id bevat een
+                            CUSTOMER-id en is leeg bij dossiers die via de sync
+                            gekoppeld werden. */}
+                        {(lead.bouwflow_project_number || lead.bouwflow_project_pk_id || lead.bouwflow_project_id) ? (
                           <DropdownMenuItem
                             disabled
                             className="opacity-100 cursor-default text-green-700 focus:bg-transparent focus:text-green-700"

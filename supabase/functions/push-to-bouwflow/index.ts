@@ -52,7 +52,12 @@ Deno.serve(async (req) => {
     return json({ error: 'Lead niet gevonden' }, 404);
   }
 
-  if (lead.bouwflow_project_id) {
+  // Of dit dossier al in BouwFlow staat, blijkt uit het PROJECTnummer — niet
+  // uit bouwflow_project_id, want die kolom bevat historisch een CUSTOMER-id.
+  // Dossiers die via de sync gekoppeld werden hebben wel een projectnummer maar
+  // geen customer-id, en werden daardoor als "nog niet gepusht" gezien: goed
+  // voor 13 dossiers die opnieuw aangemaakt konden worden.
+  if (lead.bouwflow_project_number || lead.bouwflow_project_pk_id || lead.bouwflow_project_id) {
     return json(
       {
         error: 'already_pushed',
