@@ -425,6 +425,36 @@ export type Database = {
         }
         Relationships: []
       }
+      koppeling_gezondheid: {
+        Row: {
+          bron: string
+          gecontroleerd_op: string
+          laatst_gemeld_op: string | null
+          laatste_ok_op: string | null
+          melding: string
+          ok: boolean
+          opeenvolgende_fouten: number
+        }
+        Insert: {
+          bron: string
+          gecontroleerd_op?: string
+          laatst_gemeld_op?: string | null
+          laatste_ok_op?: string | null
+          melding?: string
+          ok: boolean
+          opeenvolgende_fouten?: number
+        }
+        Update: {
+          bron?: string
+          gecontroleerd_op?: string
+          laatst_gemeld_op?: string | null
+          laatste_ok_op?: string | null
+          melding?: string
+          ok?: boolean
+          opeenvolgende_fouten?: number
+        }
+        Relationships: []
+      }
       leads: {
         Row: {
           achternaam: string
