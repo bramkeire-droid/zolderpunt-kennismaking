@@ -64,9 +64,13 @@ const TEST_NAME_RE = /^(WORKFLOWTEST|WORKFLOW TEST|VERIFICATIETEST)/i;
 function normPhone(raw: unknown): string {
   if (typeof raw !== 'string') return '';
   let s = raw.replace(/[^0-9]/g, '');
-  if (s.startsWith('0032')) s = '0' + s.slice(4);
-  else if (s.startsWith('32')) s = '0' + s.slice(2);
-  if (s && !s.startsWith('0')) s = '0' + s;
+  // Eerst de landcode eraf, dán pas de nationale nul zetten. Andersom ging
+  // "+32 (0)478…" mis: de haakjesnul bleef staan en werd 00478…, elf cijfers,
+  // die nooit matcht met 0478…. Dat formaat komt zo uit Outlook en BouwFlow.
+  if (s.startsWith('0032')) s = s.slice(4);
+  else if (s.startsWith('32')) s = s.slice(2);
+  s = s.replace(/^0+/, '');
+  if (s) s = '0' + s;
   // Te kort om onderscheidend te zijn; liever geen match dan een foute.
   return s.length >= 9 ? s : '';
 }
