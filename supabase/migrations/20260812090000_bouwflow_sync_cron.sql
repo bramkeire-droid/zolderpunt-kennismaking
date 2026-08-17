@@ -15,9 +15,10 @@
 create extension if not exists pg_cron;
 create extension if not exists pg_net;
 
--- De anon-sleutel volstaat: de functie doet zelf geen RLS-gevoelige dingen en
--- gebruikt haar eigen service-role intern. Ze staat in internal_config zodat
--- ze niet in de migratie (en dus in git) belandt.
+-- pull-bouwflow-projects controleert geen aanroeper en is publiek bereikbaar
+-- (verify_jwt staat uit), dus de cron heeft geen sleutel nodig. Alleen de
+-- project-URL staat in internal_config, zodat die niet hardgecodeerd in de
+-- migratie staat.
 create table if not exists public.internal_config (
   key text primary key,
   value text not null
@@ -39,17 +40,13 @@ select cron.schedule(
   select net.http_post(
     url := (select value from public.internal_config where key = 'supabase_url')
            || '/functions/v1/pull-bouwflow-projects',
-    headers := jsonb_build_object(
-      'Content-Type', 'application/json',
-      'Authorization', 'Bearer ' || (select value from public.internal_config where key = 'anon_key')
-    ),
+    headers := '{"Content-Type": "application/json"}'::jsonb,
     body := '{"dry_run": false}'::jsonb
   );
   $$
 );
 
--- Na het toepassen nog invullen (eenmalig, met de echte waarden):
---   insert into public.internal_config (key, value) values
---     ('supabase_url', 'https://<project>.supabase.co'),
---     ('anon_key', '<anon key>')
+-- Eenmalig invullen met de echte project-URL:
+--   insert into public.internal_config (key, value)
+--   values ('supabase_url', 'https://<project>.supabase.co')
 --   on conflict (key) do update set value = excluded.value;
