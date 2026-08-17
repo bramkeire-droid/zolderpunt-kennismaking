@@ -93,3 +93,25 @@ describe('geen enkel dossier mag uit beeld vallen', () => {
     expect(zichtbareKolommen(CATS, { 'phase:1': [] }, 'alles', standaard)).not.toContain('phase:1');
   });
 });
+
+describe('afgeronde fases tellen niet als open pipeline', () => {
+  const inactief = FASE_GROEPEN.find((g) => g.key === 'inactief')!;
+
+  // Dezelfde vijf die pull-bouwflow-projects als afgerond behandelt. Liepen
+  // die twee lijsten uiteen, dan telden voltooide dossiers mee in de KPI.
+  it.each([
+    [8, 'Geweigerd'],
+    [17, 'Nazorg'],
+    [18, 'Voltooid'],
+    [19, 'Geannuleerd'],
+    [20, 'Opvolging lange termijn'],
+  ])('fase %i (%s) staat in de inactief-groep', (id) => {
+    expect(inactief.phaseIds).toContain(id);
+  });
+
+  it('een lopende fase staat er juist NIET in', () => {
+    for (const id of [1, 3, 4, 13]) {
+      expect(inactief.phaseIds, `fase ${id} zou niet inactief mogen zijn`).not.toContain(id);
+    }
+  });
+});

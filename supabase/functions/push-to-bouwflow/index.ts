@@ -149,11 +149,21 @@ Deno.serve(async (req) => {
     return null;
   };
 
-  let bouwflowProjectId = findField(['project_id', 'projectId', 'id']);
-  const bouwflowProjectNumber = findField(['project_number', 'projectNumber', 'number', 'nummer']);
+  // LET OP de naamgeving in BouwFlow: het veld "project_id" bevat het
+  // ZL-NUMMER (een string zoals "ZL-0121"), terwijl het interne, numerieke
+  // id gewoon "id" heet. Wie project_id als id behandelt, zet het nummer in
+  // de verkeerde kolom — precies wat hier gebeurde.
+  const pkRuw = findField(['id', 'project_pk_id']);
+  const bouwflowProjectPkId = pkRuw && /^\d+$/.test(pkRuw) ? Number(pkRuw) : null;
+  const bouwflowProjectNumber =
+    findField(['project_number', 'projectNumber', 'number', 'nummer']) ??
+    findField(['project_id', 'projectId']);
 
-  if (!bouwflowProjectId) {
-    bouwflowProjectId = JSON.stringify(bouwflowResult);
+  if (!bouwflowProjectPkId) {
+    // Zonder intern id kan de fase later niet gewijzigd worden. Dat mag geen
+    // stille uitkomst zijn: vroeger werd bij twijfel het hele JSON-antwoord in
+    // de id-kolom gedumpt, waarna niets meer klopte.
+    console.error('push-to-bouwflow: geen numeriek project-id in antwoord', JSON.stringify(bouwflowResult).slice(0, 500));
   }
 
   const { data: updated, error: updateError } = await supabase
@@ -161,11 +171,13 @@ Deno.serve(async (req) => {
     .update({
       bouwflow_pushed_at: new Date().toISOString(),
       bouwflow_phase: phase,
-      bouwflow_project_id: bouwflowProjectId,
+      // Het veld waarop een faseverplaatsing werkt. Werd hier nooit gevuld,
+      // waardoor een net gepusht dossier niet van fase kon veranderen.
+      bouwflow_project_pk_id: bouwflowProjectPkId,
       bouwflow_project_number: bouwflowProjectNumber,
     })
     .eq('id', leadId)
-    .select('id, bouwflow_project_id, bouwflow_project_number, bouwflow_pushed_at, bouwflow_phase')
+    .select('id, bouwflow_project_pk_id, bouwflow_project_number, bouwflow_pushed_at, bouwflow_phase')
     .single();
 
   if (updateError) {

@@ -18,7 +18,12 @@ export const FASE_GROEPEN: FaseGroep[] = [
   { key: 'intake',     label: 'Intake',            phaseIds: [1, 21, 22, 23] },
   { key: 'offerte',    label: 'Offerte',           phaseIds: [27, 3, 4, 25] },
   { key: 'beslissing', label: 'Beslissing',        phaseIds: [6, 7] },
-  { key: 'inactief',   label: 'Inactief',          phaseIds: [20, 8], inactief: true },
+  // 17 Nazorg, 18 Voltooid en 19 Geannuleerd hoorden hier ook: het werk is
+  // geleverd of afgeblazen, dus ze zijn geen open pipeline meer. Ze stonden
+  // er niet in, waardoor 15 afgeronde dossiers meetelden in "Actieve dossiers"
+  // en in de pipelinewaarde. De sync (pull-bouwflow-projects) behandelt deze
+  // vijf fases al als afgerond; die twee lijsten spraken elkaar tegen.
+  { key: 'inactief',   label: 'Inactief',          phaseIds: [20, 8, 17, 18, 19], inactief: true },
   { key: 'alles',      label: 'Volledige pipeline', phaseIds: [] },
 ];
 
