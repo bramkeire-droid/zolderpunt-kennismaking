@@ -35,6 +35,7 @@ import PushToBouwflowDialog from '@/components/dossier/PushToBouwflowDialog';
 import MoveBouwflowPhaseDialog, { type PhaseOption } from '@/components/dossier/MoveBouwflowPhaseDialog';
 import KanbanBoard from '@/components/dossier/KanbanBoard';
 import PipelineHeader from '@/components/dossier/PipelineHeader';
+import BouwflowSyncStatus from '@/components/dossier/BouwflowSyncStatus';
 import { exclVorkVanLead } from '@/lib/prijscalculator';
 import {
   FASE_GROEPEN, bepaalVolgendeActie, dossierWaarde, type FaseGroepKey,
@@ -679,6 +680,10 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
           </TabsList>
 
           <TabsContent value="overzicht">
+            {/* Staat bewust bovenaan: een kapotte Bouwflow-koppeling moet je
+                zien zonder ernaar te zoeken. */}
+            <BouwflowSyncStatus onSynced={fetchLeads} />
+
             <div className="mb-4">
               <PipelineHeader
                 kpi={kpi}
