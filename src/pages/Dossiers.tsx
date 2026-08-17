@@ -403,16 +403,46 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
   const zichtbareKolommen = useMemo(() => {
     const groepDef = FASE_GROEPEN.find(g => g.key === faseGroep);
     const inGroep = (c: CategoryDef) =>
-      !groepDef || groepDef.phaseIds.length === 0
+      // "Niet in Bouwflow" hoort in elke fasegroep zichtbaar te blijven. Die
+      // kolom heeft per definitie geen fase-id, waardoor ze anders uit elke
+      // groep met een fasefilter viel — inclusief de standaardweergave, zodat
+      // een net aangemaakt dossier nergens te zien was.
+      c.phaseId === null
         ? true
-        : c.phaseId !== null && groepDef.phaseIds.includes(c.phaseId);
-    return CATEGORIES
+        : !groepDef || groepDef.phaseIds.length === 0
+          ? true
+          : groepDef.phaseIds.includes(c.phaseId);
+
+    const uitCategorieen = CATEGORIES
       // Bij een actieve zoekopdracht doorzoeken we alle dossiers, niet enkel
       // de kolommen van de gekozen fasegroep — anders lijkt een treffer in
       // een andere fase onterecht "niet gevonden".
       .filter(c => (zoekActief || faseGroep === 'alles') ? true : inGroep(c))
       .filter(c => toonLegeKolommen || (groupedByCategory[c.key] ?? []).length > 0);
-  }, [CATEGORIES, faseGroep, toonLegeKolommen, groupedByCategory, zoekActief]);
+
+    // Een fase die Bouwflow kent maar de mappingtabel niet, leverde wel een
+    // bak met dossiers op maar geen kolom om ze in te tekenen: die dossiers
+    // verdwenen spoorloos uit zowel de tabel als de kanban. Daarom hier een
+    // restkolom per onbekende fase, altijd zichtbaar — ze is per definitie
+    // niet leeg, en een dossier dat nergens staat is erger dan een kolom met
+    // een lelijke naam.
+    const bekend = new Set(uitCategorieen.map(c => c.key));
+    const restkolommen: CategoryDef[] = Object.entries(groupedByCategory)
+      .filter(([key, rijen]) =>
+        rijen.length > 0 && !bekend.has(key) && !CATEGORIES.some(c => c.key === key))
+      .map(([key]) => {
+        const faseId = Number(key.slice('phase:'.length));
+        const titel = phaseOptions.find(p => String(p.phase_id) === String(faseId))?.phase_title;
+        return {
+          key,
+          label: titel ? `${titel} (niet ingedeeld)` : `Onbekende Bouwflow-fase ${faseId}`,
+          accent: 'border-l-rose-400',
+          phaseId: Number.isFinite(faseId) ? faseId : null,
+        } as CategoryDef;
+      });
+
+    return [...uitCategorieen, ...restkolommen];
+  }, [CATEGORIES, faseGroep, toonLegeKolommen, groupedByCategory, zoekActief, phaseOptions]);
 
   const aantalPerGroep = useMemo(() => {
     const uit: Record<string, number> = {};
