@@ -49,20 +49,26 @@ export default function BouwflowSyncStatus({ onSynced }: { onSynced?: () => void
   const controleer = useCallback(async () => {
     const laatste = await laatsteSync();
     try {
-      const { data, error } = await supabase.functions.invoke('pull-bouwflow-projects', {
-        body: { dry_run: true },
+      // Bewust fetch en niet supabase.functions.invoke: die verpakt een 5xx in
+      // "Edge Function returned a non-2xx status code" en gooit juist de
+      // foutmelding weg waar het hier om draait.
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/pull-bouwflow-projects`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dry_run: true }),
       });
-      // functions.invoke geeft bij een 5xx een FunctionsHttpError terug; de
-      // echte oorzaak zit in de body, dus die halen we er expliciet uit.
-      const melding = (error as { context?: { error?: string } } | null)?.context?.error
-        ?? (data as { error?: string } | null)?.error
-        ?? (error ? error.message : null);
-      if (melding) { setStand({ staat: 'stuk', melding, laatste }); return; }
+      const data = await res.json().catch(() => null) as
+        { error?: string; total_seen?: number; would_create?: number } | null;
+
+      if (!res.ok || data?.error) {
+        setStand({ staat: 'stuk', melding: data?.error ?? `HTTP ${res.status}`, laatste });
+        return;
+      }
 
       setStand({
         staat: 'ok',
-        gezien: (data as { total_seen?: number })?.total_seen ?? 0,
-        nieuw: (data as { would_create?: number })?.would_create ?? 0,
+        gezien: data?.total_seen ?? 0,
+        nieuw: data?.would_create ?? 0,
         laatste,
       });
     } catch (e: unknown) {
