@@ -39,6 +39,7 @@
 // ================================================================
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { meldKoppelingsuitkomst } from '../_shared/koppelingGezondheid.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -143,6 +144,13 @@ Deno.serve(async (req) => {
     dryRunParam === 'true' ||
     dryRunParam === '1';
 
+  // De client staat bewust vóór de eerste netwerkoproep: ook een mislukte
+  // poging moet in koppeling_gezondheid terechtkomen, en daarvoor is hij nodig.
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+  );
+
   const secret = Deno.env.get('PUSH_LEAD_SECRET') || '';
 
   let proxyRes: Response;
@@ -154,6 +162,10 @@ Deno.serve(async (req) => {
     });
   } catch (err) {
     console.error('pull-bouwflow-projects: kon get-bouwflow-projects niet bereiken', err);
+    await meldKoppelingsuitkomst(supabase, 'bouwflow', {
+      ok: false,
+      melding: `Kon get-bouwflow-projects niet bereiken: ${err instanceof Error ? err.message : String(err)}`,
+    });
     return json({ error: 'Kon Bouwflow-projecten-functie niet bereiken' }, 502);
   }
 
@@ -179,6 +191,7 @@ Deno.serve(async (req) => {
         ? String((proxyResult as Record<string, unknown>).error)
         : rawText) || 'Onbekende fout van get-bouwflow-projects';
     console.error('pull-bouwflow-projects: proxy fout', proxyRes.status, errorMessage);
+    await meldKoppelingsuitkomst(supabase, 'bouwflow', { ok: false, melding: errorMessage });
     return json({ error: errorMessage }, 502);
   }
 
@@ -211,11 +224,6 @@ Deno.serve(async (req) => {
       pipeline_id: p.project_pipeline_id ?? null,
       phase_id: p.project_phase_id ?? null,
     }));
-
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-  );
 
   // Ook dossiers die enkel een projectnummer hebben (bv. handmatig gekoppeld,
   // of een project zonder klant): die moeten hervonden worden, niet gedupliceerd.
@@ -504,6 +512,11 @@ Deno.serve(async (req) => {
     createdCount++;
     if (inserted?.id) createdLeadIds.push(inserted.id);
   }
+
+  await meldKoppelingsuitkomst(supabase, 'bouwflow', {
+    ok: true,
+    melding: `${totalSeen} projecten opgehaald, ${matchedCount} gekoppeld, ${createdCount} nieuw`,
+  });
 
   return json({
     success: true,
