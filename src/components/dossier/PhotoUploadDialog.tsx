@@ -1,13 +1,14 @@
 import { useRef, useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Upload, Loader2, X, ImageIcon, Trash2, MessageSquarePlus, Check, ArrowLeft } from 'lucide-react';
+import { Upload, Loader2, X, ImageIcon, Trash2, MessageSquarePlus, Check, Download } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { compressImageFile } from '@/lib/imageCompression';
 import { normalizeLeadMedia } from '@/lib/leadMedia';
 import MediaThumb from '@/components/MediaThumb';
 import InboundHint from '@/components/dossier/InboundHint';
 import { toast } from 'sonner';
+import { downloadBlob } from '@/lib/downloadFile';
 import ImageLightbox from '@/components/ImageLightbox';
 
 interface Props {
@@ -48,6 +49,7 @@ export default function PhotoUploadDialog({ open, onClose, lead, onUpdate }: Pro
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bezigMetDownload, setBezigMetDownload] = useState(false);
   const [detailPath, setDetailPath] = useState<string | null>(null);
   const [noteText, setNoteText] = useState('');
   const [busy, setBusy] = useState(false);
@@ -176,14 +178,16 @@ export default function PhotoUploadDialog({ open, onClose, lead, onUpdate }: Pro
 
   // ---- DETAIL VIEW (single photo + annotaties) ----
   if (detailPhoto) {
+    // Sluiten betekent hier "terug naar de galerij", niet "alles dicht". Het
+    // kruisje rechtsboven zit vast in de gedeelde dialoogcomponent; door het
+    // sluiten hier op te vangen doen kruisje én Escape hetzelfde, en is de
+    // aparte terugknop overbodig geworden.
+    const terugNaarGalerij = () => { setDetailPath(null); setNoteText(''); };
     return (
-      <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
+      <Dialog open={open} onOpenChange={(v) => { if (!v) terugNaarGalerij(); }}>
         <DialogContent className="max-w-5xl">
           <DialogHeader>
             <DialogTitle className="font-headline flex items-center gap-2">
-              <Button variant="ghost" size="sm" onClick={() => { setDetailPath(null); setNoteText(''); }} className="gap-1 -ml-2">
-                <ArrowLeft className="h-4 w-4" /> Galerij
-              </Button>
               <span className="text-sm text-muted-foreground font-body truncate">{detailPhoto.name}</span>
             </DialogTitle>
           </DialogHeader>
@@ -262,7 +266,7 @@ export default function PhotoUploadDialog({ open, onClose, lead, onUpdate }: Pro
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={handleClose}>Sluiten</Button>
+            <Button variant="outline" onClick={terugNaarGalerij}>Terug naar galerij</Button>
           </DialogFooter>
         </DialogContent>
         {lightbox && <ImageLightbox src={lightbox} onClose={() => setLightbox(null)} />}
@@ -272,6 +276,35 @@ export default function PhotoUploadDialog({ open, onClose, lead, onUpdate }: Pro
 
   // ---- GALLERY VIEW ----
   const selectedCount = selected.size;
+
+  /**
+   * Downloadt de aangevinkte bestanden één voor één. Bewust sequentieel: een
+   * browser blokkeert een reeks gelijktijdige downloads als pop-ups. Elk
+   * bestand wordt eerst als blob opgehaald, want een rechtstreekse link naar
+   * de opslag opent het bestand in een tabblad in plaats van het te bewaren.
+   */
+  const downloadSelectie = async () => {
+    const teDownloaden = photos.filter((p) => selected.has(p.path));
+    if (teDownloaden.length === 0) return;
+    setBezigMetDownload(true);
+    let mislukt = 0;
+    for (const foto of teDownloaden) {
+      try {
+        const res = await fetch(foto.url);
+        if (!res.ok) throw new Error(String(res.status));
+        await downloadBlob(await res.blob(), foto.name || 'foto.jpg');
+      } catch (e) {
+        mislukt++;
+        console.error('downloaden mislukt', foto.name, e);
+      }
+    }
+    setBezigMetDownload(false);
+    if (mislukt === 0) {
+      toast.success(`${teDownloaden.length} bestand${teDownloaden.length === 1 ? '' : 'en'} gedownload`);
+    } else {
+      toast.error(`${mislukt} van de ${teDownloaden.length} bestanden konden niet gedownload worden`);
+    }
+  };
 
   return (
     <>
@@ -330,10 +363,22 @@ export default function PhotoUploadDialog({ open, onClose, lead, onUpdate }: Pro
                     {selectedCount} geselecteerd
                   </span>
                   <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1"
+                    disabled={busy || bezigMetDownload}
+                    onClick={downloadSelectie}
+                  >
+                    {bezigMetDownload
+                      ? <Loader2 className="h-4 w-4 animate-spin" />
+                      : <Download className="h-4 w-4" />}
+                    Downloaden
+                  </Button>
+                  <Button
                     variant="destructive"
                     size="sm"
                     className="gap-1"
-                    disabled={busy}
+                    disabled={busy || bezigMetDownload}
                     onClick={() => deletePhotosByPaths(Array.from(selected))}
                   >
                     <Trash2 className="h-4 w-4" /> Verwijderen
