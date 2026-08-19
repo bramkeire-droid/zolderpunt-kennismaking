@@ -44,19 +44,37 @@ function dataToRow(d: PreIntakeData) {
   };
 }
 
-function hasAnyData(d: PreIntakeData): boolean {
-  return !!(
-    d.call_started_at ||
-    d.trigger_text ||
-    d.emotional_keywords.length > 0 ||
-    d.fomu_concerns.length > 0 ||
-    d.buying_committee ||
-    d.general_impression ||
-    d.impression_tags.length > 0 ||
-    d.region_gemeente ||
-    d.scenario_chosen ||
-    d.quick_notes
-  );
+/** Velden die niets zeggen over of de gebruiker iets heeft ingevuld. */
+const NIET_INHOUDELIJK = new Set(['id', 'lead_id']);
+
+/**
+ * Is er iets ingevuld dat bewaard moet worden?
+ *
+ * Afgeleid uit dataToRow zelf, niet uit een handmatige lijst. Die lijst liep
+ * uit de pas: box_notes stond er niet in, terwijl dat precies de vier vakken
+ * zijn die tijdens een telefoongesprek ingevuld worden. Gevolg: wie enkel die
+ * vakken invulde, kreeg "Dossier opgeslagen" te zien terwijl er niets werd
+ * weggeschreven. Van 23 gesprekken bleef er zo één met notities over.
+ *
+ * Door de rij te vergelijken met een lege rij kan die drift niet terugkomen:
+ * elk veld dat bewaard wordt, telt automatisch mee.
+ */
+/**
+ * Recursief, want de gegevens zijn genest: box_notes bevat lijsten,
+ * questions_raised bevat objecten met een vinkje en een notitie. Een niet-
+ * recursieve check zag zo'n leeg binnenobject aan voor inhoud.
+ */
+function heeftInhoud(waarde: unknown): boolean {
+  if (waarde == null || waarde === '' || waarde === false || waarde === 0) return false;
+  if (Array.isArray(waarde)) return waarde.some(heeftInhoud);
+  if (typeof waarde === 'object') return Object.values(waarde as Record<string, unknown>).some(heeftInhoud);
+  return true;
+}
+
+export function hasAnyData(d: PreIntakeData): boolean {
+  const rij = dataToRow(d) as Record<string, unknown>;
+  return Object.entries(rij).some(([veld, waarde]) =>
+    !NIET_INHOUDELIJK.has(veld) && heeftInhoud(waarde));
 }
 
 export function usePreIntakeSave() {
@@ -65,17 +83,43 @@ export function usePreIntakeSave() {
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   const lastSavedRef = useRef<string>('');
   const isSavingRef = useRef(false);
+  // Een opslag die binnenkwam terwijl er al een liep. Zonder dit viel de
+  // laatste versie stilzwijgend weg — precies het soort verlies dat hier al
+  // eens een heel gesprek gekost heeft.
+  const wachtendeRef = useRef<{ d: PreIntakeData; showToast: boolean } | null>(null);
   const dataRef = useRef<PreIntakeData>(data);
   dataRef.current = data;
 
-  const persistData = useCallback(async (d: PreIntakeData, showToast: boolean) => {
-    if (!d.lead_id || !hasAnyData(d)) return;
+  const persistData = useCallback(async (d: PreIntakeData, showToast: boolean): Promise<boolean> => {
+    // Niets ingevuld: niets te doen, en dat is geen fout.
+    if (!hasAnyData(d)) return true;
+
+    // Wél ingevuld maar geen dossier om aan te hangen: dat is wél een fout, en
+    // die moet zichtbaar zijn. Stil teruggeven kostte een volledig gesprek.
+    if (!d.lead_id) {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); } catch { /* vol of geblokkeerd */ }
+      console.error('Pre-intake niet bewaard: er is nog geen dossier gekoppeld.');
+      if (showToast) {
+        toast({
+          title: 'Nog niet opgeslagen',
+          description: 'Vul eerst een naam of telefoonnummer in, dan wordt het gesprek bewaard.',
+          variant: 'destructive',
+        });
+      }
+      return false;
+    }
 
     const serialized = JSON.stringify(dataToRow(d));
-    if (serialized === lastSavedRef.current) return;
+    if (serialized === lastSavedRef.current) return true;
 
-    if (isSavingRef.current) return;
+    // Een gelijktijdige opslag mag deze niet laten verdwijnen: onthouden en
+    // meteen na afloop alsnog uitvoeren.
+    if (isSavingRef.current) {
+      wachtendeRef.current = { d, showToast };
+      return true;
+    }
     isSavingRef.current = true;
+    let gelukt = false;
 
     try {
       const row = dataToRow(d);
@@ -100,8 +144,9 @@ export function usePreIntakeSave() {
       try { localStorage.removeItem(STORAGE_KEY); } catch {}
 
       if (showToast) {
-        toast({ title: 'Opgeslagen', description: 'Pre-intake bewaard.' });
+        toast({ title: 'Opgeslagen', description: 'Gesprek bewaard.' });
       }
+      gelukt = true;
     } catch (err: any) {
       // Fallback: save to localStorage
       try { localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); } catch {}
@@ -113,17 +158,31 @@ export function usePreIntakeSave() {
     } finally {
       isSavingRef.current = false;
     }
+
+    // Kwam er tijdens het opslaan een nieuwere versie binnen, dan gaat die er
+    // nu alsnog in.
+    const wachtende = wachtendeRef.current;
+    if (wachtende) {
+      wachtendeRef.current = null;
+      return await persistDataRef.current(wachtende.d, wachtende.showToast);
+    }
+
+    return gelukt;
   }, [update, toast]);
 
+  // Zelfverwijzing zodat de wachtende opslag zichzelf opnieuw kan aanroepen.
+  const persistDataRef = useRef(persistData);
+  persistDataRef.current = persistData;
+
   const savePreIntake = useCallback(async () => {
-    await persistData(dataRef.current, true);
+    return await persistData(dataRef.current, true);
   }, [persistData]);
 
   /** Flush onmiddellijk — accepteert optionele overrides die nog niet in React-state staan. */
   const flushSave = useCallback(async (overrides?: Partial<PreIntakeData>) => {
     clearTimeout(debounceRef.current);
     const merged = overrides ? { ...dataRef.current, ...overrides } : dataRef.current;
-    await persistData(merged, false);
+    return await persistData(merged, false);
   }, [persistData]);
 
   // Autosave every 5 seconds

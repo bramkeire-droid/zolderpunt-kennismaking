@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, type ReactNode } from 'react';
 import { usePreIntake } from '@/contexts/PreIntakeContext';
-import { usePreIntakeSave } from '@/hooks/usePreIntakeSave';
+import { usePreIntakeSave, hasAnyData } from '@/hooks/usePreIntakeSave';
 import { useCallTimer } from '@/hooks/useCallTimer';
 import { supabase } from '@/integrations/supabase/client';
 import AddressAutocomplete from '@/components/AddressAutocomplete';
@@ -24,7 +24,11 @@ interface LiveCallingProps {
   initialLeadId?: string | null;
   initialStep?: CallingStep;
   /** Actiebalk voor het geopende dossier, gerenderd onder de topbar. */
-  renderActionsBar?: (leadId: string) => ReactNode;
+  /**
+   * Tweede argument: de manier waarop die balk het scherm mag verlaten. Zonder
+   * dit had zijn eigen "Naar dossiers" een sluipweg langs de opslagvraag.
+   */
+  renderActionsBar?: (leadId: string, onVerlaat: () => void) => ReactNode;
 }
 
 
@@ -257,29 +261,59 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
 
 
 
-  /** Terug-knop: bij ingevulde naam+email vraag om op te slaan, anders direct terug zonder lege rij. */
-  const handleBackToDossiers = async () => {
-    const heeftMinimum = !!(leadVoornaam.trim() || leadAchternaam.trim()) && !!leadEmail.trim();
-    if (heeftMinimum) {
-      setShowBackConfirm(true);
-    } else {
-      // niets noemenswaardig ingevuld — gewoon weg, géén lege rij achterlaten
-      onGoDossiers();
-    }
+  /**
+   * Is er iets ingevuld dat verloren zou gaan? Kijkt naar het gesprek zelf én
+   * naar de klantvelden. Eerder werd hier naam EN e-mail geëist: wie enkel de
+   * vier gespreksvakken invulde, verliet het scherm zonder waarschuwing en
+   * raakte alles kwijt.
+   */
+  const heeftOnbewaardWerk = () =>
+    hasAnyData(data) ||
+    !!(leadVoornaam.trim() || leadAchternaam.trim() || leadEmail.trim() ||
+       leadTelefoon.trim() || leadAdres.trim() || leadPartnerNaam.trim());
+
+  /** Waar het scherm heen gaat zodra de vraag beantwoord is. */
+  const vertrekRef = useRef<() => void>(onGoDossiers);
+
+  /** Elke uitgang loopt hierlangs, zodat er geen weg is die de vraag overslaat. */
+  const probeerTeVertrekken = (bestemming: () => void) => {
+    vertrekRef.current = bestemming;
+    if (heeftOnbewaardWerk()) setShowBackConfirm(true);
+    else bestemming();
   };
+
+  const handleBackToDossiers = () => probeerTeVertrekken(onGoDossiers);
+
+  // Tabblad sluiten of verversen: de browser toont dan zijn eigen waarschuwing.
+  // Een eigen popup mag daar niet, dus dit is het dichtst mogelijke equivalent.
+  useEffect(() => {
+    const waarschuw = (e: BeforeUnloadEvent) => {
+      if (!heeftOnbewaardWerk()) return;
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', waarschuw);
+    return () => window.removeEventListener('beforeunload', waarschuw);
+  });
 
   const confirmBackSave = async () => {
     const leadId = await ensureLeadRow();
-    await flushSave({ lead_id: leadId ?? data.lead_id });
-    toast.success('Dossier bewaard');
+    const gelukt = await flushSave({ lead_id: leadId ?? data.lead_id });
+    if (!gelukt) {
+      // Niet vertrekken op een mislukte opslag: dan zou het werk alsnog weg
+      // zijn, met een groene melding erbij.
+      toast.error('Opslaan mislukt — je gesprek staat nog op het scherm. Probeer opnieuw.');
+      return;
+    }
+    toast.success('Gesprek bewaard');
     setShowBackConfirm(false);
-    onGoDossiers();
+    vertrekRef.current();
   };
 
 
   const confirmBackDiscard = () => {
     setShowBackConfirm(false);
-    onGoDossiers();
+    vertrekRef.current();
   };
 
 
@@ -289,7 +323,7 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
     return (
       <div className="h-screen flex flex-col bg-[#F8F3EB]">
         <div className="h-14 bg-white border-b border-[#DDD5C5] flex items-center px-6 gap-4 shrink-0">
-          <button onClick={onGoHome} className="flex items-center gap-2 text-sm font-dm text-[#5B6470] hover:text-[#0F1419]">
+          <button onClick={() => probeerTeVertrekken(onGoHome)} className="flex items-center gap-2 text-sm font-dm text-[#5B6470] hover:text-[#0F1419]">
             <ArrowLeft className="h-4 w-4" /> Terug
           </button>
           <h1 className="text-base font-dm font-bold text-[#0F1419]">Nieuw telefoongesprek</h1>
@@ -345,7 +379,7 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
         </div>
       </div>
 
-      {selectedLead?.id && renderActionsBar?.(selectedLead.id)}
+      {selectedLead?.id && renderActionsBar?.(selectedLead.id, () => probeerTeVertrekken(onGoDossiers))}
 
       {/* ═══ WORKSPACE — single centered column ═══ */}
       <div className="flex-1 min-h-0 bg-[#FFFCF5] overflow-auto">

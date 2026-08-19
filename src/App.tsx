@@ -230,13 +230,13 @@ function AppContent() {
     );
   }
 
-  const dossierBar = (leadId: string, bron: CalculatieBron = 'los') => (
+  const dossierBar = (leadId: string, bron: CalculatieBron = 'los', onVerlaat?: () => void) => (
     <DossierActionsBar
       leadId={leadId}
       bron={bron}
       onCall={handleOpenCall}
       onIntake={handleStartVideocall}
-      onGoDossiers={handleGoDossiers}
+      onGoDossiers={onVerlaat ?? handleGoDossiers}
     />
   );
 
@@ -249,7 +249,7 @@ function AppContent() {
           onOpenValidation={handleOpenValidation}
           initialLeadId={callingLeadId}
           initialStep={callingInitialStep}
-          renderActionsBar={(leadId: string) => dossierBar(leadId, 'telefoon')}
+          renderActionsBar={(leadId: string, onVerlaat: () => void) => dossierBar(leadId, 'telefoon', onVerlaat)}
         />
       </PreIntakeProvider>
     );
