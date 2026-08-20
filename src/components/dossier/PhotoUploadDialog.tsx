@@ -1,7 +1,7 @@
-import { useRef, useState, useMemo } from 'react';
+import { useRef, useState, useMemo, useCallback, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Upload, Loader2, X, ImageIcon, Trash2, MessageSquarePlus, Check, Download } from 'lucide-react';
+import { Upload, Loader2, X, ImageIcon, Trash2, MessageSquarePlus, Check, Download, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { compressImageFile } from '@/lib/imageCompression';
 import { normalizeLeadMedia } from '@/lib/leadMedia';
@@ -60,6 +60,35 @@ export default function PhotoUploadDialog({ open, onClose, lead, onUpdate }: Pro
 
   const detailPhoto = detailPath ? photos.find((p) => p.path === detailPath) || null : null;
   const detailFeiten = detailPath ? feiten.filter((f) => f?.foto_path === detailPath) : [];
+
+  const huidigeIndex = detailPath ? photos.findIndex((p) => p.path === detailPath) : -1;
+
+  const gaNaarFoto = useCallback((richting: -1 | 1) => {
+    if (huidigeIndex < 0 || photos.length < 2) return;
+    // Rondlopen: na de laatste weer de eerste. Bij tientallen doorgestuurde
+    // foto's scheelt dat het terugklikken door de hele reeks.
+    const volgende = (huidigeIndex + richting + photos.length) % photos.length;
+    setDetailPath(photos[volgende].path);
+    setNoteText('');
+  }, [huidigeIndex, photos]);
+
+  // Pijltjestoetsen. Staat hier op het hoogste niveau omdat de detailweergave
+  // vroeg terugkeert en een hook daarbinnen voorwaardelijk zou zijn.
+  useEffect(() => {
+    if (!detailPath) return;
+    const opToets = (e: KeyboardEvent) => {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      // Niet navigeren terwijl er getypt wordt: in het annotatieveld hoort de
+      // pijl de cursor te verplaatsen, niet de foto.
+      const el = document.activeElement as HTMLElement | null;
+      const tikt = el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
+      if (tikt) return;
+      e.preventDefault();
+      gaNaarFoto(e.key === 'ArrowLeft' ? -1 : 1);
+    };
+    window.addEventListener('keydown', opToets);
+    return () => window.removeEventListener('keydown', opToets);
+  }, [detailPath, gaNaarFoto]);
 
   const resetLocal = () => {
     setSelectMode(false);
@@ -183,6 +212,9 @@ export default function PhotoUploadDialog({ open, onClose, lead, onUpdate }: Pro
     // sluiten hier op te vangen doen kruisje én Escape hetzelfde, en is de
     // aparte terugknop overbodig geworden.
     const terugNaarGalerij = () => { setDetailPath(null); setNoteText(''); };
+
+    const huidige = huidigeIndex;
+    const gaNaar = gaNaarFoto;
     return (
       <Dialog open={open} onOpenChange={(v) => { if (!v) terugNaarGalerij(); }}>
         <DialogContent className="max-w-5xl">
@@ -193,7 +225,32 @@ export default function PhotoUploadDialog({ open, onClose, lead, onUpdate }: Pro
           </DialogHeader>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-muted rounded-sm overflow-hidden">
+            <div className="relative bg-muted rounded-sm overflow-hidden">
+              {photos.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => gaNaar(-1)}
+                    aria-label="Vorige foto"
+                    title="Vorige (pijl links)"
+                    className="absolute left-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/55 p-2 text-white transition hover:bg-black/75 focus-visible:ring-2 focus-visible:ring-white"
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => gaNaar(1)}
+                    aria-label="Volgende foto"
+                    title="Volgende (pijl rechts)"
+                    className="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/55 p-2 text-white transition hover:bg-black/75 focus-visible:ring-2 focus-visible:ring-white"
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </button>
+                  <span className="absolute bottom-2 left-1/2 z-10 -translate-x-1/2 rounded-full bg-black/55 px-2 py-0.5 text-xs tabular-nums text-white">
+                    {huidige + 1} / {photos.length}
+                  </span>
+                </>
+              )}
               {detailPhoto.isVideo ? (
                 <video
                   src={detailPhoto.url}
