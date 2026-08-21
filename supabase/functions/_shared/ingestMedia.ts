@@ -580,9 +580,15 @@ export async function touchWindow(
     })
     .maybeSingle();
 
-  const mediaIds: string[] = Array.isArray(data?.media_ids) ? data!.media_ids : [];
-  const notes: string = data?.notes || '';
-  const hadPhotosBefore: boolean = !!data?.had_photos_before;
+  const row = (data ?? {}) as {
+    media_ids?: unknown;
+    notes?: unknown;
+    had_photos_before?: unknown;
+  };
+
+  const mediaIds: string[] = Array.isArray(row.media_ids) ? (row.media_ids as string[]) : [];
+  const notes: string = typeof row.notes === 'string' ? row.notes : '';
+  const hadPhotosBefore: boolean = !!row.had_photos_before;
 
   const segments: string[] = notes ? [notes] : [];
   let photoCount = 0;

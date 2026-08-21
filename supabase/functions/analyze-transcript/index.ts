@@ -227,7 +227,7 @@ TAAL: Nederlands (Belgisch). Wees direct, concreet, eerlijk.`;
     });
   } catch (e) {
     console.error("analyze-transcript error:", e);
-    return new Response(JSON.stringify({ error: e.message || "Onbekende fout" }), {
+    return new Response(JSON.stringify({ error: (e instanceof Error ? e.message : String(e)) || "Onbekende fout" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
