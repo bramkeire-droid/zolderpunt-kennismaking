@@ -1268,6 +1268,11 @@ function NextStepCell({ value, preIntake, onChange }: { value: string; preIntake
 
   const [editingOther, setEditingOther] = useState(isOther);
   const [otherText, setOtherText] = useState(isOther ? effective : '');
+  // Alleen scherpstellen wanneer de gebruiker zelf "Andere…" kiest. Stond hier
+  // een onvoorwaardelijke autoFocus, dan greep elk dossier met een vrij
+  // ingetypte volgende stap de focus zodra het opnieuw verscheen — en dat
+  // gebeurt bij elke aanslag in de zoekbalk, want die bouwt de lijst opnieuw op.
+  const [zelfGeopend, setZelfGeopend] = useState(false);
 
   useEffect(() => {
     if (isOther) { setEditingOther(true); setOtherText(effective); }
@@ -1292,6 +1297,7 @@ function NextStepCell({ value, preIntake, onChange }: { value: string; preIntake
         onValueChange={(v) => {
           if (v === NEXT_STEP_OTHER) {
             setEditingOther(true);
+            setZelfGeopend(true);
             setOtherText('');
           } else {
             setEditingOther(false);
@@ -1311,13 +1317,13 @@ function NextStepCell({ value, preIntake, onChange }: { value: string; preIntake
       </Select>
       {editingOther && (
         <Input
-          autoFocus
+          autoFocus={zelfGeopend}
           value={otherText}
           onChange={(e) => setOtherText(e.target.value)}
-          onBlur={() => { const t = otherText.trim(); if (t) onChange(t); else setEditingOther(false); }}
+          onBlur={() => { setZelfGeopend(false); const t = otherText.trim(); if (t) onChange(t); else setEditingOther(false); }}
           onKeyDown={(e) => {
             if (e.key === 'Enter') { const t = otherText.trim(); if (t) onChange(t); (e.target as HTMLInputElement).blur(); }
-            if (e.key === 'Escape') { setEditingOther(false); setOtherText(''); }
+            if (e.key === 'Escape') { setZelfGeopend(false); setEditingOther(false); setOtherText(''); }
           }}
           placeholder="Beschrijf de volgende stap…"
           className="h-7 mt-1 text-xs"
