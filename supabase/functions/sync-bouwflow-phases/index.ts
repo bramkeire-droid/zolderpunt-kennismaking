@@ -131,10 +131,8 @@ Deno.serve(async (req) => {
     return json({ success: true, count: 0 });
   }
 
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-  );
+
+
 
   const { data: upserted, error: upsertError } = await supabase
     .from('bouwflow_phases')
