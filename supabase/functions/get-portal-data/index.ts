@@ -84,6 +84,34 @@ serve(async (req) => {
       }
     }
 
+    // 3b. lead-fotos is een privé-bucket: de klant heeft geen Supabase-login,
+    // dus enkel deze functie (service-role, omzeilt RLS) kan de foto's
+    // ondertekenen. Een ooit-opgeslagen `url` in lead.fotos is voor altijd
+    // dood zodra de bucket privé ging en wordt hier bewust overschreven.
+    const SIGN_TTL_SECONDS = 60 * 30; // 30 min: ruim genoeg om het portaal open te laten staan
+    const rawFotos: any[] = Array.isArray(lead.fotos) ? lead.fotos : [];
+    const fotoPaths = Array.from(
+      new Set(rawFotos.map((f) => f?.storage_path || f?.path || "").filter(Boolean)),
+    );
+    let fotosGesigneerd = rawFotos;
+    if (fotoPaths.length > 0) {
+      const { data: signedRows, error: signError } = await supabase.storage
+        .from("lead-fotos")
+        .createSignedUrls(fotoPaths, SIGN_TTL_SECONDS);
+      if (signError) {
+        console.error("get-portal-data: signeren van foto's mislukt", signError);
+      } else {
+        const urlByPath: Record<string, string> = {};
+        for (const row of signedRows || []) {
+          if (row.path && row.signedUrl && !row.error) urlByPath[row.path] = row.signedUrl;
+        }
+        fotosGesigneerd = rawFotos.map((f) => {
+          const path = f?.storage_path || f?.path || "";
+          return path && urlByPath[path] ? { ...f, url: urlByPath[path] } : f;
+        });
+      }
+    }
+
     // 4. Build public-safe data (strip internal fields)
     const portalData = {
       voornaam: lead.voornaam,
@@ -104,7 +132,7 @@ serve(async (req) => {
       prijs_max_incl_btw: lead.prijs_max_incl_btw,
       prijs_mw_min_incl_btw: lead.prijs_mw_min_incl_btw,
       prijs_mw_max_incl_btw: lead.prijs_mw_max_incl_btw,
-      fotos: lead.fotos,
+      fotos: fotosGesigneerd,
       project_feiten: lead.project_feiten,
       inbegrepen_posten: lead.inbegrepen_posten,
       technisch: lead.technisch,

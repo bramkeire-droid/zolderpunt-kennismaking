@@ -7,7 +7,8 @@ import { Upload, Loader2, X, Image, ImageOff, MapPin } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import ImageLightbox from '@/components/ImageLightbox';
 import { compressImageFile } from '@/lib/imageCompression';
-import { normalizeLeadMedia, saveLeadPhotos } from '@/lib/leadMedia';
+import { saveLeadPhotos } from '@/lib/leadMedia';
+import { useSignedLeadFotos } from '@/hooks/useSignedLeadFotos';
 
 interface PhotoItem {
   bestandsnaam: string;
@@ -35,10 +36,11 @@ export default function Slide4() {
   const [labelMode, setLabelMode] = useState(false);
   const [pendingLabels, setPendingLabels] = useState<PendingLabel[]>([]);
 
-  // normalizeLeadMedia bridges the two shapes in leads.fotos (manual upload
-  // vs. WhatsApp/mail), so inbound media shows up here too, and flags video.
+  // useSignedLeadFotos bridges de twee vormen in leads.fotos (manual upload
+  // vs. WhatsApp/mail, dus inbound media staat hier ook), signeert vers voor
+  // de privé-bucket, en vlagt video.
   const photos: (PhotoItem & { publicUrl: string; isVideo: boolean })[] =
-    normalizeLeadMedia(lead.fotos).map((m) => ({
+    useSignedLeadFotos(lead.fotos).map((m) => ({
       bestandsnaam: m.name,
       storage_path: m.path,
       url: m.url,
@@ -79,8 +81,10 @@ export default function Slide4() {
       const path = `${leadId}/${Date.now()}-${file.name}`;
       const { error } = await supabase.storage.from('lead-fotos').upload(path, file, { upsert: false, contentType: file.type });
       if (error) { console.error('Upload error:', error); continue; }
-      const { data: urlData } = supabase.storage.from('lead-fotos').getPublicUrl(path);
-      newPhotos.push({ bestandsnaam: file.name, storage_path: path, url: urlData.publicUrl });
+      // Geen publieke URL meer opslaan: lead-fotos is een privé-bucket, dus
+      // zo'n opgeslagen URL zou vanaf nu voorgoed dood zijn. Het pad
+      // volstaat — useSignedLeadFotos tekent bij weergave telkens vers.
+      newPhotos.push({ bestandsnaam: file.name, storage_path: path });
     }
     if (newPhotos.length > 0) {
       // Re-read first: WhatsApp/e-mail media may have landed since this

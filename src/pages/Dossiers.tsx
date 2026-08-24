@@ -46,7 +46,7 @@ import CalculatorDialog from '@/components/dossier/CalculatorDialog';
 import PrijscalculatorDialog from '@/components/dossier/PrijscalculatorDialog';
 import { LayoutGrid, Rows3 } from 'lucide-react';
 import { INBOUND_HINT_TEXT } from '@/components/dossier/InboundHint';
-import { normalizeLeadMedia, imagesOnly } from '@/lib/leadMedia';
+import { normalizeLeadMedia, imagesOnly, resignLeadFotos } from '@/lib/leadMedia';
 import { Image as ImageIcon, Inbox } from 'lucide-react';
 import { formatDatum } from '@/components/report/reportConstants';
 import { downloadBlob, openDownloadWindow } from '@/lib/downloadFile';
@@ -522,6 +522,10 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
     const fallbackWindow = openDownloadWindow(filename);
     const t = toast.loading('PDF wordt opgemaakt...');
     try {
+      // lead-fotos is een privé-bucket: vers signeren vóór de foto's in het
+      // rapport terechtkomen. react-pdf haalt de bytes meteen op, dus een
+      // kortlevende link volstaat ruimschoots.
+      const fotosGesigneerd = await resignLeadFotos(lead.fotos);
       const reportData: ReportData = {
         voornaam: lead.voornaam || '', achternaam: lead.achternaam || '',
         adres: lead.adres || '',
@@ -544,8 +548,8 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
         prijs_mw_max_incl_btw: lead.prijs_mw_max_incl_btw ?? 0,
         // Same as Slide10: inbound photos carry `path` (not `url`) and would
         // otherwise be missing from the report; video is left out entirely.
-        fotos: imagesOnly(normalizeLeadMedia(lead.fotos)).map((m) => m.url),
-        fotos_met_path: imagesOnly(normalizeLeadMedia(lead.fotos)).map((m) => ({ url: m.url, storage_path: m.path })),
+        fotos: imagesOnly(normalizeLeadMedia(fotosGesigneerd)).map((m) => m.url),
+        fotos_met_path: imagesOnly(normalizeLeadMedia(fotosGesigneerd)).map((m) => ({ url: m.url, storage_path: m.path })),
         waarde_tekst_ai: lead.waarde_tekst_ai || 'Extra leefruimte gecreëerd uit ruimte die er al was.',
         inbegrepen_posten: lead.inbegrepen_posten || [],
         project_feiten: (lead.project_feiten || []).filter((f: any): f is FeitjeItem => typeof f === 'object' && 'tekst' in f),

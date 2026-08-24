@@ -10,7 +10,7 @@ import type { ReportData, FeitjeItem } from '@/components/report/reportTypes';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { fetchAndDownscaleToDataUrl } from '@/lib/imageCompression';
-import { normalizeLeadMedia, imagesOnly } from '@/lib/leadMedia';
+import { normalizeLeadMedia, imagesOnly, resignLeadFotos } from '@/lib/leadMedia';
 import { formatDatum } from '@/components/report/reportConstants';
 import { downloadBlob, openDownloadWindow } from '@/lib/downloadFile';
 
@@ -132,7 +132,11 @@ export default function Slide10() {
         await new Promise(r => setTimeout(r, 500));
       }
 
-      const reportData = mapLeadToReportData(lead);
+      // lead-fotos is een privé-bucket: vers signeren vóór mapLeadToReportData
+      // de foto's opneemt. fetchAndDownscaleToDataUrl hieronder haalt de bytes
+      // meteen op, dus een kortlevende link volstaat ruimschoots.
+      const fotosGesigneerd = await resignLeadFotos<typeof lead.fotos[number]>(lead.fotos);
+      const reportData = mapLeadToReportData({ ...lead, fotos: fotosGesigneerd });
 
       // Pre-fetch + downscale all photos to base64 data-URLs.
       // Reden: @react-pdf/renderer faalt silent op grote remote JPEGs (4+ MB

@@ -10,7 +10,8 @@ import { useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import ImageLightbox from '@/components/ImageLightbox';
 import { compressImageFile } from '@/lib/imageCompression';
-import { normalizeLeadMedia, saveLeadPhotos } from '@/lib/leadMedia';
+import { saveLeadPhotos } from '@/lib/leadMedia';
+import { useSignedLeadFotos } from '@/hooks/useSignedLeadFotos';
 
 interface PhotoItem {
   bestandsnaam: string;
@@ -24,10 +25,10 @@ export default function Slide0B() {
   const [uploading, setUploading] = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
 
-  // normalizeLeadMedia handles both shapes in leads.fotos (manual upload and
-  // WhatsApp/mail) and flags which items are video.
+  // useSignedLeadFotos handles both shapes in leads.fotos (manual upload and
+  // WhatsApp/mail), signs fresh for the private bucket, and flags video.
   const photos: (PhotoItem & { publicUrl: string; isVideo: boolean })[] =
-    normalizeLeadMedia(lead.fotos).map((m) => ({
+    useSignedLeadFotos(lead.fotos).map((m) => ({
       bestandsnaam: m.name,
       storage_path: m.path,
       url: m.url,
@@ -56,11 +57,12 @@ export default function Slide0B() {
         continue;
       }
 
-      const { data: urlData } = supabase.storage.from('lead-fotos').getPublicUrl(path);
+      // Geen publieke URL meer opslaan: lead-fotos is een privé-bucket, dus
+      // zo'n opgeslagen URL zou vanaf nu voorgoed dood zijn. Het pad
+      // volstaat — useSignedLeadFotos tekent bij weergave telkens vers.
       newPhotos.push({
         bestandsnaam: file.name,
         storage_path: path,
-        url: urlData.publicUrl,
       });
     }
 

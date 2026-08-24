@@ -6,13 +6,13 @@ import AddressAutocomplete from '@/components/AddressAutocomplete';
 import { Input } from '@/components/ui/input';
 import { MapPin, Image } from 'lucide-react';
 import ImageLightbox from '@/components/ImageLightbox';
-import { normalizeLeadMedia } from '@/lib/leadMedia';
+import { useSignedLeadFotos } from '@/hooks/useSignedLeadFotos';
 
 export default function Slide3() {
   const { lead, updateLead } = useSession();
   const geocodedRef = useRef(false);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
-  const media = normalizeLeadMedia(lead.fotos);
+  const media = useSignedLeadFotos(lead.fotos);
 
   // Geocode fallback: fetch coordinates for existing addresses missing lat/lng
   useEffect(() => {

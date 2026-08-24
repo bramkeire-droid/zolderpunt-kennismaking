@@ -5,6 +5,7 @@ import { Upload, Loader2, X, ImageIcon, Trash2, MessageSquarePlus, Check, Downlo
 import { supabase } from '@/integrations/supabase/client';
 import { compressImageFile } from '@/lib/imageCompression';
 import { normalizeLeadMedia } from '@/lib/leadMedia';
+import { useSignedLeadFotos } from '@/hooks/useSignedLeadFotos';
 import MediaThumb from '@/components/MediaThumb';
 import InboundHint from '@/components/dossier/InboundHint';
 import { toast } from 'sonner';
@@ -28,11 +29,11 @@ interface NormalizedPhoto {
 }
 
 // Keeps the original row and its index (needed for annotations and for
-// writing back), while normalizeLeadMedia handles the two stored shapes
-// and the video flag.
-function normalize(fotos: any[]): NormalizedPhoto[] {
+// writing back). media komt van useSignedLeadFotos: lead-fotos is een
+// privé-bucket, dus de URL's moeten vers ondertekend zijn, niet hier ter
+// plekke via normalizeLeadMedia herberekend.
+function normalize(fotos: any[], media: ReturnType<typeof normalizeLeadMedia>): NormalizedPhoto[] {
   const raws = Array.isArray(fotos) ? fotos : [];
-  const media = normalizeLeadMedia(raws);
   return media
     .map((m) => {
       const index = raws.findIndex(
@@ -55,7 +56,8 @@ export default function PhotoUploadDialog({ open, onClose, lead, onUpdate }: Pro
   const [busy, setBusy] = useState(false);
 
   const rawFotos: any[] = Array.isArray(lead?.fotos) ? lead.fotos : [];
-  const photos = useMemo(() => normalize(rawFotos), [rawFotos]);
+  const signedMedia = useSignedLeadFotos(rawFotos);
+  const photos = useMemo(() => normalize(rawFotos, signedMedia), [rawFotos, signedMedia]);
   const feiten: any[] = Array.isArray(lead?.project_feiten) ? lead.project_feiten : [];
 
   const detailPhoto = detailPath ? photos.find((p) => p.path === detailPath) || null : null;
@@ -122,8 +124,10 @@ export default function PhotoUploadDialog({ open, onClose, lead, onUpdate }: Pro
           .from('lead-fotos')
           .upload(path, file, { upsert: false, contentType: file.type });
         if (error) { console.error(error); continue; }
-        const { data: urlData } = supabase.storage.from('lead-fotos').getPublicUrl(path);
-        added.push({ bestandsnaam: file.name, storage_path: path, url: urlData.publicUrl });
+        // Geen publieke URL meer opslaan: lead-fotos is een privé-bucket, dus
+        // zo'n opgeslagen URL zou vanaf nu voorgoed dood zijn. Het pad
+        // volstaat — useSignedLeadFotos tekent bij weergave telkens vers.
+        added.push({ bestandsnaam: file.name, storage_path: path });
       } catch (e) { console.error(e); }
     }
     if (added.length > 0) {
