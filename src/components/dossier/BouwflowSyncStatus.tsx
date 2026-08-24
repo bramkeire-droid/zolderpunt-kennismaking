@@ -51,10 +51,17 @@ export default function BouwflowSyncStatus({ onSynced }: { onSynced?: () => void
     try {
       // Bewust fetch en niet supabase.functions.invoke: die verpakt een 5xx in
       // "Edge Function returned a non-2xx status code" en gooit juist de
-      // foutmelding weg waar het hier om draait.
+      // foutmelding weg waar het hier om draait. pull-bouwflow-projects
+      // vereist sinds de security-fix een ingelogde gebruiker, dus de
+      // sessie-JWT moet hier expliciet mee (fetch stuurt die niet vanzelf
+      // mee zoals supabase.functions.invoke wel doet).
+      const { data: sessionData } = await supabase.auth.getSession();
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/pull-bouwflow-projects`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(sessionData.session ? { Authorization: `Bearer ${sessionData.session.access_token}` } : {}),
+        },
         body: JSON.stringify({ dry_run: true }),
       });
       const data = await res.json().catch(() => null) as

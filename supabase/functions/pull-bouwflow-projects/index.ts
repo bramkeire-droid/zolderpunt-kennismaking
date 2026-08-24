@@ -36,6 +36,13 @@
 // flagged_test_projects i.p.v. meegeteld als would_create, zodat een
 // mens bewust kan beslissen. De ECHTE (niet-dry-run) schrijf-pad sluit
 // die namen NIET uit — dat is bewust, zie taakomschrijving.
+//
+// BEVEILIGING: verify_jwt uit config.toml wordt in dit project niet
+// afgedwongen (zelfde vaststelling als bij push-bouwflow-phase), dus de
+// check gebeurt hier expliciet: de pg_cron-job bouwflow-pull stuurt het
+// gedeelde secret uit internal_config.bouwflow_cron_secret mee, een
+// ingelogde gebruiker (UI) komt binnen via zijn sessie-JWT. Zonder één van
+// beide gebeurt er niets meer.
 // ================================================================
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
@@ -132,6 +139,40 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST' && req.method !== 'GET') return json({ error: 'Method not allowed' }, 405);
 
+  // De client staat bewust vóór de eerste netwerkoproep: ook een mislukte
+  // poging moet in koppeling_gezondheid terechtkomen, en daarvoor is hij nodig.
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+  );
+
+  // --- Auth: deze functie leest/schrijft klant-PII in bulk, dus enkel de
+  // pg_cron-job (gedeeld secret uit internal_config, zelfde patroon als
+  // flush-inbound-groups) of een écht ingelogde Compass-gebruiker mag hem
+  // triggeren. Voorheen kon iedereen op het internet dit aanroepen zonder
+  // enige header (zie flush-inbound-groups voor het precedent).
+  const cronSecretGiven = (req.headers.get('x-bouwflow-cron-secret') || '').trim();
+  let geautoriseerd = false;
+  if (cronSecretGiven) {
+    const { data: cfg } = await supabase
+      .from('internal_config')
+      .select('value')
+      .eq('key', 'bouwflow_cron_secret')
+      .maybeSingle();
+    geautoriseerd = !!cfg?.value && cronSecretGiven === cfg.value;
+  }
+  if (!geautoriseerd) {
+    const authHeader = req.headers.get('Authorization') ?? '';
+    if (authHeader.startsWith('Bearer ')) {
+      const userClient = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: userData } = await userClient.auth.getUser();
+      geautoriseerd = !!userData?.user;
+    }
+  }
+  if (!geautoriseerd) return json({ error: 'Niet ingelogd' }, 401);
+
   let body: Record<string, unknown> = {};
   if (req.method === 'POST') {
     try {
@@ -147,13 +188,6 @@ Deno.serve(async (req) => {
     body.dry_run === 'true' ||
     dryRunParam === 'true' ||
     dryRunParam === '1';
-
-  // De client staat bewust vóór de eerste netwerkoproep: ook een mislukte
-  // poging moet in koppeling_gezondheid terechtkomen, en daarvoor is hij nodig.
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-  );
 
   const secret = Deno.env.get('PUSH_LEAD_SECRET') || '';
 

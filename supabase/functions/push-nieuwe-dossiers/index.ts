@@ -13,6 +13,11 @@
 // RIJP = een naam én een manier om iemand te bereiken (telefoon of e-mail).
 // Bewust niet losser: een dossier ontstaat vaak leeg, en een leeg project in
 // BouwFlow is erger dan een ontbrekend project — BouwFlow is de waarheid.
+//
+// BEVEILIGING: enkel de pg_cron-job bouwflow-push-nieuwe roept dit aan, geen
+// enkele UI-knop. Beveiligd met hetzelfde gedeelde-secret-patroon als
+// flush-inbound-groups (secret in internal_config, header i.p.v. env var
+// omdat pg_cron geen Deno-env kan lezen).
 // ================================================================
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
@@ -43,6 +48,15 @@ Deno.serve(async (req) => {
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
   );
+
+  const { data: cfg } = await supabase
+    .from('internal_config')
+    .select('value')
+    .eq('key', 'bouwflow_cron_secret')
+    .maybeSingle();
+  const expected = (cfg?.value || '').trim();
+  const provided = (req.headers.get('x-bouwflow-cron-secret') || '').trim();
+  if (!expected || provided !== expected) return json({ error: 'Unauthorized' }, 401);
 
   const { data: kandidaten, error } = await supabase
     .from('leads')

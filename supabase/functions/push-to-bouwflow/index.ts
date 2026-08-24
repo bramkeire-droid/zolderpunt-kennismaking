@@ -16,6 +16,24 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
 
+  // --- Auth: dit stuurt een dossier + PII (naam/e-mail/telefoon/adres) naar
+  // BouwFlow. Twee vertrouwde aanroepers: push-nieuwe-dossiers (intern, met
+  // de service-role key als Bearer-token) en een ingelogde Compass-gebruiker
+  // via de "Naar Bouwflow pushen"-knop (sessie-JWT). Zonder één van beide:
+  // niets. (Zelfde gat als push-bouwflow-phase destijds al dichtte.)
+  const authHeader = req.headers.get('Authorization') ?? '';
+  const isServiceRoleCall = authHeader === `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`;
+  if (!isServiceRoleCall) {
+    if (!authHeader.startsWith('Bearer ')) return json({ error: 'Niet ingelogd' }, 401);
+    const userClient = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!,
+      { global: { headers: { Authorization: authHeader } } },
+    );
+    const { data: userData, error: userError } = await userClient.auth.getUser();
+    if (userError || !userData?.user) return json({ error: 'Niet ingelogd' }, 401);
+  }
+
   let body: Record<string, unknown> = {};
   try {
     body = await req.json();
