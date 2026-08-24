@@ -32,7 +32,41 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST' && req.method !== 'GET') return json({ error: 'Method not allowed' }, 405);
 
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+  );
+
+  // --- Auth: dit overschrijft de fase/pipeline-mapping via de service-role,
+  // dus enkel de pg_cron-job (gedeeld secret uit internal_config) of een
+  // ingelogde Compass-gebruiker mag hier binnen. Zelfde patroon als
+  // pull-bouwflow-projects en push-nieuwe-dossiers.
+  const cronSecretGiven = (req.headers.get('x-bouwflow-cron-secret') || '').trim();
+  let geautoriseerd = false;
+  if (cronSecretGiven) {
+    const { data: cfg } = await supabase
+      .from('internal_config')
+      .select('value')
+      .eq('key', 'bouwflow_cron_secret')
+      .maybeSingle();
+    geautoriseerd = !!cfg?.value && cronSecretGiven === (cfg.value || '').trim();
+  }
+  if (!geautoriseerd) {
+    const authHeader = req.headers.get('Authorization') ?? '';
+    if (authHeader === `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`) {
+      geautoriseerd = true;
+    } else if (authHeader.startsWith('Bearer ')) {
+      const userClient = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: userData } = await userClient.auth.getUser();
+      geautoriseerd = !!userData?.user;
+    }
+  }
+  if (!geautoriseerd) return json({ error: 'Niet ingelogd' }, 401);
+
   const secret = Deno.env.get('PUSH_LEAD_SECRET') || '';
+
 
   let proxyRes: Response;
   try {
@@ -97,10 +131,8 @@ Deno.serve(async (req) => {
     return json({ success: true, count: 0 });
   }
 
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-  );
+
+
 
   const { data: upserted, error: upsertError } = await supabase
     .from('bouwflow_phases')

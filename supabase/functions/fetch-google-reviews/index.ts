@@ -68,12 +68,28 @@ Deno.serve(async (req) => {
 
   try {
     const url = new URL(req.url);
-    const force = url.searchParams.get('force') === '1';
+    // force=1 omzeilt de cache en kost een echte (betaalde) Google-call.
+    // Daarom enkel voor een ingelogde gebruiker; publieke bezoekers krijgen
+    // altijd de gecachte versie.
+    let force = false;
+    if (url.searchParams.get('force') === '1') {
+      const authHeader = req.headers.get('Authorization') ?? '';
+      if (authHeader.startsWith('Bearer ')) {
+        const userClient = createClient(
+          Deno.env.get('SUPABASE_URL')!,
+          Deno.env.get('SUPABASE_ANON_KEY')!,
+          { global: { headers: { Authorization: authHeader } } },
+        );
+        const { data: userData } = await userClient.auth.getUser();
+        force = !!userData?.user;
+      }
+    }
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
+
 
     // Probeer cache
     if (!force) {

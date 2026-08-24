@@ -1003,6 +1003,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      lead_fotos_pad_toegestaan: { Args: { _name: string }; Returns: boolean }
       search_leads_fuzzy: {
         Args: { q: string }
         Returns: {

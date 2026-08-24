@@ -45,6 +45,53 @@ function escapeXml(s: string) {
   return s.replace(/[<>&'"]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' }[c]!));
 }
 
+// Twilio ondertekent elke webhook: HMAC-SHA1 van (URL + alle POST-velden
+// alfabetisch als key+value geconcateneerd) met de account-auth-token, base64.
+// Zonder deze check kan iedereen die de URL kent berichten verzinnen die van
+// een klantnummer lijken te komen.
+async function twilioSignatuurGeldig(
+  authToken: string,
+  signature: string,
+  url: string,
+  form: URLSearchParams,
+): Promise<boolean> {
+  if (!signature) return false;
+  const keys = [...new Set([...form.keys()])].sort();
+  let data = url;
+  for (const k of keys) data += k + (form.get(k) ?? '');
+
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(authToken),
+    { name: 'HMAC', hash: 'SHA-1' },
+    false,
+    ['sign'],
+  );
+  const mac = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(data));
+  const expected = btoa(String.fromCharCode(...new Uint8Array(mac)));
+  return expected === signature;
+}
+
+// Twilio ondertekent met de URL zoals hij geconfigureerd staat; achter de
+// edge-proxy kan het schema/host afwijken, dus proberen we de doorgestuurde
+// host-headers mee.
+function kandidaatUrls(req: Request): string[] {
+  const raw = req.url;
+  const uit = new Set<string>([raw]);
+  try {
+    const u = new URL(raw);
+    const host = req.headers.get('x-forwarded-host');
+    const proto = req.headers.get('x-forwarded-proto');
+    if (proto) u.protocol = `${proto}:`;
+    if (host) u.host = host;
+    uit.add(u.toString());
+    // Twilio stuurt geen lege query mee.
+    uit.add(u.origin + u.pathname);
+  } catch { /* raw volstaat */ }
+  return [...uit];
+}
+
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') {
@@ -66,6 +113,23 @@ Deno.serve(async (req) => {
     console.error('parse form failed', e);
     return twiml();
   }
+
+  // Signatuur eerst: geen enkel veld uit de body wordt vertrouwd voordat
+  // vaststaat dat Twilio de afzender is.
+  const signature = req.headers.get('x-twilio-signature') || '';
+  let signatuurOk = false;
+  for (const kandidaat of kandidaatUrls(req)) {
+    if (await twilioSignatuurGeldig(authToken, signature, kandidaat, form)) {
+      signatuurOk = true;
+      break;
+    }
+  }
+  if (!signatuurOk) {
+    console.error('twilio signature invalid');
+    return new Response(JSON.stringify({ error: 'Invalid signature' }), { status: 403, headers: corsHeaders });
+  }
+
+
 
   const from = form.get('From') || '';                // e.g. "whatsapp:+32499..."
   const body = form.get('Body') || '';
