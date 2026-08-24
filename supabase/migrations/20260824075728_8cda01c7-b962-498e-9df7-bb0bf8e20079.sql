@@ -1,0 +1,14 @@
+REVOKE EXECUTE ON FUNCTION public.claim_idle_inbound_groups(integer) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.touch_inbound_window(text, text, uuid, text, integer) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.search_leads_fuzzy(text) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.has_role(uuid, public.app_role) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.handle_new_user() FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.customers_sync_naar_dossiers() FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.leads_koppel_klant() FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.leads_sync_naar_klant() FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.lead_fotos_pad_toegestaan(text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.has_role(uuid, public.app_role) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.lead_fotos_pad_toegestaan(text) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.claim_idle_inbound_groups(integer) TO service_role;
+GRANT EXECUTE ON FUNCTION public.touch_inbound_window(text, text, uuid, text, integer) TO service_role;
+GRANT EXECUTE ON FUNCTION public.search_leads_fuzzy(text) TO service_role;
