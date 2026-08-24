@@ -114,6 +114,23 @@ Deno.serve(async (req) => {
     return twiml();
   }
 
+  // Signatuur eerst: geen enkel veld uit de body wordt vertrouwd voordat
+  // vaststaat dat Twilio de afzender is.
+  const signature = req.headers.get('x-twilio-signature') || '';
+  let signatuurOk = false;
+  for (const kandidaat of kandidaatUrls(req)) {
+    if (await twilioSignatuurGeldig(authToken, signature, kandidaat, form)) {
+      signatuurOk = true;
+      break;
+    }
+  }
+  if (!signatuurOk) {
+    console.error('twilio signature invalid');
+    return new Response(JSON.stringify({ error: 'Invalid signature' }), { status: 403, headers: corsHeaders });
+  }
+
+
+
   const from = form.get('From') || '';                // e.g. "whatsapp:+32499..."
   const body = form.get('Body') || '';
   const numMedia = parseInt(form.get('NumMedia') || '0', 10);
