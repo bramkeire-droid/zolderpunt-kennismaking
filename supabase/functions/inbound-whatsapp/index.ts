@@ -56,9 +56,9 @@ async function twilioSignatuurGeldig(
   form: URLSearchParams,
 ): Promise<boolean> {
   if (!signature) return false;
-  const keys = [...new Set([...form.keys()])].sort();
   let data = url;
-  for (const k of keys) data += k + (form.get(k) ?? '');
+  const velden = [...form.entries()].sort(([a], [b]) => a.localeCompare(b));
+  for (const [key, value] of velden) data += key + value;
 
   const key = await crypto.subtle.importKey(
     'raw',
@@ -72,21 +72,53 @@ async function twilioSignatuurGeldig(
   return expected === signature;
 }
 
+function eersteHeaderWaarde(value: string | null): string | null {
+  const eerste = value?.split(',')[0]?.trim();
+  return eerste || null;
+}
+
+function voegUrlToe(uit: Set<string>, url: string) {
+  if (!url) return;
+  uit.add(url);
+  try {
+    const u = new URL(url);
+    uit.add(u.origin + u.pathname);
+    if (u.pathname.endsWith('/')) {
+      const zonderSlash = new URL(u.toString());
+      zonderSlash.pathname = zonderSlash.pathname.replace(/\/$/, '');
+      uit.add(zonderSlash.toString());
+      uit.add(zonderSlash.origin + zonderSlash.pathname);
+    }
+  } catch { /* negeer ongeldige headerwaarde */ }
+}
+
 // Twilio ondertekent met de URL zoals hij geconfigureerd staat; achter de
-// edge-proxy kan het schema/host afwijken, dus proberen we de doorgestuurde
-// host-headers mee.
+// edge-proxy kan het schema/host afwijken. Supabase/Lovable Functions zijn
+// bovendien bereikbaar via twee publieke hostvormen; Twilio gebruikt de
+// ingestelde publieke URL, terwijl Request.url achter de proxy een andere vorm
+// kan tonen. Daarom valideren we tegen alle publieke equivalenten.
 function kandidaatUrls(req: Request): string[] {
   const raw = req.url;
   const uit = new Set<string>([raw]);
   try {
     const u = new URL(raw);
-    const host = req.headers.get('x-forwarded-host');
-    const proto = req.headers.get('x-forwarded-proto');
-    if (proto) u.protocol = `${proto}:`;
-    if (host) u.host = host;
-    uit.add(u.toString());
-    // Twilio stuurt geen lege query mee.
-    uit.add(u.origin + u.pathname);
+    voegUrlToe(uit, u.toString());
+
+    const proto = eersteHeaderWaarde(req.headers.get('x-forwarded-proto')) || u.protocol.replace(':', '') || 'https';
+    for (const hostHeader of ['x-forwarded-host', 'host', 'x-original-host']) {
+      const host = eersteHeaderWaarde(req.headers.get(hostHeader));
+      if (!host) continue;
+      const viaHeader = new URL(u.toString());
+      viaHeader.protocol = `${proto}:`;
+      viaHeader.host = host;
+      voegUrlToe(uit, viaHeader.toString());
+    }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const projectRef = supabaseUrl ? new URL(supabaseUrl).hostname.split('.')[0] : u.hostname.split('.')[0];
+    const functionName = u.pathname.split('/').filter(Boolean).at(-1) || 'inbound-whatsapp';
+    voegUrlToe(uit, `https://${projectRef}.supabase.co/functions/v1/${functionName}${u.search}`);
+    voegUrlToe(uit, `https://${projectRef}.functions.supabase.co/${functionName}${u.search}`);
   } catch { /* raw volstaat */ }
   return [...uit];
 }
