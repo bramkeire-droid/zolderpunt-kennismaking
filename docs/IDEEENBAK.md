@@ -58,3 +58,11 @@ Nummers zijn doorlopend en worden nooit hergebruikt.
 - **Antwoord vraag 2**: de fase-gate (alleen offerte) moet weg — hij wil zelf per dossier kiezen; de kostenbescherming zit al in de twee-stapsknop.
 - **Behandeling**: eerst — niets anders open, en het stuurt zijn limietbeslissing
 - **Status**: open
+
+## IDEE-6 — Slimme gratis voorscreening van mails vóór de AI-call
+- **Datum**: 2026-08-26
+- **Bram zei letterlijk**: "Als ik nu hoor dat er dergelijke kostenlekken zijn dan maak ik mij ernstig zorgen.\n\nBedenk een intelligente wijze waarop mails eerst gefilterd/gescreend kunnen worden met minimale of zelf geen API-usage om dit te optimaliseren"
+- **Waar ik mee bezig was**: IDEE-5 stap 3 (kostenoptimalisatie) — valt samen, dus meteen meegenomen
+- **Eerste inschatting**: raakt lib/filter.mjs + mail-sync (beide kanten). Van losse regexregels naar een gelaagde scoringspoort: harde signalen (List-Unsubscribe-header, Auto-Submitted, no-reply, bulkdomein) → gratis weg; bekende relatie (afzender staat al in contacts/gekoppeld dossier) → altijd doorlaten; rest krijgt een goedkope score op onderwerp/inhoudkenmerken. Geen AI nodig.
+- **Behandeling**: eerst, samen met IDEE-5
+- **Status**: open
