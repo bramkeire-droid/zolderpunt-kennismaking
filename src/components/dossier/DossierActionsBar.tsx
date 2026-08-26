@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { FolderOpen, Phone, Bot, Image as ImageIcon, Globe, Calculator, FileText, Receipt, ArrowLeft } from 'lucide-react';
+import { FolderOpen, Phone, Bot, Image as ImageIcon, Globe, Calculator, FileText, Receipt, ArrowLeft, MessagesSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import PhotoUploadDialog from '@/components/dossier/PhotoUploadDialog';
@@ -21,6 +21,9 @@ interface Props {
   onCall: (leadId: string) => void;
   /** Videocall-intake starten voor dit dossier. */
   onIntake: (leadId: string) => void;
+  /** Communicatiepagina openen (mails, calls, beslissingen uit Mail-CRM). Optioneel
+   *  zodat bestaande aanroepplekken zonder wijziging blijven werken. */
+  onCommunicatie?: (leadId: string) => void;
   /** Terug naar het dossieroverzicht. */
   onGoDossiers: () => void;
 }
@@ -30,7 +33,7 @@ interface Props {
  * handbereik zonder de pagina te verlaten. Foto's, portaal, calculator,
  * voorblad en offerte openen als dialoog; gesprek en intake navigeren.
  */
-export default function DossierActionsBar({ leadId, bron = 'los', onCall, onIntake, onGoDossiers }: Props) {
+export default function DossierActionsBar({ leadId, bron = 'los', onCall, onIntake, onCommunicatie, onGoDossiers }: Props) {
   const [lead, setLead] = useState<any | null>(null);
   const [dialog, setDialog] = useState<DialogKey>(null);
   const [portalPreview, setPortalPreview] = useState(false);
@@ -58,6 +61,9 @@ export default function DossierActionsBar({ leadId, bron = 'los', onCall, onInta
   const naam = `${lead.voornaam ?? ''} ${lead.achternaam ?? ''}`.trim() || 'Naamloos dossier';
 
   const actions: { label: string; icon: any; onClick: () => void }[] = [
+    ...(onCommunicatie
+      ? [{ label: 'Communicatie', icon: MessagesSquare, onClick: () => onCommunicatie(leadId) }]
+      : []),
     { label: "Foto's", icon: ImageIcon, onClick: () => setDialog('fotos') },
     { label: 'Telefoongesprek', icon: Phone, onClick: () => onCall(leadId) },
     { label: 'Intakegesprek', icon: Bot, onClick: () => onIntake(leadId) },
