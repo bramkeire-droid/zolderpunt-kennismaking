@@ -19,8 +19,10 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   ArrowDownLeft, ArrowUpRight, Phone, Search, Gavel, Mail, RefreshCw, Info, Video, StickyNote, Star,
+  ChevronDown, User, Truck, Users, Boxes,
 } from 'lucide-react';
 
 interface Props {
@@ -48,6 +50,56 @@ function rolBadge(rol: string | null | undefined) {
   return null;
 }
 
+/** IDEE-3: de tijdlijn is opgesplitst in inklapbare categorieën i.p.v. losse rol-labels. */
+type Categorie = 'klant' | 'beide' | 'leverancier' | 'varia';
+
+const CATEGORIE_META: Record<Categorie, { titel: string; icon: typeof User; standaardOpen: boolean }> = {
+  klant: { titel: 'Klant', icon: User, standaardOpen: true },
+  beide: { titel: 'Klant + leverancier', icon: Users, standaardOpen: true },
+  leverancier: { titel: 'Leveranciers', icon: Truck, standaardOpen: true },
+  varia: { titel: 'Varia', icon: Boxes, standaardOpen: false },
+};
+const CATEGORIE_VOLGORDE: Categorie[] = ['klant', 'beide', 'leverancier', 'varia'];
+
+/**
+ * Categorie per tijdlijn-item, op basis van de betrokken rollen (afzender + cc'ers).
+ * Eigen gesprekken en Leexi-calls met klantdeelnemers zijn klantcommunicatie; een mail
+ * waar klant én leverancier in zitten (bv. leveranciersmail met de klant in cc) valt in
+ * de gemengde groep. Alles zonder herkenbare rol is Varia.
+ */
+function categorieVoor(
+  item: TijdlijnItem,
+  contacten: Record<string, LoketContact>,
+  cc: Record<string, string[]>,
+  deelnemers: Record<string, string[]>,
+): Categorie {
+  if (item.soort === 'gesprek') return 'klant';
+
+  const rollen = new Set<string>();
+  if (item.soort === 'call') {
+    for (const id of deelnemers[item.id] ?? []) {
+      const rol = contacten[id]?.rol;
+      if (rol) rollen.add(rol);
+    }
+    if (rollen.has('klant')) return 'klant';
+    return rollen.has('leverancier') ? 'leverancier' : 'varia';
+  }
+
+  const m = item.data;
+  const vanRol = m.van_contact_id ? contacten[m.van_contact_id]?.rol : null;
+  if (vanRol) rollen.add(vanRol);
+  for (const id of cc[item.id] ?? []) {
+    const rol = contacten[id]?.rol;
+    if (rol) rollen.add(rol);
+  }
+  const klant = rollen.has('klant');
+  const leverancier = rollen.has('leverancier');
+  if (klant && leverancier) return 'beide';
+  if (klant) return 'klant';
+  if (leverancier) return 'leverancier';
+  return 'varia';
+}
+
 /**
  * Communicatiepagina van een dossier (SPRINTPLAN-COMMUNICATIE, Sprint 1+2): alle mails en
  * Leexi-calls uit Mail-CRM (live via het compass-loket) plus de eigen gesprekken met
@@ -63,6 +115,12 @@ export default function DossierCommunicatie({ leadId }: Props) {
   const [zoek, setZoek] = useState('');
   const [leesMailId, setLeesMailId] = useState<string | null>(null);
   const [herlaadTeller, setHerlaadTeller] = useState(0);
+  const [openCategorieen, setOpenCategorieen] = useState<Record<Categorie, boolean>>({
+    klant: CATEGORIE_META.klant.standaardOpen,
+    beide: CATEGORIE_META.beide.standaardOpen,
+    leverancier: CATEGORIE_META.leverancier.standaardOpen,
+    varia: CATEGORIE_META.varia.standaardOpen,
+  });
 
   // Compass-eigen gespreksdata (Sprint 2) — los van het loket, eigen foutafhandeling:
   // een haperend Mail-CRM mag de gespreksflow nooit blokkeren, en omgekeerd.
@@ -200,6 +258,7 @@ export default function DossierCommunicatie({ leadId }: Props) {
         datum: item.datum,
         bron: item.soort === 'mail' ? ('mail' as const) : ('call' as const),
         doelId: `comm-${item.soort}-${item.id}`,
+        categorie: categorieVoor(item, contacten, data?.cc ?? {}, data?.deelnemers ?? {}),
       }));
     const uitNotities = notities
       .filter((n) => n.soort === 'beslissing')
@@ -209,14 +268,19 @@ export default function DossierCommunicatie({ leadId }: Props) {
         datum: n.created_at,
         bron: 'gesprek' as const,
         doelId: n.gesprek_id ? `comm-gesprek-${n.gesprek_id}` : null,
+        categorie: 'klant' as Categorie,
       }));
     return [...uitMailCrm, ...uitNotities]
       .sort((a, b) => String(b.datum ?? '').localeCompare(String(a.datum ?? '')));
-  }, [tijdlijn, notities]);
+  }, [tijdlijn, notities, contacten, data]);
 
-  const scrollNaarId = (doelId: string | null) => {
+  const scrollNaarId = (doelId: string | null, categorie: Categorie) => {
     if (!doelId) return;
-    document.getElementById(doelId)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    // De categorie kan dichtgeklapt staan; eerst openen, dan pas scrollen.
+    setOpenCategorieen((prev) => (prev[categorie] ? prev : { ...prev, [categorie]: true }));
+    setTimeout(() => {
+      document.getElementById(doelId)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 150);
   };
 
   const nieuwGesprek = async (type: 'telefoon' | 'videocall') => {
@@ -349,7 +413,7 @@ export default function DossierCommunicatie({ leadId }: Props) {
                     <li key={b.sleutel}>
                       <button
                         type="button"
-                        onClick={() => scrollNaarId(b.doelId)}
+                        onClick={() => scrollNaarId(b.doelId, b.categorie)}
                         className="w-full text-left px-4 py-2 hover:bg-muted/40 transition-colors"
                       >
                         <p className="text-sm text-foreground leading-snug">{b.tekst}</p>
@@ -375,7 +439,8 @@ export default function DossierCommunicatie({ leadId }: Props) {
               />
             </div>
 
-            {/* Tijdlijn */}
+            {/* Tijdlijn, opgesplitst in inklapbare categorieën (IDEE-3). Bij een actieve
+                zoekterm staan alle groepen met treffers open — zoeken mag nooit iets verbergen. */}
             {gefilterd.length === 0 ? (
               <div className="rounded-md border border-border bg-muted/30 px-4 py-6 text-center text-sm text-muted-foreground">
                 {tijdlijn.length === 0
@@ -383,28 +448,54 @@ export default function DossierCommunicatie({ leadId }: Props) {
                   : 'Niets gevonden voor deze zoekterm.'}
               </div>
             ) : (
-              <ul className="space-y-2">
-                {gefilterd.map((item) => (
-                  <li key={`${item.soort}-${item.id}`} id={`comm-${item.soort}-${item.id}`}>
-                    {item.soort === 'mail' ? (
-                      <MailRij
-                        mail={item.data}
-                        contacten={contacten}
-                        ccIds={data?.cc?.[item.id] ?? []}
-                        onLees={() => setLeesMailId(item.id)}
-                      />
-                    ) : item.soort === 'call' ? (
-                      <CallRij call={item.data} deelnemerIds={data?.deelnemers?.[item.id] ?? []} contacten={contacten} />
-                    ) : (
-                      <GesprekRij
-                        gesprek={item.data}
-                        notities={notitiesPerGesprek.get(item.id) ?? []}
-                        naam={item.data.door_user ? namen[item.data.door_user] : undefined}
-                      />
-                    )}
-                  </li>
-                ))}
-              </ul>
+              CATEGORIE_VOLGORDE.map((cat) => {
+                const items = gefilterd.filter(
+                  (item) => categorieVoor(item, contacten, data?.cc ?? {}, data?.deelnemers ?? {}) === cat,
+                );
+                if (items.length === 0) return null;
+                const meta = CATEGORIE_META[cat];
+                const open = zoek.trim() ? true : openCategorieen[cat];
+                return (
+                  <Collapsible
+                    key={cat}
+                    open={open}
+                    onOpenChange={(o) => setOpenCategorieen((prev) => ({ ...prev, [cat]: o }))}
+                    className="rounded-lg border border-border bg-card"
+                  >
+                    <CollapsibleTrigger className="w-full flex items-center gap-2 px-4 py-2.5 hover:bg-muted/40 transition-colors">
+                      <meta.icon className="h-4 w-4 text-primary" />
+                      <span className="font-headline font-semibold text-sm">{meta.titel}</span>
+                      <span className="text-xs text-muted-foreground">({items.length})</span>
+                      <ChevronDown className={`h-4 w-4 text-muted-foreground ml-auto transition-transform ${open ? 'rotate-180' : ''}`} />
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <ul className="space-y-2 px-3 pb-3">
+                        {items.map((item) => (
+                          <li key={`${item.soort}-${item.id}`} id={`comm-${item.soort}-${item.id}`}>
+                            {item.soort === 'mail' ? (
+                              <MailRij
+                                mail={item.data}
+                                contacten={contacten}
+                                ccIds={data?.cc?.[item.id] ?? []}
+                                toonRol={cat === 'beide' || cat === 'varia'}
+                                onLees={() => setLeesMailId(item.id)}
+                              />
+                            ) : item.soort === 'call' ? (
+                              <CallRij call={item.data} deelnemerIds={data?.deelnemers?.[item.id] ?? []} contacten={contacten} />
+                            ) : (
+                              <GesprekRij
+                                gesprek={item.data}
+                                notities={notitiesPerGesprek.get(item.id) ?? []}
+                                naam={item.data.door_user ? namen[item.data.door_user] : undefined}
+                              />
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </CollapsibleContent>
+                  </Collapsible>
+                );
+              })
             )}
           </>
         )}
@@ -416,11 +507,13 @@ export default function DossierCommunicatie({ leadId }: Props) {
 }
 
 function MailRij({
-  mail, contacten, ccIds, onLees,
+  mail, contacten, ccIds, toonRol = true, onLees,
 }: {
   mail: CommunicatieData['mails'][number];
   contacten: Record<string, LoketContact>;
   ccIds: string[];
+  /** In de zuivere groepen (Klant, Leveranciers) is de rol al duidelijk uit de kop. */
+  toonRol?: boolean;
   onLees: () => void;
 }) {
   const contact = mail.van_contact_id ? contacten[mail.van_contact_id] : undefined;
@@ -446,7 +539,7 @@ function MailRij({
             {inkomend ? 'van' : 'aan'} {contact.naam || contact.email}
           </span>
         )}
-        {rolBadge(contact?.rol)}
+        {toonRol && rolBadge(contact?.rol)}
         <span className="text-[10px] text-muted-foreground ml-auto">{mail.mailbox}</span>
       </div>
       <p className="font-headline font-semibold text-sm text-foreground mt-1 leading-snug">
