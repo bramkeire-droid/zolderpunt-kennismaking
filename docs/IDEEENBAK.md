@@ -66,3 +66,12 @@ Nummers zijn doorlopend en worden nooit hergebruikt.
 - **Eerste inschatting**: raakt lib/filter.mjs + mail-sync (beide kanten). Van losse regexregels naar een gelaagde scoringspoort: harde signalen (List-Unsubscribe-header, Auto-Submitted, no-reply, bulkdomein) → gratis weg; bekende relatie (afzender staat al in contacts/gekoppeld dossier) → altijd doorlaten; rest krijgt een goedkope score op onderwerp/inhoudkenmerken. Geen AI nodig.
 - **Behandeling**: eerst, samen met IDEE-5
 - **Status**: open
+
+## IDEE-7 — Communicatie onderverdelen per leverancier
+- **Datum**: 2026-08-26
+- **Bram zei letterlijk**: "In de communicatiepagina en MAIL CRM moet een onderverdeling komen per leverancier zodat ik alle communicatie per leverancier georden zie"
+- **Waar ik mee bezig was**: IDEE-5/6 kostenoptimalisatie (halfweg, mail-sync nog niet gedeployed)
+- **Eerste inschatting**: twee plekken. (a) Compass-communicatiepagina: binnen de bestaande groep "Leveranciers" een tweede niveau per bedrijf (companies.naam via contacts.bedrijf_id) — inklapbaar, zelfde Collapsible-patroon als IDEE-3. Het loket levert contacten al mee, maar nog zonder bedrijf; `verrijk()` moet bedrijf_id + bedrijfsnaam toevoegen. (b) Mail Hub: eigen leveranciersoverzicht. Klein-middelgroot, geen schemawijziging.
+- **Mijn open vragen erover**: (1) groeperen op bedrijf (companies) of op individueel contact? Bedrijf lijkt bedoeld ("per leverancier"), en dan valt Tim Verleye onder Kozijn&Co. (2) Ook een dossier-overstijgend leveranciersoverzicht ("alle communicatie met Verhelst over alle projecten"), of alleen binnen een dossier? Zijn zin leest als binnen de communicatiepagina, maar "alle communicatie per leverancier" kan ook het bredere overzicht betekenen — ik bouw beide lagen als dat zonder risico kan.
+- **Behandeling**: na IDEE-5/6 (kostenoptimalisatie eerst afmaken — half werk laten liggen is erger)
+- **Status**: open
