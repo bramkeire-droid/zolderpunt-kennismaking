@@ -14,6 +14,7 @@ import {
 } from '@/lib/gesprekken';
 import MailLezenSheet from '@/components/communicatie/MailLezenSheet';
 import GesprekModus from '@/components/communicatie/GesprekModus';
+import HistoriekKnop from '@/components/communicatie/HistoriekKnop';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -32,6 +33,7 @@ type LeadInfo = {
   achternaam: string | null;
   email: string | null;
   bouwflow_project_number: string | null;
+  bouwflow_phase: string | null;
 };
 
 /** Eén rij in de tijdlijn: mail, Leexi-call of Compass-gesprek, chronologisch samengevoegd. */
@@ -69,6 +71,7 @@ export default function DossierCommunicatie({ leadId }: Props) {
   const [lopend, setLopend] = useState<Gesprek | null>(null);
   const [namen, setNamen] = useState<Record<string, string>>({});
   const [gesprekFout, setGesprekFout] = useState<string | null>(null);
+  const [offerteFase, setOfferteFase] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -78,13 +81,25 @@ export default function DossierCommunicatie({ leadId }: Props) {
       try {
         const { data: rij, error } = await supabase
           .from('leads')
-          .select('id, voornaam, achternaam, email, bouwflow_project_number')
+          .select('id, voornaam, achternaam, email, bouwflow_project_number, bouwflow_phase')
           .eq('id', leadId)
           .maybeSingle();
         if (error) throw new Error(error.message);
         if (!rij) throw new Error('Dossier niet gevonden.');
         if (cancelled) return;
         setLead(rij as LeadInfo);
+
+        // Historiek aanvullen mag alleen bij offerte-fase (besluit Bram 2026-08-26).
+        if (rij.bouwflow_phase) {
+          const { data: faseRij } = await supabase
+            .from('bouwflow_phase_category_map')
+            .select('compass_category')
+            .eq('phase_id', Number(rij.bouwflow_phase))
+            .maybeSingle();
+          if (!cancelled) setOfferteFase(faseRij?.compass_category === 'offerte');
+        } else {
+          setOfferteFase(false);
+        }
 
         if (rij.bouwflow_project_number) {
           const resultaat = await fetchCommunicatie(rij.bouwflow_project_number);
@@ -228,6 +243,15 @@ export default function DossierCommunicatie({ leadId }: Props) {
                 {' · '}Bouwflow-fase: {data.project.status ?? 'onbekend'}
                 {' · '}live uit Mail-CRM
               </p>
+            )}
+            {bron === 'zl' && data?.gevonden && offerteFase && lead?.bouwflow_project_number && lead?.email && (
+              <div className="mt-1.5">
+                <HistoriekKnop
+                  zl={lead.bouwflow_project_number}
+                  klantEmail={lead.email}
+                  onKlaar={() => setHerlaadTeller((t) => t + 1)}
+                />
+              </div>
             )}
             {bron === 'email' && (
               <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">

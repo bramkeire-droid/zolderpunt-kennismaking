@@ -90,6 +90,25 @@ export const fetchCommunicatieViaEmail = (email: string) =>
 /** Volledige inhoud van één mail, live uit Exchange. Platte tekst — nooit als HTML renderen. */
 export const fetchMailInhoud = (emailId: string) => loketCall<MailInhoud>({ action: 'mail_inhoud', email_id: emailId });
 
+export type HistoriekResultaat = {
+  kandidaten: number;
+  verwerkt: number;
+  gekoppeld: number;
+  genegeerd: number;
+  bewaard_ongekoppeld: number;
+  mislukt: number;
+  mislukt_reden?: string;
+  resterend: number;
+};
+
+/** Sprint 4: telt hoeveel oude, nooit-geanalyseerde mails er voor deze klant bestaan (gratis). */
+export const telHistoriek = (zl: string, klantEmail: string, kandidaatZls: string[]) =>
+  loketCall<HistoriekResultaat>({ action: 'historiek', zl, klant_email: klantEmail, kandidaat_zls: kandidaatZls, modus: 'tellen' });
+
+/** Sprint 4: verwerkt een batch oude mails (samenvatting + koppeling) — kost per mail een AI-call. */
+export const verwerkHistoriek = (zl: string, klantEmail: string, kandidaatZls: string[], max = 8) =>
+  loketCall<HistoriekResultaat>({ action: 'historiek', zl, klant_email: klantEmail, kandidaat_zls: kandidaatZls, modus: 'verwerken', max });
+
 export function formatDatumTijd(value: string | null | undefined): string {
   if (!value) return '—';
   const d = new Date(value);
