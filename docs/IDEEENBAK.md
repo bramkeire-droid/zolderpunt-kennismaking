@@ -57,7 +57,7 @@ Nummers zijn doorlopend en worden nooit hergebruikt.
 - **Antwoord vraag 1**: nee, de merge voegt geen automatische AI-call toe; enige nieuwe verbruiker is de handmatige Historiek-knop.
 - **Antwoord vraag 2**: de fase-gate (alleen offerte) moet weg — hij wil zelf per dossier kiezen; de kostenbescherming zit al in de twee-stapsknop.
 - **Behandeling**: eerst — niets anders open, en het stuurt zijn limietbeslissing
-- **Status**: open
+- **Status**: afgewerkt (2026-08-26). (1) Beantwoord: de merge voegt geen automatische AI-call toe; Compass-AI draait op LOVABLE_API_KEY, een andere pot. (2) Fase-gate verwijderd — de Historiek-knop staat nu op elk dossier met ZL-nummer en e-mailadres, Bram kiest zelf (commit 6595f4c). (3) Optimalisaties gebouwd en live in mail-sync v13: prompt-caching (projectenlijst van gebruikersbericht naar gecachete system-prompt), knipBody (citaten/handtekeningen weg, 3000 i.p.v. 8000 tekens), max_tokens 2048→1024, en dezelfde ingrepen op de call-classificatie. Beide codepaden gelijk gehouden.
 
 ## IDEE-6 — Slimme gratis voorscreening van mails vóór de AI-call
 - **Datum**: 2026-08-26
@@ -65,7 +65,7 @@ Nummers zijn doorlopend en worden nooit hergebruikt.
 - **Waar ik mee bezig was**: IDEE-5 stap 3 (kostenoptimalisatie) — valt samen, dus meteen meegenomen
 - **Eerste inschatting**: raakt lib/filter.mjs + mail-sync (beide kanten). Van losse regexregels naar een gelaagde scoringspoort: harde signalen (List-Unsubscribe-header, Auto-Submitted, no-reply, bulkdomein) → gratis weg; bekende relatie (afzender staat al in contacts/gekoppeld dossier) → altijd doorlaten; rest krijgt een goedkope score op onderwerp/inhoudkenmerken. Geen AI nodig.
 - **Behandeling**: eerst, samen met IDEE-5
-- **Status**: open
+- **Status**: afgewerkt (2026-08-26) — gelaagde `screenMail()`: (1) bekende relatie uit contacts = ALTIJD doorlaten, (2) mailheaders List-Unsubscribe/List-Id/List-Post/X-Auto-Response-Suppress + Auto-Submitted + Precedence, (3) afzender- en onderwerppatronen incl. e-commerce/verzending, (4) interne kopie. `internetMessageHeaders` toegevoegd aan de Graph-select in beide codepaden. GEMETEN tegen echte data: vangt 73/120 (61%) van de mails die eerder betaald werden en toch genegeerd, en 0/120 van de mails die wél aan een dossier hangen. Feedback-ID en campagne-headers zijn na die meting BEWUST GESCHRAPT (gaven 7/120 valse positieven op echte leveranciersmail). Live in mail-sync v13, 59/59 tests groen.
 
 ## IDEE-7 — Communicatie onderverdelen per leverancier
 - **Datum**: 2026-08-26
