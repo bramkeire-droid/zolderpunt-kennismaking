@@ -30,3 +30,12 @@ Nummers zijn doorlopend en worden nooit hergebruikt.
 - **Mijn open vragen erover**: moet het %-label de verhouding t.o.v. het middenbedrag tonen i.p.v. de tariefdeel-factor?
 - **Behandeling**: meegenomen in de fix-ronde van de calculator-doorlichting. De audit vond het onafhankelijk ook (MargeBalk %-label toont de tariefdeel-factor, terwijl de bedragen ook eigen-bereik-elementen bevatten).
 - **Status**: afgewerkt (2026-08-11) — de %-labels naast minimum en maximum tonen nu de verhouding van het GETOONDE bedrag tot het meest waarschijnlijke bedrag (80.287/90.591 → 89%), niet langer de interne factor. De begrenzing zelf was correct: het minimum-handvat stopt waar het tariefdeel de raming raakt.
+
+## IDEE-3 — Communicatietijdlijn opgesplitst in inklapbare categorieën
+- **Datum**: 2026-08-26
+- **Bram zei letterlijk**: "In plaats van de communicaties te labelen als (klant, leverancier, klant + leverancier, varia) wil ik ze opgesplitst in categorien, inklapbaar"
+- **Waar ik mee bezig was**: afronding /nietstoppen-sessie S0–S4 (alles gecommit; wachtend op merge + Anthropic-limiet)
+- **Eerste inschatting**: raakt alleen DossierCommunicatie.tsx — de platte tijdlijn wordt gegroepeerd in Collapsible-secties (patroon bestaat al in Mail Hub-maandgroepen). Klein-middelgroot, geen datamodelwijziging, geen risico voor andere schermen.
+- **Mijn open vragen erover**: (1) exacte categorie-indeling — zijn opsomming leest als de huidige labels; meest verdedigbare groepen: Klant / Leveranciers / Eigen gesprekken & notities / Varia. (2) Alles standaard open of alleen Klant?
+- **Behandeling**: eerst — goedkoopst precies nu (context en branch staan open, nog niet gemerged)
+- **Status**: open
