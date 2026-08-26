@@ -48,3 +48,13 @@ Nummers zijn doorlopend en worden nooit hergebruikt.
 - **Eerste inschatting**: begripvraag, geen bouwwerk
 - **Behandeling**: direct beantwoord (stuurt zijn openstaande limietbeslissing)
 - **Status**: afgewerkt (2026-08-26) — beantwoord: bekijken kost nul (alles komt uit de Mail-CRM-database); Anthropic wordt alleen betaald bij het éénmalig aanmaken van een samenvatting (nieuwe mail ±€1-5/mnd, en de Historiek-knop met kost vooraf in beeld). De volle limiet komt van de eenmalige backfill-inhaalslag, niet van de nieuwe functie; verhogen is optioneel — zonder verhoging herstelt alles op 1 sept vanzelf en herclassificeer ik de tussenliggende mails.
+
+## IDEE-5 — Kostenvragen: extra verbruik door merge, selectieve backfill, en API-optimalisatie
+- **Datum**: 2026-08-26
+- **Bram zei letterlijk**: "Voor mij is het nog niet duidelijk op dit moment:\nIk heb de MAIL CRM app gebouwd. \nDie heeft Anthorpic API key tegoed nodig om mails samen te vatten. Dat weet ik. En het verbruik van de backfill heeft dit gisteren opgevuld akkoord.\n\nMaar:\n1: Is er in deze merge nu een bijkomende tool/functie die meer tegoed zal gebruiken dan voor de merge?\n\n2. Ik wil enkel van enkele specifieke projecten een backfill doen en de rest gebeurd vanaf nu live per event.\nHoe kan ik deze projecten kiezen?\n\n\nKunnen we onze tools nog optimaliseren in API usage? Kan het nog goedkoper? Hoe?"
+- **Waar ik mee bezig was**: niets meer open (S0-S4 + IDEE-3 live geverifieerd)
+- **Geverifieerde cijfers (2026-08-26)**: 1932 mails gratis weggefilterd door de regex-voorfilter · **728 mails betaald aan de AI en daarna alsnog genegeerd (38% van alle betaalde calls)** · 1179 betaald en bewaard · actieve projectenlijst = 4099 tekens (~1025 tokens) die bij ELKE classificatie meegaat · Compass-AI draait op LOVABLE_API_KEY (aparte pot), alleen mail-crm gebruikt het Anthropic-tegoed.
+- **Antwoord vraag 1**: nee, de merge voegt geen automatische AI-call toe; enige nieuwe verbruiker is de handmatige Historiek-knop.
+- **Antwoord vraag 2**: de fase-gate (alleen offerte) moet weg — hij wil zelf per dossier kiezen; de kostenbescherming zit al in de twee-stapsknop.
+- **Behandeling**: eerst — niets anders open, en het stuurt zijn limietbeslissing
+- **Status**: open
