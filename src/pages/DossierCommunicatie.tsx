@@ -129,7 +129,6 @@ export default function DossierCommunicatie({ leadId }: Props) {
   const [lopend, setLopend] = useState<Gesprek | null>(null);
   const [namen, setNamen] = useState<Record<string, string>>({});
   const [gesprekFout, setGesprekFout] = useState<string | null>(null);
-  const [offerteFase, setOfferteFase] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -146,18 +145,6 @@ export default function DossierCommunicatie({ leadId }: Props) {
         if (!rij) throw new Error('Dossier niet gevonden.');
         if (cancelled) return;
         setLead(rij as LeadInfo);
-
-        // Historiek aanvullen mag alleen bij offerte-fase (besluit Bram 2026-08-26).
-        if (rij.bouwflow_phase) {
-          const { data: faseRij } = await supabase
-            .from('bouwflow_phase_category_map')
-            .select('compass_category')
-            .eq('phase_id', Number(rij.bouwflow_phase))
-            .maybeSingle();
-          if (!cancelled) setOfferteFase(faseRij?.compass_category === 'offerte');
-        } else {
-          setOfferteFase(false);
-        }
 
         if (rij.bouwflow_project_number) {
           const resultaat = await fetchCommunicatie(rij.bouwflow_project_number);
@@ -308,7 +295,11 @@ export default function DossierCommunicatie({ leadId }: Props) {
                 {' · '}live uit Mail-CRM
               </p>
             )}
-            {bron === 'zl' && data?.gevonden && offerteFase && lead?.bouwflow_project_number && lead?.email && (
+            {/* Historiek aanvullen staat op ELK dossier met ZL-nummer en e-mailadres:
+                Bram kiest zelf welke projecten hij bijwerkt (2026-08-26, IDEE-5). De
+                kostenbescherming zit in de knop zelf — eerst een gratis telling met
+                kostenindicatie, pas na een tweede klik draait de AI. */}
+            {bron === 'zl' && data?.gevonden && lead?.bouwflow_project_number && lead?.email && (
               <div className="mt-1.5">
                 <HistoriekKnop
                   zl={lead.bouwflow_project_number}
