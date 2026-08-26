@@ -528,17 +528,21 @@ function groepeerPerBedrijf(
   items: TijdlijnItem[],
   contacten: Record<string, LoketContact>,
 ): { naam: string; items: TijdlijnItem[] }[] {
-  const groepen = new Map<string, TijdlijnItem[]>();
+  // Groeperen op de GENORMALISEERDE naam: dezelfde leverancier bestaat soms onder meerdere
+  // schrijfwijzen ("Trappen Smet" naast "Trappensmet"). Zonder dit staat één leverancier in
+  // twee groepen. We tonen de langste variant als label — die is meestal het best geschreven.
+  const groepen = new Map<string, { naam: string; items: TijdlijnItem[] }>();
   for (const item of items) {
     const contactId = item.soort === 'mail' ? item.data.van_contact_id : null;
     const contact = contactId ? contacten[contactId] : undefined;
     const naam = contact?.bedrijf || contact?.naam || contact?.email || 'Onbekende leverancier';
-    const lijst = groepen.get(naam) ?? [];
-    lijst.push(item);
-    groepen.set(naam, lijst);
+    const sleutel = naam.toLowerCase().replace(/[^a-z0-9]/g, '') || naam;
+    const groep = groepen.get(sleutel) ?? { naam, items: [] };
+    if (naam.length > groep.naam.length) groep.naam = naam;
+    groep.items.push(item);
+    groepen.set(sleutel, groep);
   }
-  return [...groepen.entries()]
-    .map(([naam, lijst]) => ({ naam, items: lijst }))
+  return [...groepen.values()]
     .sort((a, b) => String(b.items[0]?.datum ?? '').localeCompare(String(a.items[0]?.datum ?? '')));
 }
 

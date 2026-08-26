@@ -342,6 +342,7 @@ function AppContent() {
         onNewDossier={handleNewIntake}
         onNewIntake={handleNewIntake}
         onGoDossiers={handleGoDossiers}
+        onGoLeveranciers={() => setView('leveranciers')}
         onGoBeheer={() => setView('beheer')}
         beheerActief={view === 'beheer'}
       />

@@ -46,6 +46,8 @@ export type LoketContact = {
 
 export type Leverancier = {
   bedrijf_id: string | null;
+  /** Alle bedrijf-ids van deze leverancier: naamvarianten worden samengevoegd. */
+  bedrijf_ids?: string[];
   naam: string;
   mails: number;
   beslissingen: number;
@@ -113,10 +115,10 @@ export const fetchLeveranciers = () =>
   loketCall<{ leveranciers: Leverancier[] }>({ action: 'leveranciers' }).then((r) => r.leveranciers);
 
 /** IDEE-7: alle mail van één leveranciersbedrijf, over alle dossiers heen. */
-export const fetchLeverancierMails = (bedrijfId: string) =>
+export const fetchLeverancierMails = (bedrijfIds: string[]) =>
   loketCall<CommunicatieData & { bedrijf: { naam: string | null } | null; projecten: Record<string, string> }>({
     action: 'leverancier_mails',
-    bedrijf_id: bedrijfId,
+    bedrijf_ids: bedrijfIds,
   });
 
 export type HistoriekResultaat = {

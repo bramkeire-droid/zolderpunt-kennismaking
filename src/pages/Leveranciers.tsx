@@ -45,12 +45,13 @@ export default function Leveranciers() {
   }, [herlaad]);
 
   useEffect(() => {
-    if (!gekozen?.bedrijf_id) { setDetail(null); return; }
+    const ids = gekozen?.bedrijf_ids?.length ? gekozen.bedrijf_ids : gekozen?.bedrijf_id ? [gekozen.bedrijf_id] : [];
+    if (ids.length === 0) { setDetail(null); return; }
     let cancelled = false;
     setDetailLaden(true);
     setDetailFout(null);
     setDetail(null);
-    fetchLeverancierMails(gekozen.bedrijf_id)
+    fetchLeverancierMails(ids)
       .then((d) => { if (!cancelled) setDetail(d as Detail); })
       .catch((e: Error) => { if (!cancelled) setDetailFout(e.message); })
       .finally(() => { if (!cancelled) setDetailLaden(false); });
