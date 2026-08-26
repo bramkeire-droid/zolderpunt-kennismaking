@@ -8,13 +8,18 @@ import {
   type CommunicatieData,
   type LoketContact,
 } from '@/lib/mailcrm';
+import {
+  fetchGesprekken, fetchLopendGesprek, fetchNotities, fetchProfielNamen, startGesprek,
+  type Gesprek, type GesprekNotitie,
+} from '@/lib/gesprekken';
 import MailLezenSheet from '@/components/communicatie/MailLezenSheet';
+import GesprekModus from '@/components/communicatie/GesprekModus';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
-  ArrowDownLeft, ArrowUpRight, Phone, Search, Gavel, Mail, RefreshCw, Info,
+  ArrowDownLeft, ArrowUpRight, Phone, Search, Gavel, Mail, RefreshCw, Info, Video, StickyNote, Star,
 } from 'lucide-react';
 
 interface Props {
@@ -29,10 +34,11 @@ type LeadInfo = {
   bouwflow_project_number: string | null;
 };
 
-/** Eén rij in de tijdlijn: mail of Leexi-call, chronologisch samengevoegd. */
+/** Eén rij in de tijdlijn: mail, Leexi-call of Compass-gesprek, chronologisch samengevoegd. */
 type TijdlijnItem =
   | { soort: 'mail'; id: string; datum: string | null; data: CommunicatieData['mails'][number] }
-  | { soort: 'call'; id: string; datum: string | null; data: CommunicatieData['calls'][number] };
+  | { soort: 'call'; id: string; datum: string | null; data: CommunicatieData['calls'][number] }
+  | { soort: 'gesprek'; id: string; datum: string | null; data: Gesprek };
 
 function rolBadge(rol: string | null | undefined) {
   if (rol === 'klant') return <Badge variant="outline" className="border-primary/40 text-primary text-[10px] px-1.5 py-0">klant</Badge>;
@@ -41,10 +47,10 @@ function rolBadge(rol: string | null | undefined) {
 }
 
 /**
- * Communicatiepagina van een dossier (SPRINTPLAN-COMMUNICATIE, Sprint 1): alle mails en
- * telefoongesprekken die in Mail-CRM aan dit ZL-dossier hangen, live uit de bron gelezen
- * via het compass-loket. Met beslissingenregister, zoekveld en mail-lezen-zijpaneel.
- * Dossiers zonder ZL-nummer vallen terug op matching via het e-mailadres van de klant.
+ * Communicatiepagina van een dossier (SPRINTPLAN-COMMUNICATIE, Sprint 1+2): alle mails en
+ * Leexi-calls uit Mail-CRM (live via het compass-loket) plus de eigen gesprekken met
+ * post-it-notities, in één tijdlijn met beslissingenregister en zoekveld. Dossiers zonder
+ * ZL-nummer vallen terug op matching via het e-mailadres van de klant.
  */
 export default function DossierCommunicatie({ leadId }: Props) {
   const [lead, setLead] = useState<LeadInfo | null>(null);
@@ -55,6 +61,14 @@ export default function DossierCommunicatie({ leadId }: Props) {
   const [zoek, setZoek] = useState('');
   const [leesMailId, setLeesMailId] = useState<string | null>(null);
   const [herlaadTeller, setHerlaadTeller] = useState(0);
+
+  // Compass-eigen gespreksdata (Sprint 2) — los van het loket, eigen foutafhandeling:
+  // een haperend Mail-CRM mag de gespreksflow nooit blokkeren, en omgekeerd.
+  const [gesprekken, setGesprekken] = useState<Gesprek[]>([]);
+  const [notities, setNotities] = useState<GesprekNotitie[]>([]);
+  const [lopend, setLopend] = useState<Gesprek | null>(null);
+  const [namen, setNamen] = useState<Record<string, string>>({});
+  const [gesprekFout, setGesprekFout] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -96,16 +110,51 @@ export default function DossierCommunicatie({ leadId }: Props) {
     return () => { cancelled = true; };
   }, [leadId, herlaadTeller]);
 
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      setGesprekFout(null);
+      try {
+        const [g, n, lopendG, profielen] = await Promise.all([
+          fetchGesprekken(leadId),
+          fetchNotities(leadId),
+          fetchLopendGesprek(leadId),
+          fetchProfielNamen(),
+        ]);
+        if (cancelled) return;
+        setGesprekken(g);
+        setNotities(n);
+        setLopend(lopendG);
+        setNamen(profielen);
+      } catch (e) {
+        if (!cancelled) setGesprekFout((e as Error).message);
+      }
+    };
+    void load();
+    return () => { cancelled = true; };
+  }, [leadId, herlaadTeller]);
+
   const contacten: Record<string, LoketContact> = data?.contacten ?? {};
 
   const tijdlijn: TijdlijnItem[] = useMemo(() => {
-    if (!data) return [];
     const items: TijdlijnItem[] = [
-      ...data.mails.map((m) => ({ soort: 'mail' as const, id: m.id, datum: m.datum, data: m })),
-      ...data.calls.map((c) => ({ soort: 'call' as const, id: c.id, datum: c.datum, data: c })),
+      ...(data?.mails ?? []).map((m) => ({ soort: 'mail' as const, id: m.id, datum: m.datum, data: m })),
+      ...(data?.calls ?? []).map((c) => ({ soort: 'call' as const, id: c.id, datum: c.datum, data: c })),
+      ...gesprekken.map((g) => ({ soort: 'gesprek' as const, id: g.id, datum: g.gestart_op, data: g })),
     ];
     return items.sort((a, b) => String(b.datum ?? '').localeCompare(String(a.datum ?? '')));
-  }, [data]);
+  }, [data, gesprekken]);
+
+  const notitiesPerGesprek = useMemo(() => {
+    const map = new Map<string, GesprekNotitie[]>();
+    for (const n of notities) {
+      const sleutel = n.gesprek_id ?? 'los';
+      const lijst = map.get(sleutel) ?? [];
+      lijst.push(n);
+      map.set(sleutel, lijst);
+    }
+    return map;
+  }, [notities]);
 
   const gefilterd = useMemo(() => {
     const term = zoek.trim().toLowerCase();
@@ -117,27 +166,59 @@ export default function DossierCommunicatie({ leadId }: Props) {
         return [m.onderwerp, m.samenvatting, m.beslissing, contactNaam]
           .some((v) => (v ?? '').toLowerCase().includes(term));
       }
-      const c = item.data;
-      return [c.titel, c.samenvatting, c.beslissing].some((v) => (v ?? '').toLowerCase().includes(term));
+      if (item.soort === 'call') {
+        const c = item.data;
+        return [c.titel, c.samenvatting, c.beslissing].some((v) => (v ?? '').toLowerCase().includes(term));
+      }
+      const eigen = notitiesPerGesprek.get(item.id) ?? [];
+      return eigen.some((n) => n.tekst.toLowerCase().includes(term));
     });
-  }, [tijdlijn, zoek, contacten]);
+  }, [tijdlijn, zoek, contacten, notitiesPerGesprek]);
 
-  const beslissingen = useMemo(
-    () => tijdlijn.filter((item) => item.data.bevat_beslissing && item.data.beslissing),
-    [tijdlijn],
-  );
+  /** Beslissingenregister: mails + calls (Mail-CRM) én post-its van soort 'beslissing'. */
+  const beslissingen = useMemo(() => {
+    const uitMailCrm = tijdlijn
+      .filter((item) => item.soort !== 'gesprek' && item.data.bevat_beslissing && item.data.beslissing)
+      .map((item) => ({
+        sleutel: `${item.soort}-${item.id}`,
+        tekst: (item.data as { beslissing: string }).beslissing,
+        datum: item.datum,
+        bron: item.soort === 'mail' ? ('mail' as const) : ('call' as const),
+        doelId: `comm-${item.soort}-${item.id}`,
+      }));
+    const uitNotities = notities
+      .filter((n) => n.soort === 'beslissing')
+      .map((n) => ({
+        sleutel: `notitie-${n.id}`,
+        tekst: n.tekst,
+        datum: n.created_at,
+        bron: 'gesprek' as const,
+        doelId: n.gesprek_id ? `comm-gesprek-${n.gesprek_id}` : null,
+      }));
+    return [...uitMailCrm, ...uitNotities]
+      .sort((a, b) => String(b.datum ?? '').localeCompare(String(a.datum ?? '')));
+  }, [tijdlijn, notities]);
 
-  const scrollNaar = (item: TijdlijnItem) => {
-    document.getElementById(`comm-${item.soort}-${item.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  const scrollNaarId = (doelId: string | null) => {
+    if (!doelId) return;
+    document.getElementById(doelId)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   };
 
-  const naam = lead ? `${lead.voornaam ?? ''} ${lead.achternaam ?? ''}`.trim() : '';
+  const nieuwGesprek = async (type: 'telefoon' | 'videocall') => {
+    try {
+      const gesprek = await startGesprek(leadId, type);
+      setLopend(gesprek);
+      setGesprekken((prev) => [gesprek, ...prev]);
+    } catch (e) {
+      setGesprekFout((e as Error).message);
+    }
+  };
 
   return (
     <div className="flex-1 overflow-y-auto bg-background">
       <div className="mx-auto max-w-4xl px-4 py-5 space-y-4">
 
-        {/* Kop: waar komt deze data vandaan? */}
+        {/* Kop: waar komt deze data vandaan + gesprek starten */}
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div>
             <h1 className="font-headline font-bold text-xl text-foreground">Communicatie</h1>
@@ -155,11 +236,46 @@ export default function DossierCommunicatie({ leadId }: Props) {
               </p>
             )}
           </div>
-          <Button size="sm" variant="ghost" className="gap-1.5 h-8" onClick={() => setHerlaadTeller((t) => t + 1)}>
-            <RefreshCw className="h-3.5 w-3.5" />
-            <span className="text-xs">Vernieuwen</span>
-          </Button>
+          <div className="flex items-center gap-2">
+            {!lopend && (
+              <>
+                <Button size="sm" variant="default" className="gap-1.5 h-8" onClick={() => void nieuwGesprek('telefoon')}>
+                  <Phone className="h-3.5 w-3.5" />
+                  <span className="text-xs">Gesprek starten</span>
+                </Button>
+                <Button size="sm" variant="outline" className="gap-1.5 h-8" onClick={() => void nieuwGesprek('videocall')}>
+                  <Video className="h-3.5 w-3.5" />
+                  <span className="text-xs">Videocall starten</span>
+                </Button>
+              </>
+            )}
+            <Button size="sm" variant="ghost" className="gap-1.5 h-8" onClick={() => setHerlaadTeller((t) => t + 1)}>
+              <RefreshCw className="h-3.5 w-3.5" />
+              <span className="text-xs">Vernieuwen</span>
+            </Button>
+          </div>
         </div>
+
+        {gesprekFout && (
+          <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-2 text-sm text-destructive">
+            Gespreksdata: {gesprekFout}
+          </div>
+        )}
+
+        {/* Actief gesprek: post-its maken terwijl je belt of in call zit. */}
+        {lopend && (
+          <GesprekModus
+            gesprek={lopend}
+            notities={notities}
+            onNotitie={(n) => setNotities((prev) => [...prev, n])}
+            onBeeindigd={() => {
+              setLopend(null);
+              setGesprekken((prev) =>
+                prev.map((g) => (g.id === lopend.id ? { ...g, beeindigd_op: new Date().toISOString() } : g)),
+              );
+            }}
+          />
+        )}
 
         {/* Laad-, fout- en lege takken bewust apart (les uit de Mail Hub-review). */}
         {laden && (
@@ -172,13 +288,13 @@ export default function DossierCommunicatie({ leadId }: Props) {
 
         {!laden && fout && (
           <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-            Communicatie kon niet geladen worden: {fout}
+            Mail-CRM-communicatie kon niet geladen worden: {fout}
           </div>
         )}
 
         {!laden && !fout && bron === 'geen' && (
           <div className="rounded-md border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
-            Dit dossier heeft nog geen ZL-nummer en geen e-mailadres — er valt nog niets te koppelen.
+            Dit dossier heeft nog geen ZL-nummer en geen e-mailadres — mails kunnen nog niet gekoppeld worden.
           </div>
         )}
 
@@ -190,7 +306,7 @@ export default function DossierCommunicatie({ leadId }: Props) {
           </div>
         )}
 
-        {!laden && !fout && data?.gevonden && (
+        {!laden && (
           <>
             {/* Beslissingenregister */}
             <section className="rounded-lg border border-border bg-card">
@@ -201,20 +317,21 @@ export default function DossierCommunicatie({ leadId }: Props) {
               </div>
               {beslissingen.length === 0 ? (
                 <p className="px-4 py-3 text-sm text-muted-foreground">
-                  Nog geen vastgelegde beslissingen in mails of gesprekken van dit dossier.
+                  Nog geen vastgelegde beslissingen in mails, calls of gesprekken van dit dossier.
                 </p>
               ) : (
                 <ul className="divide-y divide-border">
-                  {beslissingen.map((item) => (
-                    <li key={`besl-${item.soort}-${item.id}`}>
+                  {beslissingen.map((b) => (
+                    <li key={b.sleutel}>
                       <button
                         type="button"
-                        onClick={() => scrollNaar(item)}
+                        onClick={() => scrollNaarId(b.doelId)}
                         className="w-full text-left px-4 py-2 hover:bg-muted/40 transition-colors"
                       >
-                        <p className="text-sm text-foreground leading-snug">{item.data.beslissing}</p>
+                        <p className="text-sm text-foreground leading-snug">{b.tekst}</p>
                         <p className="text-[11px] text-muted-foreground mt-0.5">
-                          {item.soort === 'mail' ? '📧 mail' : '📞 gesprek'} · {formatDatumTijd(item.datum)}
+                          {b.bron === 'mail' ? '📧 mail' : b.bron === 'call' ? '📞 call' : '🗒️ gesprek (Compass)'}
+                          {' · '}{formatDatumTijd(b.datum)}
                         </p>
                       </button>
                     </li>
@@ -229,7 +346,7 @@ export default function DossierCommunicatie({ leadId }: Props) {
               <Input
                 value={zoek}
                 onChange={(e) => setZoek(e.target.value)}
-                placeholder="Zoek in onderwerp, samenvatting, beslissing of afzender…"
+                placeholder="Zoek in onderwerp, samenvatting, beslissing, afzender of notities…"
                 className="pl-9"
               />
             </div>
@@ -238,7 +355,7 @@ export default function DossierCommunicatie({ leadId }: Props) {
             {gefilterd.length === 0 ? (
               <div className="rounded-md border border-border bg-muted/30 px-4 py-6 text-center text-sm text-muted-foreground">
                 {tijdlijn.length === 0
-                  ? 'Nog geen mails of gesprekken gekoppeld aan dit dossier.'
+                  ? 'Nog geen communicatie in dit dossier. Start een gesprek of wacht op de eerste gekoppelde mail.'
                   : 'Niets gevonden voor deze zoekterm.'}
               </div>
             ) : (
@@ -249,11 +366,17 @@ export default function DossierCommunicatie({ leadId }: Props) {
                       <MailRij
                         mail={item.data}
                         contacten={contacten}
-                        ccIds={data.cc?.[item.id] ?? []}
+                        ccIds={data?.cc?.[item.id] ?? []}
                         onLees={() => setLeesMailId(item.id)}
                       />
+                    ) : item.soort === 'call' ? (
+                      <CallRij call={item.data} deelnemerIds={data?.deelnemers?.[item.id] ?? []} contacten={contacten} />
                     ) : (
-                      <CallRij call={item.data} deelnemerIds={data.deelnemers?.[item.id] ?? []} contacten={contacten} />
+                      <GesprekRij
+                        gesprek={item.data}
+                        notities={notitiesPerGesprek.get(item.id) ?? []}
+                        naam={item.data.door_user ? namen[item.data.door_user] : undefined}
+                      />
                     )}
                   </li>
                 ))}
@@ -342,6 +465,7 @@ function CallRij({
         {deelnemers.length > 0 && (
           <span className="text-xs font-medium text-foreground">met {deelnemers.join(', ')}</span>
         )}
+        <span className="text-[10px] text-muted-foreground ml-auto">Leexi</span>
       </div>
       <p className="font-headline font-semibold text-sm text-foreground mt-1 leading-snug">
         {call.titel || 'Telefoongesprek'}
@@ -355,6 +479,65 @@ function CallRij({
         <p className="mt-1.5 inline-flex items-start gap-1.5 rounded bg-red-50 dark:bg-red-950/30 px-2 py-1 text-xs text-red-700 dark:text-red-400">
           <Gavel className="h-3 w-3 mt-0.5 shrink-0" /> {call.beslissing}
         </p>
+      )}
+    </div>
+  );
+}
+
+const NOTITIE_ICONEN = { notitie: StickyNote, beslissing: Gavel, onthouden: Star } as const;
+const NOTITIE_KLEUREN = {
+  notitie: 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900',
+  beslissing: 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900',
+  onthouden: 'bg-sky-50 dark:bg-sky-950/30 border-sky-200 dark:border-sky-900',
+} as const;
+
+function GesprekRij({
+  gesprek, notities, naam,
+}: {
+  gesprek: Gesprek;
+  notities: GesprekNotitie[];
+  naam?: string;
+}) {
+  const TypeIcon = gesprek.type === 'telefoon' ? Phone : Video;
+  const duurSec = gesprek.beeindigd_op
+    ? Math.round((new Date(gesprek.beeindigd_op).getTime() - new Date(gesprek.gestart_op).getTime()) / 1000)
+    : null;
+
+  return (
+    <div className="rounded-lg border border-border bg-card px-4 py-3">
+      <div className="flex items-center gap-2 flex-wrap">
+        <TypeIcon className="h-3.5 w-3.5 text-primary shrink-0" />
+        <span className="text-xs text-muted-foreground">{formatDatumTijd(gesprek.gestart_op)}</span>
+        {duurSec !== null && duurSec > 0 && (
+          <span className="text-[11px] text-muted-foreground">· {formatDuur(duurSec)}</span>
+        )}
+        {!gesprek.beeindigd_op && (
+          <Badge variant="outline" className="border-red-400 text-red-600 text-[10px] px-1.5 py-0">bezig</Badge>
+        )}
+        {naam && <span className="text-xs font-medium text-foreground">door {naam}</span>}
+        <span className="text-[10px] text-muted-foreground ml-auto">Compass</span>
+      </div>
+      <p className="font-headline font-semibold text-sm text-foreground mt-1 leading-snug">
+        {gesprek.type === 'telefoon' ? 'Telefoongesprek' : 'Videocall'}
+        {notities.length > 0 ? ` · ${notities.length} notitie${notities.length === 1 ? '' : 's'}` : ''}
+      </p>
+      {notities.length === 0 ? (
+        <p className="text-sm text-muted-foreground mt-0.5">Geen notities gemaakt.</p>
+      ) : (
+        <ul className="mt-1.5 space-y-1.5">
+          {notities.map((n) => {
+            const Icoon = NOTITIE_ICONEN[n.soort];
+            return (
+              <li key={n.id} className={`rounded border px-2.5 py-1.5 text-sm flex items-start gap-2 ${NOTITIE_KLEUREN[n.soort]}`}>
+                <Icoon className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                <span className="flex-1">{n.tekst}</span>
+                <span className="text-[10px] text-muted-foreground shrink-0 mt-0.5">
+                  {new Date(n.created_at).toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
       )}
     </div>
   );
