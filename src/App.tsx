@@ -5,6 +5,7 @@ import { PreIntakeProvider } from '@/contexts/PreIntakeContext';
 import { useLeadSave } from '@/hooks/useLeadSave';
 import NavigationBar from '@/components/NavigationBar';
 import Dossiers from '@/pages/Dossiers';
+import DossierCommunicatie from '@/pages/DossierCommunicatie';
 import TarievenBeheer from '@/components/beheer/TarievenBeheer';
 import type { CalculatieBron } from '@/lib/calculaties';
 import LoginPage from '@/pages/LoginPage';
@@ -54,7 +55,7 @@ const SLIDE_COMPONENTS: Record<SlideId, React.ComponentType> = {
   '8': Slide8, '9': Slide9, '10': Slide10,
 };
 
-export type AppView = 'start' | 'slides' | 'dossiers' | 'calling' | 'validation' | 'briefing' | 'beheer';
+export type AppView = 'start' | 'slides' | 'dossiers' | 'calling' | 'validation' | 'briefing' | 'beheer' | 'communicatie';
 
 function AppContent() {
   const [view, setView] = useState<AppView>('start');
@@ -176,6 +177,13 @@ function AppContent() {
     setView('validation');
   };
 
+  // Communicatiepagina: alle mails/calls/beslissingen van dit dossier, live uit Mail-CRM.
+  const handleOpenCommunicatie = async (leadId: string) => {
+    if (view === 'slides') await flushSave();
+    setActiveDossierId(leadId);
+    setView('communicatie');
+  };
+
   if (view === 'start') {
     return (
       <div className="h-screen flex flex-col bg-background relative overflow-hidden">
@@ -236,9 +244,26 @@ function AppContent() {
       bron={bron}
       onCall={handleOpenCall}
       onIntake={handleStartVideocall}
+      onCommunicatie={handleOpenCommunicatie}
       onGoDossiers={onVerlaat ?? handleGoDossiers}
     />
   );
+
+  if (view === 'communicatie' && activeDossierId) {
+    return (
+      <div className="h-screen flex flex-col">
+        <NavigationBar
+          onGoHome={handleGoHome}
+          onNewCall={handleNewCall}
+          onNewDossier={handleNewIntake}
+          onNewIntake={handleNewIntake}
+          onGoDossiers={handleGoDossiers}
+        />
+        {dossierBar(activeDossierId, 'los')}
+        <DossierCommunicatie leadId={activeDossierId} />
+      </div>
+    );
+  }
 
   if (view === 'calling') {
     return (
