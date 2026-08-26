@@ -446,6 +446,33 @@ export default function DossierCommunicatie({ leadId }: Props) {
                 if (items.length === 0) return null;
                 const meta = CATEGORIE_META[cat];
                 const open = zoek.trim() ? true : openCategorieen[cat];
+
+                const regel = (item: TijdlijnItem) => (
+                  <li key={`${item.soort}-${item.id}`} id={`comm-${item.soort}-${item.id}`}>
+                    {item.soort === 'mail' ? (
+                      <MailRij
+                        mail={item.data}
+                        contacten={contacten}
+                        ccIds={data?.cc?.[item.id] ?? []}
+                        toonRol={cat === 'beide' || cat === 'varia'}
+                        onLees={() => setLeesMailId(item.id)}
+                      />
+                    ) : item.soort === 'call' ? (
+                      <CallRij call={item.data} deelnemerIds={data?.deelnemers?.[item.id] ?? []} contacten={contacten} />
+                    ) : (
+                      <GesprekRij
+                        gesprek={item.data}
+                        notities={notitiesPerGesprek.get(item.id) ?? []}
+                        naam={item.data.door_user ? namen[item.data.door_user] : undefined}
+                      />
+                    )}
+                  </li>
+                );
+
+                // IDEE-7: binnen "Leveranciers" nog een niveau per bedrijf, zodat alle mail
+                // met bv. Trappen Smet bij elkaar staat. Alleen zinvol vanaf 2 bedrijven.
+                const perBedrijf = cat === 'leverancier' ? groepeerPerBedrijf(items, contacten) : null;
+
                 return (
                   <Collapsible
                     key={cat}
@@ -456,33 +483,28 @@ export default function DossierCommunicatie({ leadId }: Props) {
                     <CollapsibleTrigger className="w-full flex items-center gap-2 px-4 py-2.5 hover:bg-muted/40 transition-colors">
                       <meta.icon className="h-4 w-4 text-primary" />
                       <span className="font-headline font-semibold text-sm">{meta.titel}</span>
-                      <span className="text-xs text-muted-foreground">({items.length})</span>
+                      <span className="text-xs text-muted-foreground">
+                        ({items.length}{perBedrijf && perBedrijf.length > 1 ? ` · ${perBedrijf.length} leveranciers` : ''})
+                      </span>
                       <ChevronDown className={`h-4 w-4 text-muted-foreground ml-auto transition-transform ${open ? 'rotate-180' : ''}`} />
                     </CollapsibleTrigger>
                     <CollapsibleContent>
-                      <ul className="space-y-2 px-3 pb-3">
-                        {items.map((item) => (
-                          <li key={`${item.soort}-${item.id}`} id={`comm-${item.soort}-${item.id}`}>
-                            {item.soort === 'mail' ? (
-                              <MailRij
-                                mail={item.data}
-                                contacten={contacten}
-                                ccIds={data?.cc?.[item.id] ?? []}
-                                toonRol={cat === 'beide' || cat === 'varia'}
-                                onLees={() => setLeesMailId(item.id)}
-                              />
-                            ) : item.soort === 'call' ? (
-                              <CallRij call={item.data} deelnemerIds={data?.deelnemers?.[item.id] ?? []} contacten={contacten} />
-                            ) : (
-                              <GesprekRij
-                                gesprek={item.data}
-                                notities={notitiesPerGesprek.get(item.id) ?? []}
-                                naam={item.data.door_user ? namen[item.data.door_user] : undefined}
-                              />
-                            )}
-                          </li>
-                        ))}
-                      </ul>
+                      {perBedrijf && perBedrijf.length > 1 ? (
+                        <div className="px-3 pb-3 space-y-2">
+                          {perBedrijf.map(({ naam, items: bedrijfItems }) => (
+                            <LeverancierGroep
+                              key={naam}
+                              naam={naam}
+                              aantal={bedrijfItems.length}
+                              standaardOpen={!!zoek.trim() || perBedrijf.length <= 3}
+                            >
+                              <ul className="space-y-2 pt-2">{bedrijfItems.map(regel)}</ul>
+                            </LeverancierGroep>
+                          ))}
+                        </div>
+                      ) : (
+                        <ul className="space-y-2 px-3 pb-3">{items.map(regel)}</ul>
+                      )}
                     </CollapsibleContent>
                   </Collapsible>
                 );
@@ -494,6 +516,52 @@ export default function DossierCommunicatie({ leadId }: Props) {
 
       <MailLezenSheet emailId={leesMailId} onClose={() => setLeesMailId(null)} />
     </div>
+  );
+}
+
+/**
+ * IDEE-7: groepeert tijdlijn-items per leveranciersbedrijf. Valt terug op de contactnaam
+ * wanneer een contact (nog) geen bedrijf heeft. Meest recente groep eerst, zodat de volgorde
+ * van de tijdlijn behouden blijft.
+ */
+function groepeerPerBedrijf(
+  items: TijdlijnItem[],
+  contacten: Record<string, LoketContact>,
+): { naam: string; items: TijdlijnItem[] }[] {
+  const groepen = new Map<string, TijdlijnItem[]>();
+  for (const item of items) {
+    const contactId = item.soort === 'mail' ? item.data.van_contact_id : null;
+    const contact = contactId ? contacten[contactId] : undefined;
+    const naam = contact?.bedrijf || contact?.naam || contact?.email || 'Onbekende leverancier';
+    const lijst = groepen.get(naam) ?? [];
+    lijst.push(item);
+    groepen.set(naam, lijst);
+  }
+  return [...groepen.entries()]
+    .map(([naam, lijst]) => ({ naam, items: lijst }))
+    .sort((a, b) => String(b.items[0]?.datum ?? '').localeCompare(String(a.items[0]?.datum ?? '')));
+}
+
+function LeverancierGroep({
+  naam, aantal, standaardOpen, children,
+}: {
+  naam: string;
+  aantal: number;
+  standaardOpen: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(standaardOpen);
+  useEffect(() => { if (standaardOpen) setOpen(true); }, [standaardOpen]);
+  return (
+    <Collapsible open={open} onOpenChange={setOpen} className="rounded-md border border-border/70 bg-muted/20">
+      <CollapsibleTrigger className="w-full flex items-center gap-2 px-3 py-2 hover:bg-muted/40 transition-colors">
+        <Truck className="h-3.5 w-3.5 text-amber-600" />
+        <span className="font-medium text-sm text-foreground">{naam}</span>
+        <span className="text-xs text-muted-foreground">({aantal})</span>
+        <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground ml-auto transition-transform ${open ? 'rotate-180' : ''}`} />
+      </CollapsibleTrigger>
+      <CollapsibleContent className="px-3 pb-3">{children}</CollapsibleContent>
+    </Collapsible>
   );
 }
 

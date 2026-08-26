@@ -35,7 +35,25 @@ export type LoketCall = {
   beslissing: string | null;
 };
 
-export type LoketContact = { naam: string | null; email: string | null; rol: string | null };
+export type LoketContact = {
+  naam: string | null;
+  email: string | null;
+  rol: string | null;
+  /** IDEE-7: nodig om leverancierscommunicatie per bedrijf te groeperen. */
+  bedrijf_id?: string | null;
+  bedrijf?: string | null;
+};
+
+export type Leverancier = {
+  bedrijf_id: string | null;
+  naam: string;
+  mails: number;
+  beslissingen: number;
+  laatste: string | null;
+  /** ZL-nummers van de dossiers waar deze leverancier aan meewerkte. */
+  dossiers: string[];
+  contacten: string[];
+};
 
 export type CommunicatieData = {
   gevonden: boolean;
@@ -89,6 +107,17 @@ export const fetchCommunicatieViaEmail = (email: string) =>
 
 /** Volledige inhoud van één mail, live uit Exchange. Platte tekst — nooit als HTML renderen. */
 export const fetchMailInhoud = (emailId: string) => loketCall<MailInhoud>({ action: 'mail_inhoud', email_id: emailId });
+
+/** IDEE-7: dossier-overstijgend overzicht van alle leveranciers, meest actieve eerst. */
+export const fetchLeveranciers = () =>
+  loketCall<{ leveranciers: Leverancier[] }>({ action: 'leveranciers' }).then((r) => r.leveranciers);
+
+/** IDEE-7: alle mail van één leveranciersbedrijf, over alle dossiers heen. */
+export const fetchLeverancierMails = (bedrijfId: string) =>
+  loketCall<CommunicatieData & { bedrijf: { naam: string | null } | null; projecten: Record<string, string> }>({
+    action: 'leverancier_mails',
+    bedrijf_id: bedrijfId,
+  });
 
 export type HistoriekResultaat = {
   kandidaten: number;
