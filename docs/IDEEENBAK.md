@@ -40,3 +40,11 @@ Nummers zijn doorlopend en worden nooit hergebruikt.
 - **Behandeling**: eerst — goedkoopst precies nu (context en branch staan open, nog niet gemerged)
 - **Beslissingen op de open vragen** (zelf genomen): (1) groepen = Klant / Klant + leverancier / Leveranciers / Varia, bepaald per item op de betrokken rollen (afzender + cc'ers; eigen gesprekken en Leexi-klantcalls onder Klant, gemengde mails onder Klant + leverancier). (2) Alles standaard open behalve Varia; een actieve zoekterm klapt elke groep met treffers open zodat zoeken nooit iets verbergt; rol-badges alleen nog in de gemengde en Varia-groep.
 - **Status**: afgewerkt (2026-08-26) — inklapbare categoriegroepen in DossierCommunicatie.tsx (shadcn Collapsible, zelfde patroon als de Mail Hub-maandgroepen); beslissing-klik opent eerst de (eventueel dichte) doelgroep. Live geverifieerd op ZL-0116: Klant(5) + Leveranciers(3), inklappen en zoek-gedrag getest.
+
+## IDEE-4 — Kost de communicatiefunctie extra Anthropic-tegoed?
+- **Datum**: 2026-08-26
+- **Bram zei letterlijk**: "Er moet toch geen extra tegoed van Anthorpic komen voor deze functie? De API calls komen uit de MAIL CRM database en moeten toch niet nog eens aangesproken worden? Ofwel?"
+- **Waar ik mee bezig was**: niets meer open — wachtend op merge + limietbeslissing
+- **Eerste inschatting**: begripvraag, geen bouwwerk
+- **Behandeling**: direct beantwoord (stuurt zijn openstaande limietbeslissing)
+- **Status**: afgewerkt (2026-08-26) — beantwoord: bekijken kost nul (alles komt uit de Mail-CRM-database); Anthropic wordt alleen betaald bij het éénmalig aanmaken van een samenvatting (nieuwe mail ±€1-5/mnd, en de Historiek-knop met kost vooraf in beeld). De volle limiet komt van de eenmalige backfill-inhaalslag, niet van de nieuwe functie; verhogen is optioneel — zonder verhoging herstelt alles op 1 sept vanzelf en herclassificeer ik de tussenliggende mails.
