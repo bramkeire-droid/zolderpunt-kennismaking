@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { FolderOpen, Phone, Bot, Image as ImageIcon, Globe, Calculator, FileText, Receipt, ArrowLeft, MessagesSquare } from 'lucide-react';
+import { FolderOpen, Phone, Bot, Image as ImageIcon, Globe, Calculator, FileText, Receipt, ArrowLeft, MessagesSquare, MessageCircle } from 'lucide-react';
+import DossierChatPanel from '@/components/communicatie/DossierChatPanel';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import PhotoUploadDialog from '@/components/dossier/PhotoUploadDialog';
@@ -10,7 +11,7 @@ import OffertebijlageDialog from '@/components/dossier/OffertebijlageDialog';
 import PortalManageDialog from '@/components/portal/PortalManageDialog';
 import PortalPreview from '@/components/portal/PortalPreview';
 
-type DialogKey = 'fotos' | 'portaal' | 'calculator' | 'voorblad' | 'offerte' | null;
+type DialogKey = 'fotos' | 'portaal' | 'calculator' | 'voorblad' | 'offerte' | 'chat' | null;
 
 interface Props {
   /** Dossier waarvoor de acties gelden. */
@@ -97,13 +98,24 @@ export default function DossierActionsBar({ leadId, bron = 'los', onCall, onInta
             </Button>
           ))}
 
-          <Button size="sm" variant="ghost" className="gap-1.5 font-headline h-8 ml-auto" onClick={onGoDossiers}>
+          {/* Teamchat rechts uitgelijnd: intern werkoverleg over dit dossier (Sprint 3). */}
+          <Button size="sm" variant="outline" className="gap-1.5 font-headline h-8 ml-auto" onClick={() => setDialog('chat')}>
+            <MessageCircle className="h-3.5 w-3.5 text-primary" />
+            <span className="text-xs">Teamchat</span>
+          </Button>
+          <Button size="sm" variant="ghost" className="gap-1.5 font-headline h-8" onClick={onGoDossiers}>
             <ArrowLeft className="h-3.5 w-3.5" />
             <span className="text-xs">Naar dossiers</span>
           </Button>
         </div>
       </div>
 
+      <DossierChatPanel
+        leadId={leadId}
+        dossierNaam={naam}
+        open={dialog === 'chat'}
+        onClose={() => setDialog(null)}
+      />
       {dialog === 'fotos' && (
         <PhotoUploadDialog open onClose={() => setDialog(null)} lead={lead} onUpdate={patchLead} />
       )}
