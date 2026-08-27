@@ -2,7 +2,7 @@ import { useSession, SLIDE_ORDER, SLIDE_MODES, SlideId } from '@/contexts/Sessio
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { useAuth } from '@/contexts/AuthContext';
 import logoBlauw from '@/assets/logo-blauw.svg';
-import { LogOut, Phone, FolderOpen, Plus, ChevronDown, Video, FilePlus2, Settings } from 'lucide-react';
+import { LogOut, Phone, FolderOpen, Plus, ChevronDown, Video, FilePlus2, Settings, Truck } from 'lucide-react';
 import ExtraInfoMenu from './ExtraInfoMenu';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
@@ -24,13 +24,17 @@ interface NavigationBarProps {
   /** Videocall-intake starten. */
   onNewIntake?: () => void;
   onGoDossiers?: () => void;
+  /** Leveranciersoverzicht (IDEE-7): alle communicatie per leverancier, dossier-overstijgend. */
+  onGoLeveranciers?: () => void;
+  leveranciersActief?: boolean;
   onGoBeheer?: () => void;
   /** Beheer is een App-view, geen sessiemodus — vandaar apart meegegeven. */
   beheerActief?: boolean;
 }
 
 export default function NavigationBar({
-  onGoHome, onNewCall, onNewDossier, onNewIntake, onGoDossiers, onGoBeheer, beheerActief,
+  onGoHome, onNewCall, onNewDossier, onNewIntake, onGoDossiers, onGoLeveranciers,
+  leveranciersActief, onGoBeheer, beheerActief,
 }: NavigationBarProps) {
   const { currentMode, currentSlide } = useSession();
   const { signOut } = useAuth();
@@ -90,6 +94,20 @@ export default function NavigationBar({
           <FolderOpen className="h-4 w-4" />
           Dossiers
         </button>
+
+        {onGoLeveranciers && (
+          <button
+            onClick={() => onGoLeveranciers()}
+            className={`flex items-center gap-2 px-4 py-2 text-sm font-headline font-semibold transition-colors ${
+              leveranciersActief
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+            }`}
+          >
+            <Truck className="h-4 w-4" />
+            Leveranciers
+          </button>
+        )}
 
         {/* Alleen voor beheerders: de calculatorprijzen raken elke offerte. */}
         {isAdmin && (

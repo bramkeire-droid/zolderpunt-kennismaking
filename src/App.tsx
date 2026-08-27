@@ -6,6 +6,7 @@ import { useLeadSave } from '@/hooks/useLeadSave';
 import NavigationBar from '@/components/NavigationBar';
 import Dossiers from '@/pages/Dossiers';
 import DossierCommunicatie from '@/pages/DossierCommunicatie';
+import Leveranciers from '@/pages/Leveranciers';
 import TarievenBeheer from '@/components/beheer/TarievenBeheer';
 import type { CalculatieBron } from '@/lib/calculaties';
 import LoginPage from '@/pages/LoginPage';
@@ -55,7 +56,7 @@ const SLIDE_COMPONENTS: Record<SlideId, React.ComponentType> = {
   '8': Slide8, '9': Slide9, '10': Slide10,
 };
 
-export type AppView = 'start' | 'slides' | 'dossiers' | 'calling' | 'validation' | 'briefing' | 'beheer' | 'communicatie';
+export type AppView = 'start' | 'slides' | 'dossiers' | 'calling' | 'validation' | 'briefing' | 'beheer' | 'communicatie' | 'leveranciers';
 
 function AppContent() {
   const [view, setView] = useState<AppView>('start');
@@ -249,6 +250,23 @@ function AppContent() {
     />
   );
 
+  if (view === 'leveranciers') {
+    return (
+      <div className="h-screen flex flex-col">
+        <NavigationBar
+          onGoHome={handleGoHome}
+          onNewCall={handleNewCall}
+          onNewDossier={handleNewIntake}
+          onNewIntake={handleNewIntake}
+          onGoDossiers={handleGoDossiers}
+          onGoLeveranciers={() => setView('leveranciers')}
+          leveranciersActief
+        />
+        <Leveranciers />
+      </div>
+    );
+  }
+
   if (view === 'communicatie' && activeDossierId) {
     return (
       <div className="h-screen flex flex-col">
@@ -258,6 +276,7 @@ function AppContent() {
           onNewDossier={handleNewIntake}
           onNewIntake={handleNewIntake}
           onGoDossiers={handleGoDossiers}
+          onGoLeveranciers={() => setView('leveranciers')}
         />
         {dossierBar(activeDossierId, 'los')}
         <DossierCommunicatie leadId={activeDossierId} />
@@ -301,6 +320,7 @@ function AppContent() {
           onNewDossier={handleNewIntake}
           onNewIntake={handleNewIntake}
           onGoDossiers={handleGoDossiers}
+          onGoLeveranciers={() => setView('leveranciers')}
         />
         {briefingLead.id && dossierBar(briefingLead.id, 'intake')}
         <IntakeBriefing
@@ -322,6 +342,7 @@ function AppContent() {
         onNewDossier={handleNewIntake}
         onNewIntake={handleNewIntake}
         onGoDossiers={handleGoDossiers}
+        onGoLeveranciers={() => setView('leveranciers')}
         onGoBeheer={() => setView('beheer')}
         beheerActief={view === 'beheer'}
       />
