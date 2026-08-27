@@ -564,16 +564,17 @@ function LeverancierGroep({
   useEffect(() => { if (standaardOpen) setOpen(true); }, [standaardOpen]);
   return (
     <Collapsible open={open} onOpenChange={setOpen} className="border-b border-border last:border-b-0">
-      <CollapsibleTrigger className="w-full flex items-center gap-2 px-4 sm:px-5 py-2.5 hover:bg-muted/40 transition-colors">
-        <Truck className="h-3.5 w-3.5 text-amber-600" />
-        <span className="font-medium text-sm text-foreground">{naam}</span>
+      <CollapsibleTrigger className="w-full h-10 flex items-center gap-2 px-4 sm:px-5 bg-muted/20 hover:bg-muted/40 transition-colors">
+        <Truck className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+        <span className="text-[13px] font-semibold text-foreground truncate">{naam}</span>
         <span className="text-[12px] text-muted-foreground">({aantal})</span>
-        <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground ml-auto transition-transform ${open ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`h-4 w-4 text-muted-foreground ml-auto shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
       </CollapsibleTrigger>
-      <CollapsibleContent className="pl-3 border-t border-border/70">{children}</CollapsibleContent>
+      <CollapsibleContent className="border-t border-border/70">{children}</CollapsibleContent>
     </Collapsible>
   );
 }
+
 
 function MailRij({
   mail, contacten, ccIds, toonRol = true, onLees,
