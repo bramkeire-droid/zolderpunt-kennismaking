@@ -55,7 +55,7 @@ export function RijLayout({
       </div>
 
       <div className="min-w-0">
-        <div className="lg:hidden text-[12px] text-muted-foreground truncate mb-1">
+        <div className="lg:hidden text-[12px] text-muted-foreground mb-1">
           {persoon ? <span className="font-semibold text-foreground">{persoon}</span> : null}
           {persoon ? ' · ' : ''}
           {bronLabel} · {datum} {uur}
