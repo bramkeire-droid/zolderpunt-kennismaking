@@ -16,13 +16,15 @@ import MailLezenSheet from '@/components/communicatie/MailLezenSheet';
 import GesprekModus from '@/components/communicatie/GesprekModus';
 import PostItRij from '@/components/communicatie/PostItRij';
 import HistoriekKnop from '@/components/communicatie/HistoriekKnop';
+import { RijLayout } from '@/components/communicatie/CommunicatieRij';
+import BeslissingenPaneel from '@/components/communicatie/BeslissingenPaneel';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
-  ArrowDownLeft, ArrowUpRight, Phone, Search, Gavel, Mail, RefreshCw, Info, Video, StickyNote, Star,
+  ArrowDownLeft, ArrowUpRight, Phone, Search, Gavel, Mail, RefreshCw, Info, Video,
   ChevronDown, User, Truck, Users, Boxes,
 } from 'lucide-react';
 
