@@ -561,14 +561,14 @@ function LeverancierGroep({
   const [open, setOpen] = useState(standaardOpen);
   useEffect(() => { if (standaardOpen) setOpen(true); }, [standaardOpen]);
   return (
-    <Collapsible open={open} onOpenChange={setOpen} className="rounded-md border border-border/70 bg-muted/20">
-      <CollapsibleTrigger className="w-full flex items-center gap-2 px-3 py-2 hover:bg-muted/40 transition-colors">
+    <Collapsible open={open} onOpenChange={setOpen} className="border-b border-border last:border-b-0">
+      <CollapsibleTrigger className="w-full flex items-center gap-2 px-4 sm:px-5 py-2.5 hover:bg-muted/40 transition-colors">
         <Truck className="h-3.5 w-3.5 text-amber-600" />
         <span className="font-medium text-sm text-foreground">{naam}</span>
-        <span className="text-xs text-muted-foreground">({aantal})</span>
+        <span className="text-[12px] text-muted-foreground">({aantal})</span>
         <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground ml-auto transition-transform ${open ? 'rotate-180' : ''}`} />
       </CollapsibleTrigger>
-      <CollapsibleContent className="px-3 pb-3">{children}</CollapsibleContent>
+      <CollapsibleContent className="pl-3 border-t border-border/70">{children}</CollapsibleContent>
     </Collapsible>
   );
 }
@@ -593,36 +593,31 @@ function MailRij({
     <button
       type="button"
       onClick={onLees}
-      className="w-full text-left rounded-lg border border-border bg-card px-4 py-3 hover:border-primary/40 transition-colors"
+      className="w-full text-left hover:bg-muted/40 transition-colors"
     >
-      <div className="flex items-center gap-2 flex-wrap">
-        {inkomend
-          ? <ArrowDownLeft className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
-          : <ArrowUpRight className="h-3.5 w-3.5 text-primary shrink-0" />}
-        <Mail className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-        <span className="text-xs text-muted-foreground">{formatDatumTijd(mail.datum)}</span>
-        {contact && (
-          <span className="text-xs font-medium text-foreground">
-            {inkomend ? 'van' : 'aan'} {contact.naam || contact.email}
-          </span>
-        )}
-        {toonRol && rolBadge(contact?.rol)}
-        <span className="text-[10px] text-muted-foreground ml-auto">{mail.mailbox}</span>
-      </div>
-      <p className="font-headline font-semibold text-sm text-foreground mt-1 leading-snug">
-        {mail.onderwerp || '(geen onderwerp)'}
-      </p>
-      {mail.samenvatting && (
-        <p className="text-sm text-muted-foreground mt-0.5 leading-snug">{mail.samenvatting}</p>
-      )}
-      {mail.bevat_beslissing && mail.beslissing && (
-        <p className="mt-1.5 inline-flex items-start gap-1.5 rounded bg-red-50 dark:bg-red-950/30 px-2 py-1 text-xs text-red-700 dark:text-red-400">
-          <Gavel className="h-3 w-3 mt-0.5 shrink-0" /> {mail.beslissing}
-        </p>
-      )}
-      {ccNamen.length > 0 && (
-        <p className="text-[11px] text-muted-foreground mt-1">Cc: {ccNamen.join(', ')}</p>
-      )}
+      <RijLayout
+        datum={formatDatumTijd(mail.datum)}
+        meta={
+          <>
+            {inkomend
+              ? <ArrowDownLeft className="h-4 w-4 text-emerald-600 shrink-0" />
+              : <ArrowUpRight className="h-4 w-4 text-primary shrink-0" />}
+            <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+            <span>{inkomend ? 'Inkomend' : 'Uitgaand'}</span>
+            {contact && (
+              <span className="font-medium text-foreground">
+                · {inkomend ? 'van' : 'aan'} {contact.naam || contact.email}
+              </span>
+            )}
+            {toonRol && rolBadge(contact?.rol)}
+            <span className="text-[12px]">· {mail.mailbox}</span>
+          </>
+        }
+        onderwerp={mail.onderwerp || '(geen onderwerp)'}
+        preview={mail.samenvatting || undefined}
+        beslissing={mail.bevat_beslissing && mail.beslissing ? mail.beslissing : undefined}
+        extra={ccNamen.length > 0 ? `Cc: ${ccNamen.join(', ')}` : undefined}
+      />
     </button>
   );
 }
@@ -639,41 +634,31 @@ function CallRij({
     .filter(Boolean);
 
   return (
-    <div className="rounded-lg border border-border bg-card px-4 py-3">
-      <div className="flex items-center gap-2 flex-wrap">
-        <Phone className="h-3.5 w-3.5 text-primary shrink-0" />
-        <span className="text-xs text-muted-foreground">{formatDatumTijd(call.datum)}</span>
-        {call.duur_seconden ? (
-          <span className="text-[11px] text-muted-foreground">· {formatDuur(call.duur_seconden)}</span>
-        ) : null}
-        {deelnemers.length > 0 && (
-          <span className="text-xs font-medium text-foreground">met {deelnemers.join(', ')}</span>
-        )}
-        <span className="text-[10px] text-muted-foreground ml-auto">Leexi</span>
-      </div>
-      <p className="font-headline font-semibold text-sm text-foreground mt-1 leading-snug">
-        {call.titel || 'Telefoongesprek'}
-      </p>
-      {call.samenvatting && (
-        <p className="text-sm text-muted-foreground mt-0.5 leading-snug whitespace-pre-line">
-          {call.samenvatting.length > 400 ? `${call.samenvatting.slice(0, 400)}…` : call.samenvatting}
-        </p>
-      )}
-      {call.bevat_beslissing && call.beslissing && (
-        <p className="mt-1.5 inline-flex items-start gap-1.5 rounded bg-red-50 dark:bg-red-950/30 px-2 py-1 text-xs text-red-700 dark:text-red-400">
-          <Gavel className="h-3 w-3 mt-0.5 shrink-0" /> {call.beslissing}
-        </p>
-      )}
-    </div>
+    <RijLayout
+      datum={formatDatumTijd(call.datum)}
+      meta={
+        <>
+          <Phone className="h-4 w-4 text-primary shrink-0" />
+          <span>Telefoon</span>
+          {call.duur_seconden ? <span>· {formatDuur(call.duur_seconden)}</span> : null}
+          {deelnemers.length > 0 && (
+            <span className="font-medium text-foreground">· met {deelnemers.join(', ')}</span>
+          )}
+          <span className="text-[12px]">· Leexi</span>
+        </>
+      }
+      onderwerp={call.titel || 'Telefoongesprek'}
+      preview={
+        call.samenvatting ? (
+          <span className="whitespace-pre-line">
+            {call.samenvatting.length > 400 ? `${call.samenvatting.slice(0, 400)}…` : call.samenvatting}
+          </span>
+        ) : undefined
+      }
+      beslissing={call.bevat_beslissing && call.beslissing ? call.beslissing : undefined}
+    />
   );
 }
-
-const NOTITIE_ICONEN = { notitie: StickyNote, beslissing: Gavel, onthouden: Star } as const;
-const NOTITIE_KLEUREN = {
-  notitie: 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900',
-  beslissing: 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900',
-  onthouden: 'bg-sky-50 dark:bg-sky-950/30 border-sky-200 dark:border-sky-900',
-} as const;
 
 function GesprekRij({
   gesprek, notities, naam, onNotitieGewijzigd,
@@ -689,35 +674,40 @@ function GesprekRij({
     : null;
 
   return (
-    <div className="rounded-lg border border-border bg-card px-4 py-3">
-      <div className="flex items-center gap-2 flex-wrap">
-        <TypeIcon className="h-3.5 w-3.5 text-primary shrink-0" />
-        <span className="text-xs text-muted-foreground">{formatDatumTijd(gesprek.gestart_op)}</span>
-        {duurSec !== null && duurSec > 0 && (
-          <span className="text-[11px] text-muted-foreground">· {formatDuur(duurSec)}</span>
-        )}
-        {!gesprek.beeindigd_op && (
-          <Badge variant="outline" className="border-red-400 text-red-600 text-[10px] px-1.5 py-0">bezig</Badge>
-        )}
-        {naam && <span className="text-xs font-medium text-foreground">door {naam}</span>}
-        <span className="text-[10px] text-muted-foreground ml-auto">Compass</span>
-      </div>
-      <p className="font-headline font-semibold text-sm text-foreground mt-1 leading-snug">
-        {gesprek.type === 'telefoon' ? 'Telefoongesprek' : 'Videocall'}
-        {notities.length > 0 ? ` · ${notities.length} notitie${notities.length === 1 ? '' : 's'}` : ''}
-      </p>
-      {notities.length === 0 ? (
-        <p className="text-sm text-muted-foreground mt-0.5">Geen notities gemaakt.</p>
-      ) : (
-        <ul className="mt-1.5 space-y-1.5">
-          {notities.map((n) => (
-            <li key={n.id}>
-              {/* Ook ná het gesprek bewerkbaar: je herleest je notities meestal pas later. */}
-              <PostItRij notitie={n} onGewijzigd={onNotitieGewijzigd} />
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
+    <RijLayout
+      datum={formatDatumTijd(gesprek.gestart_op)}
+      meta={
+        <>
+          <TypeIcon className="h-4 w-4 text-primary shrink-0" />
+          <span>{gesprek.type === 'telefoon' ? 'Telefoon' : 'Videocall'}</span>
+          {duurSec !== null && duurSec > 0 && <span>· {formatDuur(duurSec)}</span>}
+          {!gesprek.beeindigd_op && (
+            <Badge variant="outline" className="border-red-400 text-red-600 text-[10px] px-1.5 py-0">bezig</Badge>
+          )}
+          {naam && <span className="font-medium text-foreground">· door {naam}</span>}
+          <span className="text-[12px]">· Compass</span>
+        </>
+      }
+      onderwerp={
+        <>
+          {gesprek.type === 'telefoon' ? 'Telefoongesprek' : 'Videocall'}
+          {notities.length > 0 ? ` · ${notities.length} notitie${notities.length === 1 ? '' : 's'}` : ''}
+        </>
+      }
+      preview={notities.length === 0 ? 'Geen notities gemaakt.' : undefined}
+      onderaan={
+        notities.length > 0 ? (
+          <ul className="mt-2 pl-3 border-l border-border divide-y divide-border/70">
+            {notities.map((n) => (
+              <li key={n.id} className="py-1.5 first:pt-0 last:pb-0">
+                {/* Ook ná het gesprek bewerkbaar: je herleest je notities meestal pas later. */}
+                <PostItRij notitie={n} onGewijzigd={onNotitieGewijzigd} />
+              </li>
+            ))}
+          </ul>
+        ) : undefined
+      }
+    />
   );
 }
+
