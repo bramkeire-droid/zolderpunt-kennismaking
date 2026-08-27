@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.1"
+    PostgrestVersion: "14.17"
   }
   public: {
     Tables: {
@@ -201,6 +201,121 @@ export type Database = {
           voornaam?: string
         }
         Relationships: []
+      }
+      dossier_chat: {
+        Row: {
+          bericht: string
+          created_at: string
+          id: string
+          lead_id: string
+          user_id: string
+        }
+        Insert: {
+          bericht: string
+          created_at?: string
+          id?: string
+          lead_id: string
+          user_id?: string
+        }
+        Update: {
+          bericht?: string
+          created_at?: string
+          id?: string
+          lead_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dossier_chat_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gesprek_notities: {
+        Row: {
+          created_at: string
+          door_user: string | null
+          gesprek_id: string | null
+          id: string
+          lead_id: string
+          soort: string
+          tekst: string
+        }
+        Insert: {
+          created_at?: string
+          door_user?: string | null
+          gesprek_id?: string | null
+          id?: string
+          lead_id: string
+          soort?: string
+          tekst: string
+        }
+        Update: {
+          created_at?: string
+          door_user?: string | null
+          gesprek_id?: string | null
+          id?: string
+          lead_id?: string
+          soort?: string
+          tekst?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gesprek_notities_gesprek_id_fkey"
+            columns: ["gesprek_id"]
+            isOneToOne: false
+            referencedRelation: "gesprekken"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gesprek_notities_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gesprekken: {
+        Row: {
+          beeindigd_op: string | null
+          created_at: string
+          door_user: string | null
+          gestart_op: string
+          id: string
+          lead_id: string
+          type: string
+        }
+        Insert: {
+          beeindigd_op?: string | null
+          created_at?: string
+          door_user?: string | null
+          gestart_op?: string
+          id?: string
+          lead_id: string
+          type: string
+        }
+        Update: {
+          beeindigd_op?: string | null
+          created_at?: string
+          door_user?: string | null
+          gestart_op?: string
+          id?: string
+          lead_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gesprekken_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       google_reviews_cache: {
         Row: {
