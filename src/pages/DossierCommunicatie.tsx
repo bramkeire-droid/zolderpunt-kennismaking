@@ -288,42 +288,131 @@ export default function DossierCommunicatie({ leadId }: Props) {
     }
   };
 
+  const statusRegel: string[] = [];
+  if (bron === 'zl' && data?.project) {
+    statusRegel.push(`Dossier #${data.project.extern_dossier_id}`);
+    statusRegel.push(`Bouwflow-fase: ${data.project.status ?? 'onbekend'}`);
+    statusRegel.push('live uit Mail-CRM');
+  }
+
+  const beslissingenPaneel = (
+    <BeslissingenPaneel
+      beslissingen={beslissingen}
+      onGa={(b) => {
+        const volledig = beslissingen.find((x) => x.sleutel === b.sleutel);
+        scrollNaarId(b.doelId, volledig?.categorie ?? 'klant');
+      }}
+    />
+  );
+
+  const stroom = (
+    <>
+      {gefilterd.length === 0 ? (
+        <div className="rounded-lg border border-border bg-card px-4 py-8 text-center text-sm text-muted-foreground">
+          {tijdlijn.length === 0
+            ? 'Nog geen communicatie in dit dossier. Start een gesprek of wacht op de eerste gekoppelde mail.'
+            : 'Niets gevonden voor deze zoekterm.'}
+        </div>
+      ) : (
+        <div className="rounded-lg border border-border bg-card divide-y-2 divide-border">
+          {CATEGORIE_VOLGORDE.map((cat) => {
+            const items = gefilterd.filter(
+              (item) => categorieVoor(item, contacten, data?.cc ?? {}, data?.deelnemers ?? {}) === cat,
+            );
+            if (items.length === 0) return null;
+            const meta = CATEGORIE_META[cat];
+            const open = zoek.trim() ? true : openCategorieen[cat];
+
+            const regel = (item: TijdlijnItem) => (
+              <li key={`${item.soort}-${item.id}`} id={`comm-${item.soort}-${item.id}`}>
+                {item.soort === 'mail' ? (
+                  <MailRij
+                    mail={item.data}
+                    contacten={contacten}
+                    ccIds={data?.cc?.[item.id] ?? []}
+                    toonRol={cat === 'beide' || cat === 'varia'}
+                    onLees={() => setLeesMailId(item.id)}
+                  />
+                ) : item.soort === 'call' ? (
+                  <CallRij call={item.data} deelnemerIds={data?.deelnemers?.[item.id] ?? []} contacten={contacten} />
+                ) : (
+                  <GesprekRij
+                    gesprek={item.data}
+                    notities={notitiesPerGesprek.get(item.id) ?? []}
+                    naam={item.data.door_user ? namen[item.data.door_user] : undefined}
+                    onNotitieGewijzigd={pasNotitieAan}
+                  />
+                )}
+              </li>
+            );
+
+            // IDEE-7: binnen "Leveranciers" nog een niveau per bedrijf, zodat alle mail
+            // met bv. Trappen Smet bij elkaar staat. Alleen zinvol vanaf 2 bedrijven.
+            const perBedrijf = cat === 'leverancier' ? groepeerPerBedrijf(items, contacten) : null;
+
+            return (
+              <Collapsible
+                key={cat}
+                open={open}
+                onOpenChange={(o) => setOpenCategorieen((prev) => ({ ...prev, [cat]: o }))}
+              >
+                <CollapsibleTrigger className="w-full flex items-center gap-2 px-4 py-3.5 sm:px-5 hover:bg-muted/40 transition-colors">
+                  <meta.icon className="h-4 w-4 text-primary" />
+                  <span className="font-headline font-semibold text-base">{meta.titel}</span>
+                  <span className="text-[12px] text-muted-foreground">
+                    ({items.length}{perBedrijf && perBedrijf.length > 1 ? ` · ${perBedrijf.length} leveranciers` : ''})
+                  </span>
+                  <ChevronDown className={`h-4 w-4 text-muted-foreground ml-auto transition-transform ${open ? 'rotate-180' : ''}`} />
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  {perBedrijf && perBedrijf.length > 1 ? (
+                    <div className="border-t border-border">
+                      {perBedrijf.map(({ naam, items: bedrijfItems }) => (
+                        <LeverancierGroep
+                          key={naam}
+                          naam={naam}
+                          aantal={bedrijfItems.length}
+                          standaardOpen={!!zoek.trim() || perBedrijf.length <= 3}
+                        >
+                          <ul className="divide-y divide-border/70">{bedrijfItems.map(regel)}</ul>
+                        </LeverancierGroep>
+                      ))}
+                    </div>
+                  ) : (
+                    <ul className="divide-y divide-border border-t border-border">{items.map(regel)}</ul>
+                  )}
+                </CollapsibleContent>
+              </Collapsible>
+            );
+          })}
+        </div>
+      )}
+    </>
+  );
+
   return (
     <div className="flex-1 overflow-y-auto bg-background">
-      <div className="mx-auto max-w-4xl px-4 py-5 space-y-4">
+      <div className="mx-auto w-full max-w-[1460px] px-6 py-7 xl:px-8 space-y-5">
 
-        {/* Kop: waar komt deze data vandaan + gesprek starten */}
-        <div className="flex items-start justify-between gap-3 flex-wrap">
-          <div>
-            <h1 className="font-headline font-bold text-xl text-foreground">Communicatie</h1>
-            {bron === 'zl' && data?.project && (
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Dossier <span className="font-semibold">#{data.project.extern_dossier_id}</span>
-                {' · '}Bouwflow-fase: {data.project.status ?? 'onbekend'}
-                {' · '}live uit Mail-CRM
-              </p>
-            )}
-            {/* Historiek aanvullen staat op ELK dossier met ZL-nummer en e-mailadres:
-                Bram kiest zelf welke projecten hij bijwerkt (2026-08-26, IDEE-5). De
-                kostenbescherming zit in de knop zelf — eerst een gratis telling met
-                kostenindicatie, pas na een tweede klik draait de AI. */}
-            {bron === 'zl' && data?.gevonden && lead?.bouwflow_project_number && lead?.email && (
-              <div className="mt-1.5">
-                <HistoriekKnop
-                  zl={lead.bouwflow_project_number}
-                  klantEmail={lead.email}
-                  onKlaar={() => setHerlaadTeller((t) => t + 1)}
-                />
-              </div>
+        {/* Paginakop: identiteit, dossierstatus en alle acties in één toolbar. */}
+        <header className="flex items-start justify-between gap-4 flex-wrap">
+          <div className="min-w-0">
+            <h1 className="font-headline font-bold text-2xl leading-8 text-foreground">Communicatie</h1>
+            <p className="text-sm text-muted-foreground leading-5 mt-1 max-w-2xl">
+              Alle klant-, leverancier- en interne communicatie in één dossier. Zoek informatie terug,
+              start een gesprek of vul ontbrekende historiek aan.
+            </p>
+            {statusRegel.length > 0 && (
+              <p className="text-[12px] text-muted-foreground mt-1.5">{statusRegel.join(' · ')}</p>
             )}
             {bron === 'email' && (
-              <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+              <p className="text-[12px] text-muted-foreground mt-1.5 flex items-center gap-1">
                 <Info className="h-3 w-3" />
                 Dossier zonder ZL-nummer — gevonden via e-mailadres {lead?.email}
               </p>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             {!lopend && (
               <>
                 <Button size="sm" variant="default" className="gap-1.5 h-8" onClick={() => void nieuwGesprek('telefoon')}>
@@ -336,12 +425,23 @@ export default function DossierCommunicatie({ leadId }: Props) {
                 </Button>
               </>
             )}
+            {/* Historiek aanvullen staat op ELK dossier met ZL-nummer en e-mailadres:
+                Bram kiest zelf welke projecten hij bijwerkt (2026-08-26, IDEE-5). De
+                kostenbescherming zit in de knop zelf — eerst een gratis telling met
+                kostenindicatie, pas na een tweede klik draait de AI. */}
+            {bron === 'zl' && data?.gevonden && lead?.bouwflow_project_number && lead?.email && (
+              <HistoriekKnop
+                zl={lead.bouwflow_project_number}
+                klantEmail={lead.email}
+                onKlaar={() => setHerlaadTeller((t) => t + 1)}
+              />
+            )}
             <Button size="sm" variant="ghost" className="gap-1.5 h-8" onClick={() => setHerlaadTeller((t) => t + 1)}>
               <RefreshCw className="h-3.5 w-3.5" />
               <span className="text-xs">Vernieuwen</span>
             </Button>
           </div>
-        </div>
+        </header>
 
         {gesprekFout && (
           <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-2 text-sm text-destructive">
@@ -364,6 +464,17 @@ export default function DossierCommunicatie({ leadId }: Props) {
             }}
           />
         )}
+
+        {/* Zoeken: over de volledige contentbreedte, direct onder de kop. */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            value={zoek}
+            onChange={(e) => setZoek(e.target.value)}
+            placeholder="Zoek in onderwerp, samenvatting, beslissing, afzender of notities…"
+            className="pl-9"
+          />
+        </div>
 
         {/* Laad-, fout- en lege takken bewust apart (les uit de Mail Hub-review). */}
         {laden && (
@@ -395,132 +506,14 @@ export default function DossierCommunicatie({ leadId }: Props) {
         )}
 
         {!laden && (
-          <>
-            {/* Beslissingenregister */}
-            <section className="rounded-lg border border-border bg-card">
-              <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border">
-                <Gavel className="h-4 w-4 text-primary" />
-                <h2 className="font-headline font-semibold text-sm">Beslissingen</h2>
-                <span className="text-xs text-muted-foreground">({beslissingen.length})</span>
-              </div>
-              {beslissingen.length === 0 ? (
-                <p className="px-4 py-3 text-sm text-muted-foreground">
-                  Nog geen vastgelegde beslissingen in mails, calls of gesprekken van dit dossier.
-                </p>
-              ) : (
-                <ul className="divide-y divide-border">
-                  {beslissingen.map((b) => (
-                    <li key={b.sleutel}>
-                      <button
-                        type="button"
-                        onClick={() => scrollNaarId(b.doelId, b.categorie)}
-                        className="w-full text-left px-4 py-2 hover:bg-muted/40 transition-colors"
-                      >
-                        <p className="text-sm text-foreground leading-snug">{b.tekst}</p>
-                        <p className="text-[11px] text-muted-foreground mt-0.5">
-                          {b.bron === 'mail' ? '📧 mail' : b.bron === 'call' ? '📞 call' : '🗒️ gesprek (Compass)'}
-                          {' · '}{formatDatumTijd(b.datum)}
-                        </p>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-
-            {/* Zoeken */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                value={zoek}
-                onChange={(e) => setZoek(e.target.value)}
-                placeholder="Zoek in onderwerp, samenvatting, beslissing, afzender of notities…"
-                className="pl-9"
-              />
-            </div>
-
-            {/* Tijdlijn, opgesplitst in inklapbare categorieën (IDEE-3). Bij een actieve
-                zoekterm staan alle groepen met treffers open — zoeken mag nooit iets verbergen. */}
-            {gefilterd.length === 0 ? (
-              <div className="rounded-md border border-border bg-muted/30 px-4 py-6 text-center text-sm text-muted-foreground">
-                {tijdlijn.length === 0
-                  ? 'Nog geen communicatie in dit dossier. Start een gesprek of wacht op de eerste gekoppelde mail.'
-                  : 'Niets gevonden voor deze zoekterm.'}
-              </div>
-            ) : (
-              CATEGORIE_VOLGORDE.map((cat) => {
-                const items = gefilterd.filter(
-                  (item) => categorieVoor(item, contacten, data?.cc ?? {}, data?.deelnemers ?? {}) === cat,
-                );
-                if (items.length === 0) return null;
-                const meta = CATEGORIE_META[cat];
-                const open = zoek.trim() ? true : openCategorieen[cat];
-
-                const regel = (item: TijdlijnItem) => (
-                  <li key={`${item.soort}-${item.id}`} id={`comm-${item.soort}-${item.id}`}>
-                    {item.soort === 'mail' ? (
-                      <MailRij
-                        mail={item.data}
-                        contacten={contacten}
-                        ccIds={data?.cc?.[item.id] ?? []}
-                        toonRol={cat === 'beide' || cat === 'varia'}
-                        onLees={() => setLeesMailId(item.id)}
-                      />
-                    ) : item.soort === 'call' ? (
-                      <CallRij call={item.data} deelnemerIds={data?.deelnemers?.[item.id] ?? []} contacten={contacten} />
-                    ) : (
-                      <GesprekRij
-                        gesprek={item.data}
-                        notities={notitiesPerGesprek.get(item.id) ?? []}
-                        naam={item.data.door_user ? namen[item.data.door_user] : undefined}
-                        onNotitieGewijzigd={pasNotitieAan}
-                      />
-                    )}
-                  </li>
-                );
-
-                // IDEE-7: binnen "Leveranciers" nog een niveau per bedrijf, zodat alle mail
-                // met bv. Trappen Smet bij elkaar staat. Alleen zinvol vanaf 2 bedrijven.
-                const perBedrijf = cat === 'leverancier' ? groepeerPerBedrijf(items, contacten) : null;
-
-                return (
-                  <Collapsible
-                    key={cat}
-                    open={open}
-                    onOpenChange={(o) => setOpenCategorieen((prev) => ({ ...prev, [cat]: o }))}
-                    className="rounded-lg border border-border bg-card"
-                  >
-                    <CollapsibleTrigger className="w-full flex items-center gap-2 px-4 py-2.5 hover:bg-muted/40 transition-colors">
-                      <meta.icon className="h-4 w-4 text-primary" />
-                      <span className="font-headline font-semibold text-sm">{meta.titel}</span>
-                      <span className="text-xs text-muted-foreground">
-                        ({items.length}{perBedrijf && perBedrijf.length > 1 ? ` · ${perBedrijf.length} leveranciers` : ''})
-                      </span>
-                      <ChevronDown className={`h-4 w-4 text-muted-foreground ml-auto transition-transform ${open ? 'rotate-180' : ''}`} />
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      {perBedrijf && perBedrijf.length > 1 ? (
-                        <div className="px-3 pb-3 space-y-2">
-                          {perBedrijf.map(({ naam, items: bedrijfItems }) => (
-                            <LeverancierGroep
-                              key={naam}
-                              naam={naam}
-                              aantal={bedrijfItems.length}
-                              standaardOpen={!!zoek.trim() || perBedrijf.length <= 3}
-                            >
-                              <ul className="space-y-2 pt-2">{bedrijfItems.map(regel)}</ul>
-                            </LeverancierGroep>
-                          ))}
-                        </div>
-                      ) : (
-                        <ul className="space-y-2 px-3 pb-3">{items.map(regel)}</ul>
-                      )}
-                    </CollapsibleContent>
-                  </Collapsible>
-                );
-              })
-            )}
-          </>
+          <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_360px] xl:gap-6">
+            {/* Op smalle schermen staan beslissingen bovenaan, op desktop rechts. */}
+            <div className="xl:hidden">{beslissingenPaneel}</div>
+            <div className="min-w-0">{stroom}</div>
+            <aside className="hidden xl:block">
+              <div className="sticky top-4">{beslissingenPaneel}</div>
+            </aside>
+          </div>
         )}
       </div>
 
@@ -528,6 +521,7 @@ export default function DossierCommunicatie({ leadId }: Props) {
     </div>
   );
 }
+
 
 /**
  * IDEE-7: groepeert tijdlijn-items per leveranciersbedrijf. Valt terug op de contactnaam
