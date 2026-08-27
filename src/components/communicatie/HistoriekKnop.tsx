@@ -26,8 +26,16 @@ type Stap =
   | { fase: 'klaar'; resultaat: { gekoppeld: number; genegeerd: number; bewaard: number } }
   | { fase: 'fout'; melding: string };
 
-/** Grove kostenindicatie per mail (één Sonnet-call, korte in- en output). */
-const KOST_PER_MAIL = 0.015;
+/**
+ * Kostenindicatie per mail, nagerekend op 2026-08-27 met de werkelijke promptgrootte:
+ * ~159 tokens systeem + max 750 tokens body (3000 tekens) + ~120 tokens metadata = ~1030
+ * tokens invoer, ~200 tokens antwoord. Sonnet 5 rekent $2/M invoer en $10/M antwoord, dus
+ * ($0,00206 + $0,00200) x 0,92 EUR/USD ≈ €0,004 per mail.
+ * Stond eerder op 0,015 — een schatting uit de tijd dat de body nog op 8000 tekens stond;
+ * die gaf 3x te hoge bedragen op de knop. Rond royaal naar boven af (marge voor lange
+ * mails en de retry-bij-ongeldige-JSON), maar nooit meer met een factor drie.
+ */
+const KOST_PER_MAIL = 0.005;
 
 /**
  * "Historiek aanvullen" (Sprint 4, filters 2026-08-27) — haalt oude, nooit-geanalyseerde
