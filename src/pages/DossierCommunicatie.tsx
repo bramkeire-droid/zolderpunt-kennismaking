@@ -692,7 +692,7 @@ function GesprekRij({
       preview={notities.length === 0 ? 'Geen notities gemaakt.' : undefined}
       onderaan={
         notities.length > 0 ? (
-          <ul className="mt-2 border-l border-border divide-y divide-border/70">
+          <ul className="mt-2 divide-y divide-border/70">
             {notities.map((n) => (
               <li key={n.id}>
                 {/* Ook ná het gesprek bewerkbaar: je herleest je notities meestal pas later. */}

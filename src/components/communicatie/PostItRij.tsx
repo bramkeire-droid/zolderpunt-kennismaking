@@ -4,25 +4,22 @@ import { Textarea } from '@/components/ui/textarea';
 import { StickyNote, Gavel, Star, Pencil, Trash2, Check, X, Loader2 } from 'lucide-react';
 import { wijzigNotitie, verwijderNotitie, type GesprekNotitie, type NotitieSoort } from '@/lib/gesprekken';
 
-const SOORT_META: Record<NotitieSoort, { label: string; icon: typeof StickyNote; klasse: string; rand: string; tekst: string }> = {
+const SOORT_META: Record<NotitieSoort, { label: string; icon: typeof StickyNote; rand: string; tekst: string }> = {
   notitie: {
     label: 'Notitie',
     icon: StickyNote,
-    klasse: 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900',
     rand: 'border-amber-300 dark:border-amber-800',
     tekst: 'text-amber-700 dark:text-amber-400',
   },
   beslissing: {
     label: 'Beslissing',
     icon: Gavel,
-    klasse: 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900',
     rand: 'border-red-400 dark:border-red-800',
     tekst: 'text-red-700 dark:text-red-400',
   },
   onthouden: {
     label: 'Onthouden',
     icon: Star,
-    klasse: 'bg-sky-50 dark:bg-sky-950/30 border-sky-200 dark:border-sky-900',
     rand: 'border-sky-400 dark:border-sky-800',
     tekst: 'text-sky-700 dark:text-sky-400',
   },
@@ -141,7 +138,10 @@ export default function PostItRij({ notitie, onGewijzigd, auteur }: Props) {
   return (
     <div className={`group border-l-[3px] px-3 py-2 text-[13px] leading-5 flex items-start gap-2 ${meta.rand}`}>
       <meta.icon className={`h-3.5 w-3.5 mt-0.5 shrink-0 ${meta.tekst}`} />
-      <span className="flex-1 whitespace-pre-wrap text-foreground">{notitie.tekst}</span>
+      <span className="flex-1 whitespace-pre-wrap text-foreground">
+        <span className={`text-[11px] ${meta.tekst}`}>{meta.label}</span>{' '}
+        {notitie.tekst}
+      </span>
 
 
       {bevestigWeg ? (
