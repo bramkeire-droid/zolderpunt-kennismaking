@@ -3,8 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import {
   fetchCommunicatie,
   fetchCommunicatieViaEmail,
-  formatDatumTijd,
   formatDuur,
+
   type CommunicatieData,
   type LoketContact,
 } from '@/lib/mailcrm';
@@ -24,7 +24,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
-  ArrowDownLeft, ArrowUpRight, Phone, Search, Mail, RefreshCw, Info, Video,
+  ArrowDownLeft, ArrowUpRight, Phone, Search, RefreshCw, Info, Video,
   ChevronDown, User, Truck, Users, Boxes,
 } from 'lucide-react';
 
@@ -316,7 +316,7 @@ export default function DossierCommunicatie({ leadId }: Props) {
             : 'Niets gevonden voor deze zoekterm.'}
         </div>
       ) : (
-        <div className="rounded-lg border border-border bg-card divide-y-2 divide-border">
+        <div className="rounded-lg border border-border bg-card overflow-hidden divide-y divide-border">
           {CATEGORIE_VOLGORDE.map((cat) => {
             const items = gefilterd.filter(
               (item) => categorieVoor(item, contacten, data?.cc ?? {}, data?.deelnemers ?? {}) === cat,
@@ -358,14 +358,15 @@ export default function DossierCommunicatie({ leadId }: Props) {
                 open={open}
                 onOpenChange={(o) => setOpenCategorieen((prev) => ({ ...prev, [cat]: o }))}
               >
-                <CollapsibleTrigger className="w-full flex items-center gap-2 px-4 py-3.5 sm:px-5 hover:bg-muted/40 transition-colors">
-                  <meta.icon className="h-4 w-4 text-primary" />
-                  <span className="font-headline font-semibold text-base">{meta.titel}</span>
+                <CollapsibleTrigger className="w-full h-12 flex items-center gap-2 px-4 sm:px-5 bg-muted/40 hover:bg-muted/60 transition-colors">
+                  <meta.icon className="h-4 w-4 text-primary shrink-0" />
+                  <span className="text-sm font-semibold text-foreground">{meta.titel}</span>
                   <span className="text-[12px] text-muted-foreground">
                     ({items.length}{perBedrijf && perBedrijf.length > 1 ? ` · ${perBedrijf.length} leveranciers` : ''})
                   </span>
-                  <ChevronDown className={`h-4 w-4 text-muted-foreground ml-auto transition-transform ${open ? 'rotate-180' : ''}`} />
+                  <ChevronDown className={`h-4 w-4 text-muted-foreground ml-auto shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
                 </CollapsibleTrigger>
+
                 <CollapsibleContent>
                   {perBedrijf && perBedrijf.length > 1 ? (
                     <div className="border-t border-border">
@@ -564,16 +565,17 @@ function LeverancierGroep({
   useEffect(() => { if (standaardOpen) setOpen(true); }, [standaardOpen]);
   return (
     <Collapsible open={open} onOpenChange={setOpen} className="border-b border-border last:border-b-0">
-      <CollapsibleTrigger className="w-full flex items-center gap-2 px-4 sm:px-5 py-2.5 hover:bg-muted/40 transition-colors">
-        <Truck className="h-3.5 w-3.5 text-amber-600" />
-        <span className="font-medium text-sm text-foreground">{naam}</span>
+      <CollapsibleTrigger className="w-full h-10 flex items-center gap-2 px-4 sm:px-5 bg-muted/20 hover:bg-muted/40 transition-colors">
+        <Truck className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+        <span className="text-[13px] font-semibold text-foreground truncate">{naam}</span>
         <span className="text-[12px] text-muted-foreground">({aantal})</span>
-        <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground ml-auto transition-transform ${open ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`h-4 w-4 text-muted-foreground ml-auto shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
       </CollapsibleTrigger>
-      <CollapsibleContent className="pl-3 border-t border-border/70">{children}</CollapsibleContent>
+      <CollapsibleContent className="border-t border-border/70">{children}</CollapsibleContent>
     </Collapsible>
   );
 }
+
 
 function MailRij({
   mail, contacten, ccIds, toonRol = true, onLees,
@@ -598,27 +600,26 @@ function MailRij({
       className="w-full text-left hover:bg-muted/40 transition-colors"
     >
       <RijLayout
-        datum={formatDatumTijd(mail.datum)}
-        meta={
-          <>
-            {inkomend
-              ? <ArrowDownLeft className="h-4 w-4 text-emerald-600 shrink-0" />
-              : <ArrowUpRight className="h-4 w-4 text-primary shrink-0" />}
-            <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
-            <span>{inkomend ? 'Inkomend' : 'Uitgaand'}</span>
-            {contact && (
-              <span className="font-medium text-foreground">
-                · {inkomend ? 'van' : 'aan'} {contact.naam || contact.email}
-              </span>
-            )}
+        datumIso={mail.datum}
+        icon={inkomend
+          ? <ArrowDownLeft className="h-4 w-4 text-emerald-600" />
+          : <ArrowUpRight className="h-4 w-4 text-primary" />}
+        persoon={
+          <span className="inline-flex items-center gap-1.5">
+            {contact ? (contact.naam || contact.email) : (inkomend ? 'Onbekende afzender' : 'Zolderpunt')}
             {toonRol && rolBadge(contact?.rol)}
-            <span className="text-[12px]">· {mail.mailbox}</span>
-          </>
+          </span>
         }
+        bronLabel={`${inkomend ? 'Inkomend' : 'Uitgaand'} e-mail`}
         onderwerp={mail.onderwerp || '(geen onderwerp)'}
         preview={mail.samenvatting || undefined}
         beslissing={mail.bevat_beslissing && mail.beslissing ? mail.beslissing : undefined}
-        extra={ccNamen.length > 0 ? `Cc: ${ccNamen.join(', ')}` : undefined}
+        extra={
+          <>
+            {mail.mailbox}
+            {ccNamen.length > 0 ? ` · Cc: ${ccNamen.join(', ')}` : ''}
+          </>
+        }
       />
     </button>
   );
@@ -637,18 +638,10 @@ function CallRij({
 
   return (
     <RijLayout
-      datum={formatDatumTijd(call.datum)}
-      meta={
-        <>
-          <Phone className="h-4 w-4 text-primary shrink-0" />
-          <span>Telefoon</span>
-          {call.duur_seconden ? <span>· {formatDuur(call.duur_seconden)}</span> : null}
-          {deelnemers.length > 0 && (
-            <span className="font-medium text-foreground">· met {deelnemers.join(', ')}</span>
-          )}
-          <span className="text-[12px]">· Leexi</span>
-        </>
-      }
+      datumIso={call.datum}
+      icon={<Phone className="h-4 w-4 text-primary" />}
+      persoon={deelnemers.length > 0 ? deelnemers.join(', ') : undefined}
+      bronLabel={`Telefoon · Leexi${call.duur_seconden ? ` · ${formatDuur(call.duur_seconden)}` : ''}`}
       onderwerp={call.titel || 'Telefoongesprek'}
       preview={
         call.samenvatting ? (
@@ -677,19 +670,19 @@ function GesprekRij({
 
   return (
     <RijLayout
-      datum={formatDatumTijd(gesprek.gestart_op)}
-      meta={
-        <>
-          <TypeIcon className="h-4 w-4 text-primary shrink-0" />
-          <span>{gesprek.type === 'telefoon' ? 'Telefoon' : 'Videocall'}</span>
-          {duurSec !== null && duurSec > 0 && <span>· {formatDuur(duurSec)}</span>}
+      datumIso={gesprek.gestart_op}
+      icon={<TypeIcon className="h-4 w-4 text-primary" />}
+      persoon={
+        <span className="inline-flex items-center gap-1.5">
+          {naam ?? 'Zolderpunt'}
           {!gesprek.beeindigd_op && (
             <Badge variant="outline" className="border-red-400 text-red-600 text-[10px] px-1.5 py-0">bezig</Badge>
           )}
-          {naam && <span className="font-medium text-foreground">· door {naam}</span>}
-          <span className="text-[12px]">· Compass</span>
-        </>
+        </span>
       }
+      bronLabel={`${gesprek.type === 'telefoon' ? 'Telefoon' : 'Videocall'} · Compass${
+        duurSec !== null && duurSec > 0 ? ` · ${formatDuur(duurSec)}` : ''
+      }`}
       onderwerp={
         <>
           {gesprek.type === 'telefoon' ? 'Telefoongesprek' : 'Videocall'}
@@ -699,9 +692,9 @@ function GesprekRij({
       preview={notities.length === 0 ? 'Geen notities gemaakt.' : undefined}
       onderaan={
         notities.length > 0 ? (
-          <ul className="mt-2 pl-3 border-l border-border divide-y divide-border/70">
+          <ul className="mt-2 border-l border-border divide-y divide-border/70">
             {notities.map((n) => (
-              <li key={n.id} className="py-1.5 first:pt-0 last:pb-0">
+              <li key={n.id}>
                 {/* Ook ná het gesprek bewerkbaar: je herleest je notities meestal pas later. */}
                 <PostItRij notitie={n} onGewijzigd={onNotitieGewijzigd} />
               </li>
@@ -712,4 +705,5 @@ function GesprekRij({
     />
   );
 }
+
 
