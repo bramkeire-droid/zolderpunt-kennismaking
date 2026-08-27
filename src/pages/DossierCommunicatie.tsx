@@ -316,7 +316,7 @@ export default function DossierCommunicatie({ leadId }: Props) {
             : 'Niets gevonden voor deze zoekterm.'}
         </div>
       ) : (
-        <div className="rounded-lg border border-border bg-card divide-y-2 divide-border">
+        <div className="rounded-lg border border-border bg-card overflow-hidden divide-y divide-border">
           {CATEGORIE_VOLGORDE.map((cat) => {
             const items = gefilterd.filter(
               (item) => categorieVoor(item, contacten, data?.cc ?? {}, data?.deelnemers ?? {}) === cat,
