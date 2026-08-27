@@ -14,6 +14,7 @@ import {
 } from '@/lib/gesprekken';
 import MailLezenSheet from '@/components/communicatie/MailLezenSheet';
 import GesprekModus from '@/components/communicatie/GesprekModus';
+import PostItRij from '@/components/communicatie/PostItRij';
 import HistoriekKnop from '@/components/communicatie/HistoriekKnop';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -235,6 +236,13 @@ export default function DossierCommunicatie({ leadId }: Props) {
     });
   }, [tijdlijn, zoek, contacten, notitiesPerGesprek]);
 
+  /**
+   * Eén plek waar een gewijzigde of verwijderde post-it de lijst bijwerkt, zodat de
+   * tijdlijn, het beslissingenregister en de gespreksmodus meteen gelijklopen.
+   */
+  const pasNotitieAan = (id: string, notitie: GesprekNotitie | null) =>
+    setNotities((prev) => (notitie ? prev.map((n) => (n.id === id ? notitie : n)) : prev.filter((n) => n.id !== id)));
+
   /** Beslissingenregister: mails + calls (Mail-CRM) én post-its van soort 'beslissing'. */
   const beslissingen = useMemo(() => {
     const uitMailCrm = tijdlijn
@@ -347,6 +355,7 @@ export default function DossierCommunicatie({ leadId }: Props) {
             gesprek={lopend}
             notities={notities}
             onNotitie={(n) => setNotities((prev) => [...prev, n])}
+            onNotitieGewijzigd={pasNotitieAan}
             onBeeindigd={() => {
               setLopend(null);
               setGesprekken((prev) =>
@@ -464,6 +473,7 @@ export default function DossierCommunicatie({ leadId }: Props) {
                         gesprek={item.data}
                         notities={notitiesPerGesprek.get(item.id) ?? []}
                         naam={item.data.door_user ? namen[item.data.door_user] : undefined}
+                        onNotitieGewijzigd={pasNotitieAan}
                       />
                     )}
                   </li>
@@ -672,11 +682,12 @@ const NOTITIE_KLEUREN = {
 } as const;
 
 function GesprekRij({
-  gesprek, notities, naam,
+  gesprek, notities, naam, onNotitieGewijzigd,
 }: {
   gesprek: Gesprek;
   notities: GesprekNotitie[];
   naam?: string;
+  onNotitieGewijzigd: (id: string, notitie: GesprekNotitie | null) => void;
 }) {
   const TypeIcon = gesprek.type === 'telefoon' ? Phone : Video;
   const duurSec = gesprek.beeindigd_op
@@ -705,18 +716,12 @@ function GesprekRij({
         <p className="text-sm text-muted-foreground mt-0.5">Geen notities gemaakt.</p>
       ) : (
         <ul className="mt-1.5 space-y-1.5">
-          {notities.map((n) => {
-            const Icoon = NOTITIE_ICONEN[n.soort];
-            return (
-              <li key={n.id} className={`rounded border px-2.5 py-1.5 text-sm flex items-start gap-2 ${NOTITIE_KLEUREN[n.soort]}`}>
-                <Icoon className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-                <span className="flex-1">{n.tekst}</span>
-                <span className="text-[10px] text-muted-foreground shrink-0 mt-0.5">
-                  {new Date(n.created_at).toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' })}
-                </span>
-              </li>
-            );
-          })}
+          {notities.map((n) => (
+            <li key={n.id}>
+              {/* Ook ná het gesprek bewerkbaar: je herleest je notities meestal pas later. */}
+              <PostItRij notitie={n} onGewijzigd={onNotitieGewijzigd} />
+            </li>
+          ))}
         </ul>
       )}
     </div>
