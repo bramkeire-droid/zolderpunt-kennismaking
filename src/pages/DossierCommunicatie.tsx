@@ -358,14 +358,15 @@ export default function DossierCommunicatie({ leadId }: Props) {
                 open={open}
                 onOpenChange={(o) => setOpenCategorieen((prev) => ({ ...prev, [cat]: o }))}
               >
-                <CollapsibleTrigger className="w-full flex items-center gap-2 px-4 py-3.5 sm:px-5 hover:bg-muted/40 transition-colors">
-                  <meta.icon className="h-4 w-4 text-primary" />
-                  <span className="font-headline font-semibold text-base">{meta.titel}</span>
+                <CollapsibleTrigger className="w-full h-12 flex items-center gap-2 px-4 sm:px-5 bg-muted/40 hover:bg-muted/60 transition-colors">
+                  <meta.icon className="h-4 w-4 text-primary shrink-0" />
+                  <span className="text-sm font-semibold text-foreground">{meta.titel}</span>
                   <span className="text-[12px] text-muted-foreground">
                     ({items.length}{perBedrijf && perBedrijf.length > 1 ? ` · ${perBedrijf.length} leveranciers` : ''})
                   </span>
-                  <ChevronDown className={`h-4 w-4 text-muted-foreground ml-auto transition-transform ${open ? 'rotate-180' : ''}`} />
+                  <ChevronDown className={`h-4 w-4 text-muted-foreground ml-auto shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
                 </CollapsibleTrigger>
+
                 <CollapsibleContent>
                   {perBedrijf && perBedrijf.length > 1 ? (
                     <div className="border-t border-border">
