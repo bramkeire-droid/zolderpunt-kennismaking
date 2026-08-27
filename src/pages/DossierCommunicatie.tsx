@@ -598,27 +598,26 @@ function MailRij({
       className="w-full text-left hover:bg-muted/40 transition-colors"
     >
       <RijLayout
-        datum={formatDatumTijd(mail.datum)}
-        meta={
-          <>
-            {inkomend
-              ? <ArrowDownLeft className="h-4 w-4 text-emerald-600 shrink-0" />
-              : <ArrowUpRight className="h-4 w-4 text-primary shrink-0" />}
-            <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
-            <span>{inkomend ? 'Inkomend' : 'Uitgaand'}</span>
-            {contact && (
-              <span className="font-medium text-foreground">
-                · {inkomend ? 'van' : 'aan'} {contact.naam || contact.email}
-              </span>
-            )}
+        datumIso={mail.datum}
+        icon={inkomend
+          ? <ArrowDownLeft className="h-4 w-4 text-emerald-600" />
+          : <ArrowUpRight className="h-4 w-4 text-primary" />}
+        persoon={
+          <span className="inline-flex items-center gap-1.5">
+            {contact ? (contact.naam || contact.email) : (inkomend ? 'Onbekende afzender' : 'Zolderpunt')}
             {toonRol && rolBadge(contact?.rol)}
-            <span className="text-[12px]">· {mail.mailbox}</span>
-          </>
+          </span>
         }
+        bronLabel={`${inkomend ? 'Inkomend' : 'Uitgaand'} e-mail`}
         onderwerp={mail.onderwerp || '(geen onderwerp)'}
         preview={mail.samenvatting || undefined}
         beslissing={mail.bevat_beslissing && mail.beslissing ? mail.beslissing : undefined}
-        extra={ccNamen.length > 0 ? `Cc: ${ccNamen.join(', ')}` : undefined}
+        extra={
+          <>
+            {mail.mailbox}
+            {ccNamen.length > 0 ? ` · Cc: ${ccNamen.join(', ')}` : ''}
+          </>
+        }
       />
     </button>
   );
@@ -637,18 +636,10 @@ function CallRij({
 
   return (
     <RijLayout
-      datum={formatDatumTijd(call.datum)}
-      meta={
-        <>
-          <Phone className="h-4 w-4 text-primary shrink-0" />
-          <span>Telefoon</span>
-          {call.duur_seconden ? <span>· {formatDuur(call.duur_seconden)}</span> : null}
-          {deelnemers.length > 0 && (
-            <span className="font-medium text-foreground">· met {deelnemers.join(', ')}</span>
-          )}
-          <span className="text-[12px]">· Leexi</span>
-        </>
-      }
+      datumIso={call.datum}
+      icon={<Phone className="h-4 w-4 text-primary" />}
+      persoon={deelnemers.length > 0 ? deelnemers.join(', ') : undefined}
+      bronLabel={`Telefoon · Leexi${call.duur_seconden ? ` · ${formatDuur(call.duur_seconden)}` : ''}`}
       onderwerp={call.titel || 'Telefoongesprek'}
       preview={
         call.samenvatting ? (
@@ -677,19 +668,19 @@ function GesprekRij({
 
   return (
     <RijLayout
-      datum={formatDatumTijd(gesprek.gestart_op)}
-      meta={
-        <>
-          <TypeIcon className="h-4 w-4 text-primary shrink-0" />
-          <span>{gesprek.type === 'telefoon' ? 'Telefoon' : 'Videocall'}</span>
-          {duurSec !== null && duurSec > 0 && <span>· {formatDuur(duurSec)}</span>}
+      datumIso={gesprek.gestart_op}
+      icon={<TypeIcon className="h-4 w-4 text-primary" />}
+      persoon={
+        <span className="inline-flex items-center gap-1.5">
+          {naam ?? 'Zolderpunt'}
           {!gesprek.beeindigd_op && (
             <Badge variant="outline" className="border-red-400 text-red-600 text-[10px] px-1.5 py-0">bezig</Badge>
           )}
-          {naam && <span className="font-medium text-foreground">· door {naam}</span>}
-          <span className="text-[12px]">· Compass</span>
-        </>
+        </span>
       }
+      bronLabel={`${gesprek.type === 'telefoon' ? 'Telefoon' : 'Videocall'} · Compass${
+        duurSec !== null && duurSec > 0 ? ` · ${formatDuur(duurSec)}` : ''
+      }`}
       onderwerp={
         <>
           {gesprek.type === 'telefoon' ? 'Telefoongesprek' : 'Videocall'}
@@ -699,9 +690,9 @@ function GesprekRij({
       preview={notities.length === 0 ? 'Geen notities gemaakt.' : undefined}
       onderaan={
         notities.length > 0 ? (
-          <ul className="mt-2 pl-3 border-l border-border divide-y divide-border/70">
+          <ul className="mt-2 border-l border-border divide-y divide-border/70">
             {notities.map((n) => (
-              <li key={n.id} className="py-1.5 first:pt-0 last:pb-0">
+              <li key={n.id}>
                 {/* Ook ná het gesprek bewerkbaar: je herleest je notities meestal pas later. */}
                 <PostItRij notitie={n} onGewijzigd={onNotitieGewijzigd} />
               </li>
@@ -712,4 +703,5 @@ function GesprekRij({
     />
   );
 }
+
 
