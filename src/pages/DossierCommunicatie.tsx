@@ -24,7 +24,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
-  ArrowDownLeft, ArrowUpRight, Phone, Search, Gavel, Mail, RefreshCw, Info, Video,
+  ArrowDownLeft, ArrowUpRight, Phone, Search, Mail, RefreshCw, Info, Video,
   ChevronDown, User, Truck, Users, Boxes,
 } from 'lucide-react';
 
