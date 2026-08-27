@@ -83,3 +83,13 @@ Nummers zijn doorlopend en worden nooit hergebruikt.
 - **Waar ik mee bezig was**: afronding IDEE-7 (Mail Hub-kant)
 - **Antwoord**: ja, en zo stond het al — met één gat. Drie lagen: DATA (companies/contacts/emails, in Mail-CRM), LOGICA (groeperen, naamvarianten samenvoegen, tellen — in de edge function `compass-loket`, die IN het mail-crm-project draait), WEERGAVE (React-pagina, per app). Alleen laag 2 accepteerde uitsluitend Compass-logins, waardoor Mail Hub de logica had moeten dupliceren.
 - **Status**: afgewerkt (2026-08-26) — `isCompassGebruiker` → `isIngelogdeGebruiker`: probeert eerst `auth.getUser` op het mail-crm-project zelf (Mail Hub + toekomstige tools), dan Compass' auth-endpoint. Loket v6. Live geverifieerd: Mail-CRM-login OK (85 leveranciers), Compass-login OK (leveranciers + ZL-0116-mails + health), ongeldig token en geen token beide correct geweigerd. Veiligheidsgrens ongewijzigd: nog steeds inloggen verplicht, vaste alleen-lezen acties, geen vrije query-invoer — en een Mail-CRM-gebruiker kon deze data via RLS sowieso al lezen.
+
+## IDEE-9 — Historiek aanvullen met parameters (datumreeks, afzenders, ...)
+- **Datum**: 2026-08-27
+- **Bram zei letterlijk**: "En kunnen we die Historiek aanvullen uitrusten met parameters? Datamreeks, afzenders, ...?"
+- **Waar ik mee bezig was**: net klaar met de live-oplevering van IDEE-3 t/m 7
+- **Status**: afgewerkt (2026-08-27) — vier filters (adressen, van/tot-datum, mailbox, richting), werkend in zowel de gratis telling als de verwerking. Telling geeft nu ook de verdeling per jaar en oudste/nieuwste datum. UI: drie stappen (afbakenen → tellen met kostenindicatie → verwerken). Loket v9.
+- **Twee bugs onderweg gevonden en gefixt** (beide stil, geen foutmelding):
+  1. Graph `$search` leest `"participants:a OR participants:b"` als letterlijke tekst, niet als zoeklogica → bij twee adressen kwam er bijna niets terug. Nu één zoekopdracht per (mailbox, adres).
+  2. **De grote**: `.in()` met 100 graph_message_ids (152 tekens elk) maakt een URL van ~15.000 tekens; die faalt op de gateway en de fout werd genegeerd (`const { data } = await q`). Gevolg: stilzwijgend te weinig of nul rijen. Gemeten: één adres gaf 33 mails, na de fix 106 — er verdween dus 69% zonder enig signaal. Nu batches van 20 + fouten worden gerapporteerd. Dezelfde valkuil preventief gefixt in `verrijk()` (email_cc/call_deelnemers waren ongebatcht tot 500 uuid's, viel niet op omdat email_cc leeg is).
+- **Verificatie**: 106 kandidaten; 2025+2026 = 80+26; in+uit = 63+43; belhouse+zolderpunt = 105+1 — alle drie exact 106. Nul AI-calls verbruikt (alleen 'tellen' gedraaid).
