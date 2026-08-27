@@ -4,7 +4,7 @@ import {
   fetchCommunicatie,
   fetchCommunicatieViaEmail,
   formatDuur,
-  formatDuur,
+
   type CommunicatieData,
   type LoketContact,
 } from '@/lib/mailcrm';
