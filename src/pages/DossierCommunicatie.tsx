@@ -16,13 +16,15 @@ import MailLezenSheet from '@/components/communicatie/MailLezenSheet';
 import GesprekModus from '@/components/communicatie/GesprekModus';
 import PostItRij from '@/components/communicatie/PostItRij';
 import HistoriekKnop from '@/components/communicatie/HistoriekKnop';
+import { RijLayout } from '@/components/communicatie/CommunicatieRij';
+import BeslissingenPaneel from '@/components/communicatie/BeslissingenPaneel';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
-  ArrowDownLeft, ArrowUpRight, Phone, Search, Gavel, Mail, RefreshCw, Info, Video, StickyNote, Star,
+  ArrowDownLeft, ArrowUpRight, Phone, Search, Mail, RefreshCw, Info, Video,
   ChevronDown, User, Truck, Users, Boxes,
 } from 'lucide-react';
 
@@ -288,42 +290,131 @@ export default function DossierCommunicatie({ leadId }: Props) {
     }
   };
 
+  const statusRegel: string[] = [];
+  if (bron === 'zl' && data?.project) {
+    statusRegel.push(`Dossier #${data.project.extern_dossier_id}`);
+    statusRegel.push(`Bouwflow-fase: ${data.project.status ?? 'onbekend'}`);
+    statusRegel.push('live uit Mail-CRM');
+  }
+
+  const beslissingenPaneel = (
+    <BeslissingenPaneel
+      beslissingen={beslissingen}
+      onGa={(b) => {
+        const volledig = beslissingen.find((x) => x.sleutel === b.sleutel);
+        scrollNaarId(b.doelId, volledig?.categorie ?? 'klant');
+      }}
+    />
+  );
+
+  const stroom = (
+    <>
+      {gefilterd.length === 0 ? (
+        <div className="rounded-lg border border-border bg-card px-4 py-8 text-center text-sm text-muted-foreground">
+          {tijdlijn.length === 0
+            ? 'Nog geen communicatie in dit dossier. Start een gesprek of wacht op de eerste gekoppelde mail.'
+            : 'Niets gevonden voor deze zoekterm.'}
+        </div>
+      ) : (
+        <div className="rounded-lg border border-border bg-card divide-y-2 divide-border">
+          {CATEGORIE_VOLGORDE.map((cat) => {
+            const items = gefilterd.filter(
+              (item) => categorieVoor(item, contacten, data?.cc ?? {}, data?.deelnemers ?? {}) === cat,
+            );
+            if (items.length === 0) return null;
+            const meta = CATEGORIE_META[cat];
+            const open = zoek.trim() ? true : openCategorieen[cat];
+
+            const regel = (item: TijdlijnItem) => (
+              <li key={`${item.soort}-${item.id}`} id={`comm-${item.soort}-${item.id}`}>
+                {item.soort === 'mail' ? (
+                  <MailRij
+                    mail={item.data}
+                    contacten={contacten}
+                    ccIds={data?.cc?.[item.id] ?? []}
+                    toonRol={cat === 'beide' || cat === 'varia'}
+                    onLees={() => setLeesMailId(item.id)}
+                  />
+                ) : item.soort === 'call' ? (
+                  <CallRij call={item.data} deelnemerIds={data?.deelnemers?.[item.id] ?? []} contacten={contacten} />
+                ) : (
+                  <GesprekRij
+                    gesprek={item.data}
+                    notities={notitiesPerGesprek.get(item.id) ?? []}
+                    naam={item.data.door_user ? namen[item.data.door_user] : undefined}
+                    onNotitieGewijzigd={pasNotitieAan}
+                  />
+                )}
+              </li>
+            );
+
+            // IDEE-7: binnen "Leveranciers" nog een niveau per bedrijf, zodat alle mail
+            // met bv. Trappen Smet bij elkaar staat. Alleen zinvol vanaf 2 bedrijven.
+            const perBedrijf = cat === 'leverancier' ? groepeerPerBedrijf(items, contacten) : null;
+
+            return (
+              <Collapsible
+                key={cat}
+                open={open}
+                onOpenChange={(o) => setOpenCategorieen((prev) => ({ ...prev, [cat]: o }))}
+              >
+                <CollapsibleTrigger className="w-full flex items-center gap-2 px-4 py-3.5 sm:px-5 hover:bg-muted/40 transition-colors">
+                  <meta.icon className="h-4 w-4 text-primary" />
+                  <span className="font-headline font-semibold text-base">{meta.titel}</span>
+                  <span className="text-[12px] text-muted-foreground">
+                    ({items.length}{perBedrijf && perBedrijf.length > 1 ? ` · ${perBedrijf.length} leveranciers` : ''})
+                  </span>
+                  <ChevronDown className={`h-4 w-4 text-muted-foreground ml-auto transition-transform ${open ? 'rotate-180' : ''}`} />
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  {perBedrijf && perBedrijf.length > 1 ? (
+                    <div className="border-t border-border">
+                      {perBedrijf.map(({ naam, items: bedrijfItems }) => (
+                        <LeverancierGroep
+                          key={naam}
+                          naam={naam}
+                          aantal={bedrijfItems.length}
+                          standaardOpen={!!zoek.trim() || perBedrijf.length <= 3}
+                        >
+                          <ul className="divide-y divide-border/70">{bedrijfItems.map(regel)}</ul>
+                        </LeverancierGroep>
+                      ))}
+                    </div>
+                  ) : (
+                    <ul className="divide-y divide-border border-t border-border">{items.map(regel)}</ul>
+                  )}
+                </CollapsibleContent>
+              </Collapsible>
+            );
+          })}
+        </div>
+      )}
+    </>
+  );
+
   return (
     <div className="flex-1 overflow-y-auto bg-background">
-      <div className="mx-auto max-w-4xl px-4 py-5 space-y-4">
+      <div className="mx-auto w-full max-w-[1460px] px-6 py-7 xl:px-8 space-y-5">
 
-        {/* Kop: waar komt deze data vandaan + gesprek starten */}
-        <div className="flex items-start justify-between gap-3 flex-wrap">
-          <div>
-            <h1 className="font-headline font-bold text-xl text-foreground">Communicatie</h1>
-            {bron === 'zl' && data?.project && (
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Dossier <span className="font-semibold">#{data.project.extern_dossier_id}</span>
-                {' · '}Bouwflow-fase: {data.project.status ?? 'onbekend'}
-                {' · '}live uit Mail-CRM
-              </p>
-            )}
-            {/* Historiek aanvullen staat op ELK dossier met ZL-nummer en e-mailadres:
-                Bram kiest zelf welke projecten hij bijwerkt (2026-08-26, IDEE-5). De
-                kostenbescherming zit in de knop zelf — eerst een gratis telling met
-                kostenindicatie, pas na een tweede klik draait de AI. */}
-            {bron === 'zl' && data?.gevonden && lead?.bouwflow_project_number && lead?.email && (
-              <div className="mt-1.5">
-                <HistoriekKnop
-                  zl={lead.bouwflow_project_number}
-                  klantEmail={lead.email}
-                  onKlaar={() => setHerlaadTeller((t) => t + 1)}
-                />
-              </div>
+        {/* Paginakop: identiteit, dossierstatus en alle acties in één toolbar. */}
+        <header className="flex items-start justify-between gap-4 flex-wrap">
+          <div className="min-w-0">
+            <h1 className="font-headline font-bold text-2xl leading-8 text-foreground">Communicatie</h1>
+            <p className="text-sm text-muted-foreground leading-5 mt-1 max-w-2xl">
+              Alle klant-, leverancier- en interne communicatie in één dossier. Zoek informatie terug,
+              start een gesprek of vul ontbrekende historiek aan.
+            </p>
+            {statusRegel.length > 0 && (
+              <p className="text-[12px] text-muted-foreground mt-1.5">{statusRegel.join(' · ')}</p>
             )}
             {bron === 'email' && (
-              <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+              <p className="text-[12px] text-muted-foreground mt-1.5 flex items-center gap-1">
                 <Info className="h-3 w-3" />
                 Dossier zonder ZL-nummer — gevonden via e-mailadres {lead?.email}
               </p>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             {!lopend && (
               <>
                 <Button size="sm" variant="default" className="gap-1.5 h-8" onClick={() => void nieuwGesprek('telefoon')}>
@@ -336,12 +427,23 @@ export default function DossierCommunicatie({ leadId }: Props) {
                 </Button>
               </>
             )}
+            {/* Historiek aanvullen staat op ELK dossier met ZL-nummer en e-mailadres:
+                Bram kiest zelf welke projecten hij bijwerkt (2026-08-26, IDEE-5). De
+                kostenbescherming zit in de knop zelf — eerst een gratis telling met
+                kostenindicatie, pas na een tweede klik draait de AI. */}
+            {bron === 'zl' && data?.gevonden && lead?.bouwflow_project_number && lead?.email && (
+              <HistoriekKnop
+                zl={lead.bouwflow_project_number}
+                klantEmail={lead.email}
+                onKlaar={() => setHerlaadTeller((t) => t + 1)}
+              />
+            )}
             <Button size="sm" variant="ghost" className="gap-1.5 h-8" onClick={() => setHerlaadTeller((t) => t + 1)}>
               <RefreshCw className="h-3.5 w-3.5" />
               <span className="text-xs">Vernieuwen</span>
             </Button>
           </div>
-        </div>
+        </header>
 
         {gesprekFout && (
           <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-2 text-sm text-destructive">
@@ -364,6 +466,17 @@ export default function DossierCommunicatie({ leadId }: Props) {
             }}
           />
         )}
+
+        {/* Zoeken: over de volledige contentbreedte, direct onder de kop. */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            value={zoek}
+            onChange={(e) => setZoek(e.target.value)}
+            placeholder="Zoek in onderwerp, samenvatting, beslissing, afzender of notities…"
+            className="pl-9"
+          />
+        </div>
 
         {/* Laad-, fout- en lege takken bewust apart (les uit de Mail Hub-review). */}
         {laden && (
@@ -395,132 +508,14 @@ export default function DossierCommunicatie({ leadId }: Props) {
         )}
 
         {!laden && (
-          <>
-            {/* Beslissingenregister */}
-            <section className="rounded-lg border border-border bg-card">
-              <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border">
-                <Gavel className="h-4 w-4 text-primary" />
-                <h2 className="font-headline font-semibold text-sm">Beslissingen</h2>
-                <span className="text-xs text-muted-foreground">({beslissingen.length})</span>
-              </div>
-              {beslissingen.length === 0 ? (
-                <p className="px-4 py-3 text-sm text-muted-foreground">
-                  Nog geen vastgelegde beslissingen in mails, calls of gesprekken van dit dossier.
-                </p>
-              ) : (
-                <ul className="divide-y divide-border">
-                  {beslissingen.map((b) => (
-                    <li key={b.sleutel}>
-                      <button
-                        type="button"
-                        onClick={() => scrollNaarId(b.doelId, b.categorie)}
-                        className="w-full text-left px-4 py-2 hover:bg-muted/40 transition-colors"
-                      >
-                        <p className="text-sm text-foreground leading-snug">{b.tekst}</p>
-                        <p className="text-[11px] text-muted-foreground mt-0.5">
-                          {b.bron === 'mail' ? '📧 mail' : b.bron === 'call' ? '📞 call' : '🗒️ gesprek (Compass)'}
-                          {' · '}{formatDatumTijd(b.datum)}
-                        </p>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-
-            {/* Zoeken */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                value={zoek}
-                onChange={(e) => setZoek(e.target.value)}
-                placeholder="Zoek in onderwerp, samenvatting, beslissing, afzender of notities…"
-                className="pl-9"
-              />
-            </div>
-
-            {/* Tijdlijn, opgesplitst in inklapbare categorieën (IDEE-3). Bij een actieve
-                zoekterm staan alle groepen met treffers open — zoeken mag nooit iets verbergen. */}
-            {gefilterd.length === 0 ? (
-              <div className="rounded-md border border-border bg-muted/30 px-4 py-6 text-center text-sm text-muted-foreground">
-                {tijdlijn.length === 0
-                  ? 'Nog geen communicatie in dit dossier. Start een gesprek of wacht op de eerste gekoppelde mail.'
-                  : 'Niets gevonden voor deze zoekterm.'}
-              </div>
-            ) : (
-              CATEGORIE_VOLGORDE.map((cat) => {
-                const items = gefilterd.filter(
-                  (item) => categorieVoor(item, contacten, data?.cc ?? {}, data?.deelnemers ?? {}) === cat,
-                );
-                if (items.length === 0) return null;
-                const meta = CATEGORIE_META[cat];
-                const open = zoek.trim() ? true : openCategorieen[cat];
-
-                const regel = (item: TijdlijnItem) => (
-                  <li key={`${item.soort}-${item.id}`} id={`comm-${item.soort}-${item.id}`}>
-                    {item.soort === 'mail' ? (
-                      <MailRij
-                        mail={item.data}
-                        contacten={contacten}
-                        ccIds={data?.cc?.[item.id] ?? []}
-                        toonRol={cat === 'beide' || cat === 'varia'}
-                        onLees={() => setLeesMailId(item.id)}
-                      />
-                    ) : item.soort === 'call' ? (
-                      <CallRij call={item.data} deelnemerIds={data?.deelnemers?.[item.id] ?? []} contacten={contacten} />
-                    ) : (
-                      <GesprekRij
-                        gesprek={item.data}
-                        notities={notitiesPerGesprek.get(item.id) ?? []}
-                        naam={item.data.door_user ? namen[item.data.door_user] : undefined}
-                        onNotitieGewijzigd={pasNotitieAan}
-                      />
-                    )}
-                  </li>
-                );
-
-                // IDEE-7: binnen "Leveranciers" nog een niveau per bedrijf, zodat alle mail
-                // met bv. Trappen Smet bij elkaar staat. Alleen zinvol vanaf 2 bedrijven.
-                const perBedrijf = cat === 'leverancier' ? groepeerPerBedrijf(items, contacten) : null;
-
-                return (
-                  <Collapsible
-                    key={cat}
-                    open={open}
-                    onOpenChange={(o) => setOpenCategorieen((prev) => ({ ...prev, [cat]: o }))}
-                    className="rounded-lg border border-border bg-card"
-                  >
-                    <CollapsibleTrigger className="w-full flex items-center gap-2 px-4 py-2.5 hover:bg-muted/40 transition-colors">
-                      <meta.icon className="h-4 w-4 text-primary" />
-                      <span className="font-headline font-semibold text-sm">{meta.titel}</span>
-                      <span className="text-xs text-muted-foreground">
-                        ({items.length}{perBedrijf && perBedrijf.length > 1 ? ` · ${perBedrijf.length} leveranciers` : ''})
-                      </span>
-                      <ChevronDown className={`h-4 w-4 text-muted-foreground ml-auto transition-transform ${open ? 'rotate-180' : ''}`} />
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      {perBedrijf && perBedrijf.length > 1 ? (
-                        <div className="px-3 pb-3 space-y-2">
-                          {perBedrijf.map(({ naam, items: bedrijfItems }) => (
-                            <LeverancierGroep
-                              key={naam}
-                              naam={naam}
-                              aantal={bedrijfItems.length}
-                              standaardOpen={!!zoek.trim() || perBedrijf.length <= 3}
-                            >
-                              <ul className="space-y-2 pt-2">{bedrijfItems.map(regel)}</ul>
-                            </LeverancierGroep>
-                          ))}
-                        </div>
-                      ) : (
-                        <ul className="space-y-2 px-3 pb-3">{items.map(regel)}</ul>
-                      )}
-                    </CollapsibleContent>
-                  </Collapsible>
-                );
-              })
-            )}
-          </>
+          <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_360px] xl:gap-6">
+            {/* Op smalle schermen staan beslissingen bovenaan, op desktop rechts. */}
+            <div className="xl:hidden">{beslissingenPaneel}</div>
+            <div className="min-w-0">{stroom}</div>
+            <aside className="hidden xl:block">
+              <div className="sticky top-4">{beslissingenPaneel}</div>
+            </aside>
+          </div>
         )}
       </div>
 
@@ -528,6 +523,7 @@ export default function DossierCommunicatie({ leadId }: Props) {
     </div>
   );
 }
+
 
 /**
  * IDEE-7: groepeert tijdlijn-items per leveranciersbedrijf. Valt terug op de contactnaam
@@ -567,14 +563,14 @@ function LeverancierGroep({
   const [open, setOpen] = useState(standaardOpen);
   useEffect(() => { if (standaardOpen) setOpen(true); }, [standaardOpen]);
   return (
-    <Collapsible open={open} onOpenChange={setOpen} className="rounded-md border border-border/70 bg-muted/20">
-      <CollapsibleTrigger className="w-full flex items-center gap-2 px-3 py-2 hover:bg-muted/40 transition-colors">
+    <Collapsible open={open} onOpenChange={setOpen} className="border-b border-border last:border-b-0">
+      <CollapsibleTrigger className="w-full flex items-center gap-2 px-4 sm:px-5 py-2.5 hover:bg-muted/40 transition-colors">
         <Truck className="h-3.5 w-3.5 text-amber-600" />
         <span className="font-medium text-sm text-foreground">{naam}</span>
-        <span className="text-xs text-muted-foreground">({aantal})</span>
+        <span className="text-[12px] text-muted-foreground">({aantal})</span>
         <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground ml-auto transition-transform ${open ? 'rotate-180' : ''}`} />
       </CollapsibleTrigger>
-      <CollapsibleContent className="px-3 pb-3">{children}</CollapsibleContent>
+      <CollapsibleContent className="pl-3 border-t border-border/70">{children}</CollapsibleContent>
     </Collapsible>
   );
 }
@@ -599,36 +595,31 @@ function MailRij({
     <button
       type="button"
       onClick={onLees}
-      className="w-full text-left rounded-lg border border-border bg-card px-4 py-3 hover:border-primary/40 transition-colors"
+      className="w-full text-left hover:bg-muted/40 transition-colors"
     >
-      <div className="flex items-center gap-2 flex-wrap">
-        {inkomend
-          ? <ArrowDownLeft className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
-          : <ArrowUpRight className="h-3.5 w-3.5 text-primary shrink-0" />}
-        <Mail className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-        <span className="text-xs text-muted-foreground">{formatDatumTijd(mail.datum)}</span>
-        {contact && (
-          <span className="text-xs font-medium text-foreground">
-            {inkomend ? 'van' : 'aan'} {contact.naam || contact.email}
-          </span>
-        )}
-        {toonRol && rolBadge(contact?.rol)}
-        <span className="text-[10px] text-muted-foreground ml-auto">{mail.mailbox}</span>
-      </div>
-      <p className="font-headline font-semibold text-sm text-foreground mt-1 leading-snug">
-        {mail.onderwerp || '(geen onderwerp)'}
-      </p>
-      {mail.samenvatting && (
-        <p className="text-sm text-muted-foreground mt-0.5 leading-snug">{mail.samenvatting}</p>
-      )}
-      {mail.bevat_beslissing && mail.beslissing && (
-        <p className="mt-1.5 inline-flex items-start gap-1.5 rounded bg-red-50 dark:bg-red-950/30 px-2 py-1 text-xs text-red-700 dark:text-red-400">
-          <Gavel className="h-3 w-3 mt-0.5 shrink-0" /> {mail.beslissing}
-        </p>
-      )}
-      {ccNamen.length > 0 && (
-        <p className="text-[11px] text-muted-foreground mt-1">Cc: {ccNamen.join(', ')}</p>
-      )}
+      <RijLayout
+        datum={formatDatumTijd(mail.datum)}
+        meta={
+          <>
+            {inkomend
+              ? <ArrowDownLeft className="h-4 w-4 text-emerald-600 shrink-0" />
+              : <ArrowUpRight className="h-4 w-4 text-primary shrink-0" />}
+            <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+            <span>{inkomend ? 'Inkomend' : 'Uitgaand'}</span>
+            {contact && (
+              <span className="font-medium text-foreground">
+                · {inkomend ? 'van' : 'aan'} {contact.naam || contact.email}
+              </span>
+            )}
+            {toonRol && rolBadge(contact?.rol)}
+            <span className="text-[12px]">· {mail.mailbox}</span>
+          </>
+        }
+        onderwerp={mail.onderwerp || '(geen onderwerp)'}
+        preview={mail.samenvatting || undefined}
+        beslissing={mail.bevat_beslissing && mail.beslissing ? mail.beslissing : undefined}
+        extra={ccNamen.length > 0 ? `Cc: ${ccNamen.join(', ')}` : undefined}
+      />
     </button>
   );
 }
@@ -645,41 +636,31 @@ function CallRij({
     .filter(Boolean);
 
   return (
-    <div className="rounded-lg border border-border bg-card px-4 py-3">
-      <div className="flex items-center gap-2 flex-wrap">
-        <Phone className="h-3.5 w-3.5 text-primary shrink-0" />
-        <span className="text-xs text-muted-foreground">{formatDatumTijd(call.datum)}</span>
-        {call.duur_seconden ? (
-          <span className="text-[11px] text-muted-foreground">· {formatDuur(call.duur_seconden)}</span>
-        ) : null}
-        {deelnemers.length > 0 && (
-          <span className="text-xs font-medium text-foreground">met {deelnemers.join(', ')}</span>
-        )}
-        <span className="text-[10px] text-muted-foreground ml-auto">Leexi</span>
-      </div>
-      <p className="font-headline font-semibold text-sm text-foreground mt-1 leading-snug">
-        {call.titel || 'Telefoongesprek'}
-      </p>
-      {call.samenvatting && (
-        <p className="text-sm text-muted-foreground mt-0.5 leading-snug whitespace-pre-line">
-          {call.samenvatting.length > 400 ? `${call.samenvatting.slice(0, 400)}…` : call.samenvatting}
-        </p>
-      )}
-      {call.bevat_beslissing && call.beslissing && (
-        <p className="mt-1.5 inline-flex items-start gap-1.5 rounded bg-red-50 dark:bg-red-950/30 px-2 py-1 text-xs text-red-700 dark:text-red-400">
-          <Gavel className="h-3 w-3 mt-0.5 shrink-0" /> {call.beslissing}
-        </p>
-      )}
-    </div>
+    <RijLayout
+      datum={formatDatumTijd(call.datum)}
+      meta={
+        <>
+          <Phone className="h-4 w-4 text-primary shrink-0" />
+          <span>Telefoon</span>
+          {call.duur_seconden ? <span>· {formatDuur(call.duur_seconden)}</span> : null}
+          {deelnemers.length > 0 && (
+            <span className="font-medium text-foreground">· met {deelnemers.join(', ')}</span>
+          )}
+          <span className="text-[12px]">· Leexi</span>
+        </>
+      }
+      onderwerp={call.titel || 'Telefoongesprek'}
+      preview={
+        call.samenvatting ? (
+          <span className="whitespace-pre-line">
+            {call.samenvatting.length > 400 ? `${call.samenvatting.slice(0, 400)}…` : call.samenvatting}
+          </span>
+        ) : undefined
+      }
+      beslissing={call.bevat_beslissing && call.beslissing ? call.beslissing : undefined}
+    />
   );
 }
-
-const NOTITIE_ICONEN = { notitie: StickyNote, beslissing: Gavel, onthouden: Star } as const;
-const NOTITIE_KLEUREN = {
-  notitie: 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900',
-  beslissing: 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900',
-  onthouden: 'bg-sky-50 dark:bg-sky-950/30 border-sky-200 dark:border-sky-900',
-} as const;
 
 function GesprekRij({
   gesprek, notities, naam, onNotitieGewijzigd,
@@ -695,35 +676,40 @@ function GesprekRij({
     : null;
 
   return (
-    <div className="rounded-lg border border-border bg-card px-4 py-3">
-      <div className="flex items-center gap-2 flex-wrap">
-        <TypeIcon className="h-3.5 w-3.5 text-primary shrink-0" />
-        <span className="text-xs text-muted-foreground">{formatDatumTijd(gesprek.gestart_op)}</span>
-        {duurSec !== null && duurSec > 0 && (
-          <span className="text-[11px] text-muted-foreground">· {formatDuur(duurSec)}</span>
-        )}
-        {!gesprek.beeindigd_op && (
-          <Badge variant="outline" className="border-red-400 text-red-600 text-[10px] px-1.5 py-0">bezig</Badge>
-        )}
-        {naam && <span className="text-xs font-medium text-foreground">door {naam}</span>}
-        <span className="text-[10px] text-muted-foreground ml-auto">Compass</span>
-      </div>
-      <p className="font-headline font-semibold text-sm text-foreground mt-1 leading-snug">
-        {gesprek.type === 'telefoon' ? 'Telefoongesprek' : 'Videocall'}
-        {notities.length > 0 ? ` · ${notities.length} notitie${notities.length === 1 ? '' : 's'}` : ''}
-      </p>
-      {notities.length === 0 ? (
-        <p className="text-sm text-muted-foreground mt-0.5">Geen notities gemaakt.</p>
-      ) : (
-        <ul className="mt-1.5 space-y-1.5">
-          {notities.map((n) => (
-            <li key={n.id}>
-              {/* Ook ná het gesprek bewerkbaar: je herleest je notities meestal pas later. */}
-              <PostItRij notitie={n} onGewijzigd={onNotitieGewijzigd} />
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
+    <RijLayout
+      datum={formatDatumTijd(gesprek.gestart_op)}
+      meta={
+        <>
+          <TypeIcon className="h-4 w-4 text-primary shrink-0" />
+          <span>{gesprek.type === 'telefoon' ? 'Telefoon' : 'Videocall'}</span>
+          {duurSec !== null && duurSec > 0 && <span>· {formatDuur(duurSec)}</span>}
+          {!gesprek.beeindigd_op && (
+            <Badge variant="outline" className="border-red-400 text-red-600 text-[10px] px-1.5 py-0">bezig</Badge>
+          )}
+          {naam && <span className="font-medium text-foreground">· door {naam}</span>}
+          <span className="text-[12px]">· Compass</span>
+        </>
+      }
+      onderwerp={
+        <>
+          {gesprek.type === 'telefoon' ? 'Telefoongesprek' : 'Videocall'}
+          {notities.length > 0 ? ` · ${notities.length} notitie${notities.length === 1 ? '' : 's'}` : ''}
+        </>
+      }
+      preview={notities.length === 0 ? 'Geen notities gemaakt.' : undefined}
+      onderaan={
+        notities.length > 0 ? (
+          <ul className="mt-2 pl-3 border-l border-border divide-y divide-border/70">
+            {notities.map((n) => (
+              <li key={n.id} className="py-1.5 first:pt-0 last:pb-0">
+                {/* Ook ná het gesprek bewerkbaar: je herleest je notities meestal pas later. */}
+                <PostItRij notitie={n} onGewijzigd={onNotitieGewijzigd} />
+              </li>
+            ))}
+          </ul>
+        ) : undefined
+      }
+    />
   );
 }
+
