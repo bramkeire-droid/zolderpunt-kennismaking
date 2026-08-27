@@ -89,7 +89,7 @@ export default function PostItRij({ notitie, onGewijzigd, auteur }: Props) {
 
   if (bewerken) {
     return (
-      <div className={`rounded border px-2.5 py-2 space-y-2 ${SOORT_META[soort].klasse}`}>
+      <div className={`border-l-[3px] px-3 py-2 space-y-2 bg-muted/20 ${SOORT_META[soort].rand}`}>
         <Textarea
           value={tekst}
           onChange={(e) => setTekst(e.target.value)}
