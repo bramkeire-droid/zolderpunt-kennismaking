@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import {
   fetchCommunicatie,
   fetchCommunicatieViaEmail,
-  formatDatumTijd,
+  formatDuur,
   formatDuur,
   type CommunicatieData,
   type LoketContact,
