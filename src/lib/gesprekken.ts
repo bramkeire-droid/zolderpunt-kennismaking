@@ -96,6 +96,34 @@ export async function voegNotitieToe(
   return data as unknown as GesprekNotitie;
 }
 
+/**
+ * Een bestaande post-it wijzigen — tekst, soort, of beide. Tijdens een gesprek typ je snel
+ * en soms half; achteraf moet je dat kunnen rechtzetten zonder de notitie te verliezen.
+ * De RLS-policy op gesprek_notities is `FOR ALL TO authenticated`, dus dit mag.
+ */
+export async function wijzigNotitie(
+  notitieId: string,
+  velden: { tekst?: string; soort?: NotitieSoort },
+): Promise<GesprekNotitie> {
+  const patch: Record<string, unknown> = {};
+  if (velden.tekst !== undefined) patch.tekst = velden.tekst;
+  if (velden.soort !== undefined) patch.soort = velden.soort;
+
+  const { data, error } = await notitiesTabel()
+    .update(patch as any)
+    .eq('id', notitieId)
+    .select('id, lead_id, gesprek_id, soort, tekst, door_user, created_at')
+    .single();
+  if (error) throw new Error(error.message);
+  return data as unknown as GesprekNotitie;
+}
+
+/** Een post-it definitief verwijderen (bv. een typfout of dubbele invoer). */
+export async function verwijderNotitie(notitieId: string): Promise<void> {
+  const { error } = await notitiesTabel().delete().eq('id', notitieId);
+  if (error) throw new Error(error.message);
+}
+
 /** user_id → weergavenaam, voor auteursvermelding op post-its en chat. */
 export async function fetchProfielNamen(): Promise<Record<string, string>> {
   const { data } = await supabase.from('profiles').select('user_id, display_name');
