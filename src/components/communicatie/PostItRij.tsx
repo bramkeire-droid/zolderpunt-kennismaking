@@ -139,9 +139,10 @@ export default function PostItRij({ notitie, onGewijzigd, auteur }: Props) {
   }
 
   return (
-    <div className={`group rounded border px-2.5 py-1.5 text-sm flex items-start gap-2 ${meta.klasse}`}>
-      <meta.icon className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-      <span className="flex-1 whitespace-pre-wrap">{notitie.tekst}</span>
+    <div className={`group border-l-[3px] px-3 py-2 text-[13px] leading-5 flex items-start gap-2 ${meta.rand}`}>
+      <meta.icon className={`h-3.5 w-3.5 mt-0.5 shrink-0 ${meta.tekst}`} />
+      <span className="flex-1 whitespace-pre-wrap text-foreground">{notitie.tekst}</span>
+
 
       {bevestigWeg ? (
         <span className="flex items-center gap-1.5 shrink-0">
