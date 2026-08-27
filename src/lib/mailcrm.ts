@@ -130,15 +130,47 @@ export type HistoriekResultaat = {
   mislukt: number;
   mislukt_reden?: string;
   resterend: number;
+  /** Alleen bij tellen: hoeveel mails per jaar, zodat de UI toont waar het gewicht zit. */
+  per_jaar?: Record<string, number>;
+  oudste?: string | null;
+  nieuwste?: string | null;
 };
 
-/** Sprint 4: telt hoeveel oude, nooit-geanalyseerde mails er voor deze klant bestaan (gratis). */
-export const telHistoriek = (zl: string, klantEmail: string, kandidaatZls: string[]) =>
-  loketCall<HistoriekResultaat>({ action: 'historiek', zl, klant_email: klantEmail, kandidaat_zls: kandidaatZls, modus: 'tellen' });
+/**
+ * Afbakening van "Historiek aanvullen". Elke filter werkt zowel bij tellen als verwerken,
+ * dus de gratis telling komt exact overeen met wat de AI daarna zou doen.
+ */
+export type HistoriekFilters = {
+  /** Eén of meer e-mailadressen (klant, partner, tweede adres). Leeg = alleen de klant. */
+  adressen?: string[];
+  vanDatum?: string | null;
+  totDatum?: string | null;
+  mailbox?: string | null;
+  richting?: 'in' | 'uit' | null;
+};
+
+const historiekBody = (zl: string, klantEmail: string, kandidaatZls: string[], f?: HistoriekFilters) => ({
+  action: 'historiek',
+  zl,
+  klant_email: klantEmail,
+  adressen: f?.adressen?.length ? f.adressen : [klantEmail],
+  kandidaat_zls: kandidaatZls,
+  ...(f?.vanDatum ? { van_datum: f.vanDatum } : {}),
+  ...(f?.totDatum ? { tot_datum: f.totDatum } : {}),
+  ...(f?.mailbox ? { mailbox: f.mailbox } : {}),
+  ...(f?.richting ? { richting: f.richting } : {}),
+});
+
+/** Sprint 4: telt hoeveel oude, nooit-geanalyseerde mails er binnen de filters vallen (gratis). */
+export const telHistoriek = (zl: string, klantEmail: string, kandidaatZls: string[], filters?: HistoriekFilters) =>
+  loketCall<HistoriekResultaat>({ ...historiekBody(zl, klantEmail, kandidaatZls, filters), modus: 'tellen' });
 
 /** Sprint 4: verwerkt een batch oude mails (samenvatting + koppeling) — kost per mail een AI-call. */
-export const verwerkHistoriek = (zl: string, klantEmail: string, kandidaatZls: string[], max = 8) =>
-  loketCall<HistoriekResultaat>({ action: 'historiek', zl, klant_email: klantEmail, kandidaat_zls: kandidaatZls, modus: 'verwerken', max });
+export const verwerkHistoriek = (zl: string, klantEmail: string, kandidaatZls: string[], max = 8, filters?: HistoriekFilters) =>
+  loketCall<HistoriekResultaat>({ ...historiekBody(zl, klantEmail, kandidaatZls, filters), modus: 'verwerken', max });
+
+/** De twee mailboxen die Mail-CRM ophaalt — vaste lijst, spiegelt de allowlist in het loket. */
+export const MAILBOXEN = ['hello@zolderpunt.be', 'info@belhouse-atelier.be'] as const;
 
 export function formatDatumTijd(value: string | null | undefined): string {
   if (!value) return '—';
