@@ -296,6 +296,12 @@ function AppContent() {
           onNewIntake={handleNewIntake}
           onGoDossiers={handleGoDossiers}
           onGoLeveranciers={() => setView('leveranciers')}
+        actiefDossier={activeDossierId ? { id: activeDossierId, naam: activeDossierNaam } : null}
+        onGoActiefDossier={handleGoActiefDossier}
+        onSluitDossier={handleSluitDossier}
+          actiefDossier={activeDossierId ? { id: activeDossierId, naam: activeDossierNaam } : null}
+          onGoActiefDossier={handleGoActiefDossier}
+          onSluitDossier={handleSluitDossier}
           leveranciersActief
         />
         <Leveranciers />
@@ -313,6 +319,12 @@ function AppContent() {
           onNewIntake={handleNewIntake}
           onGoDossiers={handleGoDossiers}
           onGoLeveranciers={() => setView('leveranciers')}
+        actiefDossier={activeDossierId ? { id: activeDossierId, naam: activeDossierNaam } : null}
+        onGoActiefDossier={handleGoActiefDossier}
+        onSluitDossier={handleSluitDossier}
+          actiefDossier={activeDossierId ? { id: activeDossierId, naam: activeDossierNaam } : null}
+          onGoActiefDossier={handleGoActiefDossier}
+          onSluitDossier={handleSluitDossier}
         />
         {dossierBar(activeDossierId, 'los')}
         <DossierCommunicatie leadId={activeDossierId} />
@@ -357,6 +369,12 @@ function AppContent() {
           onNewIntake={handleNewIntake}
           onGoDossiers={handleGoDossiers}
           onGoLeveranciers={() => setView('leveranciers')}
+        actiefDossier={activeDossierId ? { id: activeDossierId, naam: activeDossierNaam } : null}
+        onGoActiefDossier={handleGoActiefDossier}
+        onSluitDossier={handleSluitDossier}
+          actiefDossier={activeDossierId ? { id: activeDossierId, naam: activeDossierNaam } : null}
+          onGoActiefDossier={handleGoActiefDossier}
+          onSluitDossier={handleSluitDossier}
         />
         {briefingLead.id && dossierBar(briefingLead.id, 'intake')}
         <IntakeBriefing
@@ -379,6 +397,9 @@ function AppContent() {
         onNewIntake={handleNewIntake}
         onGoDossiers={handleGoDossiers}
         onGoLeveranciers={() => setView('leveranciers')}
+        actiefDossier={activeDossierId ? { id: activeDossierId, naam: activeDossierNaam } : null}
+        onGoActiefDossier={handleGoActiefDossier}
+        onSluitDossier={handleSluitDossier}
         onGoBeheer={() => setView('beheer')}
         beheerActief={view === 'beheer'}
       />
