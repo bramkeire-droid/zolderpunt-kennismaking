@@ -344,14 +344,20 @@ function AppContent() {
   if (view === 'validation') {
     return (
       <PreIntakeProvider>
-        <TranscriptValidation
-          leadId={validationLeadId}
-          preIntakeId={validationPreIntakeId}
-          onBack={() => setView('dossiers')}
-        />
+        <div className="h-screen flex flex-col">
+          {validationLeadId && dossierBar(validationLeadId, 'los')}
+          <div className="flex-1 min-h-0">
+            <TranscriptValidation
+              leadId={validationLeadId}
+              preIntakeId={validationPreIntakeId}
+              onBack={handleGoDossiers}
+            />
+          </div>
+        </div>
       </PreIntakeProvider>
     );
   }
+
 
   if (view === 'briefing' && briefingLead) {
     return (
