@@ -40,7 +40,7 @@ import { exclVorkVanLead } from '@/lib/prijscalculator';
 import {
   FASE_GROEPEN, bepaalVolgendeActie, dossierWaarde, type FaseGroepKey,
 } from '@/lib/pipeline';
-import LeadActionBar from '@/components/dossier/LeadActionBar';
+import DossierActionsBar from '@/components/dossier/DossierActionsBar';
 import KlantDossiers from '@/components/dossier/KlantDossiers';
 import CalculatorDialog from '@/components/dossier/CalculatorDialog';
 import PrijscalculatorDialog from '@/components/dossier/PrijscalculatorDialog';
@@ -749,18 +749,12 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
               const activeLead = leads.find(l => l.id === activeLeadId) ?? null;
               const actionBar = activeLead ? (
                 <div className="space-y-3">
-                  <LeadActionBar
-                    lead={activeLead}
-                    onClose={() => setActiveLeadId(null)}
-                    onOpenDossier={() => handleOpen(activeLead)}
-                    onCall={() => onOpenCall?.(activeLead.id)}
+                  <DossierActionsBar
+                    leadId={activeLead.id}
+                    bron="los"
+                    onCall={(id) => onOpenCall?.(id)}
                     onIntake={() => handleStartVideocall(activeLead)}
-                    onPhotos={() => setPhotoLead(activeLead)}
-                    onPortal={() => setPortalLead(activeLead)}
-                    onCalculator={() => setCalcLead(activeLead)}
-                    onPrijscalculator={() => setPrijsCalcLead(activeLead)}
-                    onVoorblad={() => setGenericVoorblad({ lead: activeLead })}
-                    onOfferte={() => setOfferteLead(activeLead)}
+                    onSluit={() => setActiveLeadId(null)}
                   />
                   {/* Verschijnt alleen als deze klant meer dan één project heeft. */}
                   <KlantDossiers
