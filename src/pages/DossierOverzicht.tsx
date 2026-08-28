@@ -6,6 +6,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import AppShell from '@/components/AppShell';
 import { Button } from '@/components/ui/button';
+import { CALLING_QUESTIONS } from '@/data/callingQuestions';
 import { useAppNav } from '@/contexts/AppNavContext';
 import { useSignedLeadFotos } from '@/hooks/useSignedLeadFotos';
 import MediaThumb from '@/components/MediaThumb';
@@ -69,6 +70,8 @@ const Regel = ({ icon: Icon, label, waarde }: { icon: any; label: string; waarde
  * pagina landde je bij het openen van een dossier op de briefing van het
  * intakegesprek — één werkmoment, geen overzicht.
  */
+const VRAAG_LABEL: Record<string, string> = Object.fromEntries(CALLING_QUESTIONS.map(q => [q.key, q.label]));
+
 export default function DossierOverzicht({ leadId, onOpenDossier }: Props) {
   const nav = useAppNav();
   const [lead, setLead] = useState<any | null>(null);
@@ -249,7 +252,7 @@ export default function DossierOverzicht({ leadId, onOpenDossier }: Props) {
                       <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Vragen van de klant</p>
                       <ul className="mt-0.5 space-y-0.5">
                         {vragenKlant.map(([k, v]) => (
-                          <li key={k} className="text-sm text-slate-700">{v?.note?.trim() || k}</li>
+                          <li key={k} className="text-sm text-slate-700">{v?.note?.trim() || VRAAG_LABEL[k] || k}</li>
                         ))}
                       </ul>
                     </div>
