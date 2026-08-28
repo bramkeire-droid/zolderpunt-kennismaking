@@ -355,36 +355,19 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
 
   /* ─── LIVE CALLING — workspace-first layout ─── */
   return (
-    <div className="h-screen flex flex-col bg-[#F8F3EB] text-[13px] leading-[1.4] font-body text-[#0F1419] overflow-hidden">
+    <AppShell
+      titel="Telefoongesprek"
+      subtitel={`${selectedLead?.voornaam ?? ''} ${selectedLead?.achternaam ?? ''}`.trim() || undefined}
+      dossierId={selectedLead?.id ?? null}
+      dossierBron="telefoon"
+      onVerlaatDossier={() => probeerTeVertrekken(onGoDossiers)}
+      rechtsExtra={
+        <span className="font-headline text-sm text-muted-foreground font-semibold tabular-nums">⏱ {timer.formatted}</span>
+      }
+      primair={{ label: 'Opslaan', onClick: handleSaveDossier, icon: <ArrowRight className="h-4 w-4" />, iconPosition: 'right' }}
+    >
+      <div className="flex-1 min-h-0 bg-[#FFFCF5] overflow-auto text-[13px] leading-[1.4] font-body text-[#0F1419]">
 
-      {/* ═══ TOPBAR ═══ */}
-      <div className="shrink-0 bg-white border-b border-[#DDD5C5] px-6 py-3 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <span className="font-dm font-extrabold text-[18px] text-[#008CFF] tracking-[-0.02em]">zolderpunt.</span>
-          <div className="w-px h-5 bg-[#DDD5C5]" />
-          <span className="font-dm text-[14px] text-[#5B6470] font-semibold tabular-nums">⏱ {timer.formatted}</span>
-          <span className="text-[12px] text-[#5B6470] font-dm">Opgeslagen ·</span>
-        </div>
-        <div className="flex items-center gap-3">
-          <button onClick={handleBackToDossiers}
-            className="h-11 bg-white text-[#0F1419] border-2 border-[#DDD5C5] px-5 font-dm font-semibold text-[14px] tracking-[0.02em] cursor-pointer hover:border-[#0F1419] transition-colors flex items-center gap-1.5">
-            <ArrowLeft className="h-4 w-4" /> Naar dossiers
-          </button>
-          <button onClick={handleSaveDossier}
-            className="h-11 bg-[#008CFF] text-white border-none px-6 font-dm font-semibold text-[14px] tracking-[0.02em] cursor-pointer hover:bg-[#0070CC] transition-colors flex items-center gap-1.5">
-            Opslaan <ArrowRight className="h-4 w-4" />
-          </button>
-
-          <button onClick={signOut} className="p-2 text-[#5B6470] hover:text-[#0F1419] transition-colors" title="Uitloggen">
-            <LogOut className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
-
-      {selectedLead?.id && renderActionsBar?.(selectedLead.id, () => probeerTeVertrekken(onGoDossiers))}
-
-      {/* ═══ WORKSPACE — single centered column ═══ */}
-      <div className="flex-1 min-h-0 bg-[#FFFCF5] overflow-auto">
         <div className="px-8 py-5 max-w-[1600px] mx-auto flex flex-col gap-4">
 
           {/* Header */}
