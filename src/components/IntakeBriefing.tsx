@@ -261,7 +261,8 @@ export default function IntakeBriefing({ lead, onStart }: Props) {
 
         </div>
       </div>
-    </div>
+    </AppShell>
+
   );
 }
 
