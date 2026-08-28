@@ -582,7 +582,16 @@ function BackConfirmDialog({ open, onCancel, onDiscard, onSave }: { open: boolea
 
 /* ───────────────────────── HELPER COMPONENTS ───────────────────────── */
 
+/**
+ * Een mailto- of Calendly-link opent een externe app of tabblad; dat is geen
+ * verlaten van het gesprek. Zonder dit venstertje zag de browser de mailto als
+ * navigatie en waarschuwde de app onterecht dat data verloren zou gaan.
+ */
+let externeNavigatieTot = 0;
+const markeerExterneNavigatie = () => { externeNavigatieTot = Date.now() + 4000; };
+
 const inputCls = "h-12 px-3 bg-white border-2 border-[#DDD5C5] text-base font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]";
+
 
 function Section({ eyebrow, hint, children }: { eyebrow: string; hint?: string; children: React.ReactNode }) {
   return (
