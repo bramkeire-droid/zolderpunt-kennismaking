@@ -284,8 +284,11 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
 
   // Tabblad sluiten of verversen: de browser toont dan zijn eigen waarschuwing.
   // Een eigen popup mag daar niet, dus dit is het dichtst mogelijke equivalent.
+  // Een mailto- of Calendly-link is géén verlaten van de pagina: die zetten
+  // kort de vlag hieronder, zodat de waarschuwing dan uitblijft.
   useEffect(() => {
     const waarschuw = (e: BeforeUnloadEvent) => {
+      if (Date.now() < externeNavigatieTot) return;
       if (!heeftOnbewaardWerk()) return;
       e.preventDefault();
       e.returnValue = '';
@@ -293,6 +296,7 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
     window.addEventListener('beforeunload', waarschuw);
     return () => window.removeEventListener('beforeunload', waarschuw);
   });
+
 
   const confirmBackSave = async () => {
     const leadId = await ensureLeadRow();
