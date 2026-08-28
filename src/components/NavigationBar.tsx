@@ -133,6 +133,30 @@ export default function NavigationBar({
         )}
       </div>
 
+      {/* Actief dossier: overal één klik terug in het dossier waar je mee bezig
+          bent, zonder het opnieuw te moeten opzoeken. */}
+      {actiefDossier && (
+        <div className="flex items-center border border-primary/40 bg-primary/5">
+          <button
+            onClick={() => onGoActiefDossier?.()}
+            className="flex items-center gap-2 px-3 py-2 text-sm font-headline font-semibold text-primary hover:bg-primary/10 transition-colors max-w-[280px]"
+            title={`Terug naar dossier ${actiefDossier.naam}`}
+          >
+            <FolderOpen className="h-4 w-4 shrink-0" />
+            <span className="truncate">Terug naar dossier — {actiefDossier.naam}</span>
+          </button>
+          <button
+            onClick={() => onSluitDossier?.()}
+            className="px-2 py-2 text-muted-foreground hover:text-foreground transition-colors"
+            title="Dossier sluiten"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
+
+
+
       {currentMode !== 'dossiers' && (
         <div className="ml-auto flex items-center gap-4">
           {!HIDE_EXTRA_INFO_ON.includes(currentSlide) && <ExtraInfoMenu />}
