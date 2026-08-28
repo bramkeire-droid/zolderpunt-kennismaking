@@ -2,7 +2,7 @@ import { useSession, SLIDE_ORDER, SLIDE_MODES, SlideId } from '@/contexts/Sessio
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { useAuth } from '@/contexts/AuthContext';
 import logoBlauw from '@/assets/logo-blauw.svg';
-import { LogOut, Phone, FolderOpen, Plus, ChevronDown, Video, FilePlus2, Settings, Truck } from 'lucide-react';
+import { LogOut, Phone, FolderOpen, Plus, ChevronDown, Video, FilePlus2, Settings, Truck, X } from 'lucide-react';
 import ExtraInfoMenu from './ExtraInfoMenu';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
