@@ -8,6 +8,7 @@ import { AppNavProvider } from '@/contexts/AppNavContext';
 import ExtraInfoMenu from '@/components/ExtraInfoMenu';
 import Dossiers from '@/pages/Dossiers';
 import DossierCommunicatie from '@/pages/DossierCommunicatie';
+import DossierOverzicht from '@/pages/DossierOverzicht';
 import Leveranciers from '@/pages/Leveranciers';
 import TarievenBeheer from '@/components/beheer/TarievenBeheer';
 import LoginPage from '@/pages/LoginPage';
@@ -56,7 +57,7 @@ const SLIDE_COMPONENTS: Record<SlideId, React.ComponentType> = {
   '8': Slide8, '9': Slide9, '10': Slide10,
 };
 
-export type AppView = 'start' | 'slides' | 'dossiers' | 'calling' | 'validation' | 'briefing' | 'beheer' | 'communicatie' | 'leveranciers';
+export type AppView = 'start' | 'slides' | 'dossiers' | 'dossier' | 'calling' | 'validation' | 'briefing' | 'beheer' | 'communicatie' | 'leveranciers';
 
 function AppContent() {
   const [view, setView] = useState<AppView>('start');
@@ -99,24 +100,21 @@ function AppContent() {
   }, [activeDossierId]);
 
 
+  /** Een dossier openen komt altijd uit op de hoofdpagina van dat dossier. */
   const handleOpenLead = async (lead: LeadData) => {
-    setActiveDossierId(lead.id ?? null);
-    // Toon briefing als er een pre_intake bestaat voor dit dossier
-    if (lead.id) {
-      const { data: pi } = await supabase
-        .from('pre_intake' as any)
-        .select('id')
-        .eq('lead_id', lead.id)
-        .maybeSingle();
-      if (pi) {
-        setBriefingLead(lead);
-        setView('briefing');
-        return;
-      }
-    }
-    loadLead(lead);
-    setView('slides');
+    if (view === 'slides') await flushSave();
+    if (!lead.id) { loadLead(lead); setView('slides'); return; }
+    setActiveDossierId(lead.id);
+    setView('dossier');
   };
+
+  const handleOpenDossierHoofdpagina = async (leadId: string) => {
+    if (view === 'slides') await flushSave();
+    setActiveDossierId(leadId);
+    setView('dossier');
+  };
+
+
 
   const handleStartFromBriefing = () => {
     if (briefingLead) loadLead(briefingLead);
@@ -159,13 +157,12 @@ function AppContent() {
     setView('dossiers');
   };
 
-  /** Vanaf gelijk welke pagina terug in het actieve dossier springen. */
+  /** Vanaf gelijk welke pagina terug op de hoofdpagina van het actieve dossier. */
   const handleGoActiefDossier = async () => {
     if (!activeDossierId) return;
-    const { data: leadRij } = await supabase.from('leads').select('*').eq('id', activeDossierId).maybeSingle();
-    if (!leadRij) { setActiveDossierId(null); return; }
-    await handleOpenLead(leadRij as unknown as LeadData);
+    await handleOpenDossierHoofdpagina(activeDossierId);
   };
+
 
   /** Het dossier bewust loslaten (kruisje naast de knop). */
   const handleSluitDossier = () => {
@@ -234,6 +231,8 @@ function AppContent() {
     actiefDossier: activeDossierId ? { id: activeDossierId, naam: activeDossierNaam } : null,
     onGoActiefDossier: () => void handleGoActiefDossier(),
     onSluitDossier: handleSluitDossier,
+    onOpenDossier: (id: string) => void handleOpenDossierHoofdpagina(id),
+
     onOpenCall: (id: string) => void handleOpenCall(id),
     onStartVideocall: (id: string) => void handleStartVideocall(id),
     onOpenCommunicatie: (id: string) => void handleOpenCommunicatie(id),
@@ -307,13 +306,24 @@ function AppContent() {
       );
     }
 
+    if (view === 'dossier' && activeDossierId) {
+      return (
+        <DossierOverzicht
+          key={activeDossierId}
+          leadId={activeDossierId}
+          onOpenDossier={(id) => void handleOpenDossierHoofdpagina(id)}
+        />
+      );
+    }
+
     if (view === 'communicatie' && activeDossierId) {
       return (
-        <AppShell titel="Communicatie" subtitel={activeDossierNaam} dossierId={activeDossierId}>
+        <AppShell titel="Communicatie" subtitel={activeDossierNaam} dossierId={activeDossierId} actieveTab="communicatie">
           <DossierCommunicatie leadId={activeDossierId} />
         </AppShell>
       );
     }
+
 
     if (view === 'calling') {
       return (
@@ -379,7 +389,10 @@ function AppContent() {
         subtitel={activeDossierNaam || undefined}
         dossierId={activeDossierId}
         dossierBron="intake"
+        actieveTab="intake"
         rechtsExtra={
+
+
           <div className="flex items-center gap-3">
             {!HIDE_EXTRA_INFO_ON.includes(currentSlide) && <ExtraInfoMenu />}
             <span className="label-style">Slide {slideIndex} / {modeSlides.length}</span>

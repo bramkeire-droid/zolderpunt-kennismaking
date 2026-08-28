@@ -344,6 +344,8 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
       subtitel={`${selectedLead?.voornaam ?? ''} ${selectedLead?.achternaam ?? ''}`.trim() || undefined}
       dossierId={selectedLead?.id ?? null}
       dossierBron="telefoon"
+      actieveTab="calling"
+
       onVerlaatDossier={() => probeerTeVertrekken(onGoDossiers)}
       rechtsExtra={
         <span className="font-headline text-sm text-muted-foreground font-semibold tabular-nums">⏱ {timer.formatted}</span>

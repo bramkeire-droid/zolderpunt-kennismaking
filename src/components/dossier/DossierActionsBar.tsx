@@ -18,6 +18,10 @@ interface Props {
   leadId: string;
   /** Waar deze balk staat; bepaalt hoe een calculatie in de historiek heet. */
   bron?: CalculatieBron;
+  /** Welk tabblad nu open staat, zodat je ziet waar je zit. */
+  actief?: 'dossier' | 'communicatie' | 'calling' | 'intake';
+  /** Terug naar de hoofdpagina van dit dossier. */
+  onOpenDossier?: (leadId: string) => void;
   /** Telefoongesprek openen voor dit dossier. */
   onCall: (leadId: string) => void;
   /** Videocall-intake starten voor dit dossier. */
@@ -34,7 +38,8 @@ interface Props {
  * handbereik zonder de pagina te verlaten. Foto's, portaal, calculator,
  * voorblad en offerte openen als dialoog; gesprek en intake navigeren.
  */
-export default function DossierActionsBar({ leadId, bron = 'los', onCall, onIntake, onCommunicatie, onSluit }: Props) {
+export default function DossierActionsBar({ leadId, bron = 'los', actief, onOpenDossier, onCall, onIntake, onCommunicatie, onSluit }: Props) {
+
   const [lead, setLead] = useState<any | null>(null);
   const [dialog, setDialog] = useState<DialogKey>(null);
   const [portalPreview, setPortalPreview] = useState(false);
@@ -61,13 +66,13 @@ export default function DossierActionsBar({ leadId, bron = 'los', onCall, onInta
 
   const naam = `${lead.voornaam ?? ''} ${lead.achternaam ?? ''}`.trim() || 'Naamloos dossier';
 
-  const actions: { label: string; icon: any; onClick: () => void }[] = [
+  const actions: { label: string; icon: any; onClick: () => void; tab?: Props['actief'] }[] = [
     ...(onCommunicatie
-      ? [{ label: 'Communicatie', icon: MessagesSquare, onClick: () => onCommunicatie(leadId) }]
+      ? [{ label: 'Communicatie', icon: MessagesSquare, onClick: () => onCommunicatie(leadId), tab: 'communicatie' as const }]
       : []),
     { label: "Foto's", icon: ImageIcon, onClick: () => setDialog('fotos') },
-    { label: 'Telefoongesprek', icon: Phone, onClick: () => onCall(leadId) },
-    { label: 'Intakegesprek', icon: Bot, onClick: () => onIntake(leadId) },
+    { label: 'Telefoongesprek', icon: Phone, onClick: () => onCall(leadId), tab: 'calling' },
+    { label: 'Intakegesprek', icon: Bot, onClick: () => onIntake(leadId), tab: 'intake' },
     { label: 'Portaal', icon: Globe, onClick: () => setDialog('portaal') },
     { label: 'Calculator', icon: Calculator, onClick: () => setDialog('calculator') },
     { label: 'Voorblad', icon: FileText, onClick: () => setDialog('voorblad') },
@@ -78,7 +83,15 @@ export default function DossierActionsBar({ leadId, bron = 'los', onCall, onInta
     <>
       <div className="shrink-0 bg-card border-b border-border">
         <div className="flex items-center gap-3 flex-wrap px-4 py-2">
-          <div className="flex items-center gap-2 min-w-0 mr-2">
+          {/* De naam is de weg terug: vanuit elk tabblad één klik naar de hoofdpagina. */}
+          <button
+            onClick={() => onOpenDossier?.(leadId)}
+            disabled={!onOpenDossier}
+            title="Naar de hoofdpagina van dit dossier"
+            className={`flex items-center gap-2 min-w-0 mr-2 rounded px-2 py-1 -ml-2 text-left transition-colors ${
+              actief === 'dossier' ? 'bg-primary/10' : onOpenDossier ? 'hover:bg-muted' : ''
+            }`}
+          >
             <FolderOpen className="h-4 w-4 text-primary shrink-0" />
             <div className="min-w-0">
               <p className="font-headline font-bold text-sm text-foreground leading-tight truncate">{naam}</p>
@@ -89,14 +102,23 @@ export default function DossierActionsBar({ leadId, bron = 'los', onCall, onInta
                 </p>
               )}
             </div>
-          </div>
+          </button>
 
           {actions.map(a => (
-            <Button key={a.label} size="sm" variant="outline" className="gap-1.5 font-headline h-8" onClick={a.onClick}>
+            <Button
+              key={a.label}
+              size="sm"
+              variant="outline"
+              className={`gap-1.5 font-headline h-8 ${
+                a.tab && a.tab === actief ? 'border-primary bg-primary/10 text-primary' : ''
+              }`}
+              onClick={a.onClick}
+            >
               <a.icon className="h-3.5 w-3.5 text-primary" />
               <span className="text-xs">{a.label}</span>
             </Button>
           ))}
+
 
           {/* Teamchat rechts uitgelijnd: intern werkoverleg over dit dossier (Sprint 3). */}
           <Button size="sm" variant="outline" className="gap-1.5 font-headline h-8 ml-auto" onClick={() => setDialog('chat')}>
