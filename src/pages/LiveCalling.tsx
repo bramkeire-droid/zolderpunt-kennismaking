@@ -170,23 +170,21 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
     const endedAt = new Date().toISOString();
     const duration = timer.elapsed;
     update({ call_ended_at: endedAt, call_duration_seconds: duration });
-    timer.pause();
     const leadId = await ensureLeadRow();
     if (leadId) {
       await supabase.from('leads').update({ status: 'telefoongesprek' }).eq('id', leadId);
     }
-    await flushSave({
+    const gelukt = await flushSave({
       lead_id: leadId ?? data.lead_id,
       call_ended_at: endedAt,
       call_duration_seconds: duration,
     });
-    toast.success('Dossier opgeslagen');
-    if (leadId && data.id) {
-      onOpenValidation(leadId, data.id);
-    } else {
-      onGoDossiers();
-    }
+    // Opslaan is opslaan: je blijft op dit scherm staan. Eerder sprong dit naar
+    // de transcriptpagina, waardoor je midden in een gesprek je scherm kwijt was.
+    if (gelukt === false) toast.error('Opslaan mislukt — probeer opnieuw.');
+    else toast.success('Dossier opgeslagen');
   };
+
 
   const syncCalendly = async (source: 'auto' | 'manual' = 'manual') => {
     const email = leadEmail.trim();
