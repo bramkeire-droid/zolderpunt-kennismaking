@@ -18,10 +18,13 @@ export interface AppNav {
   actiefDossier: { id: string; naam: string } | null;
   onGoActiefDossier: () => void;
   onSluitDossier: () => void;
+  /** Naar de hoofdpagina van een dossier (het overzicht). */
+  onOpenDossier: (leadId: string) => void;
   /** Dossieracties die navigeren i.p.v. een dialoog openen. */
   onOpenCall: (leadId: string) => void;
   onStartVideocall: (leadId: string) => void;
   onOpenCommunicatie: (leadId: string) => void;
+
 }
 
 const Ctx = createContext<AppNav | null>(null);

@@ -52,7 +52,7 @@ export default function IntakeBriefing({ lead, onStart }: Props) {
 
   if (loading) {
     return (
-      <AppShell titel="Briefing intakegesprek" dossierId={lead.id ?? null} dossierBron="intake">
+      <AppShell titel="Briefing intakegesprek" dossierId={lead.id ?? null} dossierBron="intake" actieveTab="intake">
         <div className="flex-1 flex items-center justify-center bg-[#F8F3EB]">
           <p className="text-muted-foreground font-body">Briefing laden…</p>
         </div>
@@ -87,6 +87,7 @@ export default function IntakeBriefing({ lead, onStart }: Props) {
       subtitel={naam}
       dossierId={lead.id ?? null}
       dossierBron="intake"
+      actieveTab="intake"
       primair={{ label: 'Start intakegesprek', onClick: onStart, icon: <ArrowRight className="h-4 w-4" />, iconPosition: 'right' }}
     >
       <div className="flex-1 overflow-y-auto bg-background">

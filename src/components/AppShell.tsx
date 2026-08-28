@@ -16,6 +16,8 @@ interface Props {
   /** Dossier waarvan de actiebalk onder de app-balk hoort. */
   dossierId?: string | null;
   dossierBron?: CalculatieBron;
+  /** Welk tabblad van het dossier nu open staat, voor de actieve markering. */
+  actieveTab?: 'dossier' | 'communicatie' | 'calling' | 'intake';
   /** Eigen manier om het dossier te verlaten (bv. met opslagvraag). */
   onVerlaatDossier?: () => void;
   children: ReactNode;
@@ -30,9 +32,10 @@ interface Props {
  * uitlogknoppen die overal opdoken.
  */
 export default function AppShell({
-  titel, subtitel, primair, rechtsExtra, dossierId, dossierBron = 'los',
+  titel, subtitel, primair, rechtsExtra, dossierId, dossierBron = 'los', actieveTab,
   onVerlaatDossier, children, className,
 }: Props) {
+
   const nav = useAppNav();
 
   return (
@@ -72,11 +75,14 @@ export default function AppShell({
         <DossierActionsBar
           leadId={dossierId}
           bron={dossierBron}
+          actief={actieveTab}
+          onOpenDossier={(id) => nav?.onOpenDossier(id)}
           onCall={(id) => nav?.onOpenCall(id)}
           onIntake={(id) => nav?.onStartVideocall(id)}
           onCommunicatie={(id) => nav?.onOpenCommunicatie(id)}
           onSluit={onVerlaatDossier ?? (() => nav?.onSluitDossier())}
         />
+
       )}
 
       <div className={`flex-1 min-h-0 flex flex-col overflow-hidden ${className ?? ''}`}>
