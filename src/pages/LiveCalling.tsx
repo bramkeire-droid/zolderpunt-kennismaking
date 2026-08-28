@@ -541,7 +541,8 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
         </div>
       </div>
       <BackConfirmDialog open={showBackConfirm} onCancel={() => setShowBackConfirm(false)} onDiscard={confirmBackDiscard} onSave={confirmBackSave} />
-    </div>
+    </AppShell>
+
 
   );
 }
