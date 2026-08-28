@@ -64,6 +64,6 @@ export default function TranscriptValidation({ leadId, preIntakeId }: Transcript
           <ComparisonView analysis={result} preIntakeId={preIntakeId} />
         ) : null}
       </div>
-    </div>
+    </AppShell>
   );
 }
