@@ -764,7 +764,7 @@ function ConfirmMailBlock({
           className="h-10 px-2 border-2 border-[#DDD5C5] bg-white text-sm font-dm" />
       </div>
       {canMail ? (
-        <a href={mailto}
+        <a href={mailto} onClick={markeerExterneNavigatie}
           className="w-full h-11 flex items-center justify-center gap-2 bg-[#0F1419] text-white font-dm font-extrabold text-[13px] tracking-[0.04em] uppercase hover:bg-[#008CFF] transition-colors">
           📧 Bevestigingsmail
         </a>
