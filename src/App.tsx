@@ -209,6 +209,7 @@ function AppContent() {
   };
 
   const handleOpenValidation = (leadId: string, preIntakeId: string) => {
+    setActiveDossierId(leadId);
     setValidationLeadId(leadId);
     setValidationPreIntakeId(preIntakeId);
     setView('validation');
