@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { FolderOpen, Phone, Bot, Image as ImageIcon, Globe, Calculator, FileText, Receipt, ArrowLeft, MessagesSquare, MessageCircle } from 'lucide-react';
+import { FolderOpen, Phone, Bot, Image as ImageIcon, Globe, Calculator, FileText, Receipt, X, MessagesSquare, MessageCircle } from 'lucide-react';
 import DossierChatPanel from '@/components/communicatie/DossierChatPanel';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
@@ -25,8 +25,8 @@ interface Props {
   /** Communicatiepagina openen (mails, calls, beslissingen uit Mail-CRM). Optioneel
    *  zodat bestaande aanroepplekken zonder wijziging blijven werken. */
   onCommunicatie?: (leadId: string) => void;
-  /** Terug naar het dossieroverzicht. */
-  onGoDossiers: () => void;
+  /** Het dossier sluiten (kruisje rechts). */
+  onSluit: () => void;
 }
 
 /**
@@ -34,7 +34,7 @@ interface Props {
  * handbereik zonder de pagina te verlaten. Foto's, portaal, calculator,
  * voorblad en offerte openen als dialoog; gesprek en intake navigeren.
  */
-export default function DossierActionsBar({ leadId, bron = 'los', onCall, onIntake, onCommunicatie, onGoDossiers }: Props) {
+export default function DossierActionsBar({ leadId, bron = 'los', onCall, onIntake, onCommunicatie, onSluit }: Props) {
   const [lead, setLead] = useState<any | null>(null);
   const [dialog, setDialog] = useState<DialogKey>(null);
   const [portalPreview, setPortalPreview] = useState(false);
@@ -103,10 +103,9 @@ export default function DossierActionsBar({ leadId, bron = 'los', onCall, onInta
             <MessageCircle className="h-3.5 w-3.5 text-primary" />
             <span className="text-xs">Teamchat</span>
           </Button>
-          <Button size="sm" variant="ghost" className="gap-1.5 font-headline h-8" onClick={onGoDossiers}>
-            <ArrowLeft className="h-3.5 w-3.5" />
-            <span className="text-xs">Naar dossiers</span>
-          </Button>
+          <button onClick={onSluit} className="p-1.5 text-muted-foreground hover:text-foreground transition-colors" title="Dossier sluiten">
+            <X className="h-4 w-4" />
+          </button>
         </div>
       </div>
 
