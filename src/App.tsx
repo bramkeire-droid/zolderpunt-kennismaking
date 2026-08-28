@@ -296,9 +296,6 @@ function AppContent() {
           onNewIntake={handleNewIntake}
           onGoDossiers={handleGoDossiers}
           onGoLeveranciers={() => setView('leveranciers')}
-        actiefDossier={activeDossierId ? { id: activeDossierId, naam: activeDossierNaam } : null}
-        onGoActiefDossier={handleGoActiefDossier}
-        onSluitDossier={handleSluitDossier}
           actiefDossier={activeDossierId ? { id: activeDossierId, naam: activeDossierNaam } : null}
           onGoActiefDossier={handleGoActiefDossier}
           onSluitDossier={handleSluitDossier}
@@ -319,9 +316,6 @@ function AppContent() {
           onNewIntake={handleNewIntake}
           onGoDossiers={handleGoDossiers}
           onGoLeveranciers={() => setView('leveranciers')}
-        actiefDossier={activeDossierId ? { id: activeDossierId, naam: activeDossierNaam } : null}
-        onGoActiefDossier={handleGoActiefDossier}
-        onSluitDossier={handleSluitDossier}
           actiefDossier={activeDossierId ? { id: activeDossierId, naam: activeDossierNaam } : null}
           onGoActiefDossier={handleGoActiefDossier}
           onSluitDossier={handleSluitDossier}
@@ -369,9 +363,6 @@ function AppContent() {
           onNewIntake={handleNewIntake}
           onGoDossiers={handleGoDossiers}
           onGoLeveranciers={() => setView('leveranciers')}
-        actiefDossier={activeDossierId ? { id: activeDossierId, naam: activeDossierNaam } : null}
-        onGoActiefDossier={handleGoActiefDossier}
-        onSluitDossier={handleSluitDossier}
           actiefDossier={activeDossierId ? { id: activeDossierId, naam: activeDossierNaam } : null}
           onGoActiefDossier={handleGoActiefDossier}
           onSluitDossier={handleSluitDossier}
