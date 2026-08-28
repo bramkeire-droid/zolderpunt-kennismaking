@@ -22,7 +22,7 @@ export default function TranscriptValidation({ leadId, preIntakeId, onBack }: Tr
 
   if (!leadId || !preIntakeId) {
     return (
-      <div className="h-screen flex flex-col bg-[#F8F3EB]">
+      <div className="h-full flex flex-col bg-[#F8F3EB]">
         <AppTopBar title="Transcript validatie" onBackToDossiers={onBack} />
         <div className="flex-1 flex items-center justify-center">
           <p className="text-sm text-muted-foreground font-body">
@@ -34,7 +34,7 @@ export default function TranscriptValidation({ leadId, preIntakeId, onBack }: Tr
   }
 
   return (
-    <div className="h-screen flex flex-col bg-[#F8F3EB]">
+    <div className="h-full flex flex-col bg-[#F8F3EB]">
       <AppTopBar title="Transcript validatie" onBackToDossiers={onBack} />
 
       <div className="flex-1 overflow-y-auto p-6">
