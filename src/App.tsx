@@ -66,7 +66,8 @@ function AppContent() {
   const [callingLeadId, setCallingLeadId] = useState<string | null>(null);
   const [callingInitialStep, setCallingInitialStep] = useState<'calling' | 'select-lead'>('select-lead');
   const [activeDossierId, setActiveDossierId] = useState<string | null>(null);
-  const { currentMode, currentSlide, resetSession, setCurrentMode, loadLead } = useSession();
+  const [activeDossierNaam, setActiveDossierNaam] = useState<string>('');
+  const { currentMode, currentSlide, resetSession, setCurrentMode, loadLead, lead } = useSession();
   const { flushSave } = useLeadSave();
 
   const prevModeRef = useRef(currentMode);
@@ -76,6 +77,27 @@ function AppContent() {
     }
     prevModeRef.current = currentMode;
   }, [currentMode, flushSave]);
+
+  // Zodra een leeg dossier tijdens het invullen een id krijgt, is dat meteen het
+  // actieve dossier: de dossierbalk hoort er dan ook te staan.
+  useEffect(() => {
+    if (lead?.id && lead.id !== activeDossierId) setActiveDossierId(lead.id);
+  }, [lead?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Naam van het actieve dossier, voor de "Terug naar dossier"-knop.
+  useEffect(() => {
+    let cancelled = false;
+    if (!activeDossierId) { setActiveDossierNaam(''); return; }
+    void (async () => {
+      const { data } = await supabase
+        .from('leads').select('voornaam, achternaam').eq('id', activeDossierId).maybeSingle();
+      if (cancelled) return;
+      const naam = `${data?.voornaam ?? ''} ${data?.achternaam ?? ''}`.trim();
+      setActiveDossierNaam(naam || 'Naamloos dossier');
+    })();
+    return () => { cancelled = true; };
+  }, [activeDossierId]);
+
 
   const handleOpenLead = async (lead: LeadData) => {
     setActiveDossierId(lead.id ?? null);
@@ -102,9 +124,10 @@ function AppContent() {
     setView('slides');
   };
 
+  // Naar huis of naar het overzicht gaan sluit het dossier niet: je kan er via
+  // "Terug naar dossier" in de navigatiebalk meteen weer in.
   const handleGoHome = async () => {
     if (view === 'slides') await flushSave();
-    setActiveDossierId(null);
     setView('start');
   };
 
@@ -117,7 +140,6 @@ function AppContent() {
 
   const handleNewCall = async () => {
     if (view === 'slides') await flushSave();
-    setActiveDossierId(null);
     setCallingLeadId(null);
     setCallingInitialStep('select-lead');
     setView('calling');
@@ -133,10 +155,24 @@ function AppContent() {
 
   const handleGoDossiers = async () => {
     if (view === 'slides') await flushSave();
-    setActiveDossierId(null);
     setCurrentMode('dossiers');
     setView('dossiers');
   };
+
+  /** Vanaf gelijk welke pagina terug in het actieve dossier springen. */
+  const handleGoActiefDossier = async () => {
+    if (!activeDossierId) return;
+    const { data: leadRij } = await supabase.from('leads').select('*').eq('id', activeDossierId).maybeSingle();
+    if (!leadRij) { setActiveDossierId(null); return; }
+    await handleOpenLead(leadRij as unknown as LeadData);
+  };
+
+  /** Het dossier bewust loslaten (kruisje naast de knop). */
+  const handleSluitDossier = () => {
+    setActiveDossierId(null);
+    setBriefingLead(null);
+  };
+
 
   // Videocall-intake: zorg dat er een pre_intake bestaat (daar hangt de planning
   // aan) en open het INTAKEGESPREK, oftewel de slidesflow. Dit stuurde eerder
@@ -173,6 +209,7 @@ function AppContent() {
   };
 
   const handleOpenValidation = (leadId: string, preIntakeId: string) => {
+    setActiveDossierId(leadId);
     setValidationLeadId(leadId);
     setValidationPreIntakeId(preIntakeId);
     setView('validation');
@@ -260,6 +297,9 @@ function AppContent() {
           onNewIntake={handleNewIntake}
           onGoDossiers={handleGoDossiers}
           onGoLeveranciers={() => setView('leveranciers')}
+          actiefDossier={activeDossierId ? { id: activeDossierId, naam: activeDossierNaam } : null}
+          onGoActiefDossier={handleGoActiefDossier}
+          onSluitDossier={handleSluitDossier}
           leveranciersActief
         />
         <Leveranciers />
@@ -277,6 +317,9 @@ function AppContent() {
           onNewIntake={handleNewIntake}
           onGoDossiers={handleGoDossiers}
           onGoLeveranciers={() => setView('leveranciers')}
+          actiefDossier={activeDossierId ? { id: activeDossierId, naam: activeDossierNaam } : null}
+          onGoActiefDossier={handleGoActiefDossier}
+          onSluitDossier={handleSluitDossier}
         />
         {dossierBar(activeDossierId, 'los')}
         <DossierCommunicatie leadId={activeDossierId} />
@@ -302,14 +345,20 @@ function AppContent() {
   if (view === 'validation') {
     return (
       <PreIntakeProvider>
-        <TranscriptValidation
-          leadId={validationLeadId}
-          preIntakeId={validationPreIntakeId}
-          onBack={() => setView('dossiers')}
-        />
+        <div className="h-screen flex flex-col">
+          {validationLeadId && dossierBar(validationLeadId, 'los')}
+          <div className="flex-1 min-h-0">
+            <TranscriptValidation
+              leadId={validationLeadId}
+              preIntakeId={validationPreIntakeId}
+              onBack={handleGoDossiers}
+            />
+          </div>
+        </div>
       </PreIntakeProvider>
     );
   }
+
 
   if (view === 'briefing' && briefingLead) {
     return (
@@ -321,6 +370,9 @@ function AppContent() {
           onNewIntake={handleNewIntake}
           onGoDossiers={handleGoDossiers}
           onGoLeveranciers={() => setView('leveranciers')}
+          actiefDossier={activeDossierId ? { id: activeDossierId, naam: activeDossierNaam } : null}
+          onGoActiefDossier={handleGoActiefDossier}
+          onSluitDossier={handleSluitDossier}
         />
         {briefingLead.id && dossierBar(briefingLead.id, 'intake')}
         <IntakeBriefing
@@ -343,6 +395,9 @@ function AppContent() {
         onNewIntake={handleNewIntake}
         onGoDossiers={handleGoDossiers}
         onGoLeveranciers={() => setView('leveranciers')}
+        actiefDossier={activeDossierId ? { id: activeDossierId, naam: activeDossierNaam } : null}
+        onGoActiefDossier={handleGoActiefDossier}
+        onSluitDossier={handleSluitDossier}
         onGoBeheer={() => setView('beheer')}
         beheerActief={view === 'beheer'}
       />

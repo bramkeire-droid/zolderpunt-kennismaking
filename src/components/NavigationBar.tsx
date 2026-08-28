@@ -2,7 +2,7 @@ import { useSession, SLIDE_ORDER, SLIDE_MODES, SlideId } from '@/contexts/Sessio
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { useAuth } from '@/contexts/AuthContext';
 import logoBlauw from '@/assets/logo-blauw.svg';
-import { LogOut, Phone, FolderOpen, Plus, ChevronDown, Video, FilePlus2, Settings, Truck } from 'lucide-react';
+import { LogOut, Phone, FolderOpen, Plus, ChevronDown, Video, FilePlus2, Settings, Truck, X } from 'lucide-react';
 import ExtraInfoMenu from './ExtraInfoMenu';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
@@ -30,12 +30,20 @@ interface NavigationBarProps {
   onGoBeheer?: () => void;
   /** Beheer is een App-view, geen sessiemodus — vandaar apart meegegeven. */
   beheerActief?: boolean;
+  /** Dossier waar je mee bezig bent; blijft onthouden tot je het sluit. */
+  actiefDossier?: { id: string; naam: string } | null;
+  /** Vanaf gelijk welke pagina terug in dat dossier springen. */
+  onGoActiefDossier?: () => void;
+  /** Het dossier bewust loslaten. */
+  onSluitDossier?: () => void;
 }
 
 export default function NavigationBar({
   onGoHome, onNewCall, onNewDossier, onNewIntake, onGoDossiers, onGoLeveranciers,
   leveranciersActief, onGoBeheer, beheerActief,
+  actiefDossier, onGoActiefDossier, onSluitDossier,
 }: NavigationBarProps) {
+
   const { currentMode, currentSlide } = useSession();
   const { signOut } = useAuth();
   const { isAdmin } = useIsAdmin();
@@ -124,6 +132,30 @@ export default function NavigationBar({
           </button>
         )}
       </div>
+
+      {/* Actief dossier: overal één klik terug in het dossier waar je mee bezig
+          bent, zonder het opnieuw te moeten opzoeken. */}
+      {actiefDossier && (
+        <div className="flex items-center border border-primary/40 bg-primary/5">
+          <button
+            onClick={() => onGoActiefDossier?.()}
+            className="flex items-center gap-2 px-3 py-2 text-sm font-headline font-semibold text-primary hover:bg-primary/10 transition-colors max-w-[280px]"
+            title={`Terug naar dossier ${actiefDossier.naam}`}
+          >
+            <FolderOpen className="h-4 w-4 shrink-0" />
+            <span className="truncate">Terug naar dossier — {actiefDossier.naam}</span>
+          </button>
+          <button
+            onClick={() => onSluitDossier?.()}
+            className="px-2 py-2 text-muted-foreground hover:text-foreground transition-colors"
+            title="Dossier sluiten"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
+
+
 
       {currentMode !== 'dossiers' && (
         <div className="ml-auto flex items-center gap-4">

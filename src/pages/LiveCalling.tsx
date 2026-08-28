@@ -170,23 +170,21 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
     const endedAt = new Date().toISOString();
     const duration = timer.elapsed;
     update({ call_ended_at: endedAt, call_duration_seconds: duration });
-    timer.pause();
     const leadId = await ensureLeadRow();
     if (leadId) {
       await supabase.from('leads').update({ status: 'telefoongesprek' }).eq('id', leadId);
     }
-    await flushSave({
+    const gelukt = await flushSave({
       lead_id: leadId ?? data.lead_id,
       call_ended_at: endedAt,
       call_duration_seconds: duration,
     });
-    toast.success('Dossier opgeslagen');
-    if (leadId && data.id) {
-      onOpenValidation(leadId, data.id);
-    } else {
-      onGoDossiers();
-    }
+    // Opslaan is opslaan: je blijft op dit scherm staan. Eerder sprong dit naar
+    // de transcriptpagina, waardoor je midden in een gesprek je scherm kwijt was.
+    if (gelukt === false) toast.error('Opslaan mislukt — probeer opnieuw.');
+    else toast.success('Dossier opgeslagen');
   };
+
 
   const syncCalendly = async (source: 'auto' | 'manual' = 'manual') => {
     const email = leadEmail.trim();
@@ -286,8 +284,11 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
 
   // Tabblad sluiten of verversen: de browser toont dan zijn eigen waarschuwing.
   // Een eigen popup mag daar niet, dus dit is het dichtst mogelijke equivalent.
+  // Een mailto- of Calendly-link is géén verlaten van de pagina: die zetten
+  // kort de vlag hieronder, zodat de waarschuwing dan uitblijft.
   useEffect(() => {
     const waarschuw = (e: BeforeUnloadEvent) => {
+      if (Date.now() < externeNavigatieTot) return;
       if (!heeftOnbewaardWerk()) return;
       e.preventDefault();
       e.returnValue = '';
@@ -295,6 +296,7 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
     window.addEventListener('beforeunload', waarschuw);
     return () => window.removeEventListener('beforeunload', waarschuw);
   });
+
 
   const confirmBackSave = async () => {
     const leadId = await ensureLeadRow();
@@ -580,7 +582,16 @@ function BackConfirmDialog({ open, onCancel, onDiscard, onSave }: { open: boolea
 
 /* ───────────────────────── HELPER COMPONENTS ───────────────────────── */
 
+/**
+ * Een mailto- of Calendly-link opent een externe app of tabblad; dat is geen
+ * verlaten van het gesprek. Zonder dit venstertje zag de browser de mailto als
+ * navigatie en waarschuwde de app onterecht dat data verloren zou gaan.
+ */
+let externeNavigatieTot = 0;
+const markeerExterneNavigatie = () => { externeNavigatieTot = Date.now() + 4000; };
+
 const inputCls = "h-12 px-3 bg-white border-2 border-[#DDD5C5] text-base font-body font-medium text-[#0F1419] placeholder:text-[#B0A898] focus:outline-none focus:border-[#008CFF]";
+
 
 function Section({ eyebrow, hint, children }: { eyebrow: string; hint?: string; children: React.ReactNode }) {
   return (
@@ -762,7 +773,7 @@ function ConfirmMailBlock({
           className="h-10 px-2 border-2 border-[#DDD5C5] bg-white text-sm font-dm" />
       </div>
       {canMail ? (
-        <a href={mailto}
+        <a href={mailto} onClick={markeerExterneNavigatie}
           className="w-full h-11 flex items-center justify-center gap-2 bg-[#0F1419] text-white font-dm font-extrabold text-[13px] tracking-[0.04em] uppercase hover:bg-[#008CFF] transition-colors">
           📧 Bevestigingsmail
         </a>
