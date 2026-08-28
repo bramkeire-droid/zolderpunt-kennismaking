@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, ArrowLeft, Phone, Bot, MapPin, User, Calendar, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
 import type { LeadData } from '@/contexts/SessionContext';
-import AppTopBar from '@/components/AppTopBar';
+import AppShell from '@/components/AppShell';
 import AangeleverdDoorKlant from '@/components/dossier/AangeleverdDoorKlant';
 import CalculatieHistoriek from '@/components/dossier/CalculatieHistoriek';
 
@@ -30,10 +30,9 @@ const IMPRESSION_LABELS: Record<string, string> = {
 interface Props {
   lead: LeadData;
   onStart: () => void;
-  onBack: () => void;
 }
 
-export default function IntakeBriefing({ lead, onStart, onBack }: Props) {
+export default function IntakeBriefing({ lead, onStart }: Props) {
   const [preIntake, setPreIntake] = useState<any>(null);
   const [analysis, setAnalysis] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -53,12 +52,11 @@ export default function IntakeBriefing({ lead, onStart, onBack }: Props) {
 
   if (loading) {
     return (
-      <div className="h-screen flex flex-col bg-[#F8F3EB]">
-        <AppTopBar title="Briefing intakegesprek" onBackToDossiers={onBack} />
-        <div className="flex-1 flex items-center justify-center">
+      <AppShell titel="Briefing intakegesprek" dossierId={lead.id ?? null} dossierBron="intake">
+        <div className="flex-1 flex items-center justify-center bg-[#F8F3EB]">
           <p className="text-muted-foreground font-body">Briefing laden…</p>
         </div>
-      </div>
+      </AppShell>
     );
   }
 
@@ -84,13 +82,13 @@ export default function IntakeBriefing({ lead, onStart, onBack }: Props) {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-[#F8F3EB]">
-      <AppTopBar
-        title="Briefing intakegesprek"
-        subtitle={naam}
-        onBackToDossiers={onBack}
-        primary={{ label: 'Start intakegesprek', onClick: onStart, icon: <ArrowRight className="h-4 w-4" />, iconPosition: 'right' }}
-      />
+    <AppShell
+      titel="Briefing intakegesprek"
+      subtitel={naam}
+      dossierId={lead.id ?? null}
+      dossierBron="intake"
+      primair={{ label: 'Start intakegesprek', onClick: onStart, icon: <ArrowRight className="h-4 w-4" />, iconPosition: 'right' }}
+    >
       <div className="flex-1 overflow-y-auto bg-background">
         <div className="max-w-4xl mx-auto p-8 lg:p-12">
           {/* Header badges */}
