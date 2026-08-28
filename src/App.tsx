@@ -124,9 +124,10 @@ function AppContent() {
     setView('slides');
   };
 
+  // Naar huis of naar het overzicht gaan sluit het dossier niet: je kan er via
+  // "Terug naar dossier" in de navigatiebalk meteen weer in.
   const handleGoHome = async () => {
     if (view === 'slides') await flushSave();
-    setActiveDossierId(null);
     setView('start');
   };
 
@@ -139,7 +140,6 @@ function AppContent() {
 
   const handleNewCall = async () => {
     if (view === 'slides') await flushSave();
-    setActiveDossierId(null);
     setCallingLeadId(null);
     setCallingInitialStep('select-lead');
     setView('calling');
@@ -155,10 +155,24 @@ function AppContent() {
 
   const handleGoDossiers = async () => {
     if (view === 'slides') await flushSave();
-    setActiveDossierId(null);
     setCurrentMode('dossiers');
     setView('dossiers');
   };
+
+  /** Vanaf gelijk welke pagina terug in het actieve dossier springen. */
+  const handleGoActiefDossier = async () => {
+    if (!activeDossierId) return;
+    const { data: leadRij } = await supabase.from('leads').select('*').eq('id', activeDossierId).maybeSingle();
+    if (!leadRij) { setActiveDossierId(null); return; }
+    await handleOpenLead(leadRij as unknown as LeadData);
+  };
+
+  /** Het dossier bewust loslaten (kruisje naast de knop). */
+  const handleSluitDossier = () => {
+    setActiveDossierId(null);
+    setBriefingLead(null);
+  };
+
 
   // Videocall-intake: zorg dat er een pre_intake bestaat (daar hangt de planning
   // aan) en open het INTAKEGESPREK, oftewel de slidesflow. Dit stuurde eerder
