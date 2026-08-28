@@ -10,7 +10,6 @@ import Dossiers from '@/pages/Dossiers';
 import DossierCommunicatie from '@/pages/DossierCommunicatie';
 import Leveranciers from '@/pages/Leveranciers';
 import TarievenBeheer from '@/components/beheer/TarievenBeheer';
-import type { CalculatieBron } from '@/lib/calculaties';
 import LoginPage from '@/pages/LoginPage';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
 import LiveCalling from '@/pages/LiveCalling';
@@ -248,6 +247,7 @@ function AppContent() {
   const inhoud = () => {
     if (view === 'start') {
       return (
+        <AppShell>
         <div className="flex-1 flex flex-col bg-background relative overflow-hidden">
           <DecorativeAngle position="top-right" size={400} />
           <DecorativeAngle position="bottom-left" color="secondary" size={250} />
@@ -295,6 +295,7 @@ function AppContent() {
             <CoachingSuggestions />
           </div>
         </div>
+        </AppShell>
       );
     }
 
