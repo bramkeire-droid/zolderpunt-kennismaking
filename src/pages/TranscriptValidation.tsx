@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import AppTopBar from '@/components/AppTopBar';
+import AppShell from '@/components/AppShell';
 import TranscriptUpload from '@/components/validation/TranscriptUpload';
 import ComparisonView from '@/components/validation/ComparisonView';
 import { useTranscriptAnalysis } from '@/hooks/useTranscriptAnalysis';
@@ -7,10 +7,9 @@ import { useTranscriptAnalysis } from '@/hooks/useTranscriptAnalysis';
 interface TranscriptValidationProps {
   leadId: string | null;
   preIntakeId: string | null;
-  onBack: () => void;
 }
 
-export default function TranscriptValidation({ leadId, preIntakeId, onBack }: TranscriptValidationProps) {
+export default function TranscriptValidation({ leadId, preIntakeId }: TranscriptValidationProps) {
   const { analyzing, error, result, analyze } = useTranscriptAnalysis();
   const [submitted, setSubmitted] = useState(false);
 
@@ -22,22 +21,20 @@ export default function TranscriptValidation({ leadId, preIntakeId, onBack }: Tr
 
   if (!leadId || !preIntakeId) {
     return (
-      <div className="h-full flex flex-col bg-[#F8F3EB]">
-        <AppTopBar title="Transcript validatie" onBackToDossiers={onBack} />
-        <div className="flex-1 flex items-center justify-center">
+      <AppShell titel="Transcript validatie">
+        <div className="flex-1 flex items-center justify-center bg-[#F8F3EB]">
+
           <p className="text-sm text-muted-foreground font-body">
             Geen dossier geselecteerd. Ga terug naar dossiers en selecteer een gesprek met pre-intake.
           </p>
         </div>
-      </div>
+      </AppShell>
     );
   }
 
   return (
-    <div className="h-full flex flex-col bg-[#F8F3EB]">
-      <AppTopBar title="Transcript validatie" onBackToDossiers={onBack} />
-
-      <div className="flex-1 overflow-y-auto p-6">
+    <AppShell titel="Transcript validatie" dossierId={leadId}>
+      <div className="flex-1 overflow-y-auto p-6 bg-[#F8F3EB]">
         {!submitted || error ? (
           <div className="space-y-4">
             <TranscriptUpload onSubmit={handleSubmit} loading={analyzing} />
@@ -67,6 +64,6 @@ export default function TranscriptValidation({ leadId, preIntakeId, onBack }: Tr
           <ComparisonView analysis={result} preIntakeId={preIntakeId} />
         ) : null}
       </div>
-    </div>
+    </AppShell>
   );
 }

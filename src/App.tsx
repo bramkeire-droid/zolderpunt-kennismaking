@@ -3,12 +3,13 @@ import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { SessionProvider, useSession } from '@/contexts/SessionContext';
 import { PreIntakeProvider } from '@/contexts/PreIntakeContext';
 import { useLeadSave } from '@/hooks/useLeadSave';
-import NavigationBar from '@/components/NavigationBar';
+import AppShell from '@/components/AppShell';
+import { AppNavProvider } from '@/contexts/AppNavContext';
+import ExtraInfoMenu from '@/components/ExtraInfoMenu';
 import Dossiers from '@/pages/Dossiers';
 import DossierCommunicatie from '@/pages/DossierCommunicatie';
 import Leveranciers from '@/pages/Leveranciers';
 import TarievenBeheer from '@/components/beheer/TarievenBeheer';
-import type { CalculatieBron } from '@/lib/calculaties';
 import LoginPage from '@/pages/LoginPage';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
 import LiveCalling from '@/pages/LiveCalling';
@@ -41,11 +42,10 @@ import logoBlauw from '@/assets/logo-blauw.svg';
 import DecorativeAngle from '@/components/DecorativeAngle';
 import CoachingSuggestions from '@/components/CoachingSuggestions';
 import IntakeBriefing from '@/components/IntakeBriefing';
-import DossierActionsBar from '@/components/dossier/DossierActionsBar';
 import Portal from '@/pages/Portal';
 import { supabase } from '@/integrations/supabase/client';
 import { AppActionsProvider } from '@/contexts/AppActionsContext';
-import type { SlideId } from '@/contexts/SessionContext';
+import { SLIDE_ORDER, SLIDE_MODES, type SlideId } from '@/contexts/SessionContext';
 import type { LeadData } from '@/contexts/SessionContext';
 
 const SLIDE_COMPONENTS: Record<SlideId, React.ComponentType> = {
@@ -222,208 +222,183 @@ function AppContent() {
     setView('communicatie');
   };
 
-  if (view === 'start') {
-    return (
-      <div className="h-screen flex flex-col bg-background relative overflow-hidden">
-        <DecorativeAngle position="top-right" size={400} />
-        <DecorativeAngle position="bottom-left" color="secondary" size={250} />
-        <div className="flex-1 flex flex-col items-center justify-center relative z-10">
-          <img src={logoBlauw} alt="Zolderpunt" className="h-14 mb-12" />
-          {/* Zelfde twee keuzes en dezelfde bewoording als de navigatiebalk:
-              een nieuw dossier beginnen, of een bestaand dossier openen. */}
-          <div className="w-full max-w-sm flex flex-col gap-3 px-6">
-            <p className="text-xs font-headline font-semibold uppercase tracking-wider text-muted-foreground">
-              Nieuw dossier
-            </p>
-            <Button
-              onClick={handleNewIntake}
-              className="w-full h-14 bg-primary text-primary-foreground hover:bg-secondary font-headline text-base gap-3 justify-start px-5"
-            >
-              <FilePlus2 className="h-5 w-5" />
-              Leeg dossier
-            </Button>
-            <Button
-              onClick={handleNewCall}
-              variant="outline"
-              className="w-full h-14 font-headline text-base gap-3 justify-start px-5"
-            >
-              <Phone className="h-5 w-5" />
-              Telefoongesprek
-            </Button>
-            <Button
-              onClick={handleNewIntake}
-              variant="outline"
-              className="w-full h-14 font-headline text-base gap-3 justify-start px-5"
-            >
-              <Video className="h-5 w-5" />
-              Videocall intake
-            </Button>
+  const navWaarden = {
+    onGoHome: () => void handleGoHome(),
+    onNewDossier: () => void handleNewIntake(),
+    onNewCall: () => void handleNewCall(),
+    onNewIntake: () => void handleNewIntake(),
+    onGoDossiers: () => void handleGoDossiers(),
+    onGoLeveranciers: () => setView('leveranciers'),
+    onGoBeheer: () => setView('beheer'),
+    huidigeView: view,
+    actiefDossier: activeDossierId ? { id: activeDossierId, naam: activeDossierNaam } : null,
+    onGoActiefDossier: () => void handleGoActiefDossier(),
+    onSluitDossier: handleSluitDossier,
+    onOpenCall: (id: string) => void handleOpenCall(id),
+    onStartVideocall: (id: string) => void handleStartVideocall(id),
+    onOpenCommunicatie: (id: string) => void handleOpenCommunicatie(id),
+  };
 
-            <div className="h-px bg-border my-2" />
+  const modeSlides = SLIDE_ORDER.filter(sl => SLIDE_MODES[sl] === currentMode);
+  const slideIndex = modeSlides.indexOf(currentSlide) + 1;
+  const actualMode = view === 'beheer' ? 'beheer' : view === 'dossiers' ? 'dossiers' : currentMode;
+  const HIDE_EXTRA_INFO_ON: SlideId[] = ['0A', '0B', '1'];
 
-            <Button
-              variant="outline"
-              onClick={handleGoDossiers}
-              className="w-full h-14 font-headline text-base gap-3 justify-start px-5"
-            >
-              <FolderOpen className="h-5 w-5" />
-              Dossiers bekijken
-            </Button>
-          </div>
-          <CoachingSuggestions />
-        </div>
-      </div>
-    );
-  }
+  const inhoud = () => {
+    if (view === 'start') {
+      return (
+        <AppShell>
+        <div className="flex-1 flex flex-col bg-background relative overflow-hidden">
+          <DecorativeAngle position="top-right" size={400} />
+          <DecorativeAngle position="bottom-left" color="secondary" size={250} />
+          <div className="flex-1 flex flex-col items-center justify-center relative z-10 overflow-y-auto">
+            <img src={logoBlauw} alt="Zolderpunt" className="h-14 mb-12" />
+            <div className="w-full max-w-sm flex flex-col gap-3 px-6">
+              <p className="text-xs font-headline font-semibold uppercase tracking-wider text-muted-foreground">
+                Nieuw
+              </p>
+              <Button
+                onClick={handleNewIntake}
+                className="w-full h-14 bg-primary text-primary-foreground hover:bg-secondary font-headline text-base gap-3 justify-start px-5"
+              >
+                <FilePlus2 className="h-5 w-5" />
+                Leeg dossier
+              </Button>
+              <Button
+                onClick={handleNewCall}
+                variant="outline"
+                className="w-full h-14 font-headline text-base gap-3 justify-start px-5"
+              >
+                <Phone className="h-5 w-5" />
+                Telefoongesprek
+              </Button>
+              <Button
+                onClick={handleNewIntake}
+                variant="outline"
+                className="w-full h-14 font-headline text-base gap-3 justify-start px-5"
+              >
+                <Video className="h-5 w-5" />
+                Videocall intake
+              </Button>
 
-  const dossierBar = (leadId: string, bron: CalculatieBron = 'los', onVerlaat?: () => void) => (
-    <DossierActionsBar
-      leadId={leadId}
-      bron={bron}
-      onCall={handleOpenCall}
-      onIntake={handleStartVideocall}
-      onCommunicatie={handleOpenCommunicatie}
-      onGoDossiers={onVerlaat ?? handleGoDossiers}
-    />
-  );
+              <div className="h-px bg-border my-2" />
 
-  if (view === 'leveranciers') {
-    return (
-      <div className="h-screen flex flex-col">
-        <NavigationBar
-          onGoHome={handleGoHome}
-          onNewCall={handleNewCall}
-          onNewDossier={handleNewIntake}
-          onNewIntake={handleNewIntake}
-          onGoDossiers={handleGoDossiers}
-          onGoLeveranciers={() => setView('leveranciers')}
-          actiefDossier={activeDossierId ? { id: activeDossierId, naam: activeDossierNaam } : null}
-          onGoActiefDossier={handleGoActiefDossier}
-          onSluitDossier={handleSluitDossier}
-          leveranciersActief
-        />
-        <Leveranciers />
-      </div>
-    );
-  }
-
-  if (view === 'communicatie' && activeDossierId) {
-    return (
-      <div className="h-screen flex flex-col">
-        <NavigationBar
-          onGoHome={handleGoHome}
-          onNewCall={handleNewCall}
-          onNewDossier={handleNewIntake}
-          onNewIntake={handleNewIntake}
-          onGoDossiers={handleGoDossiers}
-          onGoLeveranciers={() => setView('leveranciers')}
-          actiefDossier={activeDossierId ? { id: activeDossierId, naam: activeDossierNaam } : null}
-          onGoActiefDossier={handleGoActiefDossier}
-          onSluitDossier={handleSluitDossier}
-        />
-        {dossierBar(activeDossierId, 'los')}
-        <DossierCommunicatie leadId={activeDossierId} />
-      </div>
-    );
-  }
-
-  if (view === 'calling') {
-    return (
-      <PreIntakeProvider>
-        <LiveCalling
-          onGoHome={handleGoHome}
-          onGoDossiers={handleGoDossiers}
-          onOpenValidation={handleOpenValidation}
-          initialLeadId={callingLeadId}
-          initialStep={callingInitialStep}
-          renderActionsBar={(leadId: string, onVerlaat: () => void) => dossierBar(leadId, 'telefoon', onVerlaat)}
-        />
-      </PreIntakeProvider>
-    );
-  }
-
-  if (view === 'validation') {
-    return (
-      <PreIntakeProvider>
-        <div className="h-screen flex flex-col">
-          {validationLeadId && dossierBar(validationLeadId, 'los')}
-          <div className="flex-1 min-h-0">
-            <TranscriptValidation
-              leadId={validationLeadId}
-              preIntakeId={validationPreIntakeId}
-              onBack={handleGoDossiers}
-            />
+              <Button
+                variant="outline"
+                onClick={handleGoDossiers}
+                className="w-full h-14 font-headline text-base gap-3 justify-start px-5"
+              >
+                <FolderOpen className="h-5 w-5" />
+                Dossiers
+              </Button>
+            </div>
+            <CoachingSuggestions />
           </div>
         </div>
-      </PreIntakeProvider>
-    );
-  }
+        </AppShell>
+      );
+    }
 
+    if (view === 'leveranciers') {
+      return (
+        <AppShell titel="Leveranciers">
+          <Leveranciers />
+        </AppShell>
+      );
+    }
 
-  if (view === 'briefing' && briefingLead) {
-    return (
-      <div className="h-screen flex flex-col">
-        <NavigationBar
-          onGoHome={handleGoHome}
-          onNewCall={handleNewCall}
-          onNewDossier={handleNewIntake}
-          onNewIntake={handleNewIntake}
-          onGoDossiers={handleGoDossiers}
-          onGoLeveranciers={() => setView('leveranciers')}
-          actiefDossier={activeDossierId ? { id: activeDossierId, naam: activeDossierNaam } : null}
-          onGoActiefDossier={handleGoActiefDossier}
-          onSluitDossier={handleSluitDossier}
-        />
-        {briefingLead.id && dossierBar(briefingLead.id, 'intake')}
+    if (view === 'communicatie' && activeDossierId) {
+      return (
+        <AppShell titel="Communicatie" subtitel={activeDossierNaam} dossierId={activeDossierId}>
+          <DossierCommunicatie leadId={activeDossierId} />
+        </AppShell>
+      );
+    }
+
+    if (view === 'calling') {
+      return (
+        <PreIntakeProvider>
+          <LiveCalling
+            onGoHome={handleGoHome}
+            onGoDossiers={handleGoDossiers}
+            onOpenValidation={handleOpenValidation}
+            initialLeadId={callingLeadId}
+            initialStep={callingInitialStep}
+          />
+        </PreIntakeProvider>
+      );
+    }
+
+    if (view === 'validation') {
+      return (
+        <PreIntakeProvider>
+          <TranscriptValidation
+            leadId={validationLeadId}
+            preIntakeId={validationPreIntakeId}
+          />
+        </PreIntakeProvider>
+      );
+    }
+
+    if (view === 'briefing' && briefingLead) {
+      return (
         <IntakeBriefing
           lead={briefingLead}
           onStart={handleStartFromBriefing}
-          onBack={() => { setBriefingLead(null); handleGoDossiers(); }}
         />
-      </div>
-    );
-  }
+      );
+    }
 
-  const actualMode = view === 'beheer' ? 'beheer' : view === 'dossiers' ? 'dossiers' : currentMode;
-
-  return (
-    <div className="h-screen flex flex-col">
-      <NavigationBar
-        onGoHome={handleGoHome}
-        onNewCall={handleNewCall}
-        onNewDossier={handleNewIntake}
-        onNewIntake={handleNewIntake}
-        onGoDossiers={handleGoDossiers}
-        onGoLeveranciers={() => setView('leveranciers')}
-        actiefDossier={activeDossierId ? { id: activeDossierId, naam: activeDossierNaam } : null}
-        onGoActiefDossier={handleGoActiefDossier}
-        onSluitDossier={handleSluitDossier}
-        onGoBeheer={() => setView('beheer')}
-        beheerActief={view === 'beheer'}
-      />
-      {actualMode === 'beheer' ? (
-        <div className="flex-1 overflow-y-auto bg-slate-50 px-6 py-6">
-          <div className="mx-auto max-w-4xl">
-            <TarievenBeheer />
+    if (actualMode === 'beheer') {
+      return (
+        <AppShell titel="Beheer" subtitel="Tarieven">
+          <div className="flex-1 overflow-y-auto bg-slate-50 px-6 py-6">
+            <div className="mx-auto max-w-4xl">
+              <TarievenBeheer />
+            </div>
           </div>
-        </div>
-      ) : actualMode === 'dossiers' ? (
-        <Dossiers
-          onOpenLead={handleOpenLead}
-          onOpenValidation={handleOpenValidation}
-          onOpenCall={handleOpenCall}
-        />
-      ) : (
+        </AppShell>
+      );
+    }
+
+    if (actualMode === 'dossiers') {
+      return (
+        <AppShell titel="Dossiers">
+          <Dossiers
+            onOpenLead={handleOpenLead}
+            onOpenValidation={handleOpenValidation}
+            onOpenCall={handleOpenCall}
+          />
+        </AppShell>
+      );
+    }
+
+    return (
+      <AppShell
+        titel={currentMode === 'voorbereiding' ? 'Voorbereiding' : currentMode === 'gesprek' ? 'Intakegesprek' : 'Rapport'}
+        subtitel={activeDossierNaam || undefined}
+        dossierId={activeDossierId}
+        dossierBron="intake"
+        rechtsExtra={
+          <div className="flex items-center gap-3">
+            {!HIDE_EXTRA_INFO_ON.includes(currentSlide) && <ExtraInfoMenu />}
+            <span className="label-style">Slide {slideIndex} / {modeSlides.length}</span>
+          </div>
+        }
+      >
         <AppActionsProvider value={{ openCall: handleOpenCall, startVideocall: handleStartVideocall }}>
-          {activeDossierId && dossierBar(activeDossierId, 'intake')}
-          {(() => {
-            const SlideComponent = SLIDE_COMPONENTS[currentSlide];
-            return SlideComponent ? <SlideComponent /> : null;
-          })()}
+          <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+            {(() => {
+              const SlideComponent = SLIDE_COMPONENTS[currentSlide];
+              return SlideComponent ? <SlideComponent /> : null;
+            })()}
+          </div>
         </AppActionsProvider>
-      )}
-    </div>
-  );
+      </AppShell>
+    );
+  };
+
+  return <AppNavProvider value={navWaarden}>{inhoud()}</AppNavProvider>;
 }
 
 function AuthGate() {
