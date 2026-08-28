@@ -30,12 +30,20 @@ interface NavigationBarProps {
   onGoBeheer?: () => void;
   /** Beheer is een App-view, geen sessiemodus — vandaar apart meegegeven. */
   beheerActief?: boolean;
+  /** Dossier waar je mee bezig bent; blijft onthouden tot je het sluit. */
+  actiefDossier?: { id: string; naam: string } | null;
+  /** Vanaf gelijk welke pagina terug in dat dossier springen. */
+  onGoActiefDossier?: () => void;
+  /** Het dossier bewust loslaten. */
+  onSluitDossier?: () => void;
 }
 
 export default function NavigationBar({
   onGoHome, onNewCall, onNewDossier, onNewIntake, onGoDossiers, onGoLeveranciers,
   leveranciersActief, onGoBeheer, beheerActief,
+  actiefDossier, onGoActiefDossier, onSluitDossier,
 }: NavigationBarProps) {
+
   const { currentMode, currentSlide } = useSession();
   const { signOut } = useAuth();
   const { isAdmin } = useIsAdmin();
