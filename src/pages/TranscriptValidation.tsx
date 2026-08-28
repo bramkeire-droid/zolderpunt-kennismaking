@@ -21,9 +21,9 @@ export default function TranscriptValidation({ leadId, preIntakeId }: Transcript
 
   if (!leadId || !preIntakeId) {
     return (
-      <div className="h-full flex flex-col bg-[#F8F3EB]">
-        <AppTopBar title="Transcript validatie" onBackToDossiers={onBack} />
-        <div className="flex-1 flex items-center justify-center">
+      <AppShell titel="Transcript validatie">
+        <div className="flex-1 flex items-center justify-center bg-[#F8F3EB]">
+
           <p className="text-sm text-muted-foreground font-body">
             Geen dossier geselecteerd. Ga terug naar dossiers en selecteer een gesprek met pre-intake.
           </p>
