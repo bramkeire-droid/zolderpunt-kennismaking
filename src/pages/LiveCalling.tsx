@@ -1,12 +1,12 @@
-import { useState, useEffect, useRef, type ReactNode } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { usePreIntake } from '@/contexts/PreIntakeContext';
 import { usePreIntakeSave, hasAnyData } from '@/hooks/usePreIntakeSave';
 import { useCallTimer } from '@/hooks/useCallTimer';
 import { supabase } from '@/integrations/supabase/client';
 import AddressAutocomplete from '@/components/AddressAutocomplete';
 
-import { ArrowLeft, ArrowRight, LogOut, RefreshCw } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { ArrowRight, RefreshCw } from 'lucide-react';
+import AppShell from '@/components/AppShell';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -23,12 +23,6 @@ interface LiveCallingProps {
   onOpenValidation: (leadId: string, preIntakeId: string) => void;
   initialLeadId?: string | null;
   initialStep?: CallingStep;
-  /** Actiebalk voor het geopende dossier, gerenderd onder de topbar. */
-  /**
-   * Tweede argument: de manier waarop die balk het scherm mag verlaten. Zonder
-   * dit had zijn eigen "Naar dossiers" een sluipweg langs de opslagvraag.
-   */
-  renderActionsBar?: (leadId: string, onVerlaat: () => void) => ReactNode;
 }
 
 
@@ -36,9 +30,8 @@ interface LiveCallingProps {
 
 /* ───────────────────────── MAIN COMPONENT ───────────────────────── */
 
-export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, initialLeadId, initialStep, renderActionsBar }: LiveCallingProps) {
+export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, initialLeadId, initialStep }: LiveCallingProps) {
   const [step, setStep] = useState<CallingStep>(initialStep ?? 'select-lead');
-  const { signOut } = useAuth();
   const [search, setSearch] = useState('');
   const [leads, setLeads] = useState<any[]>([]);
   const [selectedLead, setSelectedLead] = useState<any>(null);
@@ -323,17 +316,8 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
   /* ─── LEAD SELECTION ─── */
   if (step === 'select-lead') {
     return (
-      <div className="h-screen flex flex-col bg-[#F8F3EB]">
-        <div className="h-14 bg-white border-b border-[#DDD5C5] flex items-center px-6 gap-4 shrink-0">
-          <button onClick={() => probeerTeVertrekken(onGoHome)} className="flex items-center gap-2 text-sm font-dm text-[#5B6470] hover:text-[#0F1419]">
-            <ArrowLeft className="h-4 w-4" /> Terug
-          </button>
-          <h1 className="text-base font-dm font-bold text-[#0F1419]">Nieuw telefoongesprek</h1>
-          <button onClick={signOut} className="ml-auto p-2 text-[#5B6470] hover:text-[#0F1419] transition-colors" title="Uitloggen">
-            <LogOut className="h-4 w-4" />
-          </button>
-        </div>
-        <div className="flex-1 overflow-y-auto p-8 lg:p-12">
+      <AppShell titel="Nieuw telefoongesprek">
+        <div className="flex-1 overflow-y-auto p-8 lg:p-12 bg-[#F8F3EB]">
           <div className="max-w-xl mx-auto space-y-6">
             <Button onClick={handleNewLead} className="w-full bg-[#008CFF] text-white hover:bg-[#0070CC] font-dm text-base py-6">Nieuwe lead + bellen</Button>
             <div className="text-center text-sm font-body text-[#5B6470]">of kies een bestaande lead</div>
@@ -349,7 +333,7 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
             </div>
           </div>
         </div>
-      </div>
+      </AppShell>
     );
   }
 
