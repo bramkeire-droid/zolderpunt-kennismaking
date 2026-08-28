@@ -66,7 +66,8 @@ function AppContent() {
   const [callingLeadId, setCallingLeadId] = useState<string | null>(null);
   const [callingInitialStep, setCallingInitialStep] = useState<'calling' | 'select-lead'>('select-lead');
   const [activeDossierId, setActiveDossierId] = useState<string | null>(null);
-  const { currentMode, currentSlide, resetSession, setCurrentMode, loadLead } = useSession();
+  const [activeDossierNaam, setActiveDossierNaam] = useState<string>('');
+  const { currentMode, currentSlide, resetSession, setCurrentMode, loadLead, lead } = useSession();
   const { flushSave } = useLeadSave();
 
   const prevModeRef = useRef(currentMode);
@@ -76,6 +77,27 @@ function AppContent() {
     }
     prevModeRef.current = currentMode;
   }, [currentMode, flushSave]);
+
+  // Zodra een leeg dossier tijdens het invullen een id krijgt, is dat meteen het
+  // actieve dossier: de dossierbalk hoort er dan ook te staan.
+  useEffect(() => {
+    if (lead?.id && lead.id !== activeDossierId) setActiveDossierId(lead.id);
+  }, [lead?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Naam van het actieve dossier, voor de "Terug naar dossier"-knop.
+  useEffect(() => {
+    let cancelled = false;
+    if (!activeDossierId) { setActiveDossierNaam(''); return; }
+    void (async () => {
+      const { data } = await supabase
+        .from('leads').select('voornaam, achternaam').eq('id', activeDossierId).maybeSingle();
+      if (cancelled) return;
+      const naam = `${data?.voornaam ?? ''} ${data?.achternaam ?? ''}`.trim();
+      setActiveDossierNaam(naam || 'Naamloos dossier');
+    })();
+    return () => { cancelled = true; };
+  }, [activeDossierId]);
+
 
   const handleOpenLead = async (lead: LeadData) => {
     setActiveDossierId(lead.id ?? null);
