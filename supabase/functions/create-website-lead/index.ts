@@ -45,6 +45,50 @@ Deno.serve(async (req) => {
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
   );
 
+  // --- Herhaalbaar: dezelfde inzending twee keer = één dossier -------------
+  //
+  // Deze functie wordt door meer dan één weg aangeroepen (de Zapier-koppeling,
+  // en straks ook rechtstreeks vanaf het websiteformulier). Zonder deze
+  // controle levert dat twee dossiers voor één aanvraag op — exact de fout die
+  // we bij BouwFlow net weggehaald hebben, dan aan de Compass-kant.
+  //
+  // Bewust op een kort tijdvenster: dezelfde klant mag over een paar weken
+  // gerust opnieuw een aanvraag doen, dat is een echt nieuw dossier. Twee
+  // aanroepen binnen enkele minuten zijn daarentegen altijd dezelfde inzending.
+  const VENSTER_MINUTEN = 10;
+  const email = str(body.email).toLowerCase();
+  const telefoonCijfers = str(body.telefoon).replace(/[^0-9]/g, '');
+  const telefoonKort = telefoonCijfers.length >= 9 ? telefoonCijfers.slice(-9) : '';
+
+  if (email || telefoonKort) {
+    const sinds = new Date(Date.now() - VENSTER_MINUTEN * 60 * 1000).toISOString();
+    const { data: recent } = await supabase
+      .from('leads')
+      .select('id, email, telefoon, bouwflow_project_number')
+      .gte('created_at', sinds)
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    const bestaand = (recent ?? []).find((l) => {
+      const lEmail = (l.email ?? '').trim().toLowerCase();
+      const lTel = (l.telefoon ?? '').replace(/[^0-9]/g, '');
+      if (email && lEmail && lEmail === email) return true;
+      return !!telefoonKort && lTel.length >= 9 && lTel.slice(-9) === telefoonKort;
+    });
+
+    if (bestaand) {
+      console.log('create-website-lead: zelfde inzending al verwerkt, geen tweede dossier', bestaand.id);
+      return json({
+        id: bestaand.id,
+        reeds_aangemaakt: true,
+        bouwflow: {
+          gekoppeld: !!bestaand.bouwflow_project_number,
+          bouwflow_project_number: bestaand.bouwflow_project_number ?? null,
+        },
+      }, 200);
+    }
+  }
+
   const { data, error } = await supabase
     .from('leads')
     .insert({

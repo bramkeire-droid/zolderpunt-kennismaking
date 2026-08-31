@@ -216,21 +216,36 @@ Deno.serve(async (req) => {
     return null;
   };
 
-  // LET OP de naamgeving in BouwFlow: het veld "project_id" bevat het
-  // ZL-NUMMER (een string zoals "ZL-0121"), terwijl het interne, numerieke
-  // id gewoon "id" heet. Wie project_id als id behandelt, zet het nummer in
-  // de verkeerde kolom — precies wat hier gebeurde.
-  const pkRuw = findField(['id', 'project_pk_id']);
-  const bouwflowProjectPkId = pkRuw && /^\d+$/.test(pkRuw) ? Number(pkRuw) : null;
-  const bouwflowProjectNumber =
-    findField(['project_number', 'projectNumber', 'number', 'nummer']) ??
-    findField(['project_id', 'projectId']);
+  // NIETS RADEN. Het oude endpoint /api/leads maakt een klant én een project
+  // aan, maar geeft in zijn antwoord alléén de KLANT terug — het veld "id" is
+  // dus een klant-id, geen project-id.
+  //
+  // Hier werd dat "id" toch als project-id opgeslagen. Live gemeten op
+  // 31-08-2026: dossier kreeg project_pk_id 175 terwijl het echte project 186
+  // was; 175 bleek een bestaand ánder project (ZL-0131, Kenny De Volder). En
+  // dat is geen uitzondering: 59 van de 105 klant-ids zijn óók een geldig
+  // project-id. Omdat push-bouwflow-phase net op dit veld werkt, wees het
+  // kwartier tot de sync bijwerkte naar een willekeurig ander dossier.
+  //
+  // Dus: het klant-id gaat in de kolom die daar historisch voor bedoeld is
+  // (bouwflow_project_id), en de projectvelden blijven leeg tot de sync ze
+  // invult uit BouwFlow's eigen API — die geeft het project wél correct terug
+  // (geverifieerd: 175 -> 186). Een leeg veld is eerlijk: de verplaats-actie
+  // weigert dan netjes, in plaats van het verkeerde project te raken.
+  const klantIdRuw = findField(['id', 'customer_id', 'customerId']);
+  const bouwflowKlantId = klantIdRuw && /^\d+$/.test(klantIdRuw) ? klantIdRuw : null;
 
-  if (!bouwflowProjectPkId) {
-    // Zonder intern id kan de fase later niet gewijzigd worden. Dat mag geen
-    // stille uitkomst zijn: vroeger werd bij twijfel het hele JSON-antwoord in
-    // de id-kolom gedumpt, waarna niets meer klopte.
-    console.error('push-to-bouwflow: geen numeriek project-id in antwoord', JSON.stringify(bouwflowResult).slice(0, 500));
+  // Alleen overnemen als BouwFlow echt over een PROJECT spreekt, nooit uit
+  // het generieke "id".
+  const pkRuw = findField(['project_pk_id']);
+  const bouwflowProjectPkId = pkRuw && /^\d+$/.test(pkRuw) ? Number(pkRuw) : null;
+  const bouwflowProjectNumber = findField(['project_number', 'projectNumber', 'number', 'nummer']);
+
+  if (!bouwflowKlantId && !bouwflowProjectPkId && !bouwflowProjectNumber) {
+    // Zonder enige herkenning is het dossier straks niet als "al gepusht" te
+    // herkennen en zou de herstel-cron een tweede project aanmaken. Dat mag
+    // nooit stil gebeuren.
+    console.error('push-to-bouwflow: geen enkel id in BouwFlow-antwoord', JSON.stringify(bouwflowResult).slice(0, 500));
   }
 
   const { data: updated, error: updateError } = await supabase
@@ -238,8 +253,10 @@ Deno.serve(async (req) => {
     .update({
       bouwflow_pushed_at: new Date().toISOString(),
       bouwflow_phase: phase,
-      // Het veld waarop een faseverplaatsing werkt. Werd hier nooit gevuld,
-      // waardoor een net gepusht dossier niet van fase kon veranderen.
+      // Deze drie samen vormen de "staat het er al?"-controle. Het klant-id is
+      // hier het enige dat BouwFlow ons meteen geeft, en dus wat voorkomt dat
+      // de kwartiertaak hetzelfde dossier nog eens doorduwt.
+      bouwflow_project_id: bouwflowKlantId,
       bouwflow_project_pk_id: bouwflowProjectPkId,
       bouwflow_project_number: bouwflowProjectNumber,
     })
