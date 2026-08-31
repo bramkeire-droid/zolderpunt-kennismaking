@@ -1100,6 +1100,27 @@ export type Database = {
         }
         Relationships: []
       }
+      verwijderde_dossiers_backup: {
+        Row: {
+          id: string
+          inhoud: Json
+          reden: string | null
+          verwijderd_op: string
+        }
+        Insert: {
+          id?: string
+          inhoud: Json
+          reden?: string | null
+          verwijderd_op?: string
+        }
+        Update: {
+          id?: string
+          inhoud?: Json
+          reden?: string | null
+          verwijderd_op?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
