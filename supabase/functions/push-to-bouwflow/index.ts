@@ -86,6 +86,53 @@ Deno.serve(async (req) => {
     );
   }
 
+  // --- Slot: precies één schrijver mag dit dossier naar BouwFlow duwen -------
+  //
+  // De controle hierboven ("staat het er al?") is een lezen-dan-handelen-check
+  // en dus GEEN garantie: twee aanroepen die tegelijk binnenkomen lezen allebei
+  // "nog niet gepusht" en maken allebei een project aan. Precies zo ontstonden
+  // ZL-0138 en ZL-0139 voor dezelfde klant.
+  //
+  // Deze UPDATE is één atomair statement: Postgres vergrendelt de rij, dus van
+  // twee gelijktijdige aanroepen wint er altijd exact één en krijgt de andere
+  // nul rijen terug. Timing speelt geen rol meer.
+  //
+  // De claim vervalt na 10 minuten, zodat een dossier waarvan de push halverwege
+  // crashte niet voor altijd geblokkeerd blijft voor de herstel-cron.
+  //
+  // Bewust een databasefunctie en geen .or()-filter hier: zo'n filter moet de
+  // tijdstempel als tekst door de query-taal duwen (dubbele punten, punten), en
+  // dat is precies het soort stille parseerfout waar deze koppeling niet tegen
+  // kan. De functie is één SQL-statement en is los getest.
+  const { data: claimGelukt, error: claimError } = await supabase
+    .rpc('claim_bouwflow_push', { _lead_id: leadId });
+
+  if (claimError) {
+    console.error('push-to-bouwflow: claim mislukt', leadId, claimError);
+    return json({ error: 'Kon het dossier niet claimen voor een push' }, 500);
+  }
+
+  if (claimGelukt !== true) {
+    return json(
+      {
+        error: 'push_in_progress',
+        message: 'Dit dossier wordt op dit moment al naar BouwFlow geduwd.',
+      },
+      409,
+    );
+  }
+
+  // Vanaf hier houden we het slot vast. Elke uitgang die NIET tot een geslaagde
+  // push leidt, moet het teruggeven — anders probeert de herstel-cron het nooit
+  // meer en verdwijnt het dossier stilzwijgend uit BouwFlow.
+  const geefSlotTerug = async () => {
+    const { error } = await supabase
+      .from('leads')
+      .update({ bouwflow_push_claimed_at: null })
+      .eq('id', leadId);
+    if (error) console.error('push-to-bouwflow: slot teruggeven mislukt', leadId, error);
+  };
+
   const naam = `${lead.voornaam ?? ''} ${lead.achternaam ?? ''}`.trim();
   const bericht =
     (lead.gesprek_notities && String(lead.gesprek_notities).trim()) ||
@@ -117,6 +164,7 @@ Deno.serve(async (req) => {
     );
   } catch (err) {
     console.error('push-to-bouwflow fetch failed', err);
+    await geefSlotTerug();
     return json({ error: 'Kon Bouwflow-functie niet bereiken' }, 502);
   }
 
@@ -143,6 +191,7 @@ Deno.serve(async (req) => {
         'error' in (bouwflowResult as Record<string, unknown>)
         ? String((bouwflowResult as Record<string, unknown>).error)
         : rawText) || 'Onbekende fout van Bouwflow-functie';
+    await geefSlotTerug();
     return json({ error: errorMessage }, 502);
   }
 
@@ -199,6 +248,9 @@ Deno.serve(async (req) => {
     .single();
 
   if (updateError) {
+    // Het project bestaat nu wél in BouwFlow, maar we konden het nummer niet
+    // wegschrijven. Het slot NIET teruggeven: opnieuw pushen zou een tweede
+    // project aanmaken. Dit moet een mens bekijken.
     console.error('push-to-bouwflow update error', updateError);
     return json({ error: updateError.message }, 500);
   }

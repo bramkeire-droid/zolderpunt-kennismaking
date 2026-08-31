@@ -65,42 +65,59 @@ Deno.serve(async (req) => {
     return json({ error: error.message }, 500);
   }
 
-  // Dezelfde lead wordt door de Zap óók als project in BouwFlow gezet, maar die
-  // twee stappen weten niets van elkaar: het Compass-dossier blijft zonder
-  // bouwflow_project_id achter en belandt in de kolom "Niet in BouwFlow".
-  // Daarom hier meteen de sync draaien; die matcht op telefoon en e-mail en
-  // legt de koppeling. Loopt de BouwFlow-stap van de Zap toevallig ná deze,
-  // dan vindt de sync nog niets — de eerstvolgende sync (knop of volgende
-  // website-lead) haalt het dan alsnog op. De lead zelf is hoe dan ook al
-  // veilig opgeslagen, dus een mislukte koppeling mag deze functie niet doen
-  // falen: de Zap zou hem dan als fout aanrekenen en mogelijk opnieuw sturen.
-  // BEWUST NIET AWAITEN: de sync loopt over alle BouwFlow-projecten en duurt
-  // seconden. Zou de Zap daarop moeten wachten, dan riskeert die een timeout,
-  // beschouwt de lead als mislukt en stuurt hem opnieuw — met een dubbel
-  // dossier tot gevolg. waitUntil houdt de functie in leven tot de sync klaar
-  // is, terwijl het antwoord meteen vertrekt.
-  const syncTaak = fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/pull-bouwflow-projects`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
-    },
-    body: JSON.stringify({ dry_run: false }),
-  })
-    .then(async (r) => {
-      console.log('create-website-lead: sync na aanmaken, status', r.status);
-    })
-    .catch((err) => {
-      // De lead staat er al; een mislukte koppeling wordt door de volgende
-      // sync alsnog gelegd en mag deze functie nooit doen falen.
-      console.error('create-website-lead: koppelen aan BouwFlow mislukt', err);
-    });
-
+  // Compass maakt het BouwFlow-project zelf aan, hier, in dezelfde handeling
+  // waarin het dossier ontstaat — en bewaart het teruggekregen projectnummer
+  // meteen op de dossierrij.
+  //
+  // WAAROM DIT ZO MOET. Vroeger deed de website dit óók rechtstreeks
+  // (submit-contact postte zelf naar /api/leads) terwijl Compass hier enkel de
+  // sync startte, die achteraf op telefoon en e-mail probeerde te raden welk
+  // BouwFlow-project bij welk dossier hoorde. Twee schrijvers die niets van
+  // elkaar wisten, en een koppeling die pas achteraf werd geraden: dat leverde
+  // voor Kristof Vanden Bussche twee klanten en twee projecten op (ZL-0138 en
+  // ZL-0139), waarna de terugsync er een tweede dossier bij maakte en een
+  // volledig telefoongesprek op de "verkeerde helft" bleek te staan.
+  //
+  // Nu is er precies één schrijver en wordt de koppeling vastgelegd op het
+  // moment van aanmaken in plaats van er later naar te raden. Bewust GEWACHT
+  // (niet fire-and-forget): het dossier mag deze functie niet verlaten zonder
+  // koppeling, want net in dat gaatje sloeg de herstel-cron vroeger toe en
+  // duwde hij hetzelfde dossier een tweede keer door.
+  //
+  // Mislukt de push, dan is dat geen fout voor de Zap: het dossier is al veilig
+  // opgeslagen en de kwartiertaak push-nieuwe-dossiers pikt het vanzelf weer op.
+  // Een fout teruggeven zou de Zap doen heruitvoeren, met een dubbel dossier tot
+  // gevolg — precies wat we hier oplossen.
+  let bouwflowKoppeling: Record<string, unknown> = { gekoppeld: false };
   try {
-    (globalThis as any).EdgeRuntime?.waitUntil?.(syncTaak);
-  } catch {
-    // Draait niet op Supabase Edge Runtime: dan gewoon laten lopen.
+    const pushRes = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/push-to-bouwflow`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+      },
+      // Fase 1 = "Nieuwe Aanvraag", dezelfde startfase die push-nieuwe-dossiers
+      // gebruikt, zodat beide routes een dossier op dezelfde plaats afleveren.
+      body: JSON.stringify({ lead_id: data.id, phase: '1' }),
+    });
+    const pushUit = await pushRes.json().catch(() => ({}));
+    if (pushRes.ok && (pushUit as Record<string, unknown>)?.success === true) {
+      const lead = (pushUit as Record<string, any>).lead ?? {};
+      bouwflowKoppeling = {
+        gekoppeld: true,
+        bouwflow_project_number: lead.bouwflow_project_number ?? null,
+      };
+      console.log('create-website-lead: gekoppeld aan BouwFlow', data.id, lead.bouwflow_project_number);
+    } else {
+      console.error(
+        'create-website-lead: push naar BouwFlow mislukt, kwartiertaak pikt het op',
+        pushRes.status,
+        JSON.stringify(pushUit).slice(0, 300),
+      );
+    }
+  } catch (err) {
+    console.error('create-website-lead: push naar BouwFlow onbereikbaar, kwartiertaak pikt het op', err);
   }
 
-  return json({ id: data.id }, 200);
+  return json({ id: data.id, bouwflow: bouwflowKoppeling }, 200);
 });
