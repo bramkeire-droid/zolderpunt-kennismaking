@@ -29,8 +29,26 @@ Deno.serve(async (req) => {
       body.secret ||
       '') + ''
   ).trim();
-  const expected = (Deno.env.get('WEBSITE_LEAD_SECRET') || '').trim();
-  if (!expected || provided !== expected) {
+  // Twee geldige secrets, bewust naast elkaar:
+  //   WEBSITE_LEAD_SECRET        -> de bestaande Zapier-koppeling
+  //   WEBSITE_LEAD_SECRET_DIRECT -> de nieuwe, rechtstreekse weg vanaf de website
+  //
+  // Waarom niet één gedeeld secret: Lovable toont een opgeslagen secret niet
+  // meer, dus de bestaande waarde is niet meer af te lezen. Hem overschrijven
+  // zou de Zap breken, en dan valt de hele leadstroom stil — precies het risico
+  // dat deze tweede weg juist moet wegnemen. Met een apart secret hoeft er aan
+  // de Zap niets te veranderen.
+  //
+  // Zolang WEBSITE_LEAD_SECRET_DIRECT niet bestaat, verandert er niets: dan is
+  // enkel de Zapier-weg geldig, exact zoals voorheen.
+  const toegestaneSecrets = [
+    Deno.env.get('WEBSITE_LEAD_SECRET'),
+    Deno.env.get('WEBSITE_LEAD_SECRET_DIRECT'),
+  ]
+    .map((s) => (s || '').trim())
+    .filter(Boolean);
+
+  if (toegestaneSecrets.length === 0 || !provided || !toegestaneSecrets.includes(provided)) {
     return json({ error: 'Unauthorized' }, 401);
   }
 
