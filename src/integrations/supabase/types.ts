@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.17"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -583,6 +583,7 @@ export type Database = {
           bouwflow_project_number: string | null
           bouwflow_project_pk_id: number | null
           bouwflow_pull_synced_at: string | null
+          bouwflow_push_claimed_at: string | null
           bouwflow_pushed_at: string | null
           btw_percentage: number | null
           budget_excl: number | null
@@ -651,6 +652,7 @@ export type Database = {
           bouwflow_project_number?: string | null
           bouwflow_project_pk_id?: number | null
           bouwflow_pull_synced_at?: string | null
+          bouwflow_push_claimed_at?: string | null
           bouwflow_pushed_at?: string | null
           btw_percentage?: number | null
           budget_excl?: number | null
@@ -719,6 +721,7 @@ export type Database = {
           bouwflow_project_number?: string | null
           bouwflow_project_pk_id?: number | null
           bouwflow_pull_synced_at?: string | null
+          bouwflow_push_claimed_at?: string | null
           bouwflow_pushed_at?: string | null
           btw_percentage?: number | null
           budget_excl?: number | null
@@ -1102,6 +1105,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_bouwflow_push: {
+        Args: { _lead_id: string; _lease_minutes?: number }
+        Returns: boolean
+      }
       claim_idle_inbound_groups: {
         Args: { p_idle_seconds?: number }
         Returns: {
