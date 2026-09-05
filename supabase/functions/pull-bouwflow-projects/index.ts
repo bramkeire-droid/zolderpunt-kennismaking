@@ -29,6 +29,18 @@
 // vandaag gebeld", wat resolveCategory() als telefoongesprek-bewijs leest.
 // Daarom wordt gesprek_datum hier expliciet op null gezet.
 //
+// ALLEEN SCHRIJVEN BIJ EEN ECHT VERSCHIL (2026-09-05). Tot deze versie werd de
+// patch onvoorwaardelijk weggeschreven naar élk gematcht dossier, inclusief een
+// verse `bouwflow_pull_synced_at`. Gevolg: `leads.updated_at` van alle 108
+// dossiers sprong elk kwartier vooruit, ook als er niets veranderd was — twee
+// keer gemeten, 15 minuten uit elkaar (alle 108 op 08:00, alle 108 op 08:15).
+// Daardoor betekende `updated_at` niet meer "hier is iets gewijzigd" maar "de
+// sync heeft gedraaid", en kon niemand — Compass zelf noch een externe spiegel —
+// nog zien wanneer een dossier echt bewoog. Nu wordt elk veld eerst tegen de
+// huidige Compass-waarde gelegd en volgt er alleen een update bij een verschil.
+// Het feit "de sync heeft gedraaid en alles teruggezien" hoort in
+// koppeling_gezondheid.gecontroleerd_op, en staat daar ook.
+//
 // dry_run (body of query ?dry_run=true): voert alle matching-logica uit
 // en berekent de volledige would-be breakdown, maar schrijft niets weg.
 // Projecten met een naam die begint met WORKFLOWTEST / WORKFLOW TEST /
@@ -269,9 +281,18 @@ Deno.serve(async (req) => {
   // gefilterd op dossiers die al een koppeling hadden, maar juist de
   // ongekoppelde dossiers (website-leads) moeten via telefoon/e-mail alsnog
   // gevonden worden — anders maakt de sync er een duplicaat van.
+  // De vier BouwFlow-velden staan er BEWUST bij: zonder de huidige waarden kan
+  // deze functie niet zien of er werkelijk iets veranderd is, en schreef ze
+  // elke kwartierronde onvoorwaardelijk naar alle 108 dossiers. Daardoor sprong
+  // `leads.updated_at` van élk dossier elk kwartier vooruit en betekende die
+  // kolom niet meer "hier is iets gewijzigd" maar "de sync heeft gedraaid" —
+  // gemeten op 2026-09-05: alle 108 rijen op 08:00, en een kwartier later alle
+  // 108 op 08:15.
   const { data: existingLeads, error: leadsError } = await supabase
     .from('leads')
-    .select('id, bouwflow_project_id, bouwflow_project_number, telefoon, email');
+    .select(
+      'id, bouwflow_project_id, bouwflow_project_number, bouwflow_project_pk_id, bouwflow_phase, category_override, telefoon, email',
+    );
 
   if (leadsError) {
     console.error('pull-bouwflow-projects: leads fetch error', leadsError);
@@ -310,7 +331,26 @@ Deno.serve(async (req) => {
   const leadByPhone = new Map<string, { id: string; bouwflow_project_number: string | null }>();
   const leadByEmail = new Map<string, { id: string; bouwflow_project_number: string | null }>();
 
+  // De stand zoals ze NU in Compass staat, per dossier. Hiertegen wordt straks
+  // vergeleken; alleen een echt verschil levert een schrijfactie op.
+  interface HuidigeStand {
+    bouwflow_project_id: string | null;
+    bouwflow_project_number: string | null;
+    bouwflow_project_pk_id: number | null;
+    bouwflow_phase: string | null;
+    category_override: string | null;
+  }
+  const huidigeStand = new Map<string, HuidigeStand>();
+
   for (const lead of existingLeads ?? []) {
+    huidigeStand.set(lead.id, {
+      bouwflow_project_id: lead.bouwflow_project_id ?? null,
+      bouwflow_project_number: lead.bouwflow_project_number ?? null,
+      bouwflow_project_pk_id: lead.bouwflow_project_pk_id ?? null,
+      bouwflow_phase: lead.bouwflow_phase ?? null,
+      category_override: lead.category_override ?? null,
+    });
+
     const entry = { id: lead.id, bouwflow_project_number: lead.bouwflow_project_number ?? null };
     if (lead.bouwflow_project_id) leadByCustomerId.set(String(lead.bouwflow_project_id), entry);
     if (lead.bouwflow_project_number) leadByProjectNumber.set(String(lead.bouwflow_project_number), entry);
@@ -465,33 +505,81 @@ Deno.serve(async (req) => {
   const nowIso = new Date().toISOString();
   const errors: Record<string, unknown>[] = [];
   let matchedCount = 0;
+  // Uit elkaar gehouden zodat een stille storing zichtbaar is: blijft
+  // `bijgewerkt` eeuwig 0 terwijl er in BouwFlow wél iets beweegt, dan is de
+  // vergelijking hieronder te streng. Zonder deze telling zou dat niet op te
+  // merken zijn, want een sync die niets doet ziet er hetzelfde uit als een
+  // sync die niets hoeft te doen.
+  let bijgewerktCount = 0;
+  let ongewijzigdCount = 0;
+  const velden = { fase: 0, categorie: 0, pk_id: 0, projectnummer: 0, klant_id: 0 };
 
   for (const m of matchedDetails) {
-    const patch: Record<string, unknown> = {
-      bouwflow_project_pk_id: m.project_pk_id,
-      bouwflow_phase:
-        m.project_phase_id !== null && m.project_phase_id !== undefined ? String(m.project_phase_id) : null,
-      bouwflow_pull_synced_at: nowIso,
-    };
+    const huidig = huidigeStand.get(m.lead_id as string);
+    const patch: Record<string, unknown> = {};
+
+    // Elk veld apart tegen de huidige Compass-waarde leggen. De vergelijking is
+    // een rechtstreekse ongelijkheid met wat BouwFlow teruggeeft — geen drempel,
+    // geen benadering — dus ze kan een echte wijziging niet "net niet" zien.
+    // Staat een dossier niet in de kaart (zou niet mogen), dan valt alles op
+    // ongelijk uit en wordt er geschreven: de veilige kant.
+    const nieuwePkId = m.project_pk_id ?? null;
+    if (String(huidig?.bouwflow_project_pk_id ?? '') !== String(nieuwePkId ?? '')) {
+      patch.bouwflow_project_pk_id = nieuwePkId;
+      velden.pk_id++;
+    }
+
+    const nieuweFase =
+      m.project_phase_id !== null && m.project_phase_id !== undefined ? String(m.project_phase_id) : null;
+    if ((huidig?.bouwflow_phase ?? null) !== nieuweFase) {
+      patch.bouwflow_phase = nieuweFase;
+      velden.fase++;
+    }
 
     // Bouwflow bepaalt de kolom waarin dit dossier in Compass hoort.
     const mappedCategory = categoryFor(m.project_phase_id);
     if (mappedCategory) {
-      patch.category_override = mappedCategory;
+      if ((huidig?.category_override ?? null) !== mappedCategory) {
+        patch.category_override = mappedCategory;
+        velden.categorie++;
+      }
     } else if (m.project_phase_id !== null && m.project_phase_id !== undefined) {
       // Onbekende fase: laat de bestaande categorie staan i.p.v. te gokken,
       // en rapporteer het zodat de mapping-tabel aangevuld kan worden.
       unmappedPhases.add(String(m.project_phase_id));
     }
 
-    // Projectnummer en klant-id altijd meeschrijven als ze nog ontbreken.
+    // Projectnummer en klant-id meeschrijven als ze ontbreken of afwijken.
     // Bij een match via telefoon/e-mail zijn ze per definitie leeg; zonder
     // deze regels blijft het dossier ongekoppeld en herhaalt de sync zich
     // elke keer opnieuw.
-    if (m.project_number) patch.bouwflow_project_number = m.project_number;
-    if (m.customer_id !== null && m.customer_id !== undefined) {
-      patch.bouwflow_project_id = String(m.customer_id);
+    if (m.project_number && huidig?.bouwflow_project_number !== String(m.project_number)) {
+      patch.bouwflow_project_number = m.project_number;
+      velden.projectnummer++;
     }
+    if (m.customer_id !== null && m.customer_id !== undefined) {
+      const nieuwKlantId = String(m.customer_id);
+      if (huidig?.bouwflow_project_id !== nieuwKlantId) {
+        patch.bouwflow_project_id = nieuwKlantId;
+        velden.klant_id++;
+      }
+    }
+
+    // Niets veranderd: NIET schrijven. Dit is de hele ingreep. Het dossier telt
+    // wel gewoon als "gekoppeld" — het is teruggezien in BouwFlow, en dát feit
+    // staat al in koppeling_gezondheid.gecontroleerd_op. Daar hoort het thuis,
+    // niet in een schrijfactie op 108 dossierrijen.
+    if (Object.keys(patch).length === 0) {
+      ongewijzigdCount++;
+      matchedCount++;
+      continue;
+    }
+
+    // Alleen bij een echte wijziging opschuiven. Daardoor betekent
+    // bouwflow_pull_synced_at voortaan "toen de sync dit dossier voor het
+    // laatst gewijzigd heeft" in plaats van "toen de sync laatst gedraaid
+    // heeft" — en blijft leads.updated_at weer een echte wijzigingsmarkering.
+    patch.bouwflow_pull_synced_at = nowIso;
 
     const { error: updateError } = await supabase.from('leads').update(patch).eq('id', m.lead_id as string);
     if (updateError) {
@@ -499,6 +587,7 @@ Deno.serve(async (req) => {
       errors.push({ lead_id: m.lead_id, error: updateError.message });
       continue;
     }
+    bijgewerktCount++;
     matchedCount++;
   }
 
@@ -553,7 +642,9 @@ Deno.serve(async (req) => {
 
   await meldKoppelingsuitkomst(supabase, 'bouwflow', {
     ok: true,
-    melding: `${totalSeen} projecten opgehaald, ${matchedCount} gekoppeld, ${createdCount} nieuw`,
+    melding:
+      `${totalSeen} projecten opgehaald, ${matchedCount} gekoppeld ` +
+      `(${bijgewerktCount} bijgewerkt, ${ongewijzigdCount} ongewijzigd), ${createdCount} nieuw`,
   });
 
   return json({
@@ -562,6 +653,9 @@ Deno.serve(async (req) => {
     total_seen: totalSeen,
     sales_pipeline_projects_seen: salesProjects.length,
     matched: matchedCount,
+    bijgewerkt: bijgewerktCount,
+    ongewijzigd: ongewijzigdCount,
+    bijgewerkte_velden: velden,
     created: createdCount,
     created_lead_ids: createdLeadIds,
     flagged_test_projects: flaggedTestProjects.map((c) => c.project_name),
