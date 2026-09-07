@@ -6,6 +6,60 @@ import type { LeadData } from '@/contexts/SessionContext';
 
 const LEAD_SESSION_KEY = 'zp_active_lead_id';
 
+// Noodkopie van een dossier in de browser.
+//
+// AANLEIDING (7 september 2026). Van twaalf intakegesprekken bleken er negen
+// zonder enige inhoud in de databank te staan — Renee, Virginie, Lieselot,
+// Ruben en anderen. Een volledig videocall-intakegesprek was zonder één
+// zichtbare melding verdwenen. Twee oorzaken werkten samen:
+//
+//   1. Opslaan gebeurt 3 seconden vertraagd. De afsluitroutine hieronder
+//      ANNULEERDE die geplande opslag bij het sluiten van het tabblad en zette
+//      er niets voor in de plaats ("Can't do async on unload"). Wie binnen die
+//      drie seconden wegklikte, raakte zijn laatste werk kwijt.
+//   2. Mislukte een opslag, dan ging dat enkel naar de verborgen console.
+//
+// Vandaar deze kopie: bij een mislukte opslag én bij het verlaten van de
+// pagina gaat het dossier hier naartoe, zodat er altijd iets terug te halen
+// valt — ook bij een oorzaak die we nog niet kennen (verlopen sessie,
+// netwerkstoring, ontbrekende rechten). Het telefoongesprek-scherm doet dit
+// al langer; het intakescherm deed het niet.
+const LEAD_DRAFT_KEY = 'zp_lead_draft';
+
+export interface LeadKladversie {
+  lead: LeadData;
+  bewaardOp: string;
+  reden: 'opslag_mislukt' | 'pagina_verlaten';
+}
+
+function schrijfKladversie(lead: LeadData, reden: LeadKladversie['reden']) {
+  try {
+    const kopie: LeadKladversie = { lead, bewaardOp: new Date().toISOString(), reden };
+    localStorage.setItem(LEAD_DRAFT_KEY, JSON.stringify(kopie));
+  } catch {
+    // Opslag vol of geblokkeerd (privémodus). Niets aan te doen, maar dit mag
+    // nooit de opslagpoging zelf laten crashen.
+  }
+}
+
+function wisKladversie() {
+  try { localStorage.removeItem(LEAD_DRAFT_KEY); } catch { /* niet kritiek */ }
+}
+
+/** Leest de bewaarde noodkopie, of null als er geen (bruikbare) is. */
+export function leesLeadKladversie(): LeadKladversie | null {
+  try {
+    const ruw = localStorage.getItem(LEAD_DRAFT_KEY);
+    if (!ruw) return null;
+    const kladversie = JSON.parse(ruw) as LeadKladversie;
+    return kladversie?.lead ? kladversie : null;
+  } catch {
+    return null;
+  }
+}
+
+export { LEAD_DRAFT_KEY, wisKladversie };
+
 function leadToRow(lead: LeadData) {
   return {
     id: lead.id || undefined,
@@ -174,14 +228,31 @@ export function useLeadSave() {
       }
 
       lastSavedRef.current = serialized;
+      // Het staat veilig in de databank: de noodkopie mag weg.
+      wisKladversie();
       if (showToast) {
         toast({ title: 'Opgeslagen', description: 'Gegevens zijn bewaard.' });
       }
     } catch (err: any) {
       console.error('Save error:', err);
-      if (showToast) {
-        toast({ title: 'Fout bij opslaan', description: err.message || 'Probeer opnieuw.', variant: 'destructive' });
-      }
+
+      // Eerst redden, dan pas melden. Zonder deze kopie was een mislukte
+      // automatische opslag definitief: de gebruiker zag niets en er bleef
+      // niets over. Zo is het werk altijd terug te halen bij het openen.
+      schrijfKladversie(leadData, 'opslag_mislukt');
+
+      // ALTIJD melden, ook bij de automatische opslag. Voorheen zweeg die
+      // (showToast=false) en ging er enkel een regel naar de verborgen
+      // console — daardoor kon een heel intakegesprek ongemerkt verloren gaan.
+      const ruw: string = err?.message ?? '';
+      const geenRechten = /row-level security|violates row-level|JWT|not authenticated/i.test(ruw);
+      toast({
+        title: 'Niet opgeslagen',
+        description: geenRechten
+          ? 'Je aanmelding is verlopen of je account mag hier niet in schrijven. Je werk is lokaal bewaard — meld je opnieuw aan, dan kan je het terugzetten.'
+          : `${ruw || 'Onbekende fout'} — je werk is lokaal bewaard en gaat niet verloren.`,
+        variant: 'destructive',
+      });
     }
     })();
 
@@ -213,18 +284,35 @@ export function useLeadSave() {
     return () => clearTimeout(debounceRef.current);
   }, [lead, persistLead]);
 
-  // Flush on page unload (beforeunload)
+  // Pagina verlaten: het laatste werk veiligstellen.
+  //
+  // Hier ging het mis. De oude versie annuleerde de geplande opslag en deed
+  // vervolgens NIETS — wie binnen drie seconden na zijn laatste wijziging het
+  // tabblad sloot, was dat werk kwijt, zonder melding. Een netwerkoproep kan
+  // op dit moment inderdaad niet meer, maar naar de browseropslag schrijven
+  // kan wél: dat is synchroon.
+  //
+  // Ook op 'pagehide' en op het verbergen van het tabblad, want op mobiel en
+  // in ingebedde vensters vuurt 'beforeunload' vaak niet.
   useEffect(() => {
-    const handleUnload = () => {
-      clearTimeout(debounceRef.current);
-      // Use sendBeacon for best-effort save on unload
+    const veiligstellen = () => {
       if (!hasAnyData(lead)) return;
       const serialized = JSON.stringify(leadToRow(lead));
-      if (serialized === lastSavedRef.current) return;
-      // Can't do async on unload, but at least clear the timer
+      if (serialized === lastSavedRef.current) return; // al bewaard, niets te redden
+      schrijfKladversie(lead, 'pagina_verlaten');
     };
-    window.addEventListener('beforeunload', handleUnload);
-    return () => window.removeEventListener('beforeunload', handleUnload);
+    const bijVerbergen = () => {
+      if (document.visibilityState === 'hidden') veiligstellen();
+    };
+
+    window.addEventListener('beforeunload', veiligstellen);
+    window.addEventListener('pagehide', veiligstellen);
+    document.addEventListener('visibilitychange', bijVerbergen);
+    return () => {
+      window.removeEventListener('beforeunload', veiligstellen);
+      window.removeEventListener('pagehide', veiligstellen);
+      document.removeEventListener('visibilitychange', bijVerbergen);
+    };
   }, [lead]);
 
   return { saveLead, flushSave };

@@ -48,6 +48,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { AppActionsProvider } from '@/contexts/AppActionsContext';
 import { SLIDE_ORDER, SLIDE_MODES, type SlideId } from '@/contexts/SessionContext';
 import type { LeadData } from '@/contexts/SessionContext';
+import KladversieHerstel from '@/components/KladversieHerstel';
 
 const SLIDE_COMPONENTS: Record<SlideId, React.ComponentType> = {
   '0A': Slide0A, '0A2': Slide0A2, '0B': Slide0B,
@@ -435,6 +436,9 @@ function AuthGate() {
 
   return (
     <SessionProvider>
+      {/* Boven élk scherm: je merkt pas dat er werk verloren dreigde te gaan
+          wanneer je het dossier later opnieuw opent. */}
+      <KladversieHerstel />
       <AppContent />
     </SessionProvider>
   );
