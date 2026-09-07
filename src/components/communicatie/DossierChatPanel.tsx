@@ -34,7 +34,11 @@ export default function DossierChatPanel({ leadId, dossierNaam, open, onClose }:
   const [eigenId, setEigenId] = useState<string | null>(null);
   const [tekst, setTekst] = useState('');
   const [laden, setLaden] = useState(true);
-  const [fout, setFout] = useState<string | null>(null);
+  // Bewust twee aparte foutmeldingen. Eén gedeeld veld toonde een MISLUKT
+  // VERZONDEN bericht als "Chat kon niet geladen worden", waardoor het leek
+  // alsof de chat stuk was terwijl het laden prima ging.
+  const [laadFout, setLaadFout] = useState<string | null>(null);
+  const [stuurFout, setStuurFout] = useState<string | null>(null);
   const [bezig, setBezig] = useState(false);
   const onderkantRef = useRef<HTMLDivElement>(null);
 
@@ -44,7 +48,7 @@ export default function DossierChatPanel({ leadId, dossierNaam, open, onClose }:
 
     const load = async () => {
       setLaden(true);
-      setFout(null);
+      setLaadFout(null);
       try {
         const [{ data: rijen, error }, profielen, { data: sessie }] = await Promise.all([
           chatTabel()
@@ -61,7 +65,7 @@ export default function DossierChatPanel({ leadId, dossierNaam, open, onClose }:
         setNamen(profielen);
         setEigenId(sessie.session?.user.id ?? null);
       } catch (e) {
-        if (!cancelled) setFout((e as Error).message);
+        if (!cancelled) setLaadFout((e as Error).message);
       } finally {
         if (!cancelled) setLaden(false);
       }
@@ -96,10 +100,26 @@ export default function DossierChatPanel({ leadId, dossierNaam, open, onClose }:
     const schoon = tekst.trim();
     if (!schoon || bezig) return;
     setBezig(true);
-    setFout(null);
+    setStuurFout(null);
     try {
+      // De databank hangt een bericht aan auth.uid(). Is de sessie verlopen of
+      // komt ze niet mee, dan is dat leeg en weigert de beveiliging de rij met
+      // "new row violates row-level security policy" — technisch juist, maar
+      // voor de gebruiker onleesbaar, en het bericht lijkt verloren.
+      // Daarom eerst zelf kijken of er nog een sessie is, en het gebruiker-id
+      // expliciet meesturen in plaats van op de standaardwaarde te vertrouwen.
+      const { data: sessie } = await supabase.auth.getSession();
+      const gebruikerId = sessie.session?.user?.id;
+      if (!gebruikerId) {
+        throw new Error(
+          'Je sessie is verlopen, daarom kon dit bericht niet verstuurd worden. ' +
+          'Ververs de pagina en log opnieuw in — je tekst blijft hieronder staan.',
+        );
+      }
+      setEigenId(gebruikerId);
+
       const { data, error } = await chatTabel()
-        .insert({ lead_id: leadId, bericht: schoon } as any)
+        .insert({ lead_id: leadId, bericht: schoon, user_id: gebruikerId } as any)
         .select('id, lead_id, user_id, bericht, created_at')
         .single();
       if (error) throw new Error(error.message);
@@ -107,7 +127,20 @@ export default function DossierChatPanel({ leadId, dossierNaam, open, onClose }:
       setBerichten((prev) => (prev.some((b) => b.id === rij.id) ? prev : [...prev, rij]));
       setTekst('');
     } catch (e) {
-      setFout((e as Error).message);
+      const ruw = (e as Error).message ?? '';
+      // De databank weigert een schrijfactie met "row-level security policy",
+      // wat voor de gebruiker niets betekent. Er zijn twee oorzaken en ze
+      // vragen een ander antwoord: geen rechten (verkeerd account) of geen
+      // sessie meer. Live vastgesteld: het account bcal-spiegel@zolderpunt.be
+      // heeft rol 'viewer', en het beleid eist 'admin' of 'user' — dan faalt
+      // elke schrijfactie met exact deze melding.
+      const isRechtenFout = /row-level security|violates row-level/i.test(ruw);
+      setStuurFout(
+        isRechtenFout
+          ? 'Je account mag hier niet in schrijven. Controleer met welk account je ' +
+            'aangemeld bent — een leesaccount kan geen berichten plaatsen. Je tekst blijft staan.'
+          : ruw,
+      );
     } finally {
       setBezig(false);
     }
@@ -127,10 +160,10 @@ export default function DossierChatPanel({ leadId, dossierNaam, open, onClose }:
 
         <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
           {laden && <p className="text-sm text-muted-foreground">Laden…</p>}
-          {!laden && fout && (
-            <p className="text-sm text-destructive">Chat kon niet geladen worden: {fout}</p>
+          {!laden && laadFout && (
+            <p className="text-sm text-destructive">Chat kon niet geladen worden: {laadFout}</p>
           )}
-          {!laden && !fout && berichten.length === 0 && (
+          {!laden && !laadFout && berichten.length === 0 && (
             <p className="text-sm text-muted-foreground">
               Nog geen berichten. Schrijf het eerste — je collega ziet het meteen.
             </p>
@@ -154,6 +187,11 @@ export default function DossierChatPanel({ leadId, dossierNaam, open, onClose }:
         </div>
 
         <div className="border-t border-border p-3 space-y-2">
+          {/* Bij het invoervak, niet bovenaan tussen de berichten: een mislukte
+              verzending gaat over wat je net typte, niet over de chat zelf. */}
+          {stuurFout && (
+            <p className="text-sm text-destructive" role="alert">{stuurFout}</p>
+          )}
           <Textarea
             value={tekst}
             onChange={(e) => setTekst(e.target.value)}
