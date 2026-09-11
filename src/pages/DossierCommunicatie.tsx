@@ -152,6 +152,33 @@ export default function DossierCommunicatie({ leadId }: Props) {
         if (rij.bouwflow_project_number) {
           const resultaat = await fetchCommunicatie(rij.bouwflow_project_number);
           if (cancelled) return;
+
+          // Terugvallen op het e-mailadres wanneer het ZL-nummer niets oplevert.
+          //
+          // WAAROM. Het zoeken op ZL-nummer levert alleen mail op die een AI
+          // eerder aan dat project gekoppeld heeft. Van de 12.343 mails in het
+          // systeem zijn er 414 gekoppeld — 3,4%. Alles daarbuiten bestond voor
+          // deze pagina simpelweg niet, terwijl ze wél binnengehaald is.
+          //
+          // Sandi Razay (ZL-0141) bracht dat aan het licht: haar mail én ons
+          // antwoord stonden gewoon in het mail-CRM, maar ongekoppeld, dus de
+          // pagina bleef leeg. Het terugvalpad op e-mailadres bestond al, maar
+          // werd enkel gebruikt bij dossiers ZÓNDER ZL-nummer — precies
+          // andersom als nuttig is. Een dossier mét nummer had juist niets.
+          //
+          // Liever te veel tonen dan te weinig: een mail die er niet bij hoort
+          // herken je meteen, een mail die ontbreekt niet.
+          const zonderMail = !resultaat?.gevonden || (resultaat.mails ?? []).length === 0;
+          if (zonderMail && rij.email) {
+            const viaEmail = await fetchCommunicatieViaEmail(rij.email);
+            if (cancelled) return;
+            if ((viaEmail?.mails ?? []).length > 0) {
+              setData(viaEmail);
+              setBron('email');
+              return;
+            }
+          }
+
           setData(resultaat);
           setBron('zl');
         } else if (rij.email) {
