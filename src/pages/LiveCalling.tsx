@@ -233,12 +233,22 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
         }
       }
 
+      // Twijfelgevallen (bv. de klant boekte met een ander e-mailadres) laten
+      // we door Bram kiezen in plaats van er zelf één te gokken.
+      const openKeuzes = kandidaten.filter(k => {
+        if (k.type === 'videocall' && events.videocall?.uri === k.uri) return false;
+        if (k.type === 'plaatsbezoek' && events.plaatsbezoek?.uri === k.uri) return false;
+        return true;
+      });
+      setCalendlyKandidaten(source === 'manual' ? openKeuzes : []);
+
       if (Object.keys(patch).length > 0) {
         update(patch);
         await flushSave(patch);
         if (source === 'manual') toast.success('Calendly-afspraak gekoppeld');
       } else if (source === 'manual') {
-        toast.info('Geen actieve Calendly-afspraak gevonden voor dit e-mailadres');
+        if (openKeuzes.length > 0) toast.info('Mogelijke afspraken gevonden — kies de juiste');
+        else toast.info(`Geen actieve Calendly-afspraak gevonden voor ${email || 'deze klant'}`);
       }
     } catch (err) {
       console.error('Calendly sync error:', err);
