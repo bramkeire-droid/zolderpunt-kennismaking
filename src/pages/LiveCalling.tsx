@@ -179,18 +179,37 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
   };
 
 
+  /** Eén gekozen Calendly-afspraak in het dossier zetten. */
+  const pasKandidaatToe = async (kandidaat: any) => {
+    const patch: Partial<typeof data> = {};
+    if (kandidaat.type === 'videocall') {
+      patch.videocall_planned = true;
+      patch.videocall_scheduled_at = kandidaat.scheduledAt;
+      if (kandidaat.meetLink) patch.google_meet_link = kandidaat.meetLink;
+    } else {
+      patch.plaatsbezoek_planned = true;
+      patch.plaatsbezoek_scheduled_at = kandidaat.scheduledAt;
+    }
+    update(patch);
+    await flushSave(patch);
+    setCalendlyKandidaten([]);
+    toast.success('Afspraak gekoppeld');
+  };
+
   const syncCalendly = async (source: 'auto' | 'manual' = 'manual') => {
     const email = leadEmail.trim();
-    if (!email || calendlySyncing) return;
+    const naam = `${leadVoornaam} ${leadAchternaam}`.trim();
+    if ((!email && !naam) || calendlySyncing) return;
 
     setCalendlySyncing(true);
     try {
       const { data: result, error } = await supabase.functions.invoke('sync-calendly-event', {
-        body: { email },
+        body: { email, name: naam, phone: leadTelefoon.trim() },
       });
       if (error) throw error;
 
       const events = (result as any)?.events || {};
+      const kandidaten: any[] = (result as any)?.candidates || [];
       const patch: Partial<typeof data> = {};
 
       // De automatische sync draait bij het openen van een gesprek. Die mag een
