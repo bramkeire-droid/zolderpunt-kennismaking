@@ -439,12 +439,42 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
                   <button
                     type="button"
                     onClick={() => syncCalendly('manual')}
-                    disabled={!leadEmail.trim() || calendlySyncing}
+                    disabled={(!leadEmail.trim() && !fullName) || calendlySyncing}
                     className="h-10 w-full flex items-center justify-center gap-2 bg-white border-2 border-[#DDD5C5] text-[#0F1419] disabled:text-[#B0A898] disabled:bg-[#F2EDE4] font-dm font-semibold text-[13px] hover:border-[#008CFF]/60 transition-colors"
                   >
                     <RefreshCw className={`h-4 w-4 ${calendlySyncing ? 'animate-spin' : ''}`} />
                     Calendly verversen
                   </button>
+
+                  {/* Mogelijke afspraken: de klant boekt vaak met een ander
+                      e-mailadres, dus laten we hier kiezen in plaats van gokken. */}
+                  {calendlyKandidaten.length > 0 && (
+                    <div className="border-2 border-[#008CFF]/40 bg-[#F0F8FF] p-2 space-y-2">
+                      <p className="text-[12px] font-dm font-bold uppercase tracking-[0.06em] text-[#0F1419]">
+                        Mogelijke Calendly-afspraken
+                      </p>
+                      {calendlyKandidaten.map((k: any) => (
+                        <button
+                          key={`${k.uri}-${k.inviteeEmail || ''}`}
+                          type="button"
+                          onClick={() => void pasKandidaatToe(k)}
+                          className="w-full text-left bg-white border border-[#DDD5C5] p-2 hover:border-[#008CFF] transition-colors"
+                        >
+                          <span className="block text-[13px] font-dm font-bold text-[#0F1419]">
+                            {k.type === 'videocall' ? '📅' : '🏠'} {k.name} — {new Date(k.scheduledAt).toLocaleString('nl-BE', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                          <span className="block text-[12px] text-[#5B6470]">
+                            {[k.inviteeName, k.inviteeEmail].filter(Boolean).join(' · ')}
+                            {k.reden ? ` — match op ${k.reden}` : ''}
+                          </span>
+                        </button>
+                      ))}
+                      <button type="button" onClick={() => setCalendlyKandidaten([])}
+                        className="text-[12px] font-dm font-semibold text-[#5B6470] underline">
+                        Verbergen
+                      </button>
+                    </div>
+                  )}
                   <div className="grid grid-cols-2 gap-2 items-start">
                     <div className="space-y-2">
                       <PlanCheck checked={data.videocall_planned} label="Videocall ingepland"
