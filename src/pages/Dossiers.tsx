@@ -4,8 +4,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { Search, FolderOpen, Users, TrendingUp, DollarSign, Eye, RefreshCw, Trash2, CheckCircle, Globe, Phone, Bot, FileDown, MoreVertical, ArrowUp, ArrowDown, ArrowUpDown, FileText, Receipt, Hammer, ArrowRightLeft, ChevronDown, ChevronRight, GripVertical, Send, Euro } from 'lucide-react';
+import { FilePlus2, Search, FolderOpen, Users, TrendingUp, DollarSign, Eye, RefreshCw, Trash2, CheckCircle, Globe, Phone, Bot, FileDown, MoreVertical, ArrowUp, ArrowDown, ArrowUpDown, FileText, Receipt, Hammer, ArrowRightLeft, ChevronDown, ChevronRight, GripVertical, Send, Euro } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAppNav } from '@/contexts/AppNavContext';
 import { defaultTechnisch } from '@/contexts/SessionContext';
 import type { LeadData } from '@/contexts/SessionContext';
 import { toast } from 'sonner';
@@ -179,6 +180,7 @@ interface DossiersProps {
 }
 
 export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: DossiersProps) {
+  const nav = useAppNav();
   const [search, setSearch] = useState('');
   const [leads, setLeads] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -646,6 +648,15 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-headline font-bold text-foreground">Dossiers</h1>
           <div className="flex gap-2">
+            {/* Hier hoorde altijd al een aanmaakknop te staan. Die was ooit
+                weggehaald omdat "de navigatiebalk Nieuw dossier heeft" — maar
+                die balk is daarna vervangen, en in het nieuwe menu wees
+                "Leeg dossier" naar de volledige intake-slideshow. Gevolg: op
+                de plek waar je een dossier verwacht te maken, kon je alleen
+                nog synchroniseren. */}
+            <Button onClick={() => nav?.onNewDossier()} className="gap-2 font-headline">
+              <FilePlus2 className="h-4 w-4" /> Nieuw dossier
+            </Button>
             <Button
               variant={inboxCount > 0 ? 'default' : 'outline'}
               onClick={() => setInboxOpen(true)}

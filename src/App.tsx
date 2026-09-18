@@ -49,6 +49,7 @@ import { AppActionsProvider } from '@/contexts/AppActionsContext';
 import { SLIDE_ORDER, SLIDE_MODES, type SlideId } from '@/contexts/SessionContext';
 import type { LeadData } from '@/contexts/SessionContext';
 import KladversieHerstel from '@/components/KladversieHerstel';
+import NieuwDossierDialog from '@/components/dossier/NieuwDossierDialog';
 
 const SLIDE_COMPONENTS: Record<SlideId, React.ComponentType> = {
   '0A': Slide0A, '0A2': Slide0A2, '0B': Slide0B,
@@ -69,6 +70,7 @@ function AppContent() {
   const [callingInitialStep, setCallingInitialStep] = useState<'calling' | 'select-lead'>('select-lead');
   const [activeDossierId, setActiveDossierId] = useState<string | null>(null);
   const [activeDossierNaam, setActiveDossierNaam] = useState<string>('');
+  const [nieuwDossierOpen, setNieuwDossierOpen] = useState(false);
   const { currentMode, currentSlide, resetSession, setCurrentMode, loadLead, lead } = useSession();
   const { flushSave } = useLeadSave();
 
@@ -222,7 +224,9 @@ function AppContent() {
 
   const navWaarden = {
     onGoHome: () => void handleGoHome(),
-    onNewDossier: () => void handleNewIntake(),
+    // Was hetzelfde als onNewIntake: "Leeg dossier" gooide je in de volledige
+    // videocall-slideshow terwijl je enkel een klant wou noteren.
+    onNewDossier: () => setNieuwDossierOpen(true),
     onNewCall: () => void handleNewCall(),
     onNewIntake: () => void handleNewIntake(),
     onGoDossiers: () => void handleGoDossiers(),
@@ -412,7 +416,18 @@ function AppContent() {
     );
   };
 
-  return <AppNavProvider value={navWaarden}>{inhoud()}</AppNavProvider>;
+  return (
+    <AppNavProvider value={navWaarden}>
+      {inhoud()}
+      {/* Eén keer gemount, zodat elke plek in de app hem kan openen via
+          nav.onNewDossier — de dossierpagina, het menu en het startscherm. */}
+      <NieuwDossierDialog
+        open={nieuwDossierOpen}
+        onOpenChange={setNieuwDossierOpen}
+        onAangemaakt={(id) => void handleOpenDossierHoofdpagina(id)}
+      />
+    </AppNavProvider>
+  );
 }
 
 function AuthGate() {
