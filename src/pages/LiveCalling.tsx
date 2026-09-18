@@ -810,11 +810,20 @@ function ConfirmMailBlock({
   return (
     <div className="border border-[#DDD5C5] bg-[#FAF7F1] p-2 space-y-2">
       <div className="grid grid-cols-2 gap-2">
-        <input type="date" value={datePart} onChange={(e) => setDate(e.target.value)}
+        <input type="date" value={draftDate}
+          onChange={(e) => setDraftDate(e.target.value)}
+          onBlur={() => commit(draftDate, draftTime)}
           className="h-10 px-2 border-2 border-[#DDD5C5] bg-white text-sm font-dm" />
-        <input type="time" value={timePart} onChange={(e) => setTime(e.target.value)}
+        <input type="time" value={draftTime}
+          onChange={(e) => setDraftTime(e.target.value)}
+          onBlur={() => commit(draftDate, draftTime)}
           className="h-10 px-2 border-2 border-[#DDD5C5] bg-white text-sm font-dm" />
       </div>
+      {type === 'videocall' && !!scheduledAt && !meetLink && (
+        <p className="text-[12px] font-dm text-[#B45309] bg-[#FEF3C7] border border-[#FCD34D] px-2 py-1">
+          Meet-link ontbreekt — klik "Calendly verversen" zodat de link in de mail komt.
+        </p>
+      )}
       {canMail ? (
         <a href={mailto} onClick={markeerExterneNavigatie}
           className="w-full h-11 flex items-center justify-center gap-2 bg-[#0F1419] text-white font-dm font-extrabold text-[13px] tracking-[0.04em] uppercase hover:bg-[#008CFF] transition-colors">
