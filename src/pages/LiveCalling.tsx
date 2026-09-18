@@ -44,6 +44,7 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
   const [leadEmail, setLeadEmail] = useState('');
   const [websiteOmschrijving, setWebsiteOmschrijving] = useState('');
   const [calendlySyncing, setCalendlySyncing] = useState(false);
+  const [calendlyKandidaten, setCalendlyKandidaten] = useState<any[]>([]);
   const lastCalendlyAutoSyncRef = useRef('');
 
   const {
