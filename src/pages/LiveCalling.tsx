@@ -44,6 +44,7 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
   const [leadEmail, setLeadEmail] = useState('');
   const [websiteOmschrijving, setWebsiteOmschrijving] = useState('');
   const [calendlySyncing, setCalendlySyncing] = useState(false);
+  const [calendlyKandidaten, setCalendlyKandidaten] = useState<any[]>([]);
   const lastCalendlyAutoSyncRef = useRef('');
 
   const {
@@ -179,18 +180,37 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
   };
 
 
+  /** Eén gekozen Calendly-afspraak in het dossier zetten. */
+  const pasKandidaatToe = async (kandidaat: any) => {
+    const patch: Partial<typeof data> = {};
+    if (kandidaat.type === 'videocall') {
+      patch.videocall_planned = true;
+      patch.videocall_scheduled_at = kandidaat.scheduledAt;
+      if (kandidaat.meetLink) patch.google_meet_link = kandidaat.meetLink;
+    } else {
+      patch.plaatsbezoek_planned = true;
+      patch.plaatsbezoek_scheduled_at = kandidaat.scheduledAt;
+    }
+    update(patch);
+    await flushSave(patch);
+    setCalendlyKandidaten([]);
+    toast.success('Afspraak gekoppeld');
+  };
+
   const syncCalendly = async (source: 'auto' | 'manual' = 'manual') => {
     const email = leadEmail.trim();
-    if (!email || calendlySyncing) return;
+    const naam = `${leadVoornaam} ${leadAchternaam}`.trim();
+    if ((!email && !naam) || calendlySyncing) return;
 
     setCalendlySyncing(true);
     try {
       const { data: result, error } = await supabase.functions.invoke('sync-calendly-event', {
-        body: { email },
+        body: { email, name: naam, phone: leadTelefoon.trim() },
       });
       if (error) throw error;
 
       const events = (result as any)?.events || {};
+      const kandidaten: any[] = (result as any)?.candidates || [];
       const patch: Partial<typeof data> = {};
 
       // De automatische sync draait bij het openen van een gesprek. Die mag een
@@ -214,12 +234,22 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
         }
       }
 
+      // Twijfelgevallen (bv. de klant boekte met een ander e-mailadres) laten
+      // we door Bram kiezen in plaats van er zelf één te gokken.
+      const openKeuzes = kandidaten.filter(k => {
+        if (k.type === 'videocall' && events.videocall?.uri === k.uri) return false;
+        if (k.type === 'plaatsbezoek' && events.plaatsbezoek?.uri === k.uri) return false;
+        return true;
+      });
+      setCalendlyKandidaten(source === 'manual' ? openKeuzes : []);
+
       if (Object.keys(patch).length > 0) {
         update(patch);
         await flushSave(patch);
         if (source === 'manual') toast.success('Calendly-afspraak gekoppeld');
       } else if (source === 'manual') {
-        toast.info('Geen actieve Calendly-afspraak gevonden voor dit e-mailadres');
+        if (openKeuzes.length > 0) toast.info('Mogelijke afspraken gevonden — kies de juiste');
+        else toast.info(`Geen actieve Calendly-afspraak gevonden voor ${email || 'deze klant'}`);
       }
     } catch (err) {
       console.error('Calendly sync error:', err);
@@ -409,12 +439,42 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
                   <button
                     type="button"
                     onClick={() => syncCalendly('manual')}
-                    disabled={!leadEmail.trim() || calendlySyncing}
+                    disabled={(!leadEmail.trim() && !fullName) || calendlySyncing}
                     className="h-10 w-full flex items-center justify-center gap-2 bg-white border-2 border-[#DDD5C5] text-[#0F1419] disabled:text-[#B0A898] disabled:bg-[#F2EDE4] font-dm font-semibold text-[13px] hover:border-[#008CFF]/60 transition-colors"
                   >
                     <RefreshCw className={`h-4 w-4 ${calendlySyncing ? 'animate-spin' : ''}`} />
                     Calendly verversen
                   </button>
+
+                  {/* Mogelijke afspraken: de klant boekt vaak met een ander
+                      e-mailadres, dus laten we hier kiezen in plaats van gokken. */}
+                  {calendlyKandidaten.length > 0 && (
+                    <div className="border-2 border-[#008CFF]/40 bg-[#F0F8FF] p-2 space-y-2">
+                      <p className="text-[12px] font-dm font-bold uppercase tracking-[0.06em] text-[#0F1419]">
+                        Mogelijke Calendly-afspraken
+                      </p>
+                      {calendlyKandidaten.map((k: any) => (
+                        <button
+                          key={`${k.uri}-${k.inviteeEmail || ''}`}
+                          type="button"
+                          onClick={() => void pasKandidaatToe(k)}
+                          className="w-full text-left bg-white border border-[#DDD5C5] p-2 hover:border-[#008CFF] transition-colors"
+                        >
+                          <span className="block text-[13px] font-dm font-bold text-[#0F1419]">
+                            {k.type === 'videocall' ? '📅' : '🏠'} {k.name} — {new Date(k.scheduledAt).toLocaleString('nl-BE', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                          <span className="block text-[12px] text-[#5B6470]">
+                            {[k.inviteeName, k.inviteeEmail].filter(Boolean).join(' · ')}
+                            {k.reden ? ` — match op ${k.reden}` : ''}
+                          </span>
+                        </button>
+                      ))}
+                      <button type="button" onClick={() => setCalendlyKandidaten([])}
+                        className="text-[12px] font-dm font-semibold text-[#5B6470] underline">
+                        Verbergen
+                      </button>
+                    </div>
+                  )}
                   <div className="grid grid-cols-2 gap-2 items-start">
                     <div className="space-y-2">
                       <PlanCheck checked={data.videocall_planned} label="Videocall ingepland"
@@ -697,14 +757,27 @@ function ConfirmMailBlock({
   const datePart = isoNaarLokaleDatum(scheduledAt);
   const timePart = isoNaarLokaleTijd(scheduledAt, '');
 
-  const setDate = (d: string) => {
+  // Tijdens het typen houden we de invoer lokaal bij. Vroeger ging elke
+  // toetsaanslag meteen naar het dossier: een half getypt jaar werd opgeslagen
+  // en het veld sprong terug, waardoor corrigeren onmogelijk aanvoelde.
+  const [draftDate, setDraftDate] = useState(datePart);
+  const [draftTime, setDraftTime] = useState(timePart);
+  const laatsteBron = useRef(`${datePart}|${timePart}`);
+  useEffect(() => {
+    const sleutel = `${datePart}|${timePart}`;
+    if (laatsteBron.current !== sleutel) {
+      laatsteBron.current = sleutel;
+      setDraftDate(datePart);
+      setDraftTime(timePart);
+    }
+  }, [datePart, timePart]);
+
+  const commit = (d: string, t: string) => {
     if (!d) { onChangeScheduled(null); return; }
-    onChangeScheduled(lokaalNaarIso(d, timePart || '10:00'));
+    const iso = lokaalNaarIso(d, t || '10:00');
+    if (iso) onChangeScheduled(iso);
   };
-  const setTime = (t: string) => {
-    const base = datePart || isoNaarLokaleDatum(new Date().toISOString());
-    onChangeScheduled(lokaalNaarIso(base, t || '10:00'));
-  };
+
 
   const canMail = !!scheduledAt && !!leadEmail;
   const naam = leadVoornaam || 'daar';
@@ -737,11 +810,20 @@ function ConfirmMailBlock({
   return (
     <div className="border border-[#DDD5C5] bg-[#FAF7F1] p-2 space-y-2">
       <div className="grid grid-cols-2 gap-2">
-        <input type="date" value={datePart} onChange={(e) => setDate(e.target.value)}
+        <input type="date" value={draftDate}
+          onChange={(e) => setDraftDate(e.target.value)}
+          onBlur={() => commit(draftDate, draftTime)}
           className="h-10 px-2 border-2 border-[#DDD5C5] bg-white text-sm font-dm" />
-        <input type="time" value={timePart} onChange={(e) => setTime(e.target.value)}
+        <input type="time" value={draftTime}
+          onChange={(e) => setDraftTime(e.target.value)}
+          onBlur={() => commit(draftDate, draftTime)}
           className="h-10 px-2 border-2 border-[#DDD5C5] bg-white text-sm font-dm" />
       </div>
+      {type === 'videocall' && !!scheduledAt && !meetLink && (
+        <p className="text-[12px] font-dm text-[#B45309] bg-[#FEF3C7] border border-[#FCD34D] px-2 py-1">
+          Meet-link ontbreekt — klik "Calendly verversen" zodat de link in de mail komt.
+        </p>
+      )}
       {canMail ? (
         <a href={mailto} onClick={markeerExterneNavigatie}
           className="w-full h-11 flex items-center justify-center gap-2 bg-[#0F1419] text-white font-dm font-extrabold text-[13px] tracking-[0.04em] uppercase hover:bg-[#008CFF] transition-colors">
