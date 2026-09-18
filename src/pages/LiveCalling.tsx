@@ -757,14 +757,27 @@ function ConfirmMailBlock({
   const datePart = isoNaarLokaleDatum(scheduledAt);
   const timePart = isoNaarLokaleTijd(scheduledAt, '');
 
-  const setDate = (d: string) => {
+  // Tijdens het typen houden we de invoer lokaal bij. Vroeger ging elke
+  // toetsaanslag meteen naar het dossier: een half getypt jaar werd opgeslagen
+  // en het veld sprong terug, waardoor corrigeren onmogelijk aanvoelde.
+  const [draftDate, setDraftDate] = useState(datePart);
+  const [draftTime, setDraftTime] = useState(timePart);
+  const laatsteBron = useRef(`${datePart}|${timePart}`);
+  useEffect(() => {
+    const sleutel = `${datePart}|${timePart}`;
+    if (laatsteBron.current !== sleutel) {
+      laatsteBron.current = sleutel;
+      setDraftDate(datePart);
+      setDraftTime(timePart);
+    }
+  }, [datePart, timePart]);
+
+  const commit = (d: string, t: string) => {
     if (!d) { onChangeScheduled(null); return; }
-    onChangeScheduled(lokaalNaarIso(d, timePart || '10:00'));
+    const iso = lokaalNaarIso(d, t || '10:00');
+    if (iso) onChangeScheduled(iso);
   };
-  const setTime = (t: string) => {
-    const base = datePart || isoNaarLokaleDatum(new Date().toISOString());
-    onChangeScheduled(lokaalNaarIso(base, t || '10:00'));
-  };
+
 
   const canMail = !!scheduledAt && !!leadEmail;
   const naam = leadVoornaam || 'daar';
