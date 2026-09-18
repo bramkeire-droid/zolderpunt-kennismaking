@@ -35,8 +35,13 @@ export function lokaalNaarIso(datum: string, tijd: string): string | null {
   const [jaar, maand, dag] = datum.split('-').map(Number);
   const [uur, minuut] = (tijd || '00:00').split(':').map(Number);
   if (!jaar || !maand || !dag) return null;
+  // Halve invoer weigeren: een jaartal onder 1000 komt van een datumveld waar
+  // nog getypt wordt. Vroeger werd "06" door new Date(6, ...) stilzwijgend
+  // 1906 — zo stond er plots een afspraak in 1906 in het dossier.
+  if (jaar < 1000 || jaar > 9999) return null;
 
   const d = new Date(jaar, maand - 1, dag, uur || 0, minuut || 0, 0, 0);
+  d.setFullYear(jaar);
   if (Number.isNaN(d.getTime())) return null;
 
   // Offset zelf opbouwen: toISOString() zou naar UTC omrekenen en dan hebben we
