@@ -9,6 +9,7 @@ import ExtraInfoMenu from '@/components/ExtraInfoMenu';
 import Dossiers from '@/pages/Dossiers';
 import DossierCommunicatie from '@/pages/DossierCommunicatie';
 import DossierOverzicht from '@/pages/DossierOverzicht';
+import IntakeOverzicht from '@/pages/IntakeOverzicht';
 import Leveranciers from '@/pages/Leveranciers';
 import TarievenBeheer from '@/components/beheer/TarievenBeheer';
 import LoginPage from '@/pages/LoginPage';
@@ -59,7 +60,7 @@ const SLIDE_COMPONENTS: Record<SlideId, React.ComponentType> = {
   '8': Slide8, '9': Slide9, '10': Slide10,
 };
 
-export type AppView = 'start' | 'slides' | 'dossiers' | 'dossier' | 'calling' | 'validation' | 'briefing' | 'beheer' | 'communicatie' | 'leveranciers';
+export type AppView = 'start' | 'slides' | 'dossiers' | 'dossier' | 'calling' | 'validation' | 'briefing' | 'beheer' | 'communicatie' | 'leveranciers' | 'intake';
 
 function AppContent() {
   const [view, setView] = useState<AppView>('start');
@@ -222,6 +223,15 @@ function AppContent() {
     setView('communicatie');
   };
 
+  /** Terugkijken op het intakegesprek. Maakt bewust GEEN pre_intake-rij aan:
+   * de oude doorverwijzing deed dat wel, waardoor er lege gespreksformulieren
+   * ontstonden louter omdat iemand ging kijken. */
+  const handleOpenIntake = async (leadId: string) => {
+    if (view === 'slides') await flushSave();
+    setActiveDossierId(leadId);
+    setView('intake');
+  };
+
   const navWaarden = {
     onGoHome: () => void handleGoHome(),
     // Was hetzelfde als onNewIntake: "Leeg dossier" gooide je in de volledige
@@ -240,6 +250,7 @@ function AppContent() {
 
     onOpenCall: (id: string) => void handleOpenCall(id),
     onStartVideocall: (id: string) => void handleStartVideocall(id),
+    onOpenIntake: (id: string) => void handleOpenIntake(id),
     onOpenCommunicatie: (id: string) => void handleOpenCommunicatie(id),
   };
 
@@ -329,6 +340,12 @@ function AppContent() {
       );
     }
 
+
+    // IntakeOverzicht brengt zijn eigen AppShell mee, want de primaire knop
+    // verschilt naargelang er al een gesprek geweest is (starten vs hervatten).
+    if (view === 'intake' && activeDossierId) {
+      return <IntakeOverzicht leadId={activeDossierId} />;
+    }
 
     if (view === 'calling') {
       return (

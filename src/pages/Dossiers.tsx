@@ -760,11 +760,13 @@ export default function Dossiers({ onOpenLead, onOpenValidation, onOpenCall }: D
               const activeLead = leads.find(l => l.id === activeLeadId) ?? null;
               const actionBar = activeLead ? (
                 <div className="space-y-3">
+                  {/* Intakegesprek komt eerst op het overzicht uit, niet meteen
+                      in een nieuw gesprek — zelfde gedrag als de dossierbalk. */}
                   <DossierActionsBar
                     leadId={activeLead.id}
                     bron="los"
                     onCall={(id) => onOpenCall?.(id)}
-                    onIntake={() => handleStartVideocall(activeLead)}
+                    onIntake={(id) => nav?.onOpenIntake(id)}
                     onSluit={() => setActiveLeadId(null)}
                   />
                   {/* Verschijnt alleen als deze klant meer dan één project heeft. */}

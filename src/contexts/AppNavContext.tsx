@@ -23,6 +23,8 @@ export interface AppNav {
   /** Dossieracties die navigeren i.p.v. een dialoog openen. */
   onOpenCall: (leadId: string) => void;
   onStartVideocall: (leadId: string) => void;
+  /** Terugkijken op het intakegesprek i.p.v. er meteen een starten. */
+  onOpenIntake: (leadId: string) => void;
   onOpenCommunicatie: (leadId: string) => void;
 
 }

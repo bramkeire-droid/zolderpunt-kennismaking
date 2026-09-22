@@ -78,7 +78,7 @@ export default function AppShell({
           actief={actieveTab}
           onOpenDossier={(id) => nav?.onOpenDossier(id)}
           onCall={(id) => nav?.onOpenCall(id)}
-          onIntake={(id) => nav?.onStartVideocall(id)}
+          onIntake={(id) => nav?.onOpenIntake(id)}
           onCommunicatie={(id) => nav?.onOpenCommunicatie(id)}
           onSluit={onVerlaatDossier ?? (() => nav?.onSluitDossier())}
         />
