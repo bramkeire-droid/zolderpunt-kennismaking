@@ -4,8 +4,14 @@ import SlideLabel from '@/components/SlideLabel';
 import { ArrowUpDown, Sun, Wind, Droplets, Archive, Cuboid, TreeDeciduous, Thermometer, Home, Volume2, Ruler, Layers } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
+/** Alleen de aan/uit-velden. Houdt trapgat/aantal_velux/aantal_airco buiten
+ *  deze lijst, zodat de compiler dat afdwingt in plaats van een runtime-check. */
+type TechSchakelaar = {
+  [K in keyof LeadTechnisch]: LeadTechnisch[K] extends boolean ? K : never
+}[keyof LeadTechnisch];
+
 interface TechOption {
-  key: keyof LeadTechnisch;
+  key: TechSchakelaar;
   label: string;
   icon: LucideIcon;
 }
@@ -28,12 +34,12 @@ const TECH_OPTIONS: TechOption[] = [
 export default function Slide5() {
   const { lead, updateTechnisch } = useSession();
 
-  const toggle = (key: keyof LeadTechnisch) => {
-    const current = lead.technisch[key];
-    if (typeof current === 'boolean') {
-      updateTechnisch({ [key]: !current } as Partial<LeadTechnisch>);
-    }
-  };
+  // Een ontbrekend veld telt als "uit", niet als "niet aanklikbaar". De oude
+  // versie deed `if (typeof current === 'boolean')` en zweeg dus bij elk veld
+  // dat nog niet in technisch stond — precies wat er gebeurt met dossiers van
+  // vóór een nieuwe optie. Op ZL-0144 waren zo 7 van de 12 kaders dood.
+  const toggle = (key: TechSchakelaar) =>
+    updateTechnisch({ [key]: lead.technisch[key] !== true } as Partial<LeadTechnisch>);
 
   return (
     <SlideLayout>
