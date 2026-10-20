@@ -180,6 +180,33 @@ export const STANDAARD_INBEGREPEN = [
   'Plamuurwerken, schildersklaar',
 ];
 
+/**
+ * Hoort de standaardlijst "wat is inbegrepen" bij dit dossier?
+ *
+ * Alleen wanneer er basiswerk in de prijs zit. Een dossier zonder oppervlakte
+ * bestaat enkel uit aparte posten (badkamer, maatwerk, vrije elementen); dan
+ * beloofde deze lijst vloerafwerking, elektriciteit en plamuurwerk als
+ * inbegrepen terwijl er geen euro basiswerk in de raming staat.
+ *
+ * Een dossier zonder enige bewaarde post houdt de lijst wel: dat zijn de
+ * legacy-dossiers van voor de calculator, waar weglaten juist informatie
+ * wegneemt in plaats van een valse belofte op te lossen.
+ */
+export function toonStandaardInbegrepen(
+  posten: { categorie: string; basiswerk?: boolean }[],
+): boolean {
+  // Niets bewaard: een legacy-dossier van voor de calculator. Lijst houden.
+  if (posten.length === 0) return true;
+  // Zit er oppervlaktegebonden basiswerk in de prijs? De post zelf zegt het.
+  if (posten.some((p) => p.basiswerk === true)) return true;
+  // Door de huidige calculator bewaard, zonder basiswerk: lijst weglaten.
+  if (posten.some((p) => p.basiswerk === false)) return false;
+  // Geen enkele vlag: rijen van voor deze uitbreiding. Die komen altijd van
+  // een berekening mét oppervlakte, dus de oude regel volstaat.
+  return posten.some((p) => p.categorie === 'standaard');
+}
+
+
 // ─── Opties checklist labels ────────────────────────────────────────
 export const OPTIES_LABELS: Record<string, string> = {
   isolatie: 'Isolatie dak en wanden',

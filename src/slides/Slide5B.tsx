@@ -31,6 +31,9 @@ export default function Slide5B() {
             max: (lead as any).budget_max_excl ?? null,
           }}
           onChange={onChange}
+          // Bewust GEEN schrijfOppervlakte: de bruto hier is een technisch getal
+          // en mag de oppervlakte die de klant opgaf niet overschrijven. De
+          // calculator onthoudt zijn eigen bruto in calculator_state.
           leadId={lead.id ?? null}
           bron="intake"
         />
