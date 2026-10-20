@@ -117,6 +117,10 @@ export const STANDAARD_TARIEVEN: Tarieven = {
 
 /** Zoekt de trede die bij deze oppervlakte hoort en past de indexatie toe. */
 export function staffelBedrag(groep: StaffelGroep, netto: number, index: number): number {
+  // Geen oppervlakte, geen wandafwerking. Zonder deze regel matcht netto 0
+  // de eerste trede ({ tot: 40 }) en verschijnt er een forfait van duizenden
+  // euro's op een dossier waar niemand een oppervlakte invulde.
+  if (!(netto > 0)) return 0;
   const trede = groep.treden.find((t) => t.tot === null || netto < t.tot)
     ?? groep.treden[groep.treden.length - 1];
   if (!trede) return 0;
@@ -242,6 +246,13 @@ export interface CalcState {
   trapgat?: 'hout' | 'beton' | 'geen';
   airco?: number;
   schilderwerken?: boolean;
+  /**
+   * De bruto oppervlakte zoals in de calculator ingevuld. Bewust los van
+   * leads.oppervlakte_m2: dat is wat de klant opgaf in de eerste slides, dit
+   * is het technische getal waarmee gerekend wordt. Ontbreekt bij dossiers van
+   * voor deze uitbreiding; dan valt de calculator terug op oppervlakte_m2.
+   */
+  bruto_m2?: number | null;
   netto_m2?: number | null;
   netto_manually_set?: boolean;
   // Nieuw. Ontbreken bij oudere dossiers — vandaar overal optioneel.
@@ -365,13 +376,33 @@ function minMaxVan(el: { min: number | null; max: number | null }): { min: numbe
 
 export function berekenPrijs(
   stateIn: CalcState | null | undefined,
-  brutoNum: number,
+  /** null = nog geen oppervlakte bekend; 0 = bewust geen oppervlakte. */
+  brutoNum: number | null | undefined,
   tarieven: Tarieven = STANDAARD_TARIEVEN,
 ): CalcResult | null {
-  if (!(brutoNum > 0)) return null;
+  // Geen oppervlakte INGEVULD is iets anders dan een oppervlakte van nul.
+  // Een leeg veld betekent "nog niet bekend" en mag niet gelezen worden als
+  // "dit dossier heeft geen oppervlakte" - anders knipt het leegmaken van het
+  // veld een bestaand budget af tot alleen de posten per stuk.
+  if (brutoNum == null) return null;
   const t = tarieven;
   const state = normaliseerCalcState(stateIn, t);
-  const nettoNum = getal(state.netto_m2) || brutoNum;
+  // Een niet-eindige of negatieve oppervlakte telt als geen oppervlakte.
+  // parseFloat('1e400') geeft Infinity, en dat liep tot in budget_excl door.
+  const bruto = getal(brutoNum) > 0 ? getal(brutoNum) : 0;
+  // Bruto 0 betekent: geen oppervlaktegebonden werk. Netto mag dan niet
+  // blijven staan. Een dossier waar ooit handmatig een netto is ingetypt
+  // kreeg anders een volledige tariefcalculatie (gemeten: EUR 41.537) op een
+  // oppervlakte van nul, omdat netto_m2 bewaard blijft als bruto leeggemaakt
+  // wordt. De poort `if (!(brutoNum > 0)) return null` stond hier; die zette
+  // de hele calculator uit, dus ook de aparte posten die niets met
+  // oppervlakte te maken hebben.
+  // Een bewaarde netto van 0 is een uitspraak ("geen leefoppervlakte"), geen
+  // ontbrekende waarde: `|| bruto` maakte er stil de volledige bruto van.
+  // Alleen null/undefined betekent "niet ingevuld, gebruik bruto". Een
+  // negatieve waarde telt als niet ingevuld, niet als aftrek.
+  const nettoBewaard = state.netto_m2 == null ? null : Math.max(0, getal(state.netto_m2));
+  const nettoNum = bruto > 0 ? (nettoBewaard ?? bruto) : 0;
 
   // Basisbedragen staan ongeïndexeerd in de tarieven; hier wordt de index
   // toegepast, precies zoals de vorige hardgecodeerde tabel deed.
@@ -381,6 +412,13 @@ export function berekenPrijs(
   const std = (key: string, label: string, amount: number) => {
     // Een handmatig bedrag voor dit dossier gaat voor op het tarief.
     const eigen = overrideBedrag(state.overrides?.[key]);
+    // Een tariefpost zonder oppervlakte bestaat niet: die zou als post van
+    // EUR 0 in inbegrepen_posten en dus in het klantrapport belanden.
+    // Mét oppervlakte blijft een post van 0 wel staan: een tarief dat de
+    // beheerder op 0 zet is een mededeling ("zit erbij"), en tariefposten
+    // worden in het rapport toch zonder bedrag getoond. Een handmatig gezet
+    // bedrag gaat altijd voor, ook als dat bewust 0 is.
+    if (eigen == null && !(amount > 0) && !(bruto > 0)) return;
     items.push({
       key, label, categorie: 'standaard',
       amount: eigen ?? amount,
@@ -389,11 +427,11 @@ export function berekenPrijs(
   };
 
   const bpa = state.dak_bekleed ? ix(t.perM2.binnenplaatAfgedekt) : ix(t.perM2.binnenplaatafwerking);
-  std('bpa', 'Binnenplaatafwerking', brutoNum * bpa);
+  std('bpa', 'Binnenplaatafwerking', bruto * bpa);
   std('alg', 'Algemene afwerking', nettoNum * ix(t.perM2.algemeenAfwerking));
   std('pla', 'Plamuur & wandafwerking', staffelBedrag(t.plamuur, nettoNum, t.index));
-  if (state.dakisolatie_type === 'spantendak') std('iso', 'Dakisolatie spantendak', brutoNum * ix(t.perM2.dakisolatieSpantendak));
-  if (state.dakisolatie_type === 'gordingendak') std('iso', 'Dakisolatie gordingendak', brutoNum * ix(t.perM2.dakisolatieGordingendak));
+  if (state.dakisolatie_type === 'spantendak') std('iso', 'Dakisolatie spantendak', bruto * ix(t.perM2.dakisolatieSpantendak));
+  if (state.dakisolatie_type === 'gordingendak') std('iso', 'Dakisolatie gordingendak', bruto * ix(t.perM2.dakisolatieGordingendak));
   if (state.vloer) std('vl', 'Vloer (chape/uitpassen)', nettoNum * ix(t.perM2.vloer));
   const velux = getal(state.velux);
   if (velux > 0) std('vx', `Velux dakramen (${velux}×)`, velux * ix(t.vast.velux));
@@ -433,14 +471,24 @@ export function berekenPrijs(
     voegToe(`ex-${e.id}`, titel, 'extra', e, (e.omschrijving || '').trim() || undefined);
   }
 
+  // Niets om te tonen: geen tariefpost, geen element. Dan staat de calculator
+  // uit, net als voorheen bij een leeg paneel. Dit vervangt de oude poort op
+  // brutoNum, waardoor een dossier met enkel aparte posten ook uitviel.
+  if (items.length === 0) return null;
+
   const excl = standaardExcl + (extraMin + extraMax) / 2;
   // Een handmatig verschoven marge vervangt de standaard bandbreedte, maar
   // enkel op het tariefdeel: extraMin/extraMax komen uit elementen die hun
   // eigen minimum en maximum al meebrengen.
   const factorMin = state.marge ? state.marge.min : bandMin(t);
   const factorMax = state.marge ? state.marge.max : bandMax(t);
-  const exclMin = standaardExcl * factorMin + extraMin;
-  const exclMax = standaardExcl * factorMax + extraMax;
+  const grensA = standaardExcl * factorMin + extraMin;
+  const grensB = standaardExcl * factorMax + extraMax;
+  // Nooit een omgekeerde vork. Een negatief handmatig bedrag draait de
+  // twee grenzen om (0.85 x -1000 ligt boven 1.15 x -1000), en die vork
+  // werd zo weggeschreven.
+  const exclMin = Math.min(grensA, grensB);
+  const exclMax = Math.max(grensA, grensB);
 
   return {
     items,
@@ -484,16 +532,27 @@ export interface OpgeslagenPost {
   post: string;
   bedrag: number;
   categorie?: PostCategorie;
+  /**
+   * Oppervlaktegebonden basiswerk (binnenplaat, afwerking, plamuur, isolatie,
+   * vloer, schilderwerken). Velux, trap, trapgat en airco zijn ook categorie
+   * 'standaard' maar zijn posten per stuk, dus de categorie alleen zegt niets.
+   * Ontbreekt bij rijen van voor deze uitbreiding.
+   */
+  basiswerk?: boolean;
   min?: number;
   max?: number;
   omschrijving?: string;
 }
+
+/** De tariefposten die met de oppervlakte meeschalen. */
+const BASISWERK_KEYS = new Set(['bpa', 'alg', 'pla', 'iso', 'vl', 'sw']);
 
 export function naarOpgeslagenPosten(items: PostItem[]): OpgeslagenPost[] {
   return items.map((i) => ({
     post: i.label,
     bedrag: Math.round(i.amount),
     categorie: i.categorie,
+    basiswerk: BASISWERK_KEYS.has(i.key),
     ...(i.min != null ? { min: Math.round(i.min) } : {}),
     ...(i.max != null ? { max: Math.round(i.max) } : {}),
     ...(i.omschrijving ? { omschrijving: i.omschrijving } : {}),
@@ -522,6 +581,7 @@ export function leesPosten(raw: unknown): GelezenPost[] {
       ...(typeof p.min === 'number' ? { min: p.min } : {}),
       ...(typeof p.max === 'number' ? { max: p.max } : {}),
       ...(typeof p.omschrijving === 'string' ? { omschrijving: p.omschrijving } : {}),
+      ...(typeof p.basiswerk === 'boolean' ? { basiswerk: p.basiswerk } : {}),
     }))
     .filter((p) => p.post);
 }

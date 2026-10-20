@@ -1,6 +1,6 @@
 import { DollarSign, CheckCircle } from 'lucide-react';
 import type { PortalData } from '@/hooks/usePortal';
-import { STANDAARD_INBEGREPEN } from '@/components/report/reportConstants';
+import { STANDAARD_INBEGREPEN, toonStandaardInbegrepen } from '@/components/report/reportConstants';
 import { CATEGORIE_MET_BEDRAG, leesPosten } from '@/lib/prijscalculator';
 
 interface Props {
@@ -39,7 +39,10 @@ export default function PortalInvestering({ data, onView }: Props) {
         ...(p.omschrijving ? { omschrijving: p.omschrijving } : {}),
       };
     }),
-    ...STANDAARD_INBEGREPEN.filter((s) => !gezien.has(s.toLowerCase().trim())).map((s) => ({ label: s })),
+    // Zelfde regel als in het rapport - zie toonStandaardInbegrepen.
+    ...(toonStandaardInbegrepen(posten)
+      ? STANDAARD_INBEGREPEN.filter((s) => !gezien.has(s.toLowerCase().trim())).map((s) => ({ label: s }))
+      : []),
   ];
 
   return (

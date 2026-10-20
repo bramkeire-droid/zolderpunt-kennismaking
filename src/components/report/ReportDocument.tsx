@@ -6,7 +6,7 @@ import { s } from './reportStyles';
 import {
   COLORS, TAGLINE, CONTACT_TELEFOON, CONTACT_EMAIL, CONTACT_WEBSITE,
   GOOGLE_REVIEW_SCORE, REVIEWS, GARANTIES, WERKWIJZE_STAPPEN,
-  STANDAARD_INBEGREPEN, formatDatum,
+  STANDAARD_INBEGREPEN, toonStandaardInbegrepen, formatDatum,
 } from './reportConstants';
 import type { ReportData, FeitjeItem } from './reportTypes';
 import { CATEGORIE_MET_BEDRAG, leesPosten } from '@/lib/prijscalculator';
@@ -520,9 +520,10 @@ interface ChecklistItem {
 function buildChecklist(inbegrepen: unknown): ChecklistItem[] {
   const seen = new Set<string>();
   const items: ChecklistItem[] = [];
+  const posten = leesPosten(inbegrepen);
 
   // 1. Calculator items first
-  for (const p of leesPosten(inbegrepen)) {
+  for (const p of posten) {
     const key = p.post.toLowerCase().trim();
     if (seen.has(key)) continue;
     seen.add(key);
@@ -538,12 +539,15 @@ function buildChecklist(inbegrepen: unknown): ChecklistItem[] {
     });
   }
 
-  // 2. Add standard items (dedup against calculator items)
-  for (const std of STANDAARD_INBEGREPEN) {
-    const key = std.toLowerCase().trim();
-    if (!seen.has(key)) {
-      seen.add(key);
-      items.push({ label: std });
+  // 2. Add standard items (dedup against calculator items), maar alleen als
+  // er basiswerk in de prijs zit - zie toonStandaardInbegrepen.
+  if (toonStandaardInbegrepen(posten)) {
+    for (const std of STANDAARD_INBEGREPEN) {
+      const key = std.toLowerCase().trim();
+      if (!seen.has(key)) {
+        seen.add(key);
+        items.push({ label: std });
+      }
     }
   }
 

@@ -69,14 +69,39 @@ export default function PrijsCalculatorPaneel({
   // admin-beginwaarden voor badkamer/maatwerk hier al platgeslagen worden.
   const cs = normaliseerCalcState(calculatorState, tarieven);
 
-  const [bruto, setBruto] = useState(String(oppervlakteM2 || ''));
+  // 0 is een echte waarde, geen "niets ingevuld": `String(0 || '')` gaf een
+  // leeg veld, waardoor een bewaarde 0 niet te onderscheiden was van leeg.
+  const alsTekst = (n: number | null | undefined) =>
+    (typeof n === 'number' && isFinite(n) ? String(n) : '');
+
+  // Eigen bruto voor, dossier als terugval. Zo onthoudt de calculator wat hier
+  // ingevuld is - ook een 0 - zonder het veld uit de eerdere slides aan te
+  // raken, en gedraagt een dossier zonder bewaarde bruto zich als vroeger.
+  const [bruto, setBruto] = useState(
+    cs.bruto_m2 != null ? String(cs.bruto_m2) : alsTekst(oppervlakteM2),
+  );
   const [nettoStr, setNettoStr] = useState(
-    cs.netto_m2 != null ? String(cs.netto_m2) : String(oppervlakteM2 || ''),
+    cs.netto_m2 != null ? String(cs.netto_m2) : alsTekst(oppervlakteM2),
   );
   const [nettoManuallySet, setNettoManuallySet] = useState(cs.netto_manually_set ?? false);
 
-  const brutoNum = parseFloat(bruto) || 0;
-  const nettoNum = parseFloat(nettoStr) || 0;
+  // Leeg is niet nul: een leeg veld is "nog niet bekend" (de calculator staat
+  // uit), een getypte 0 is een uitspraak (alleen de aparte posten tellen mee).
+  const brutoNum = bruto.trim() === '' ? null : (parseFloat(bruto) || 0);
+  const brutoVoorLabel = brutoNum ?? 0;
+  // Leeg is niet nul, ook hier niet. Een nettoveld dat even leeg is om
+  // hertypt te worden mag de berekening niet stil op bruto terugzetten, en
+  // een negatief getal is geen oppervlakte.
+  const nettoRuw = parseFloat(nettoStr);
+  const nettoGeldig = nettoStr.trim() !== '' && isFinite(nettoRuw) && nettoRuw >= 0;
+  const nettoNum = nettoGeldig ? nettoRuw : 0;
+  /** Wat er gerekend en bewaard wordt: bij ongeldige invoer de laatst
+   *  bewaarde waarde, zodat half getypte invoer nooit een bedrag wegschrijft. */
+  const nettoOpslag = nettoGeldig
+    ? nettoNum
+    : (nettoManuallySet ? (cs.netto_m2 ?? null) : null);
+  /** Voor de labels: zonder bruto wordt er met netto 0 gerekend. */
+  const nettoVoorLabel = (brutoNum ?? 0) > 0 ? nettoNum : 0;
 
   // Pas na een echte invoerwijziging mag er over een opgeslagen berekening
   // heen geschreven worden. Een one-shot guard bleek niet genoeg: de tarieven
@@ -88,7 +113,11 @@ export default function PrijsCalculatorPaneel({
   // een patch vanuit ExtraElementen en een klik op een optie hetzelfde pad volgen.
   const zet = (patch: Partial<CalcState>) => {
     interactie.current = true;
-    onChange({ calculator_state: { ...cs, ...patch, netto_m2: nettoNum || null, netto_manually_set: nettoManuallySet } });
+    // Bewust GEEN bruto_m2 hier: alleen een zelf getypte bruto wordt bevroren
+    // (zie handleBrutoChange). Schreef een optieklik hem mee, dan sloot de
+    // sync-poort en bereikte een correctie van de oppervlakte in een eerdere
+    // slide de prijs nooit meer.
+    onChange({ calculator_state: { ...cs, ...patch, netto_m2: nettoOpslag, netto_manually_set: nettoManuallySet } });
   };
 
   const dakBekleed = cs.dak_bekleed ?? false;
@@ -103,20 +132,58 @@ export default function PrijsCalculatorPaneel({
   const handleBrutoChange = (value: string) => {
     interactie.current = true;
     setBruto(value);
+    // Netto volgt bruto zolang niemand netto zelf gezet heeft - en anders niet.
+    // Hier stond een regel die een handmatige netto meetrok bij een getypte 0;
+    // die wiste de bewaarde waarde zonder weg terug (gemeten: +EUR 7.350 bij
+    // '0' gevolgd door '80'). Rekenkundig voegde ze niets toe: berekenPrijs
+    // zet netto bij bruto 0 zelf al op nul.
+    const leeg = value.trim() === '';
     if (!nettoManuallySet) setNettoStr(value);
-    if (schrijfOppervlakte) onChange({ oppervlakte_m2: parseFloat(value) || null });
+
+    // Negatief of oneindig telt als geen oppervlakte, net als in de rekenkern.
+    // Leeg blijft null: dat is "nog niet bekend", geen uitspraak.
+    const n = parseFloat(value);
+    const brutoWaarde = leeg || !isFinite(n) ? null : Math.max(0, n);
+    // De bruto hoort in calculator_state, niet op het dossier: hij is een
+    // technisch getal en mag de oppervlakte die de klant opgaf niet
+    // overschrijven. Zo blijft een hier ingevulde 0 ook na een remount staan.
+    const nettoNa = nettoManuallySet ? nettoOpslag : brutoWaarde;
+    onChange({
+      calculator_state: {
+        ...cs,
+        bruto_m2: brutoWaarde,
+        netto_m2: nettoNa,
+        netto_manually_set: nettoManuallySet,
+      },
+    });
+
+    // Alleen waar de calculator ook het dossierveld bijhoudt, en alleen zolang
+    // dat nog leeg is. De oorspronkelijke reden was "hier is geen intake-slide
+    // die de oppervlakte al zette"; een bestaande waarde overschrijven met het
+    // technische getal wist wat de klant opgaf - en bij 0 verdween daardoor de
+    // hele meerwaardesectie uit het klantportaal.
+    if (schrijfOppervlakte && oppervlakteM2 == null) onChange({ oppervlakte_m2: brutoWaarde });
   };
 
   const handleNettoChange = (value: string) => {
     interactie.current = true;
     setNettoStr(value);
     setNettoManuallySet(true);
-    onChange({ calculator_state: { ...cs, netto_m2: parseFloat(value) || null, netto_manually_set: true } });
+    // Leeg of negatief: alleen de tekst bijwerken. De bewaarde netto blijft
+    // staan tot er weer een geldig getal is - anders schrijft het leegmaken om
+    // te hertypen onmiddellijk een ander bedrag weg (gemeten: +EUR 7.350), en
+    // bij sluiten halverwege is de oude waarde onherstelbaar weg.
+    const n = parseFloat(value);
+    if (value.trim() === '' || !isFinite(n) || n < 0) return;
+    onChange({ calculator_state: { ...cs, netto_m2: n, netto_manually_set: true } });
   };
 
-  // Bruto volgt het dossier zolang niemand netto handmatig heeft gezet.
+  // Bruto volgt het dossier zolang hier nog niets gewijzigd is. Zonder die
+  // tweede voorwaarde zette deze effect een zelf ingetypte 0 terug naar de
+  // oppervlakte van het dossier: nettoManuallySet staat in de dependencies,
+  // dus het nettoveld aanraken liet alle tariefposten terugkomen.
   useEffect(() => {
-    if (oppervlakteM2) {
+    if (oppervlakteM2 && !interactie.current && cs.bruto_m2 == null) {
       setBruto(String(oppervlakteM2));
       if (!nettoManuallySet) setNettoStr(String(oppervlakteM2));
     }
@@ -128,7 +195,7 @@ export default function PrijsCalculatorPaneel({
   const eurT = (n: number) =>
     '\u20ac' + (Math.round(n * 100) / 100).toLocaleString('nl-BE', { maximumFractionDigits: 2 });
 
-  const result = berekenPrijs({ ...cs, netto_m2: nettoNum || null }, brutoNum, tarieven);
+  const result = berekenPrijs({ ...cs, netto_m2: nettoOpslag }, brutoNum, tarieven);
 
   // De vork volgt het gekozen btw-tarief. result.min/max/incl6 blijven op 6%
   // staan: die vullen budget_min/budget_max, kolommen die historisch incl. 6%
@@ -212,6 +279,14 @@ export default function PrijsCalculatorPaneel({
       ? (opgeslagenVorkExcl?.max ?? (opgeslagenBudgetExcl ?? 0) * 1.15)
       : (result?.exclMax ?? 0);
     const excl = beschermd ? (opgeslagenBudgetExcl ?? 0) : (result?.excl ?? 0);
+    // Geen bedrag, geen prijsvelden. Het btw-tarief is een labelkeuze en mag
+    // altijd bewaard worden, maar zonder bedrag zou een klik hier
+    // prijs_*_incl_btw op 0 zetten terwijl het opslag-effect budget_excl
+    // bewust ongemoeid laat - dan staan beide niet meer op hetzelfde dossier.
+    if (!(exclMax > 0)) {
+      onChange({ btw_percentage: nieuwTarief });
+      return;
+    }
     onChange({
       btw_percentage: nieuwTarief,
       prijs_min_incl_btw: Math.round(exclMin * multiplier),
@@ -232,6 +307,11 @@ export default function PrijsCalculatorPaneel({
   const vorigeSleutel = useRef<string>('');
   useEffect(() => {
     if (!result) return;
+    // Een berekening zonder geld schrijft niets weg. Bij 0 m2 met een net
+    // aangevinkt maar nog leeg element is elk bedrag 0; dat mag een bestaand
+    // budget niet met nullen overschrijven. Bij bruto > 0 is exclMax altijd
+    // groter dan 0, dus dit raakt bestaande dossiers niet.
+    if (!(result.exclMax > 0)) return;
     const posten = naarOpgeslagenPosten(result.items);
     // overrides en marge zitten mee in de sleutel: ook een wijziging die het
     // bedrag toevallig niet verandert (bv. marge-argumenten invullen) moet
@@ -264,7 +344,7 @@ export default function PrijsCalculatorPaneel({
     });
 
     void sessie.current?.bewaar({
-      calculator_state: { ...cs, netto_m2: nettoNum || null },
+      calculator_state: { ...cs, netto_m2: nettoOpslag },
       inbegrepen_posten: posten,
       budget_excl: Math.round(result.excl),
       budget_min_excl: Math.round(result.exclMin),
@@ -340,14 +420,14 @@ export default function PrijsCalculatorPaneel({
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="text-sm font-semibold text-foreground">Dakisolatie {soort === 'spantendak' ? 'Spantendak' : 'Gordingendak'}</div>
-                        <div className="text-xs text-muted-foreground">{brutoNum > 0 ? `${brutoNum} m² × ${eurT(tarief)}` : `${eurT(tarief)} per m² bruto`}</div>
+                        <div className="text-xs text-muted-foreground">{brutoVoorLabel > 0 ? `${brutoVoorLabel} m² × ${eurT(tarief)}` : `${eurT(tarief)} per m² bruto`}</div>
                       </div>
                     </div>
-                    {actief && brutoNum > 0 && (
+                    {actief && brutoVoorLabel > 0 && (
                       <div className="px-3.5 pb-3">
                         <div className="flex items-center justify-end gap-1">
-                          <span className="text-sm font-bold text-primary">{fmt(brutoNum * tarief)}</span>
-                          {potlood('iso', 'Dakisolatie', brutoNum * tarief)}
+                          <span className="text-sm font-bold text-primary">{fmt(brutoVoorLabel * tarief)}</span>
+                          {potlood('iso', 'Dakisolatie', brutoVoorLabel * tarief)}
                         </div>
                       </div>
                     )}
@@ -357,9 +437,9 @@ export default function PrijsCalculatorPaneel({
               })}
             </div>
 
-            <ToggleOption label="Vloer — chape of uitpassen" desc={nettoNum > 0 ? `${nettoNum} m² netto × ${eurT(RATES.vloer)}` : `${eurT(RATES.vloer)} per m² netto`}
-              active={vloer} onToggle={() => zet({ vloer: !vloer })} amount={vloer && nettoNum > 0 ? fmt(nettoNum * RATES.vloer) : undefined}
-              extra={vloer && nettoNum > 0 ? potlood('vl', 'Vloer', nettoNum * RATES.vloer) : undefined}
+            <ToggleOption label="Vloer — chape of uitpassen" desc={nettoVoorLabel > 0 ? `${nettoVoorLabel} m² netto × ${eurT(RATES.vloer)}` : `${eurT(RATES.vloer)} per m² netto`}
+              active={vloer} onToggle={() => zet({ vloer: !vloer })} amount={vloer && nettoVoorLabel > 0 ? fmt(nettoVoorLabel * RATES.vloer) : undefined}
+              extra={vloer && nettoVoorLabel > 0 ? potlood('vl', 'Vloer', nettoVoorLabel * RATES.vloer) : undefined}
               onder={editor('vl')} />
 
             <TellerOptie label="Dakramen (Velux)"
@@ -411,15 +491,15 @@ export default function PrijsCalculatorPaneel({
               onder={editor('ac')} />
 
             <ToggleOption label="Schilderwerken"
-              desc={nettoNum > 0 ? `Forfait: ${eurT(RATES.schilderwerken(nettoNum))}` : 'Forfait volgens oppervlakte-staffel'}
+              desc={nettoVoorLabel > 0 ? `Forfait: ${eurT(RATES.schilderwerken(nettoVoorLabel))}` : 'Forfait volgens oppervlakte-staffel'}
               active={schilderwerken} onToggle={() => zet({ schilderwerken: !schilderwerken })}
-              amount={schilderwerken && nettoNum > 0 ? fmt(RATES.schilderwerken(nettoNum)) : undefined}
-              extra={schilderwerken && nettoNum > 0 ? potlood('sw', 'Schilderwerken', RATES.schilderwerken(nettoNum)) : undefined}
+              amount={schilderwerken && nettoVoorLabel > 0 ? fmt(RATES.schilderwerken(nettoVoorLabel)) : undefined}
+              extra={schilderwerken && nettoVoorLabel > 0 ? potlood('sw', 'Schilderwerken', RATES.schilderwerken(nettoVoorLabel)) : undefined}
               onder={editor('sw')} />
           </div>
         </div>
 
-        <ExtraElementen state={{ ...cs, netto_m2: nettoNum || null }} onChange={zet} />
+        <ExtraElementen state={{ ...cs, netto_m2: nettoOpslag }} onChange={zet} />
 
       {margeVraag && result && (
         <MargeRedenDialog
@@ -466,6 +546,10 @@ export default function PrijsCalculatorPaneel({
                 <span className="block text-2xl font-bold tracking-tight text-primary">{fmt(toonExcl)}</span>
               </div>
 
+              {/* De marge verschuift alleen het tariefdeel. Is dat nul (een
+                  dossier met enkel aparte posten), dan verandert slepen geen
+                  enkel bedrag - bedragNaarFactor geeft daar al null terug. */}
+              {result.standaardExcl > 0 && (
               <MargeBalk
                 min={toonMin}
                 max={toonMax}
@@ -493,6 +577,7 @@ export default function PrijsCalculatorPaneel({
                   return (excl - eigenBereik) / result.standaardExcl;
                 }}
               />
+              )}
 
               <div className="mb-5 grid grid-cols-2 gap-2">
                 <div className="rounded-lg border border-primary-foreground/10 bg-primary-foreground/5 p-3">
@@ -536,7 +621,7 @@ export default function PrijsCalculatorPaneel({
           ) : (
             <div className="py-7 text-center text-sm leading-relaxed text-primary-foreground/30">
               <span className="mb-2.5 block text-3xl opacity-50">🏠</span>
-              Vul de bruto oppervlakte in om een prijsindicatie te berekenen.
+              Vul een oppervlakte in, of voeg een aparte post toe.
             </div>
           )}
         </div>
