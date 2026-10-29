@@ -1035,8 +1035,11 @@ export type Database = {
           bytes: number | null
           created_by: string | null
           gegenereerd_op: string
+          gemaild_naar: string | null
+          gemaild_op: string | null
           id: string
           lead_id: string
+          mail_variant: string | null
           storage_path: string
           transcript_bestandsnaam: string | null
           transcript_bytes: number | null
@@ -1048,8 +1051,11 @@ export type Database = {
           bytes?: number | null
           created_by?: string | null
           gegenereerd_op?: string
+          gemaild_naar?: string | null
+          gemaild_op?: string | null
           id?: string
           lead_id: string
+          mail_variant?: string | null
           storage_path: string
           transcript_bestandsnaam?: string | null
           transcript_bytes?: number | null
@@ -1061,8 +1067,11 @@ export type Database = {
           bytes?: number | null
           created_by?: string | null
           gegenereerd_op?: string
+          gemaild_naar?: string | null
+          gemaild_op?: string | null
           id?: string
           lead_id?: string
+          mail_variant?: string | null
           storage_path?: string
           transcript_bestandsnaam?: string | null
           transcript_bytes?: number | null
