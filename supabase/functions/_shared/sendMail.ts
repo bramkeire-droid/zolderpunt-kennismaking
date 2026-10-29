@@ -16,13 +16,25 @@ export interface SendMailResult {
   error: string;
 }
 
+export interface MailBijlage {
+  Name: string;
+  /** base64, zonder data:-prefix */
+  Content: string;
+  ContentType: string;
+}
+
 export async function sendMail(opts: {
   subject: string;
   text: string;
   to?: string;
+  /** Afzender die van MEMO_EMAIL_FROM afwijkt, bv. hello@zolderpunt.be. */
+  from?: string;
+  /** Opgemaakte versie; Postmark valt op text terug waar HTML niet kan. */
+  html?: string;
+  attachments?: MailBijlage[];
 }): Promise<SendMailResult> {
   const token = Deno.env.get('POSTMARK_SERVER_TOKEN');
-  const from = Deno.env.get('MEMO_EMAIL_FROM');
+  const from = opts.from || Deno.env.get('MEMO_EMAIL_FROM');
   const to = opts.to || Deno.env.get('MEMO_EMAIL_TO') || DEFAULT_TO;
 
   if (!token) return { ok: false, error: 'POSTMARK_SERVER_TOKEN ontbreekt' };
@@ -46,6 +58,8 @@ export async function sendMail(opts: {
         To: to,
         Subject: opts.subject,
         TextBody: opts.text,
+        ...(opts.html ? { HtmlBody: opts.html } : {}),
+        ...(opts.attachments?.length ? { Attachments: opts.attachments } : {}),
         MessageStream: 'outbound',
       }),
     });
