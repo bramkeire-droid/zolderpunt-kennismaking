@@ -3,7 +3,7 @@ import { useSession } from '@/contexts/SessionContext';
 import SlideLayout from '@/components/SlideLayout';
 import SlideLabel from '@/components/SlideLabel';
 import { Button } from '@/components/ui/button';
-import { FileDown, Loader2 } from 'lucide-react';
+import { FileDown, Loader2, Mail } from 'lucide-react';
 import { pdf } from '@react-pdf/renderer';
 import ReportDocument from '@/components/report/ReportDocument';
 import type { ReportData, FeitjeItem } from '@/components/report/reportTypes';
@@ -13,6 +13,8 @@ import { fetchAndDownscaleToDataUrl } from '@/lib/imageCompression';
 import { normalizeLeadMedia, imagesOnly, resignLeadFotos } from '@/lib/leadMedia';
 import { formatDatum } from '@/components/report/reportConstants';
 import { downloadBlob, openDownloadWindow } from '@/lib/downloadFile';
+import { bewaarRapport, type RapportRij } from '@/lib/rapporten';
+import RapportMailDialog from '@/components/dossier/RapportMailDialog';
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('nl-BE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
@@ -62,6 +64,10 @@ function mapLeadToReportData(lead: ReturnType<typeof useSession>['lead']): Repor
 export default function Slide10() {
   const { lead, updateLead } = useSession();
   const [loading, setLoading] = useState(false);
+  // Het net bewaarde rapport, zodat het hier meteen gemaild kan worden zonder
+  // eerst naar het dossier terug te moeten.
+  const [bewaardRapport, setBewaardRapport] = useState<RapportRij | null>(null);
+  const [mailOpen, setMailOpen] = useState(false);
 
   const hasAiSummary = !!(lead.rapport_situatie_ai && lead.rapport_verwachtingen_ai && lead.rapport_besproken_ai);
 
@@ -179,6 +185,33 @@ export default function Slide10() {
         const nowIso = new Date().toISOString();
         await supabase.from('leads').update({ rapport_gegenereerd_op: nowIso, status: 'intake' }).eq('id', lead.id);
         updateLead({ rapport_gegenereerd_op: nowIso, status: 'intake' });
+
+        // Het bestand zelf bewaren, samen met de invoer die het maakte. Tot nu
+        // bestond de PDF alleen op de schijf van wie hem downloadde, en het
+        // transcript verdween met het tabblad. bewaarRapport gooit nooit: het
+        // archief mag een geslaagde download niet alsnog laten mislukken.
+        const naam = `${lead.voornaam ?? ''} ${lead.achternaam ?? ''}`.trim() || 'dossier';
+        const bewaard = await bewaarRapport({
+          leadId: lead.id,
+          bron: 'intake',
+          pdf: blob,
+          bestandsnaam: filename,
+          invoer: {
+            transcript: lead.transcript,
+            gesprek_notities: lead.gesprek_notities,
+            project_feiten: lead.project_feiten,
+            technisch: lead.technisch,
+            inbegrepen_posten: lead.inbegrepen_posten,
+            oppervlakte_m2: lead.oppervlakte_m2,
+            gezocht_naar: lead.gezocht_naar,
+          },
+          invoerKop: `Intakegesprek ${naam} — ${formatDatum(lead.gesprek_datum)}`,
+        });
+        if (bewaard) {
+          setBewaardRapport(bewaard);
+        } else {
+          toast.warning('PDF gedownload, maar niet bewaard in het dossier. Probeer later opnieuw te genereren.');
+        }
       }
 
       toast.success('PDF succesvol gedownload of geopend!');
@@ -242,10 +275,30 @@ export default function Slide10() {
           )}
         </Button>
 
+        {bewaardRapport && lead.id && (
+          <Button
+            variant="outline"
+            onClick={() => setMailOpen(true)}
+            className="w-full font-headline text-lg py-7 gap-3 mt-4"
+          >
+            <Mail className="h-5 w-5" />
+            Rapport naar de klant mailen
+          </Button>
+        )}
+
         <p className="text-xs text-muted-foreground text-center mt-6">
           Bestandsnaam: Zolderpunt_{lead.achternaam || 'Klant'}_{lead.gesprek_datum ? formatDatum(lead.gesprek_datum).replace(/\//g, '-') : 'rapport'}.pdf
         </p>
       </div>
+
+      {bewaardRapport && lead.id && (
+        <RapportMailDialog
+          open={mailOpen}
+          onClose={() => setMailOpen(false)}
+          leadId={lead.id}
+          rapport={bewaardRapport}
+        />
+      )}
     </SlideLayout>
   );
 }

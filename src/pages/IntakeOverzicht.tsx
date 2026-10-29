@@ -4,6 +4,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import AppShell from '@/components/AppShell';
+import RapportenLijst from '@/components/dossier/RapportenLijst';
 import { Button } from '@/components/ui/button';
 import { useAppNav } from '@/contexts/AppNavContext';
 import { euro } from '@/lib/pipeline';
@@ -133,6 +134,11 @@ export default function IntakeOverzicht({ leadId }: Props) {
     <AppShell titel="Intakegesprek" subtitel={naam} dossierId={leadId} actieveTab="intake" primair={primair}>
       <div className="flex-1 overflow-y-auto bg-slate-50 px-6 py-6">
         <div className="mx-auto max-w-3xl space-y-4">
+
+          {/* Bovenaan, ook op een dossier zonder intake: hier staan de bewaarde
+              rapporten met hun transcript. Bewust vóór de inhoud, want dit is
+              wat Bram hier komt halen. */}
+          <RapportenLijst leadId={leadId} />
 
           {!heeftInhoud && (
             <div className="rounded-lg border border-dashed border-slate-300 bg-white p-8 text-center">
