@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { bouwRapportMail, formatPlaatsbezoek, CALENDLY_PLAATSBEZOEK } from '@/lib/rapportMailTekst';
+import {
+  bouwRapportMail, formatPlaatsbezoek, kiesVariant, CALENDLY_PLAATSBEZOEK,
+} from '@/lib/rapportMailTekst';
 
 // Deze tekst gaat naar klanten. De toetsen hieronder zijn de twee dingen die
 // Bram expliciet gevraagd heeft (geen aanzet om te verzetten, niets over de
@@ -59,6 +61,28 @@ describe('bouwRapportMail — variant plaatsbezoek', () => {
     expect(zonder.subject).toBe('Het verslag van ons gesprek + jullie plaatsbezoek');
     expect(zonder.text).not.toContain('undefined');
     expect(zonder.text).not.toContain('Invalid');
+  });
+});
+
+describe('kiesVariant', () => {
+  const nu = new Date('2026-10-29T12:00:00+01:00').getTime();
+
+  it('kiest het plaatsbezoek wanneer dat nog moet komen', () => {
+    expect(kiesVariant(true, '2026-11-04T14:00:00+01:00', nu)).toBe('plaatsbezoek');
+    expect(kiesVariant(false, '2026-11-04T14:00:00+01:00', nu)).toBe('plaatsbezoek');
+    // Wel afgesproken, datum nog niet gekend.
+    expect(kiesVariant(true, null, nu)).toBe('plaatsbezoek');
+  });
+
+  it('valt terug op overleg bij een bezoek dat al geweest is', () => {
+    // Gemeten op een echt dossier: plaatsbezoek van 14 september, eind oktober
+    // opende het dialoog met "staat ingepland op maandag 14 september".
+    expect(kiesVariant(true, '2026-09-14T17:00:00+02:00', nu)).toBe('overleg');
+  });
+
+  it('kiest overleg wanneer er niets gepland is', () => {
+    expect(kiesVariant(false, null, nu)).toBe('overleg');
+    expect(kiesVariant(null, undefined, nu)).toBe('overleg');
   });
 });
 
