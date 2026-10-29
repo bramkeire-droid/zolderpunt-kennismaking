@@ -1,8 +1,8 @@
 import { REVIEWS, GOOGLE_REVIEW_SCORE, GOOGLE_REVIEW_COUNT } from '@/components/report/reportConstants';
 import { Star } from 'lucide-react';
 import reviewBrandon from '@/assets/review-foto-brandon.jpg';
-import reviewTom from '@/assets/review-foto-tom.png';
-import reviewCecilia from '@/assets/review-foto-cecilia.png';
+import reviewTom from '@/assets/review-foto-tom.jpg';
+import reviewCecilia from '@/assets/review-foto-cecilia.jpg';
 
 const PHOTO_MAP: Record<string, string> = {
   brandon: reviewBrandon,

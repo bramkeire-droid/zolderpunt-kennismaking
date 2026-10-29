@@ -40,6 +40,10 @@ export default function RapportMailDialog({ open, onClose, leadId, rapport, onVe
   const [bezoekOp, setBezoekOp] = useState<string | null>(null);
   const [laden, setLaden] = useState(false);
   const [bezig, setBezig] = useState(false);
+  // Een toast verschijnt rechtsonder, buiten het dialoog en buiten je blikveld
+  // terwijl je naar de knop kijkt. Bram zag daardoor "er gebeurt niets" waar de
+  // server wel degelijk antwoordde. De melding hoort naast de knop te staan.
+  const [fout, setFout] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -66,9 +70,13 @@ export default function RapportMailDialog({ open, onClose, leadId, rapport, onVe
   const mail = bouwRapportMail(variant, { voornaam, plaatsbezoekOp: bezoekOp });
   const moment = formatPlaatsbezoek(bezoekOp);
   const geldigAdres = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(naar.trim());
+  // Dezelfde grens als de edge function hanteert: Postmark weigert een bericht
+  // boven 10 MB en base64 maakt de bijlage een derde groter.
+  const teZwaar = (rapport.bytes ?? 0) > 7 * 1024 * 1024;
 
   const verstuur = async () => {
     setBezig(true);
+    setFout(null);
     try {
       await verstuurRapport({
         rapportId: rapport.id,
@@ -84,6 +92,7 @@ export default function RapportMailDialog({ open, onClose, leadId, rapport, onVe
     } catch (e) {
       // De melding komt rechtstreeks uit Postmark of uit de function — die is
       // bruikbaar (bv. een niet-geverifieerde afzender), een generieke tekst niet.
+      setFout((e as Error).message);
       toast.error(`Versturen mislukt: ${(e as Error).message}`, { duration: 12000 });
     } finally {
       setBezig(false);
@@ -171,8 +180,23 @@ export default function RapportMailDialog({ open, onClose, leadId, rapport, onVe
               </p>
               <p className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Paperclip className="h-3 w-3" /> {rapport.bestandsnaam}
+                {rapport.bytes ? (
+                  <span className={teZwaar ? 'font-medium text-red-600' : ''}>
+                    · {(rapport.bytes / 1024 / 1024).toFixed(1)} MB
+                  </span>
+                ) : null}
               </p>
             </div>
+
+            {teZwaar && !fout && (
+              <p className="border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+                Deze bijlage is zwaarder dan de 7 MB die een mail aankan. Versturen zal mislukken.
+              </p>
+            )}
+
+            {fout && (
+              <p className="border border-red-300 bg-red-50 p-3 text-sm text-red-800">{fout}</p>
+            )}
           </div>
         )}
 
