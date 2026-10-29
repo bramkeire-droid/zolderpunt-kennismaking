@@ -44,6 +44,26 @@ export function formatPlaatsbezoek(iso: string | null | undefined): string {
   return `${dag} om ${uur}`;
 }
 
+/**
+ * Welke variant staat voorgeselecteerd.
+ *
+ * Alleen variant 2 wanneer het bezoek nog móét komen. Oude dossiers dragen een
+ * plaatsbezoek van maanden geleden mee — het dossier van Lieselot Van Haute
+ * stond op 14 september terwijl het eind oktober was. Zonder deze toets opent
+ * het dialoog met "jullie plaatsbezoek staat ingepland op maandag 14 september".
+ */
+export function kiesVariant(
+  gepland: boolean | null | undefined,
+  plaatsbezoekOp: string | null | undefined,
+  nu: number = Date.now(),
+): MailVariant {
+  if (!gepland && !plaatsbezoekOp) return 'overleg';
+  if (!plaatsbezoekOp) return 'plaatsbezoek';
+  const tijd = new Date(plaatsbezoekOp).getTime();
+  if (isNaN(tijd)) return 'plaatsbezoek';
+  return tijd > nu ? 'plaatsbezoek' : 'overleg';
+}
+
 const INTRO = 'Bedankt voor het aangename gesprek. In bijlage vind je het verslag terug: wat we '
   + 'besproken hebben, de aandachtspunten voor jullie zolder en de prijsindicatie waar we op '
   + 'uitkwamen.';

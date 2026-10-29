@@ -10,7 +10,7 @@ import { Mail, Loader2, Paperclip } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { verstuurRapport, type RapportRij } from '@/lib/rapporten';
-import { bouwRapportMail, formatPlaatsbezoek, type MailVariant } from '@/lib/rapportMailTekst';
+import { bouwRapportMail, formatPlaatsbezoek, kiesVariant, type MailVariant } from '@/lib/rapportMailTekst';
 
 /**
  * Het rapport naar de klant mailen, met de PDF als bijlage.
@@ -57,7 +57,7 @@ export default function RapportMailDialog({ open, onClose, leadId, rapport, onVe
       setNaar(lead.data?.email ?? '');
       const gepland = pre.data?.plaatsbezoek_scheduled_at ?? null;
       setBezoekOp(gepland);
-      setVariant(pre.data?.plaatsbezoek_planned || gepland ? 'plaatsbezoek' : 'overleg');
+      setVariant(kiesVariant(pre.data?.plaatsbezoek_planned, gepland));
       setLaden(false);
     })();
     return () => { weg = true; };
