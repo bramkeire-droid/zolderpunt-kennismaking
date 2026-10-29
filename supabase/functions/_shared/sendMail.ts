@@ -29,6 +29,10 @@ export async function sendMail(opts: {
   to?: string;
   /** Afzender die van MEMO_EMAIL_FROM afwijkt, bv. hello@zolderpunt.be. */
   from?: string;
+  /** Blinde kopie; de ontvanger ziet dit adres niet. */
+  bcc?: string;
+  /** Waar een antwoord heen moet als dat niet de afzender is. */
+  replyTo?: string;
   /** Opgemaakte versie; Postmark valt op text terug waar HTML niet kan. */
   html?: string;
   attachments?: MailBijlage[];
@@ -57,6 +61,8 @@ export async function sendMail(opts: {
         From: from,
         To: to,
         Subject: opts.subject,
+        ...(opts.bcc ? { Bcc: opts.bcc } : {}),
+        ...(opts.replyTo ? { ReplyTo: opts.replyTo } : {}),
         TextBody: opts.text,
         ...(opts.html ? { HtmlBody: opts.html } : {}),
         ...(opts.attachments?.length ? { Attachments: opts.attachments } : {}),
