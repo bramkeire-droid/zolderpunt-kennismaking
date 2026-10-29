@@ -14,18 +14,20 @@ import PdfIcon from './PdfIcon';
 import LogoPdf from './LogoPdf';
 
 // ─── Static asset imports ────────────────────────────────────────────
+// De maten volgen uit waar elk beeld terechtkomt: de achtergrond vult een A4
+// (595x842 pt), Brams portret is 60x60 pt en een reviewfoto 48x48 pt. Ze stonden
+// hier op 1080 tot 1920 px, samen 7,7 MB — in élk rapport, waardoor een PDF op
+// 10 MB uitkwam en niet meer als bijlage kon vertrekken.
 import coverBackgroundRaw from '@/assets/coverbackground.jpg';
-import coverSrcRaw from '@/assets/cover-pdf-clean.png';
 import bramSrcRaw from '@/assets/foto-bram.png';
 import brandonSrcRaw from '@/assets/review-foto-brandon.jpg';
-import tomSrcRaw from '@/assets/review-foto-tom.png';
-import ceciliaSrcRaw from '@/assets/review-foto-cecilia.png';
+import tomSrcRaw from '@/assets/review-foto-tom.jpg';
+import ceciliaSrcRaw from '@/assets/review-foto-cecilia.jpg';
 
 const toAbsoluteUrl = (src: string) =>
   src.startsWith('http') ? src : new URL(src, window.location.origin).href;
 
 const coverBackground = toAbsoluteUrl(coverBackgroundRaw);
-const coverSrc = toAbsoluteUrl(coverSrcRaw);
 const bramSrc = toAbsoluteUrl(bramSrcRaw);
 const REVIEW_PHOTOS: Record<string, string> = {
   brandon: toAbsoluteUrl(brandonSrcRaw),
