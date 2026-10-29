@@ -107,7 +107,8 @@ export default function RapportMailDialog({ open, onClose, leadId, rapport, onVe
             <Mail className="h-5 w-5 text-primary" /> Rapport mailen
           </DialogTitle>
           <DialogDescription>
-            Verstuurd vanaf hello@zolderpunt.be, met het bewaarde rapport als bijlage.
+            Verstuurd vanaf hello@zolderpunt.be met het bewaarde rapport als bijlage, en in
+            blinde kopie naar jezelf — een mail via Postmark komt niet in Verzonden items.
           </DialogDescription>
         </DialogHeader>
 

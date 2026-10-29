@@ -17,6 +17,9 @@ import { sendMail } from '../_shared/sendMail.ts';
 
 const DOCUMENTEN_BUCKET = 'dossier-documenten';
 
+/** Afzender, antwoordadres én kopie. Overschrijfbaar zonder code te wijzigen. */
+const AFZENDER = Deno.env.get('RAPPORT_MAIL_FROM') || 'hello@zolderpunt.be';
+
 // Postmark weigert een bericht boven 10 MB, en base64 maakt een bestand ~33%
 // groter. Daarom hier een grens op de ruwe PDF, met een leesbare melding in
 // plaats van een 422 uit Postmark.
@@ -105,10 +108,15 @@ Deno.serve(async (req) => {
       subject,
       text,
       html,
-      // hello@zolderpunt.be hoort hier de afzender te zijn; MEMO_EMAIL_FROM is
-      // de reeds geverifieerde terugval zodat een ontbrekend secret geen
-      // mislukte verzending geeft.
-      from: Deno.env.get('RAPPORT_MAIL_FROM') || undefined,
+      // Bewust géén terugval op MEMO_EMAIL_FROM. Een rapportmail van een ander
+      // adres laat de klant antwoorden naar een postbus die niemand leest —
+      // erger dan een verzending die zichtbaar mislukt. Weigert Postmark dit
+      // adres, dan hoort die melding in beeld te komen.
+      from: AFZENDER,
+      replyTo: AFZENDER,
+      // Zonder kopie heeft Bram geen enkel spoor: de mail gaat via Postmark en
+      // verschijnt dus nooit in Verzonden items van Outlook.
+      bcc: AFZENDER,
       attachments: [{
         Name: rapport.bestandsnaam || 'rapport.pdf',
         Content: naarBase64(await bestand.arrayBuffer()),
