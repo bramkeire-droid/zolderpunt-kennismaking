@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  bouwRapportMail, formatPlaatsbezoek, kiesVariant, CALENDLY_PLAATSBEZOEK,
+  bouwRapportMail, formatPlaatsbezoek, kiesVariant, mailtoLink, CALENDLY_PLAATSBEZOEK,
 } from '@/lib/rapportMailTekst';
 
 // Deze tekst gaat naar klanten. De toetsen hieronder zijn de twee dingen die
@@ -97,5 +97,21 @@ describe('veiligheid en randgevallen', () => {
     expect(formatPlaatsbezoek('geen datum')).toBe('');
     expect(formatPlaatsbezoek(null)).toBe('');
     expect(formatPlaatsbezoek(undefined)).toBe('');
+  });
+});
+
+describe('mailtoLink', () => {
+  const mail = bouwRapportMail('overleg', { voornaam: 'Tessa' });
+
+  it('blijft ruim onder de lengte waarop Windows een mailto afkapt', () => {
+    // Gemeten: ~955 tekens voor de langste variant. De grens ligt rond 2000;
+    // daarboven opent Outlook met een halve body en merk je dat pas achteraf.
+    expect(mailtoLink('tessavanautreve@hotmail.com', mail).length).toBeLessThan(1800);
+  });
+
+  it('zet de regeleindes om naar CRLF, anders kapt Outlook de body af', () => {
+    const link = mailtoLink('x@y.be', mail);
+    expect(link).toContain('%0D%0A');
+    expect(link).not.toMatch(/(?<!%0D)%0A/);
   });
 });

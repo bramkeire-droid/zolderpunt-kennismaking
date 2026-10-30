@@ -146,6 +146,26 @@ export function bouwRapportMail(variant: MailVariant, invoer: MailInvoer): MailT
   };
 }
 
+/**
+ * De mail openen in het standaard mailprogramma — hier Outlook classic.
+ *
+ * Zo vertrekt de mail vanuit hello@zolderpunt.be zelf: de klant kan antwoorden
+ * en hij belandt gewoon in Verzonden items. Dat kon een verzending via Postmark
+ * geen van beide.
+ *
+ * Twee dingen die mailto niet kan, en die de knop ernaast oplost: een bijlage
+ * meegeven (de PDF wordt daarom gedownload) en opmaak (Outlook krijgt de
+ * platte-tekstversie, niet de HTML).
+ *
+ * CRLF en niet LF: Outlook knipt een body met kale \n op sommige versies af na
+ * de eerste regel.
+ */
+export function mailtoLink(naar: string, mail: MailTekst): string {
+  return `mailto:${encodeURIComponent(naar)}`
+    + `?subject=${encodeURIComponent(mail.subject)}`
+    + `&body=${encodeURIComponent(mail.text.replace(/\n/g, '\r\n'))}`;
+}
+
 const P = ' style="margin:0 0 16px;font-family:Arial,Helvetica,sans-serif;font-size:15px;'
   + 'line-height:1.6;color:#1e293b"';
 

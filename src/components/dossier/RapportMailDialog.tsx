@@ -9,15 +9,25 @@ import { Input } from '@/components/ui/input';
 import { Mail, Loader2, Paperclip } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { verstuurRapport, type RapportRij } from '@/lib/rapporten';
-import { bouwRapportMail, formatPlaatsbezoek, kiesVariant, type MailVariant } from '@/lib/rapportMailTekst';
+import { downloadUitOpslag, type RapportRij } from '@/lib/rapporten';
+import {
+  bouwRapportMail, formatPlaatsbezoek, kiesVariant, mailtoLink, type MailVariant,
+} from '@/lib/rapportMailTekst';
 
 /**
- * Het rapport naar de klant mailen, met de PDF als bijlage.
+ * Het rapport naar de klant mailen: de knop opent Outlook met de mail klaar en
+ * downloadt de PDF ernaast om in te slepen.
  *
- * De voorbeeldweergave is niet nagebouwd: het is letterlijk de tekst die
- * verstuurd wordt, uit dezelfde functie. Zo kan Bram lezen wat de klant
- * leest voor hij op verzenden drukt.
+ * WAAROM NIET VANUIT DE APP VERSTUREN. Dat was er eerst, via Postmark, en het
+ * strandde op twee dingen die Bram allebei nodig had: in zijn Postmark staat
+ * alleen info@belhouse-atelier.be als geverifieerde afzender, dus een mail
+ * vanaf hello@zolderpunt.be werd geweigerd (422) — en een klant die antwoordt
+ * moet bij hello@ uitkomen. Daar kwam bij dat zo'n mail nooit in Verzonden
+ * items verschijnt, dus hij had geen enkel spoor van wat de klant kreeg. Via
+ * zijn eigen Outlook zijn beide problemen weg zonder DNS- of Postmark-werk.
+ *
+ * De voorbeeldweergave is niet nagebouwd: het is letterlijk de tekst die in
+ * Outlook belandt, uit dezelfde functie.
  *
  * Variant 2 staat voorgeselecteerd zodra er een plaatsbezoek in het dossier
  * staat — dat is de situatie waarin hij net met de klant een datum gekozen
@@ -29,11 +39,9 @@ interface Props {
   onClose: () => void;
   leadId: string;
   rapport: RapportRij;
-  /** Zodat de lijst de regel "gemaild op ..." meteen kan tonen. */
-  onVerstuurd?: (naar: string, variant: MailVariant) => void;
 }
 
-export default function RapportMailDialog({ open, onClose, leadId, rapport, onVerstuurd }: Props) {
+export default function RapportMailDialog({ open, onClose, leadId, rapport }: Props) {
   const [variant, setVariant] = useState<MailVariant>('overleg');
   const [naar, setNaar] = useState('');
   const [voornaam, setVoornaam] = useState('');
@@ -70,33 +78,28 @@ export default function RapportMailDialog({ open, onClose, leadId, rapport, onVe
   const mail = bouwRapportMail(variant, { voornaam, plaatsbezoekOp: bezoekOp });
   const moment = formatPlaatsbezoek(bezoekOp);
   const geldigAdres = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(naar.trim());
-  // Dezelfde grens als de edge function hanteert: Postmark weigert een bericht
-  // boven 10 MB en base64 maakt de bijlage een derde groter.
-  const teZwaar = (rapport.bytes ?? 0) > 7 * 1024 * 1024;
 
-  const verstuur = async () => {
-    setBezig(true);
+  const openInOutlook = () => {
     setFout(null);
-    try {
-      await verstuurRapport({
-        rapportId: rapport.id,
-        to: naar.trim(),
-        variant,
-        subject: mail.subject,
-        text: mail.text,
-        html: mail.html,
-      });
-      toast.success(`Rapport verstuurd naar ${naar.trim()}`);
-      onVerstuurd?.(naar.trim(), variant);
-      onClose();
-    } catch (e) {
-      // De melding komt rechtstreeks uit Postmark of uit de function — die is
-      // bruikbaar (bv. een niet-geverifieerde afzender), een generieke tekst niet.
-      setFout((e as Error).message);
-      toast.error(`Versturen mislukt: ${(e as Error).message}`, { duration: 12000 });
-    } finally {
-      setBezig(false);
-    }
+    // Eerst de mailto, nog binnen dezelfde klik: een browser opent een
+    // protocolhandler alleen zolang de gebruikersklik vers is, en een await
+    // ervoor maakt hem oud.
+    window.location.href = mailtoLink(naar.trim(), mail);
+
+    // De bijlage kan niet mee in een mailto, dus de PDF gaat naar Downloads om
+    // in het Outlook-venster te slepen.
+    setBezig(true);
+    void downloadUitOpslag(rapport.storage_path, rapport.bestandsnaam)
+      .then(() => {
+        toast.success(`Outlook geopend — ${rapport.bestandsnaam} staat in je downloads`, {
+          duration: 8000,
+        });
+        onClose();
+      })
+      .catch((e) => {
+        setFout(`Outlook is geopend, maar de bijlage downloaden mislukte: ${(e as Error).message}`);
+      })
+      .finally(() => setBezig(false));
   };
 
   return (
@@ -107,8 +110,9 @@ export default function RapportMailDialog({ open, onClose, leadId, rapport, onVe
             <Mail className="h-5 w-5 text-primary" /> Rapport mailen
           </DialogTitle>
           <DialogDescription>
-            Verstuurd vanaf hello@zolderpunt.be met het bewaarde rapport als bijlage, en in
-            blinde kopie naar jezelf — een mail via Postmark komt niet in Verzonden items.
+            Opent Outlook met deze mail klaar, zodat hij vanaf hello@zolderpunt.be vertrekt en
+            in je Verzonden items staat. Het rapport komt in je downloads — sleep het er zelf
+            als bijlage bij.
           </DialogDescription>
         </DialogHeader>
 
@@ -181,19 +185,10 @@ export default function RapportMailDialog({ open, onClose, leadId, rapport, onVe
               </p>
               <p className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Paperclip className="h-3 w-3" /> {rapport.bestandsnaam}
-                {rapport.bytes ? (
-                  <span className={teZwaar ? 'font-medium text-red-600' : ''}>
-                    · {(rapport.bytes / 1024 / 1024).toFixed(1)} MB
-                  </span>
-                ) : null}
+                {rapport.bytes ? <span>· {(rapport.bytes / 1024 / 1024).toFixed(1)} MB</span> : null}
+                <span>— gaat naar je downloads</span>
               </p>
             </div>
-
-            {teZwaar && !fout && (
-              <p className="border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
-                Deze bijlage is zwaarder dan de 7 MB die een mail aankan. Versturen zal mislukken.
-              </p>
-            )}
 
             {fout && (
               <p className="border border-red-300 bg-red-50 p-3 text-sm text-red-800">{fout}</p>
@@ -203,9 +198,9 @@ export default function RapportMailDialog({ open, onClose, leadId, rapport, onVe
 
         <DialogFooter className="pt-2">
           <Button variant="outline" onClick={onClose} disabled={bezig}>Annuleren</Button>
-          <Button onClick={() => void verstuur()} disabled={bezig || laden || !geldigAdres} className="gap-2">
+          <Button onClick={openInOutlook} disabled={bezig || laden || !geldigAdres} className="gap-2">
             {bezig ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
-            {bezig ? 'Versturen…' : 'Versturen'}
+            {bezig ? 'Bijlage ophalen…' : 'Openen in Outlook'}
           </Button>
         </DialogFooter>
       </DialogContent>

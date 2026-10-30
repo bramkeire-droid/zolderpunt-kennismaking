@@ -140,7 +140,7 @@ export default function RapportenLijst({ leadId, onAantal }: Props) {
             <button
               type="button"
               onClick={() => setMailVoor(rij)}
-              title="Het bewaarde rapport naar de klant mailen"
+              title="De mail in Outlook openen, met dit rapport als bijlage"
               className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
             >
               <Mail className="h-3.5 w-3.5" />
@@ -201,11 +201,6 @@ export default function RapportenLijst({ leadId, onAantal }: Props) {
           onClose={() => setMailVoor(null)}
           leadId={leadId}
           rapport={mailVoor}
-          onVerstuurd={(adres, variant) => setRijen((v) => v.map((r) => (
-            r.id === mailVoor.id
-              ? { ...r, gemaild_op: new Date().toISOString(), gemaild_naar: adres, mail_variant: variant }
-              : r
-          )))}
         />
       )}
     </section>
