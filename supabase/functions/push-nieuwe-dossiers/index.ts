@@ -10,9 +10,21 @@
 // Deze functie veegt periodiek de dossiers op die rijp zijn maar nog geen
 // BouwFlow-koppeling hebben, en duwt ze alsnog door via push-to-bouwflow.
 //
-// RIJP = een naam én een manier om iemand te bereiken (telefoon of e-mail).
+// RIJP = een naam én een e-mailadres.
 // Bewust niet losser: een dossier ontstaat vaak leeg, en een leeg project in
 // BouwFlow is erger dan een ontbrekend project — BouwFlow is de waarheid.
+//
+// WAAROM E-MAIL EN NIET "TELEFOON OF E-MAIL". Dat stond hier eerst, en het
+// botste met wat BouwFlow aanvaardt: die weigert elk project zonder adres met
+// "Velden 'naam' en 'email' zijn verplicht". Een dossier met enkel een
+// telefoonnummer was dus geen kandidaat maar een gegarandeerde fout — en omdat
+// zo'n dossier nooit een BouwFlow-id krijgt, kwam het élke run terug. Gemeten
+// op 14-11-2026: 51 mislukte runs op rij, allemaal hetzelfde dossier, met een
+// koppelingslampje dat daardoor permanent op rood stond. Een lampje dat altijd
+// rood staat, verbergt de volgende échte storing.
+//
+// Zo'n dossier verdwijnt nu niet stil: het wordt geteld en benoemd in de
+// melding, zodat zichtbaar blijft dat het op een e-mailadres wacht.
 //
 // BEVEILIGING: enkel de pg_cron-job bouwflow-push-nieuwe roept dit aan, geen
 // enkele UI-knop. Beveiligd met hetzelfde gedeelde-secret-patroon als
@@ -72,11 +84,17 @@ Deno.serve(async (req) => {
     return json({ error: error.message }, 500);
   }
 
-  const rijp = (kandidaten ?? []).filter((l) => {
-    const heeftNaam = gevuld(l.voornaam) || gevuld(l.achternaam);
-    const heeftContact = gevuld(l.telefoon) || gevuld(l.email);
-    return heeftNaam && heeftContact;
-  });
+  const heeftNaam = (l: { voornaam?: string | null; achternaam?: string | null }) =>
+    gevuld(l.voornaam) || gevuld(l.achternaam);
+
+  const rijp = (kandidaten ?? []).filter((l) => heeftNaam(l) && gevuld(l.email));
+
+  // De bijna-rijpe dossiers: naam en telefoon, maar geen e-mail. Die kunnen
+  // niet naar BouwFlow en blijven hier hangen tot iemand een adres invult —
+  // vandaar dat ze bij naam genoemd worden in plaats van weggeteld.
+  const wachtOpEmail = (kandidaten ?? []).filter(
+    (l) => heeftNaam(l) && gevuld(l.telefoon) && !gevuld(l.email),
+  );
 
   const gepusht: string[] = [];
   const overgeslagen = (kandidaten ?? []).length - rijp.length;
@@ -116,6 +134,14 @@ Deno.serve(async (req) => {
     ok: fouten.length === 0,
     melding: fouten.length === 0
       ? `${gepusht.length} nieuw dossier(s) naar BouwFlow gestuurd, ${overgeslagen} nog niet rijp`
+        + (wachtOpEmail.length > 0
+          ? ` — waarvan ${wachtOpEmail.length} met naam en telefoon maar zonder e-mailadres, `
+            + `dat BouwFlow verplicht stelt: `
+            + wachtOpEmail
+              .map((l) => `${l.voornaam ?? ''} ${l.achternaam ?? ''}`.trim() || l.id)
+              .join(', ')
+              .slice(0, 300)
+          : '')
       : `${fouten.length} dossier(s) konden niet gepusht worden: ${fouten.map((f) => f.fout).join('; ').slice(0, 400)}`,
   });
 
@@ -124,6 +150,7 @@ Deno.serve(async (req) => {
     gepusht: gepusht.length,
     gepushte_lead_ids: gepusht,
     nog_niet_rijp: overgeslagen,
+    wacht_op_email: wachtOpEmail.map((l) => l.id),
     fouten: fouten.length > 0 ? fouten : undefined,
   });
 });
