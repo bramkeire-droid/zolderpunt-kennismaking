@@ -10,6 +10,7 @@ import AppShell from '@/components/AppShell';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { klantveldenNaBewaren, meldingNietOvergenomen, type Klantveld } from '@/lib/naBewaren';
 import { isoNaarLokaleDatum, isoNaarLokaleTijd, lokaalNaarIso } from '@/lib/localDateTime';
 import AangeleverdDoorKlant from '@/components/dossier/AangeleverdDoorKlant';
 import CalculatieHistoriek from '@/components/dossier/CalculatieHistoriek';
@@ -123,11 +124,34 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
     setStep('calling');
   };
 
+  /**
+   * Na het schrijven: wat hield de databank echt? De klantfiche-triggers kunnen
+   * een leeggemaakte e-mail of telefoon terugzetten, of bij een bestaande klant
+   * diens naam overnemen. Dat komt terug in de velden, behalve waar je intussen
+   * verder typte (zie lib/naBewaren.ts).
+   */
+  const stemAfMetDatabank = async (leadId: string, verzonden: Record<Klantveld, string>) => {
+    const afwijkend = await klantveldenNaBewaren(leadId, verzonden);
+    if (!afwijkend || Object.keys(afwijkend).length === 0) return;
+    const zetters: Record<Klantveld, (f: (huidig: string) => string) => void> = {
+      voornaam: setLeadVoornaam, achternaam: setLeadAchternaam, partner_naam: setLeadPartnerNaam,
+      email: setLeadEmail, telefoon: setLeadTelefoon,
+    };
+    for (const [k, v] of Object.entries(afwijkend) as [Klantveld, string][]) {
+      zetters[k](huidig => (huidig === verzonden[k] ? v : huidig));
+    }
+    toast.warning(meldingNietOvergenomen(afwijkend));
+  };
+
   /** Zorg dat er een lead-row bestaat (insert indien nodig met dubbel-detectie). Retourneert lead id of null. */
   const ensureLeadRow = async (): Promise<string | null> => {
+    const verzonden = { voornaam: leadVoornaam, achternaam: leadAchternaam, telefoon: leadTelefoon, adres: leadAdres, partner_naam: leadPartnerNaam, email: leadEmail };
     if (selectedLead?.id) {
-      // Update bestaande
-      await supabase.from('leads').update({ voornaam: leadVoornaam, achternaam: leadAchternaam, telefoon: leadTelefoon, adres: leadAdres, partner_naam: leadPartnerNaam, email: leadEmail }).eq('id', selectedLead.id);
+      // Update bestaande. Mislukt dit, dan toch het id teruggeven: de notities
+      // van het gesprek (pre_intake) moeten hoe dan ook bewaard worden.
+      const { error } = await supabase.from('leads').update(verzonden).eq('id', selectedLead.id);
+      if (error) toast.error(`Klantgegevens niet bewaard: ${error.message}`);
+      else await stemAfMetDatabank(selectedLead.id, verzonden);
       return selectedLead.id;
     }
     if (!leadVoornaam.trim() && !leadAchternaam.trim() && !leadEmail.trim() && !leadTelefoon.trim()) {
@@ -145,16 +169,17 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
     if (existingId) {
       const ok = window.confirm('Er bestaat al een dossier met dit e-mailadres of telefoonnummer. Bestaand dossier overschrijven en samenvoegen?');
       if (ok) {
-        await supabase.from('leads').update({ voornaam: leadVoornaam, achternaam: leadAchternaam, telefoon: leadTelefoon, adres: leadAdres, partner_naam: leadPartnerNaam, email: leadEmail }).eq('id', existingId);
+        const { error } = await supabase.from('leads').update(verzonden).eq('id', existingId);
+        if (error) toast.error(`Klantgegevens niet bewaard: ${error.message}`);
+        else await stemAfMetDatabank(existingId, verzonden);
         setSelectedLead((prev: any) => ({ ...prev, id: existingId }));
         update({ lead_id: existingId });
         return existingId;
       }
     }
-    const { data: newRow, error } = await supabase.from('leads').insert({
-      voornaam: leadVoornaam, achternaam: leadAchternaam, telefoon: leadTelefoon, adres: leadAdres, partner_naam: leadPartnerNaam, email: leadEmail, status: 'nieuw',
-    }).select('id').single();
+    const { data: newRow, error } = await supabase.from('leads').insert({ ...verzonden, status: 'nieuw' }).select('id').single();
     if (error || !newRow) { toast.error('Aanmaken dossier mislukt'); return null; }
+    await stemAfMetDatabank(newRow.id, verzonden);
     setSelectedLead((prev: any) => ({ ...prev, id: newRow.id }));
     update({ lead_id: newRow.id });
     return newRow.id;
