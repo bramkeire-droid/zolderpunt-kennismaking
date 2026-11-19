@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import PhotoUploadDialog from '@/components/dossier/PhotoUploadDialog';
 import PrijscalculatorDialog from '@/components/dossier/PrijscalculatorDialog';
 import type { CalculatieBron } from '@/lib/calculaties';
+import { DOSSIER_BIJGEWERKT } from '@/lib/klantWerf';
 import GenericVoorbladDialog from '@/components/dossier/GenericVoorbladDialog';
 import OffertebijlageDialog from '@/components/dossier/OffertebijlageDialog';
 import PortalManageDialog from '@/components/portal/PortalManageDialog';
@@ -52,6 +53,18 @@ export default function DossierActionsBar({ leadId, bron = 'los', actief, onOpen
     };
     void load();
     return () => { cancelled = true; };
+  }, [leadId]);
+
+  // Klant & werf gewijzigd op de dossierpagina: de dialogen hieronder (voorblad,
+  // offerte, calculator, portaal) lezen het adres uit deze kopie.
+  useEffect(() => {
+    const opnieuw = async (e: Event) => {
+      if ((e as CustomEvent).detail !== leadId) return;
+      const { data } = await supabase.from('leads').select('*').eq('id', leadId).maybeSingle();
+      if (data) setLead(data);
+    };
+    window.addEventListener(DOSSIER_BIJGEWERKT, opnieuw);
+    return () => window.removeEventListener(DOSSIER_BIJGEWERKT, opnieuw);
   }, [leadId]);
 
   const patchLead = (_id: string, patch: Record<string, any>) =>

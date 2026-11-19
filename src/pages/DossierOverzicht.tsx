@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   User, MapPin, Phone, Mail, Calendar, ArrowRight, Globe, Image as ImageIcon,
-  MessagesSquare, Euro, Bot, ExternalLink, FileText,
+  MessagesSquare, Euro, Bot, ExternalLink, FileText, Pencil,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import AppShell from '@/components/AppShell';
@@ -13,6 +13,9 @@ import MediaThumb from '@/components/MediaThumb';
 import KlantDossiers from '@/components/dossier/KlantDossiers';
 import CalculatieHistoriek from '@/components/dossier/CalculatieHistoriek';
 import AangeleverdDoorKlant from '@/components/dossier/AangeleverdDoorKlant';
+import KlantWerfFormulier from '@/components/dossier/KlantWerfFormulier';
+import WatWeWetenFormulier from '@/components/dossier/WatWeWetenFormulier';
+import { DOSSIER_BIJGEWERKT } from '@/lib/klantWerf';
 import { bepaalVolgendeActie, dossierWaarde, euro, URGENTIE_STIJL } from '@/lib/pipeline';
 
 interface Props {
@@ -32,22 +35,31 @@ const datumTijd = (iso: string) =>
   new Date(iso).toLocaleString('nl-BE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
 /** Eén kader. Bewust rustig: deze pagina vat samen en verwijst door. */
+type KaartActie = { label: string; onClick: () => void; icon?: any };
+
 function Kaart({ titel, icon: Icon, actie, children }: {
-  titel: string; icon: any; actie?: { label: string; onClick: () => void }; children: React.ReactNode;
+  titel: string; icon: any; actie?: KaartActie | (KaartActie | false | undefined)[]; children: React.ReactNode;
 }) {
+  const acties = (Array.isArray(actie) ? actie : [actie]).filter(Boolean) as KaartActie[];
   return (
     <section className="rounded-lg border border-slate-200 bg-white p-4">
       <div className="mb-3 flex items-center gap-2">
         <Icon className="h-4 w-4 shrink-0 text-slate-400" aria-hidden="true" />
         <h2 className="text-sm font-semibold text-slate-900">{titel}</h2>
-        {actie && (
-          <button
-            onClick={actie.onClick}
-            className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
-          >
-            {actie.label}
-            <ArrowRight className="h-3 w-3" />
-          </button>
+        {acties.length > 0 && (
+          <div className="ml-auto flex items-center gap-3">
+            {acties.map(a => (
+              <button
+                key={a.label}
+                onClick={a.onClick}
+                className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+              >
+                {a.icon ? <a.icon className="h-3 w-3" /> : null}
+                {a.label}
+                {!a.icon && <ArrowRight className="h-3 w-3" />}
+              </button>
+            ))}
+          </div>
         )}
       </div>
       {children}
@@ -78,10 +90,16 @@ export default function DossierOverzicht({ leadId, onOpenDossier }: Props) {
   const [preIntake, setPreIntake] = useState<any | null>(null);
   const [analyse, setAnalyse] = useState<any | null>(null);
   const [laden, setLaden] = useState(true);
+  const [bewerken, setBewerken] = useState(false);
+  const [melding, setMelding] = useState<string | null>(null);
+  const [bewerkWeten, setBewerkWeten] = useState(false);
 
   useEffect(() => {
     let weg = false;
     setLaden(true);
+    setBewerken(false);
+    setMelding(null);
+    setBewerkWeten(false);
     void (async () => {
       const [{ data: l }, { data: pi }, { data: ta }] = await Promise.all([
         supabase.from('leads').select('*').eq('id', leadId).maybeSingle(),
@@ -163,7 +181,26 @@ export default function DossierOverzicht({ leadId, onOpenDossier }: Props) {
 
           <div className="grid gap-4 lg:grid-cols-3">
             {/* Klant & werf */}
-            <Kaart titel="Klant & werf" icon={User}>
+            <Kaart
+              titel="Klant & werf"
+              icon={User}
+              actie={bewerken ? undefined : { label: 'Bewerken', icon: Pencil, onClick: () => { setMelding(null); setBewerken(true); } }}
+            >
+              {bewerken ? (
+                <KlantWerfFormulier
+                  lead={lead}
+                  onAnnuleer={() => setBewerken(false)}
+                  onBewaard={(rij, nietOvergenomen) => {
+                    setLead(rij);
+                    setBewerken(false);
+                    setMelding(nietOvergenomen.length > 0
+                      ? `Niet overgenomen: ${nietOvergenomen.join(', ')}. De klantfiche hield de oude waarde.`
+                      : null);
+                    window.dispatchEvent(new CustomEvent(DOSSIER_BIJGEWERKT, { detail: leadId }));
+                  }}
+                />
+              ) : (<>
+              {melding && <p className="mb-2 rounded border border-amber-200 bg-amber-50 p-2 text-xs text-amber-800">{melding}</p>}
               <Regel icon={Phone} label="Telefoon" waarde={lead.telefoon} />
               <Regel icon={Mail} label="E-mail" waarde={lead.email} />
               <Regel icon={MapPin} label="Adres" waarde={lead.adres} />
@@ -175,6 +212,7 @@ export default function DossierOverzicht({ leadId, onOpenDossier }: Props) {
                   <p className="whitespace-pre-wrap text-sm text-slate-700">{lead.website_omschrijving}</p>
                 </div>
               )}
+              </>)}
             </Kaart>
 
             {/* Volgende stap */}
@@ -226,13 +264,28 @@ export default function DossierOverzicht({ leadId, onOpenDossier }: Props) {
             </Kaart>
 
             {/* Wat we weten */}
-            {(heeftBoxNotes || vragenKlant.length > 0) && (
+            {/* Alleen met een telefoongesprek: daar staan deze notities. Een lege
+                pre_intake aanmaken zou het dossier in de pipeline als "gebeld" tellen. */}
+            {heeftTelefoongesprek && (
               <Kaart
                 titel="Wat we weten"
                 icon={Bot}
-                actie={heeftTelefoongesprek ? { label: 'Briefing', onClick: () => nav?.onStartVideocall(leadId) } : undefined}
+                actie={[
+                  heeftTelefoongesprek && !bewerkWeten && { label: 'Bewerken', icon: Pencil, onClick: () => setBewerkWeten(true) },
+                  heeftTelefoongesprek && { label: 'Briefing', onClick: () => nav?.onStartVideocall(leadId) },
+                ]}
               >
+                {bewerkWeten ? (
+                  <WatWeWetenFormulier
+                    preIntake={preIntake}
+                    onAnnuleer={() => setBewerkWeten(false)}
+                    onBewaard={(rij) => { if (rij) setPreIntake(rij); setBewerkWeten(false); }}
+                  />
+                ) : (
                 <div className="space-y-3">
+                  {!heeftBoxNotes && vragenKlant.length === 0 && (
+                    <p className="text-sm text-slate-500">Nog niets genoteerd.</p>
+                  )}
                   {BOX_LABELS.map(b => {
                     const rijen = boxNotes[b.key] ?? [];
                     if (rijen.length === 0) return null;
@@ -258,6 +311,7 @@ export default function DossierOverzicht({ leadId, onOpenDossier }: Props) {
                     </div>
                   )}
                 </div>
+                )}
               </Kaart>
             )}
 
