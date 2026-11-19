@@ -47,6 +47,17 @@ describe('duimnorm (44 px) voor knoppen en velden', () => {
     expect(fout).toEqual([]);
   });
 
+  // Live gemeten na #18: "Ja" in de weggooi-bevestiging van een post-it was 44 hoog
+  // maar 36 breed. Een korte tekstknop heeft naast h-11 ook min-w-11 nodig.
+  it('korte tekstknoppen (Ja/Nee) zijn ook 44 px breed', () => {
+    const code = readFileSync(join(BRON, 'components', 'communicatie', 'PostItRij.tsx'), 'utf8');
+    for (const tekst of ['Ja', 'Nee']) {
+      const plek = code.indexOf(`>${tekst}</span>`);
+      const klassen = [...code.slice(Math.max(0, plek - 400), plek).matchAll(/<Button[^\n]*?className="([^"]*)"/g)].at(-1)?.[1];
+      expect(klassen, tekst).toMatch(/(?:^|\s)min-w-11(?=\s|$)/);
+    }
+  });
+
   it('herkent een te kleine knop (zelftest)', () => {
     expect(teKlein('<button onClick={() => x()} className="rounded p-1 text-red-500"><X /></button>')).toHaveLength(1);
     expect(teKlein('<button className="inline-flex h-11 w-11 p-1"><X /></button>')).toHaveLength(0);
