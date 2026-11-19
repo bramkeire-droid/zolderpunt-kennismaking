@@ -44,7 +44,7 @@ export default function DossierCard({
           aria-label="Meer acties"
           title="Meer acties"
           onClick={(e) => { e.stopPropagation(); onSelect(); }}
-          className="shrink-0 -mr-1 -mt-1 p-1 rounded text-slate-400 opacity-0 group-hover:opacity-100 focus:opacity-100 hover:bg-slate-100 hover:text-slate-700 transition-opacity"
+          className="inline-flex h-11 w-11 shrink-0 items-center justify-center -mr-3 -mt-3 rounded text-slate-400 opacity-0 group-hover:opacity-100 focus:opacity-100 hover:bg-slate-100 hover:text-slate-700 transition-opacity"
         >
           <MoreHorizontal className="h-4 w-4" />
         </button>

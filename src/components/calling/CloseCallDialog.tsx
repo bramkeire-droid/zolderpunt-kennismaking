@@ -38,7 +38,7 @@ export default function CloseCallDialog({ open, onClose, onConfirm }: CloseCallD
       <div className="bg-white border border-[#DDD5C5] shadow-xl w-full max-w-md mx-4 p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-headline font-bold text-[#0F1419]">Gesprek afsluiten</h3>
-          <button onClick={onClose} className="p-1 text-[#5B6470] hover:text-[#0F1419]">
+          <button onClick={onClose} aria-label="Sluiten" className="inline-flex h-11 w-11 shrink-0 items-center justify-center -mr-3 text-[#5B6470] hover:text-[#0F1419]">
             <X className="h-5 w-5" />
           </button>
         </div>

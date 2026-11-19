@@ -149,7 +149,7 @@ export default function GesprekModus({ gesprek, notities, onNotitie, onNotitieGe
             {onopgeslagen} niet bewaard
           </span>
         )}
-        <Button size="sm" variant="destructive" className="ml-auto h-7 gap-1.5" onClick={stop} disabled={!!bezig}>
+        <Button size="sm" variant="destructive" className="ml-auto h-11 gap-1.5" onClick={stop} disabled={!!bezig}>
           <CircleStop className="h-3.5 w-3.5" />
           <span className="text-xs">Gesprek beëindigen</span>
         </Button>

@@ -124,7 +124,7 @@ export default function BouwflowSyncStatus({ onSynced }: { onSynced?: () => void
           <button
             type="button"
             onClick={controleer}
-            className="shrink-0 rounded p-1 text-red-500 hover:bg-red-100"
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center -m-2 rounded text-red-500 hover:bg-red-100"
             title="Opnieuw controleren"
             aria-label="Opnieuw controleren"
           >

@@ -85,7 +85,7 @@ export default function HandmatigBedrag({ override, onZet, onSluit }: Props) {
                     onClick={() => onZet(regels.filter((_, j) => j !== i))}
                     title="Regel weghalen"
                     aria-label={`Regel ${i + 1} weghalen`}
-                    className="rounded p-0.5 text-amber-500/60 hover:bg-amber-100 hover:text-red-600"
+                    className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded text-amber-500/60 hover:bg-amber-100 hover:text-red-600"
                   >
                     <Trash2 className="h-3 w-3" />
                   </button>

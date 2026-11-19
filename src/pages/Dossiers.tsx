@@ -1337,7 +1337,7 @@ function NextStepCell({ value, preIntake, onChange }: { value: string; preIntake
             if (e.key === 'Escape') { setZelfGeopend(false); setEditingOther(false); setOtherText(''); }
           }}
           placeholder="Beschrijf de volgende stap…"
-          className="h-7 mt-1 text-xs"
+          className="h-11 mt-1 text-xs"
         />
       )}
       {scheduleBadge}

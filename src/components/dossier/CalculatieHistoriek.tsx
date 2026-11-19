@@ -100,7 +100,7 @@ export default function CalculatieHistoriek({ leadId }: { leadId: string | undef
                     type="button"
                     onClick={() => wis(r.id)}
                     title="Verwijderen"
-                    className="shrink-0 rounded p-1 text-slate-300 hover:bg-slate-100 hover:text-red-600"
+                    className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded text-slate-300 hover:bg-slate-100 hover:text-red-600"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>

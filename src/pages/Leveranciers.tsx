@@ -77,7 +77,7 @@ export default function Leveranciers() {
         <div className="mx-auto max-w-4xl px-4 py-5 space-y-4">
           <div className="flex items-start justify-between gap-3 flex-wrap">
             <div>
-              <Button size="sm" variant="ghost" className="gap-1.5 h-7 -ml-2 mb-1" onClick={() => setGekozen(null)}>
+              <Button size="sm" variant="ghost" className="gap-1.5 h-11 -ml-2 mb-1" onClick={() => setGekozen(null)}>
                 <ArrowLeft className="h-3.5 w-3.5" />
                 <span className="text-xs">Alle leveranciers</span>
               </Button>

@@ -493,9 +493,15 @@ export default function PhotoUploadDialog({ open, onClose, lead, onUpdate }: Pro
 
                       {!selectMode && (
                         <button
-                          onClick={(e) => { e.stopPropagation(); deletePhotosByPaths([p.path]); }}
-                          className="absolute top-1 right-1 p-1 bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity rounded-sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            // Bevestigen zoals bij berekeningen en rapporten: het raakvlak is nu
+                            // 44 px op de foto, dus een tik ernaast mag niet meteen wissen.
+                            if (window.confirm('Deze foto verwijderen?')) void deletePhotosByPaths([p.path]);
+                          }}
+                          className="absolute top-0 right-0 inline-flex h-11 w-11 items-center justify-center bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity rounded-sm"
                           title="Verwijderen"
+                          aria-label="Foto verwijderen"
                         >
                           <X className="h-3 w-3" />
                         </button>
