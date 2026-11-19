@@ -92,7 +92,8 @@ describe('Intake: na bewaren staat in beeld wat de databank hield', () => {
 
     expect(db.updates.find(u => u.tabel === 'leads')?.patch.email).toBe('');
     expect(result.current.sessie.lead.email).toBe(db.OUD);
-    expect(toastIntake).toHaveBeenCalledWith(expect.objectContaining({ title: 'Niet alles overgenomen' }));
+    // De laatste melding telt: er staat er maar één tegelijk in beeld (TOAST_LIMIT 1).
+    expect(toastIntake.mock.calls.at(-1)?.[0]).toEqual(expect.objectContaining({ title: 'Niet alles overgenomen' }));
   });
 });
 

@@ -239,15 +239,16 @@ export function useLeadSave() {
       if (afwijkend && Object.keys(afwijkend).length > 0) {
         setLead(prev => neemOver(prev, row, afwijkend));
         opgeslagen = JSON.stringify({ ...JSON.parse(serialized), ...afwijkend });
+        // De meldingen tonen er maar één tegelijk (TOAST_LIMIT 1): deze mag niet
+        // meteen door "Opgeslagen" verdrongen worden.
         toast({ title: 'Niet alles overgenomen', description: meldingNietOvergenomen(afwijkend) });
+      } else if (showToast) {
+        toast({ title: 'Opgeslagen', description: 'Gegevens zijn bewaard.' });
       }
 
       lastSavedRef.current = opgeslagen;
       // Het staat veilig in de databank: de noodkopie mag weg.
       wisKladversie();
-      if (showToast) {
-        toast({ title: 'Opgeslagen', description: 'Gegevens zijn bewaard.' });
-      }
     } catch (err: any) {
       console.error('Save error:', err);
 
