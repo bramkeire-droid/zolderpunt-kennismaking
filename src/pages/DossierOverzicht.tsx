@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   User, MapPin, Phone, Mail, Calendar, ArrowRight, Globe, Image as ImageIcon,
-  MessagesSquare, Euro, Bot, ExternalLink, FileText,
+  MessagesSquare, Euro, Bot, ExternalLink, FileText, Pencil,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import AppShell from '@/components/AppShell';
@@ -13,6 +13,8 @@ import MediaThumb from '@/components/MediaThumb';
 import KlantDossiers from '@/components/dossier/KlantDossiers';
 import CalculatieHistoriek from '@/components/dossier/CalculatieHistoriek';
 import AangeleverdDoorKlant from '@/components/dossier/AangeleverdDoorKlant';
+import KlantWerfFormulier from '@/components/dossier/KlantWerfFormulier';
+import { DOSSIER_BIJGEWERKT } from '@/lib/klantWerf';
 import { bepaalVolgendeActie, dossierWaarde, euro, URGENTIE_STIJL } from '@/lib/pipeline';
 
 interface Props {
@@ -33,7 +35,7 @@ const datumTijd = (iso: string) =>
 
 /** Eén kader. Bewust rustig: deze pagina vat samen en verwijst door. */
 function Kaart({ titel, icon: Icon, actie, children }: {
-  titel: string; icon: any; actie?: { label: string; onClick: () => void }; children: React.ReactNode;
+  titel: string; icon: any; actie?: { label: string; onClick: () => void; icon?: any }; children: React.ReactNode;
 }) {
   return (
     <section className="rounded-lg border border-slate-200 bg-white p-4">
@@ -45,8 +47,9 @@ function Kaart({ titel, icon: Icon, actie, children }: {
             onClick={actie.onClick}
             className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
           >
+            {actie.icon ? <actie.icon className="h-3 w-3" /> : null}
             {actie.label}
-            <ArrowRight className="h-3 w-3" />
+            {!actie.icon && <ArrowRight className="h-3 w-3" />}
           </button>
         )}
       </div>
@@ -78,10 +81,14 @@ export default function DossierOverzicht({ leadId, onOpenDossier }: Props) {
   const [preIntake, setPreIntake] = useState<any | null>(null);
   const [analyse, setAnalyse] = useState<any | null>(null);
   const [laden, setLaden] = useState(true);
+  const [bewerken, setBewerken] = useState(false);
+  const [melding, setMelding] = useState<string | null>(null);
 
   useEffect(() => {
     let weg = false;
     setLaden(true);
+    setBewerken(false);
+    setMelding(null);
     void (async () => {
       const [{ data: l }, { data: pi }, { data: ta }] = await Promise.all([
         supabase.from('leads').select('*').eq('id', leadId).maybeSingle(),
@@ -163,7 +170,26 @@ export default function DossierOverzicht({ leadId, onOpenDossier }: Props) {
 
           <div className="grid gap-4 lg:grid-cols-3">
             {/* Klant & werf */}
-            <Kaart titel="Klant & werf" icon={User}>
+            <Kaart
+              titel="Klant & werf"
+              icon={User}
+              actie={bewerken ? undefined : { label: 'Bewerken', icon: Pencil, onClick: () => { setMelding(null); setBewerken(true); } }}
+            >
+              {bewerken ? (
+                <KlantWerfFormulier
+                  lead={lead}
+                  onAnnuleer={() => setBewerken(false)}
+                  onBewaard={(rij, nietOvergenomen) => {
+                    setLead(rij);
+                    setBewerken(false);
+                    setMelding(nietOvergenomen.length > 0
+                      ? `Niet overgenomen: ${nietOvergenomen.join(', ')}. De klantfiche hield de oude waarde.`
+                      : null);
+                    window.dispatchEvent(new CustomEvent(DOSSIER_BIJGEWERKT, { detail: leadId }));
+                  }}
+                />
+              ) : (<>
+              {melding && <p className="mb-2 rounded border border-amber-200 bg-amber-50 p-2 text-xs text-amber-800">{melding}</p>}
               <Regel icon={Phone} label="Telefoon" waarde={lead.telefoon} />
               <Regel icon={Mail} label="E-mail" waarde={lead.email} />
               <Regel icon={MapPin} label="Adres" waarde={lead.adres} />
@@ -175,6 +201,7 @@ export default function DossierOverzicht({ leadId, onOpenDossier }: Props) {
                   <p className="whitespace-pre-wrap text-sm text-slate-700">{lead.website_omschrijving}</p>
                 </div>
               )}
+              </>)}
             </Kaart>
 
             {/* Volgende stap */}

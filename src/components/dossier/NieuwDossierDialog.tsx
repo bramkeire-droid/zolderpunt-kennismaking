@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { AlertTriangle, FilePlus2, Loader2 } from 'lucide-react';
+import { GEVONDEN_VIA } from '@/lib/klantWerf';
 
 /**
  * Een dossier aanmaken zonder er een gesprek voor te moeten voeren.
@@ -28,19 +29,6 @@ import { AlertTriangle, FilePlus2, Loader2 } from 'lucide-react';
  * formulier precies dat minimum: anders blijft het dossier onzichtbaar in
  * BouwFlow hangen zonder dat iemand het merkt.
  */
-
-const GEVONDEN_VIA = [
-  'Google zoekresultaten',
-  'Google advertentie',
-  'Facebook of Instagram',
-  'Via AI-tool zoals ChatGPT',
-  'Via offerte- of vergelijkingsplatform',
-  'Via vrienden of familie',
-  'Via gevelreclame of werfbord',
-  'Via bedrijfswagen',
-  'Telefonisch contact',
-  'Anders',
-];
 
 interface Props {
   open: boolean;
