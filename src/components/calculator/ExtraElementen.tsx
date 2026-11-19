@@ -85,7 +85,7 @@ export default function ExtraElementen({ state, onChange }: Props) {
       title={ingeklapt[sleutel] ? 'Uitklappen' : 'Inklappen — ingevulde bedragen blijven staan'}
       aria-label={ingeklapt[sleutel] ? 'Uitklappen' : 'Inklappen'}
       aria-expanded={!ingeklapt[sleutel]}
-      className="shrink-0 rounded p-1 text-muted-foreground/60 hover:bg-muted hover:text-foreground"
+      className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded text-muted-foreground/60 hover:bg-muted hover:text-foreground"
     >
       {ingeklapt[sleutel] ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
     </button>
@@ -226,7 +226,7 @@ export default function ExtraElementen({ state, onChange }: Props) {
                   onClick={() => onChange({ extras: extras.filter((x) => x.id !== e.id) })}
                   title="Element verwijderen"
                   aria-label="Element verwijderen"
-                  className="rounded-lg p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                  className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>

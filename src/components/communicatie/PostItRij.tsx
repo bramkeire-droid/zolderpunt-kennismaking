@@ -105,7 +105,7 @@ export default function PostItRij({ notitie, onGewijzigd, auteur }: Props) {
                 key={s}
                 size="sm"
                 variant={s === soort ? 'default' : 'outline'}
-                className="gap-1 h-7"
+                className="gap-1 h-11"
                 onClick={() => setSoort(s)}
                 disabled={bezig}
               >
@@ -115,14 +115,14 @@ export default function PostItRij({ notitie, onGewijzigd, auteur }: Props) {
             );
           })}
           <span className="ml-auto flex gap-1.5">
-            <Button size="sm" className="gap-1 h-7" onClick={() => void bewaar()} disabled={bezig || !tekst.trim()}>
+            <Button size="sm" className="gap-1 h-11" onClick={() => void bewaar()} disabled={bezig || !tekst.trim()}>
               {bezig ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
               <span className="text-[11px]">Bewaren</span>
             </Button>
             <Button
               size="sm"
               variant="ghost"
-              className="h-7"
+              className="h-11"
               onClick={() => { setTekst(notitie.tekst); setSoort(notitie.soort); setBewerken(false); }}
               disabled={bezig}
             >
@@ -147,10 +147,10 @@ export default function PostItRij({ notitie, onGewijzigd, auteur }: Props) {
       {bevestigWeg ? (
         <span className="flex items-center gap-1.5 shrink-0">
           <span className="text-[11px] text-muted-foreground">Weggooien?</span>
-          <Button size="sm" variant="destructive" className="h-6 px-2" onClick={() => void gooiWeg()} disabled={bezig}>
+          <Button size="sm" variant="destructive" className="h-11 px-3" onClick={() => void gooiWeg()} disabled={bezig}>
             <span className="text-[11px]">Ja</span>
           </Button>
-          <Button size="sm" variant="ghost" className="h-6 px-2" onClick={() => setBevestigWeg(false)} disabled={bezig}>
+          <Button size="sm" variant="ghost" className="h-11 px-3" onClick={() => setBevestigWeg(false)} disabled={bezig}>
             <span className="text-[11px]">Nee</span>
           </Button>
         </span>
@@ -160,7 +160,7 @@ export default function PostItRij({ notitie, onGewijzigd, auteur }: Props) {
             <button
               type="button"
               onClick={() => setBewerken(true)}
-              className="p-1 text-muted-foreground hover:text-foreground"
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center text-muted-foreground hover:text-foreground"
               aria-label="Notitie wijzigen"
             >
               <Pencil className="h-3 w-3" />
@@ -168,7 +168,7 @@ export default function PostItRij({ notitie, onGewijzigd, auteur }: Props) {
             <button
               type="button"
               onClick={() => setBevestigWeg(true)}
-              className="p-1 text-muted-foreground hover:text-destructive"
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center text-muted-foreground hover:text-destructive"
               aria-label="Notitie verwijderen"
             >
               <Trash2 className="h-3 w-3" />

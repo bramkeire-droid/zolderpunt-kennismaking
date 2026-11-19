@@ -94,7 +94,7 @@ export default function KanbanBoard({
                         onClick={() => setIngeklapt(p => ({ ...p, [col.key]: true }))}
                         aria-label={`${col.label} inklappen`}
                         title="Kolom inklappen"
-                        className="shrink-0 rounded p-0.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700"
+                        className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded text-slate-400 hover:bg-slate-200 hover:text-slate-700"
                       >
                         <ChevronDown className="h-3.5 w-3.5" />
                       </button>

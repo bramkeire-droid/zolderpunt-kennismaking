@@ -187,7 +187,7 @@ export default function RapportenLijst({ leadId, onAantal }: Props) {
               onClick={() => void wis(rij)}
               disabled={bezig === rij.id}
               aria-label={`${rij.bestandsnaam} verwijderen`}
-              className="rounded-md p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-slate-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
             >
               <Trash2 className="h-3.5 w-3.5" />
             </button>
