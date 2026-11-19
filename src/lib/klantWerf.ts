@@ -121,7 +121,8 @@ const LABEL: Record<string, string> = { adres: 'adres', telefoon: 'telefoon', em
  */
 export async function bewaarKlantWerf(lead: KlantWerfLead, patch: Record<string, string | null>) {
   if ('email' in patch || 'telefoon' in patch) {
-    const sleutel = klantSleutel(String(patch.email ?? lead.email ?? ''), String(patch.telefoon ?? lead.telefoon ?? ''));
+    const email = String(patch.email ?? lead.email ?? '');
+    const sleutel = klantSleutel(email, String(patch.telefoon ?? lead.telefoon ?? ''));
     if (sleutel) {
       const { data: ander, error } = await supabase
         .from('customers').select('id, voornaam, achternaam').eq('klant_sleutel', sleutel).maybeSingle();
@@ -130,12 +131,18 @@ export async function bewaarKlantWerf(lead: KlantWerfLead, patch: Record<string,
       // telefoon overnemen. Klanten samenvoegen is een aparte beslissing.
       if (ander && ander.id !== lead.customer_id) {
         const naam = `${ander.voornaam ?? ''} ${ander.achternaam ?? ''}`.trim() || 'een andere klant';
-        throw new Error(`Dit ${'email' in patch ? 'e-mailadres' : 'telefoonnummer'} hoort al bij ${naam}. Niets bewaard.`);
+        throw new Error(`Dit ${email.trim() ? 'e-mailadres' : 'telefoonnummer'} hoort al bij ${naam}. Niets bewaard.`);
       }
     }
   }
 
-  const { data, error } = await supabase.from('leads').update(patch as any).eq('id', lead.id).select('*').single();
+  // Twee stappen, niet update().select(): die geeft de rij van vóór de
+  // AFTER-triggers, en net die zetten bv. een leeggemaakt e-mailadres terug.
+  const { data: geraakt, error: schrijfFout } = await supabase
+    .from('leads').update(patch as any).eq('id', lead.id).select('id');
+  if (schrijfFout) throw new Error(schrijfFout.message);
+  if (!geraakt?.length) throw new Error('Niets bewaard: geen schrijfrechten op dit dossier.');
+  const { data, error } = await supabase.from('leads').select('*').eq('id', lead.id).single();
   if (error) throw new Error(error.message);
 
   const nietOvergenomen = Object.keys(patch)

@@ -11,16 +11,27 @@ const db = vi.hoisted(() => ({
   lead: null as any,
   preIntake: null as any,
   andereKlant: null as any,
+  geenRechten: false,
+  // Wat de databanktriggers ná de update met de rij doen (bv. klantfiche zet iets terug).
+  naTriggers: (l: any) => l,
   updates: [] as { tabel: string; patch: any }[],
 }));
 
 vi.mock('@/integrations/supabase/client', () => {
   const bouwer = (tabel: string) => {
     let patch: any = null;
+    let toegepast = false;
+    const pasToe = () => {
+      if (!patch || toegepast || db.geenRechten) return;
+      toegepast = true;
+      if (tabel === 'leads') db.lead = db.naTriggers({ ...db.lead, ...patch });
+      if (tabel === 'pre_intake') db.preIntake = { ...db.preIntake, ...patch };
+    };
     const resultaat = () => {
-      if (tabel === 'leads' && patch) { db.lead = { ...db.lead, ...patch }; return { data: db.lead, error: null }; }
+      // Zoals Postgres: UPDATE ... RETURNING geeft de rij van vóór de AFTER-triggers.
+      if (tabel === 'leads' && patch && !toegepast) { const voor = { ...db.lead, ...patch }; pasToe(); return { data: voor, error: null }; }
+      pasToe();
       if (tabel === 'leads') return { data: db.lead, error: null };
-      if (tabel === 'pre_intake' && patch) { db.preIntake = { ...db.preIntake, ...patch }; return { data: db.preIntake, error: null }; }
       if (tabel === 'pre_intake') return { data: db.preIntake, error: null };
       if (tabel === 'customers') return { data: db.andereKlant, error: null };
       return { data: null, error: null };
@@ -30,7 +41,13 @@ vi.mock('@/integrations/supabase/client', () => {
       update: (p: any) => { patch = p; db.updates.push({ tabel, patch: p }); return b; },
       maybeSingle: async () => resultaat(),
       single: async () => resultaat(),
-      then: (ok: any, nok: any) => Promise.resolve({ data: null, count: 0, error: null }).then(ok, nok),
+      then: (ok: any, nok: any) => {
+        pasToe();
+        const r = patch
+          ? { data: db.geenRechten ? [] : [{ id: 'x' }], error: null }
+          : { data: null, count: 0, error: null };
+        return Promise.resolve(r).then(ok, nok);
+      },
     };
     return b;
   };
@@ -47,6 +64,8 @@ beforeEach(() => {
   db.updates = [];
   db.andereKlant = null;
   db.preIntake = null;
+  db.geenRechten = false;
+  db.naTriggers = (l: any) => l;
   db.lead = {
     id: 'L1', customer_id: 'K1', voornaam: 'Test', achternaam: 'Klant',
     telefoon: '0470 00 00 00', email: 'test@voorbeeld.be', adres: '9400',
@@ -96,11 +115,33 @@ describe('Dossierpagina — Klant & werf bewerken', () => {
 
   it('laat de dossierbalk opnieuw laden na het bewaren', async () => {
     const gehoord = vi.fn();
-    window.addEventListener('dossier-bijgewerkt', (e) => gehoord((e as CustomEvent).detail));
+    const luister = (e: Event) => gehoord((e as CustomEvent).detail);
+    window.addEventListener('dossier-bijgewerkt', luister);
     await openBewerken();
     fireEvent.change(screen.getByLabelText('Gemeente'), { target: { value: 'Ninove' } });
     fireEvent.click(screen.getByRole('button', { name: /Bewaren/ }));
     await waitFor(() => expect(gehoord).toHaveBeenCalledWith('L1'));
+    window.removeEventListener('dossier-bijgewerkt', luister);
+  });
+
+  it('toont wat de databank NA de triggers hield, en meldt wat niet overgenomen is', async () => {
+    // Een leeggemaakt e-mailadres: de klantfiche houdt het en zet het terug.
+    db.naTriggers = (l: any) => ({ ...l, email: l.email || 'test@voorbeeld.be' });
+    await openBewerken();
+    fireEvent.change(screen.getByLabelText('E-mail'), { target: { value: '' } });
+    fireEvent.click(screen.getByRole('button', { name: /Bewaren/ }));
+
+    expect(await screen.findByText(/Niet overgenomen: e-mail/)).toBeInTheDocument();
+    expect(screen.getByText('test@voorbeeld.be')).toBeInTheDocument();
+  });
+
+  it('zegt het als er niets bewaard werd (geen schrijfrechten)', async () => {
+    db.geenRechten = true;
+    await openBewerken();
+    fireEvent.change(screen.getByLabelText('Gemeente'), { target: { value: 'Ninove' } });
+    fireEvent.click(screen.getByRole('button', { name: /Bewaren/ }));
+    expect(await screen.findByText(/Niets bewaard: geen schrijfrechten/)).toBeInTheDocument();
+    expect(screen.getByLabelText('Gemeente')).toBeInTheDocument();
   });
 });
 

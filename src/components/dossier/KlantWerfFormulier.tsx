@@ -64,7 +64,7 @@ export default function KlantWerfFormulier({ lead, onBewaard, onAnnuleer }: Prop
 
   return (
     <form onSubmit={bewaar} onKeyDown={(e) => { if (e.key === 'Escape') onAnnuleer(); }} className="space-y-2">
-      <div className="grid grid-cols-[1fr_4.5rem] gap-2">
+      <div className="grid grid-cols-[1fr_6rem] gap-2">
         <Veld id="kw-straat" label="Straat">
           <Input id="kw-straat" value={adres.straat} onChange={zet('straat')} disabled={bezig} autoFocus />
         </Veld>
@@ -84,7 +84,7 @@ export default function KlantWerfFormulier({ lead, onBewaard, onAnnuleer }: Prop
         <Input id="kw-telefoon" type="tel" value={telefoon} onChange={e => setTelefoon(e.target.value)} disabled={bezig} />
       </Veld>
       <Veld id="kw-email" label="E-mail">
-        <Input id="kw-email" type="email" value={email} onChange={e => setEmail(e.target.value)} disabled={bezig} />
+        <Input id="kw-email" inputMode="email" autoComplete="off" value={email} onChange={e => setEmail(e.target.value)} disabled={bezig} />
       </Veld>
       <Veld id="kw-gevonden" label="Gevonden via">
         <Input id="kw-gevonden" list="kw-gevonden-lijst" value={gevondenVia}
