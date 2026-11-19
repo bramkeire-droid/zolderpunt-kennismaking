@@ -9,6 +9,7 @@ import DossierOverzicht from '@/pages/DossierOverzicht';
 
 const db = vi.hoisted(() => ({
   lead: null as any,
+  preIntake: null as any,
   andereKlant: null as any,
   updates: [] as { tabel: string; patch: any }[],
 }));
@@ -19,6 +20,8 @@ vi.mock('@/integrations/supabase/client', () => {
     const resultaat = () => {
       if (tabel === 'leads' && patch) { db.lead = { ...db.lead, ...patch }; return { data: db.lead, error: null }; }
       if (tabel === 'leads') return { data: db.lead, error: null };
+      if (tabel === 'pre_intake' && patch) { db.preIntake = { ...db.preIntake, ...patch }; return { data: db.preIntake, error: null }; }
+      if (tabel === 'pre_intake') return { data: db.preIntake, error: null };
       if (tabel === 'customers') return { data: db.andereKlant, error: null };
       return { data: null, error: null };
     };
@@ -43,6 +46,7 @@ vi.mock('@/contexts/AppNavContext', () => ({ useAppNav: () => null }));
 beforeEach(() => {
   db.updates = [];
   db.andereKlant = null;
+  db.preIntake = null;
   db.lead = {
     id: 'L1', customer_id: 'K1', voornaam: 'Test', achternaam: 'Klant',
     telefoon: '0470 00 00 00', email: 'test@voorbeeld.be', adres: '9400',
@@ -97,5 +101,41 @@ describe('Dossierpagina — Klant & werf bewerken', () => {
     fireEvent.change(screen.getByLabelText('Gemeente'), { target: { value: 'Ninove' } });
     fireEvent.click(screen.getByRole('button', { name: /Bewaren/ }));
     await waitFor(() => expect(gehoord).toHaveBeenCalledWith('L1'));
+  });
+});
+
+describe('Dossierpagina — Wat we weten bewerken', () => {
+  beforeEach(() => {
+    db.preIntake = {
+      id: 'P1', lead_id: 'L1',
+      box_notes: { wat: ['Zolder leefbaar maken', 'bureel of slaapkamer'], aannemer: [], waarom: ['Te weinig ruimte'], budget: [] },
+      questions_raised: { budget: { raised: true, note: '' }, overlast: { raised: false, note: '' } },
+    };
+  });
+
+  it('een notitie corrigeren en een vraag aanvinken bewaart alleen die wijzigingen', async () => {
+    render(<DossierOverzicht leadId="L1" />);
+    const knoppen = await screen.findAllByRole('button', { name: /Bewerken/ });
+    fireEvent.click(knoppen[1]); // [0] = Klant & werf, [1] = Wat we weten
+
+    fireEvent.change(screen.getByLabelText('Wat? notitie 2'), { target: { value: 'bureau of slaapkamer' } });
+    fireEvent.click(screen.getByLabelText('Overlast?'));
+    fireEvent.change(screen.getByLabelText('Notitie bij Overlast?'), { target: { value: 'werken beiden thuis' } });
+    fireEvent.click(screen.getByRole('button', { name: /Bewaren/ }));
+
+    await waitFor(() => expect(db.updates.filter(u => u.tabel === 'pre_intake')).toHaveLength(1));
+    const { patch } = db.updates.find(u => u.tabel === 'pre_intake')!;
+    expect(patch.box_notes.wat).toEqual(['Zolder leefbaar maken', 'bureau of slaapkamer']);
+    expect(patch.box_notes.waarom).toEqual(['Te weinig ruimte']);
+    expect(patch.questions_raised.overlast).toEqual({ raised: true, note: 'werken beiden thuis' });
+    expect(patch.questions_raised.budget).toEqual({ raised: true, note: '' });
+    expect(await screen.findByText('bureau of slaapkamer')).toBeInTheDocument();
+    expect(screen.getByText('werken beiden thuis')).toBeInTheDocument();
+  });
+
+  it('zonder telefoongesprek geen bewerkknop (er is geen pre_intake om in te schrijven)', async () => {
+    db.preIntake = null;
+    render(<DossierOverzicht leadId="L1" />);
+    expect(await screen.findAllByRole('button', { name: /Bewerken/ })).toHaveLength(1);
   });
 });

@@ -14,6 +14,7 @@ import KlantDossiers from '@/components/dossier/KlantDossiers';
 import CalculatieHistoriek from '@/components/dossier/CalculatieHistoriek';
 import AangeleverdDoorKlant from '@/components/dossier/AangeleverdDoorKlant';
 import KlantWerfFormulier from '@/components/dossier/KlantWerfFormulier';
+import WatWeWetenFormulier from '@/components/dossier/WatWeWetenFormulier';
 import { DOSSIER_BIJGEWERKT } from '@/lib/klantWerf';
 import { bepaalVolgendeActie, dossierWaarde, euro, URGENTIE_STIJL } from '@/lib/pipeline';
 
@@ -34,23 +35,31 @@ const datumTijd = (iso: string) =>
   new Date(iso).toLocaleString('nl-BE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
 /** Eén kader. Bewust rustig: deze pagina vat samen en verwijst door. */
+type KaartActie = { label: string; onClick: () => void; icon?: any };
+
 function Kaart({ titel, icon: Icon, actie, children }: {
-  titel: string; icon: any; actie?: { label: string; onClick: () => void; icon?: any }; children: React.ReactNode;
+  titel: string; icon: any; actie?: KaartActie | (KaartActie | false | undefined)[]; children: React.ReactNode;
 }) {
+  const acties = (Array.isArray(actie) ? actie : [actie]).filter(Boolean) as KaartActie[];
   return (
     <section className="rounded-lg border border-slate-200 bg-white p-4">
       <div className="mb-3 flex items-center gap-2">
         <Icon className="h-4 w-4 shrink-0 text-slate-400" aria-hidden="true" />
         <h2 className="text-sm font-semibold text-slate-900">{titel}</h2>
-        {actie && (
-          <button
-            onClick={actie.onClick}
-            className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
-          >
-            {actie.icon ? <actie.icon className="h-3 w-3" /> : null}
-            {actie.label}
-            {!actie.icon && <ArrowRight className="h-3 w-3" />}
-          </button>
+        {acties.length > 0 && (
+          <div className="ml-auto flex items-center gap-3">
+            {acties.map(a => (
+              <button
+                key={a.label}
+                onClick={a.onClick}
+                className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+              >
+                {a.icon ? <a.icon className="h-3 w-3" /> : null}
+                {a.label}
+                {!a.icon && <ArrowRight className="h-3 w-3" />}
+              </button>
+            ))}
+          </div>
         )}
       </div>
       {children}
@@ -83,12 +92,14 @@ export default function DossierOverzicht({ leadId, onOpenDossier }: Props) {
   const [laden, setLaden] = useState(true);
   const [bewerken, setBewerken] = useState(false);
   const [melding, setMelding] = useState<string | null>(null);
+  const [bewerkWeten, setBewerkWeten] = useState(false);
 
   useEffect(() => {
     let weg = false;
     setLaden(true);
     setBewerken(false);
     setMelding(null);
+    setBewerkWeten(false);
     void (async () => {
       const [{ data: l }, { data: pi }, { data: ta }] = await Promise.all([
         supabase.from('leads').select('*').eq('id', leadId).maybeSingle(),
@@ -253,13 +264,28 @@ export default function DossierOverzicht({ leadId, onOpenDossier }: Props) {
             </Kaart>
 
             {/* Wat we weten */}
-            {(heeftBoxNotes || vragenKlant.length > 0) && (
+            {/* Alleen met een telefoongesprek: daar staan deze notities. Een lege
+                pre_intake aanmaken zou het dossier in de pipeline als "gebeld" tellen. */}
+            {heeftTelefoongesprek && (
               <Kaart
                 titel="Wat we weten"
                 icon={Bot}
-                actie={heeftTelefoongesprek ? { label: 'Briefing', onClick: () => nav?.onStartVideocall(leadId) } : undefined}
+                actie={[
+                  heeftTelefoongesprek && !bewerkWeten && { label: 'Bewerken', icon: Pencil, onClick: () => setBewerkWeten(true) },
+                  heeftTelefoongesprek && { label: 'Briefing', onClick: () => nav?.onStartVideocall(leadId) },
+                ]}
               >
+                {bewerkWeten ? (
+                  <WatWeWetenFormulier
+                    preIntake={preIntake}
+                    onAnnuleer={() => setBewerkWeten(false)}
+                    onBewaard={(rij) => { if (rij) setPreIntake(rij); setBewerkWeten(false); }}
+                  />
+                ) : (
                 <div className="space-y-3">
+                  {!heeftBoxNotes && vragenKlant.length === 0 && (
+                    <p className="text-sm text-slate-500">Nog niets genoteerd.</p>
+                  )}
                   {BOX_LABELS.map(b => {
                     const rijen = boxNotes[b.key] ?? [];
                     if (rijen.length === 0) return null;
@@ -285,6 +311,7 @@ export default function DossierOverzicht({ leadId, onOpenDossier }: Props) {
                     </div>
                   )}
                 </div>
+                )}
               </Kaart>
             )}
 
