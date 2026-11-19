@@ -50,9 +50,11 @@ export default function WatWeWetenFormulier({ preIntake, onBewaard, onAnnuleer }
                 <Textarea
                   aria-label={`${titel} notitie ${i + 1}`}
                   value={r}
-                  rows={Math.max(1, r.split('\n').length)}
+                  // Mee laten groeien met de tekst: field-sizing in Chrome; als terugval
+                  // (Safari) een schatting van ±32 tekens per regel in deze kaartbreedte.
+                  rows={r.split('\n').reduce((n, regel) => n + Math.max(1, Math.ceil(regel.length / 32)), 0)}
                   onChange={e => zetVak(key, w.vakken[key].map((x, j) => (j === i ? e.target.value : x)))}
-                  className="min-h-[2.25rem] py-1.5 text-sm"
+                  className="min-h-[2.25rem] py-1.5 text-sm [field-sizing:content]"
                 />
                 <button type="button" aria-label={`${titel} notitie ${i + 1} weghalen`}
                   onClick={() => zetVak(key, w.vakken[key].filter((_, j) => j !== i))}
