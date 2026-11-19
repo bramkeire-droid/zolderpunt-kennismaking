@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useSession } from '@/contexts/SessionContext';
 import { useToast } from '@/hooks/use-toast';
 import type { LeadData } from '@/contexts/SessionContext';
+import { klantveldenNaBewaren, meldingNietOvergenomen, neemOver } from '@/lib/naBewaren';
 
 const LEAD_SESSION_KEY = 'zp_active_lead_id';
 
@@ -148,7 +149,7 @@ function hasAnyData(lead: LeadData): boolean {
 
 /** Returns saveLead (manual) + flushSave (immediate) + starts a 3-second debounced autosave */
 export function useLeadSave() {
-  const { lead, updateLead } = useSession();
+  const { lead, updateLead, setLead } = useSession();
   const { toast } = useToast();
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   const lastSavedRef = useRef<string>('');
@@ -191,6 +192,7 @@ export function useLeadSave() {
         leadData = { ...leadData, status: 'intake' };
       }
       const row = leadToRow(leadData);
+      let bewaardId: string | null = leadData.id || null;
 
       if (leadData.id) {
         const { error } = await supabase.from('leads').update(row).eq('id', leadData.id);
@@ -211,12 +213,14 @@ export function useLeadSave() {
           const { error } = await supabase.from('leads').update(row).eq('id', existingId);
           if (error) throw error;
           updateLead({ id: existingId });
+          bewaardId = existingId;
           try { localStorage.setItem(LEAD_SESSION_KEY, existingId); } catch {}
         } else {
           const { data, error } = await supabase.from('leads').insert(row).select('id').single();
           if (error) throw error;
           if (data) {
             updateLead({ id: data.id });
+            bewaardId = data.id;
             try { localStorage.setItem(LEAD_SESSION_KEY, data.id); } catch {}
           }
         }
@@ -227,7 +231,18 @@ export function useLeadSave() {
         try { localStorage.setItem(LEAD_SESSION_KEY, leadData.id); } catch {}
       }
 
-      lastSavedRef.current = serialized;
+      // Wat de klantfiche-triggers er ná het schrijven van maakten, terug in
+      // beeld: anders toont de intake een leeggemaakt e-mailadres dat de
+      // databank allang teruggezet heeft (zie lib/naBewaren.ts).
+      let opgeslagen = serialized;
+      const afwijkend = bewaardId ? await klantveldenNaBewaren(bewaardId, row) : null;
+      if (afwijkend && Object.keys(afwijkend).length > 0) {
+        setLead(prev => neemOver(prev, row, afwijkend));
+        opgeslagen = JSON.stringify({ ...JSON.parse(serialized), ...afwijkend });
+        toast({ title: 'Niet alles overgenomen', description: meldingNietOvergenomen(afwijkend) });
+      }
+
+      lastSavedRef.current = opgeslagen;
       // Het staat veilig in de databank: de noodkopie mag weg.
       wisKladversie();
       if (showToast) {
@@ -262,7 +277,7 @@ export function useLeadSave() {
     } finally {
       inFlightRef.current = null;
     }
-  }, [updateLead, toast]);
+  }, [updateLead, setLead, toast]);
 
   // Manual save with toast
   const saveLead = useCallback(async () => {
