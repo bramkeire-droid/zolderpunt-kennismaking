@@ -54,17 +54,17 @@ export default function WatWeWetenFormulier({ preIntake, onBewaard, onAnnuleer }
                   // (Safari) een schatting van ±32 tekens per regel in deze kaartbreedte.
                   rows={r.split('\n').reduce((n, regel) => n + Math.max(1, Math.ceil(regel.length / 32)), 0)}
                   onChange={e => zetVak(key, w.vakken[key].map((x, j) => (j === i ? e.target.value : x)))}
-                  className="min-h-[2.25rem] py-1.5 text-sm [field-sizing:content]"
+                  className="min-h-11 py-2 text-sm [field-sizing:content]"
                 />
                 <button type="button" aria-label={`${titel} notitie ${i + 1} weghalen`}
                   onClick={() => zetVak(key, w.vakken[key].filter((_, j) => j !== i))}
-                  className="mt-1.5 p-1 text-slate-400 hover:text-destructive">
+                  className="flex h-11 w-11 shrink-0 items-center justify-center text-slate-400 hover:text-destructive">
                   <X className="h-3.5 w-3.5" />
                 </button>
               </div>
             ))}
             <button type="button" onClick={() => zetVak(key, [...w.vakken[key], ''])}
-              className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
+              className="inline-flex min-h-11 items-center gap-1 text-xs text-primary hover:underline">
               <Plus className="h-3 w-3" /> Notitie bij {titel.toLowerCase()}
             </button>
           </div>
@@ -76,14 +76,14 @@ export default function WatWeWetenFormulier({ preIntake, onBewaard, onAnnuleer }
         <div className="mt-1 space-y-1">
           {CALLING_QUESTIONS.map(q => (
             <div key={q.key}>
-              <label className="flex items-center gap-2 text-sm text-slate-700">
+              <label className="flex min-h-11 items-center gap-2 text-sm text-slate-700">
                 <input type="checkbox" checked={w.vragen[q.key].raised}
                   onChange={e => zetVraag(q.key, { raised: e.target.checked })} className="h-4 w-4 accent-primary" />
                 {q.label}
               </label>
               {w.vragen[q.key].raised && (
                 <Input aria-label={`Notitie bij ${q.label}`} placeholder="Notitie (mag leeg)" value={w.vragen[q.key].note}
-                  onChange={e => zetVraag(q.key, { note: e.target.value })} className="ml-6 mt-1 h-8 w-[calc(100%-1.5rem)] text-sm" />
+                  onChange={e => zetVraag(q.key, { note: e.target.value })} className="mb-1 ml-6 h-11 w-[calc(100%-1.5rem)] text-sm" />
               )}
             </div>
           ))}
@@ -91,11 +91,11 @@ export default function WatWeWetenFormulier({ preIntake, onBewaard, onAnnuleer }
       </fieldset>
 
       <div className="flex gap-2 pt-1">
-        <Button type="submit" size="sm" className="gap-1" disabled={bezig}>
+        <Button type="submit" size="sm" className="h-11 gap-1" disabled={bezig}>
           {bezig ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
           Bewaren
         </Button>
-        <Button type="button" size="sm" variant="ghost" onClick={onAnnuleer} disabled={bezig}>Annuleren</Button>
+        <Button type="button" size="sm" variant="ghost" className="h-11" onClick={onAnnuleer} disabled={bezig}>Annuleren</Button>
       </div>
       {fout && <p className="text-xs text-destructive">Bewaren mislukte: {fout}</p>}
     </form>
