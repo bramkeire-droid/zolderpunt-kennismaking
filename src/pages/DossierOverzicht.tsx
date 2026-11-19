@@ -52,7 +52,7 @@ function Kaart({ titel, icon: Icon, actie, children }: {
               <button
                 key={a.label}
                 onClick={a.onClick}
-                className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                className="-my-3.5 inline-flex items-center gap-1 py-3.5 text-xs font-medium text-primary hover:underline"
               >
                 {a.icon ? <a.icon className="h-3 w-3" /> : null}
                 {a.label}

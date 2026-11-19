@@ -66,28 +66,28 @@ export default function KlantWerfFormulier({ lead, onBewaard, onAnnuleer }: Prop
     <form onSubmit={bewaar} onKeyDown={(e) => { if (e.key === 'Escape') onAnnuleer(); }} className="space-y-2">
       <div className="grid grid-cols-[1fr_6rem] gap-2">
         <Veld id="kw-straat" label="Straat">
-          <Input id="kw-straat" value={adres.straat} onChange={zet('straat')} disabled={bezig} autoFocus />
+          <Input className="h-11" id="kw-straat" value={adres.straat} onChange={zet('straat')} disabled={bezig} autoFocus />
         </Veld>
         <Veld id="kw-nummer" label="Nr">
-          <Input id="kw-nummer" value={adres.nummer} onChange={zet('nummer')} disabled={bezig} />
+          <Input className="h-11" id="kw-nummer" value={adres.nummer} onChange={zet('nummer')} disabled={bezig} />
         </Veld>
       </div>
       <div className="grid grid-cols-[4.5rem_1fr] gap-2">
         <Veld id="kw-postcode" label="Postcode">
-          <Input id="kw-postcode" inputMode="numeric" value={adres.postcode} onChange={zet('postcode')} disabled={bezig} />
+          <Input className="h-11" id="kw-postcode" inputMode="numeric" value={adres.postcode} onChange={zet('postcode')} disabled={bezig} />
         </Veld>
         <Veld id="kw-gemeente" label="Gemeente">
-          <Input id="kw-gemeente" value={adres.gemeente} onChange={zet('gemeente')} disabled={bezig} />
+          <Input className="h-11" id="kw-gemeente" value={adres.gemeente} onChange={zet('gemeente')} disabled={bezig} />
         </Veld>
       </div>
       <Veld id="kw-telefoon" label="Telefoon">
-        <Input id="kw-telefoon" type="tel" value={telefoon} onChange={e => setTelefoon(e.target.value)} disabled={bezig} />
+        <Input className="h-11" id="kw-telefoon" type="tel" value={telefoon} onChange={e => setTelefoon(e.target.value)} disabled={bezig} />
       </Veld>
       <Veld id="kw-email" label="E-mail">
-        <Input id="kw-email" inputMode="email" autoComplete="off" value={email} onChange={e => setEmail(e.target.value)} disabled={bezig} />
+        <Input className="h-11" id="kw-email" inputMode="email" autoComplete="off" value={email} onChange={e => setEmail(e.target.value)} disabled={bezig} />
       </Veld>
       <Veld id="kw-gevonden" label="Gevonden via">
-        <Input id="kw-gevonden" list="kw-gevonden-lijst" value={gevondenVia}
+        <Input className="h-11" id="kw-gevonden" list="kw-gevonden-lijst" value={gevondenVia}
           onChange={e => setGevondenVia(e.target.value)} disabled={bezig} />
         <datalist id="kw-gevonden-lijst">
           {GEVONDEN_VIA.map(o => <option key={o} value={o} />)}
@@ -104,11 +104,11 @@ export default function KlantWerfFormulier({ lead, onBewaard, onAnnuleer }: Prop
       </div>
 
       <div className="flex gap-2 pt-1">
-        <Button type="submit" size="sm" className="gap-1" disabled={bezig}>
+        <Button type="submit" size="sm" className="h-11 gap-1" disabled={bezig}>
           {bezig ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
           Bewaren
         </Button>
-        <Button type="button" size="sm" variant="ghost" onClick={onAnnuleer} disabled={bezig}>Annuleren</Button>
+        <Button type="button" size="sm" variant="ghost" className="h-11" onClick={onAnnuleer} disabled={bezig}>Annuleren</Button>
       </div>
       {fout && <p className="text-xs text-destructive">Bewaren mislukte: {fout}</p>}
     </form>
