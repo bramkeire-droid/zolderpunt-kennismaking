@@ -147,10 +147,10 @@ export default function PostItRij({ notitie, onGewijzigd, auteur }: Props) {
       {bevestigWeg ? (
         <span className="flex items-center gap-1.5 shrink-0">
           <span className="text-[11px] text-muted-foreground">Weggooien?</span>
-          <Button size="sm" variant="destructive" className="h-11 px-3" onClick={() => void gooiWeg()} disabled={bezig}>
+          <Button size="sm" variant="destructive" className="h-11 min-w-11 px-3" onClick={() => void gooiWeg()} disabled={bezig}>
             <span className="text-[11px]">Ja</span>
           </Button>
-          <Button size="sm" variant="ghost" className="h-11 px-3" onClick={() => setBevestigWeg(false)} disabled={bezig}>
+          <Button size="sm" variant="ghost" className="h-11 min-w-11 px-3" onClick={() => setBevestigWeg(false)} disabled={bezig}>
             <span className="text-[11px]">Nee</span>
           </Button>
         </span>
