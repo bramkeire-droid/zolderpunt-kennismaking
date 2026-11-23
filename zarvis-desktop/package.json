@@ -1,7 +1,7 @@
 {
   "name": "zarvis-desktop",
   "productName": "Zarvis",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Zarvis als klein venster dat boven je andere werk zweeft.",
   "private": true,
   "main": "main.js",
@@ -20,7 +20,11 @@
     "files": [
       "main.js",
       "preload.js",
-      "offline.html"
+      "preload-whatsapp.js",
+      "offline.html",
+      "whatsapp.html",
+      "whatsapp.js",
+      "whatsapp-vertaal.js"
     ],
     "win": {
       "target": "portable"
@@ -35,5 +39,9 @@
         "NSMicrophoneUsageDescription": "Zarvis luistert naar je stem als je de microfoon aanzet."
       }
     }
+  },
+  "dependencies": {
+    "baileys": "^7.0.0-rc14",
+    "qrcode": "^1.5.4"
   }
 }

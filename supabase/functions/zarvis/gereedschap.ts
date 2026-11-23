@@ -106,6 +106,16 @@ export const GEREEDSCHAP: GereedschapDef[] = [
     },
   },
   {
+    name: 'lees_whatsapp',
+    description:
+      'Leest het WhatsApp-gesprek met de klant van één dossier, oudste eerst: wie wat stuurde en wanneer. Bevat alleen gesprekken met nummers die in een dossier staan, en alleen sinds het Zarvis-programma aan WhatsApp gekoppeld is. Foto\'s en spraakberichten staan erin als vermelding, zonder inhoud.',
+    input_schema: {
+      type: 'object',
+      properties: { dossier_id: { type: 'string' } },
+      required: ['dossier_id'],
+    },
+  },
+  {
     name: 'pijplijn_overzicht',
     description:
       'Geeft het overzicht van alle dossiers: aantallen per categorie en per fase, en per dossier de naam, fase, volgende stap, geplande afspraken en wanneer het laatst gewijzigd is. Gebruik dit voor vragen over het geheel: hoeveel dossiers in offerte, wat blijft liggen, wat staat er gepland.',
@@ -228,6 +238,27 @@ const UITVOERDERS: Record<string, Uitvoerder> = {
       return {
         resultaat: { aantal: (data ?? []).length, calculaties: data ?? [] },
         detail: (data ?? []).length === 1 ? '1 calculatie' : `${(data ?? []).length} calculaties`,
+      };
+    },
+  },
+
+  lees_whatsapp: {
+    label: () => 'WhatsApp lezen',
+    async voer(db, invoer) {
+      const id = eisDossier(invoer);
+      const { data, error } = await db.from('whatsapp_berichten')
+        .select('van_mij, verstuurd_op, soort, tekst')
+        .eq('lead_id', id).order('verstuurd_op', { ascending: false }).limit(150);
+      if (error) throw new Error(error.message);
+      const berichten = (data ?? []).reverse().map((b: any) => ({
+        van: b.van_mij ? 'wij' : 'klant',
+        op: b.verstuurd_op,
+        ...(b.soort !== 'tekst' ? { soort: b.soort } : {}),
+        tekst: b.tekst,
+      }));
+      return {
+        resultaat: { aantal: berichten.length, berichten },
+        detail: berichten.length === 1 ? '1 bericht' : `${berichten.length} berichten`,
       };
     },
   },

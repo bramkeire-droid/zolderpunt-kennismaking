@@ -54,3 +54,7 @@ verify_jwt = true
 # De Vlaamse stem van Zarvis (Azure Speech). Controleert login en rol zelf in code.
 [functions.zarvis-stem]
 verify_jwt = true
+
+# WhatsApp-berichten van het Zarvis-programma (gekoppeld toestel), alleen lezen.
+[functions.whatsapp-koppeling]
+verify_jwt = true

@@ -25,3 +25,13 @@ Het programma is niet ondertekend. Windows toont daarom bij de eerste start een 
 ## Beveiliging
 
 De pagina in het venster krijgt geen toegang tot het systeem: alleen de sneltoets en "verberg" lopen over de brug in `preload.js`. Het venster navigeert nergens anders heen dan naar Zarvis; andere links openen in de gewone browser. De microfoon is alleen toegestaan voor het adres van Zarvis.
+
+## WhatsApp
+
+Via het icoon in het systeemvak, "WhatsApp koppelen…": scan de QR-code met de gsm (Instellingen, Gekoppelde apparaten). Daarna leest Zarvis mee.
+
+- Er wordt nooit een bericht verstuurd.
+- Groepen, statusupdates en kanalen worden niet doorgestuurd.
+- De server bewaart alleen gesprekken met nummers die in een dossier staan.
+- De koppeling gebruikt een bibliotheek die niet van WhatsApp is (Baileys). Dat gaat in tegen hun voorwaarden; in het ergste geval blokkeren ze het nummer.
+- Ontkoppelen kan in hetzelfde venster, of op de gsm onder Gekoppelde apparaten.

@@ -138,3 +138,12 @@ Nummers zijn doorlopend en worden nooit hergebruikt.
 - **Mijn open vragen erover**: (1) Wordt de app vandaag gebruikt en klopt de voorraad erin? (2) Mag Zarvis bestellingen voorbereiden bij leveranciers, of alleen signaleren? (3) Moet verbruik gekoppeld worden aan dossiers in Compass en aan de calculator? (4) Voor Belhouse, voor Zolderpunt, of beide?
 - **Behandeling**: parkeren; eerst de bestaande app lezen.
 - **Status**: open
+
+## IDEE-15 — De rollen van Zarvis overzichtelijk tonen
+- **Datum**: 2026-11-23
+- **Bram zei letterlijk**: "Denk dus ook goed na hoe al die verschillende rollen ook naar mij toe duidelijk gevisualiseerd zullen worden en niet chaotisch zullen zijn"
+- **Waar ik mee bezig was**: IDEE-10 (inventaris van Maildude loopt) en de WhatsApp-koppeling.
+- **Eerste inschatting**: Ontwerpeis voor IDEE-10 tot 14, geen aparte bouwsteen. Met vijf rollen (mail, marketing, werf, financiën, inventaris) naast dossiers moet altijd zichtbaar zijn: welke rol antwoordt, wat elke rol op dit moment aan het doen is, en wat van welke rol op een goedkeuring wacht. Het losse venster is klein; daar past één rol tegelijk met een duidelijke aanduiding, en een apart overzicht voor "alles tegelijk". Risico als dit niet eerst ontworpen wordt: elke rol krijgt zijn eigen schermpje en meldingen, en het geheel wordt precies de chaos die Bram wil vermijden.
+- **Mijn open vragen erover**: (1) Wil je één Zarvis die zelf de juiste rol kiest, of kies jij de rol? (2) Waar wil je het totaaloverzicht: in het zwevende venster, of op een groter scherm ernaast? (3) Welke rol mag je spontaan onderbreken, en welke wacht tot de briefing?
+- **Behandeling**: eerst, vóór de eerste rol na dossiers gebouwd wordt: uitwerken op het ontwerpcanvas in de nieuwe donkere stijl.
+- **Status**: open
