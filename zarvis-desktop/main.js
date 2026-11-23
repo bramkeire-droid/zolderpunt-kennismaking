@@ -16,6 +16,7 @@ const fs = require('node:fs');
 const URL_ZARVIS = process.env.ZARVIS_URL || 'https://zolderpunt-kennismaking.lovable.app/zarvis';
 const OORSPRONG = new URL(URL_ZARVIS).origin;
 const URL_BRON = `${OORSPRONG}/zarvis/bron`;
+const URL_BEHEER = `${OORSPRONG}/zarvis/beheer`;
 const STANDAARD_SNELTOETS = 'Control+Shift+Space';
 
 // ── Instellingen die een herstart overleven ─────────────────────────────────
@@ -52,6 +53,28 @@ async function stuurWaToestand() {
   if (waVenster && !waVenster.isDestroyed()) {
     waVenster.webContents.send('whatsapp:toestand', { ...t, qr: undefined, qrBeeld, gekoppeld: whatsapp.isGekoppeld() });
   }
+}
+
+// ── Beheer: connectoren en programma-instellingen ───────────────────────────
+// De inhoud is een pagina van de webapp; het programma geeft er alleen zijn
+// eigen toestand aan door (WhatsApp, sneltoets, bovenop, starten met Windows).
+let beheerVenster = null;
+function toonBeheer(eerste, keuzes) {
+  if (beheerVenster && !beheerVenster.isDestroyed()) { beheerVenster.show(); beheerVenster.focus(); return; }
+  beheerVenster = new BrowserWindow({
+    width: 520, height: 720, minWidth: 420, minHeight: 520, title: eerste ? 'Zarvis inrichten' : 'Zarvis · beheer',
+    backgroundColor: '#07090F', autoHideMenuBar: true,
+    webPreferences: { preload: path.join(__dirname, 'preload-beheer.js'), contextIsolation: true, nodeIntegration: false, sandbox: true },
+  });
+  beheerVenster.on('page-title-updated', (e) => e.preventDefault());
+  const vraag = new URLSearchParams();
+  if (eerste) vraag.set('eerste', '1');
+  if (keuzes && keuzes.whatsapp === false) vraag.set('whatsapp', '0');
+  if (keuzes && keuzes.stem === false) vraag.set('stem', '0');
+  beheerVenster.loadURL(URL_BEHEER + (vraag.size ? `?${vraag}` : ''));
+  beheerVenster.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  beheerVenster.webContents.on('will-navigate', (e, url) => { try { if (new URL(url).origin !== OORSPRONG) e.preventDefault(); } catch { e.preventDefault(); } });
+  beheerVenster.on('closed', () => { beheerVenster = null; });
 }
 
 function toonWhatsApp() {
@@ -225,6 +248,7 @@ function bouwTray(sneltoetsGelukt) {
       label: 'Starten met de computer', type: 'checkbox', checked: app.getLoginItemSettings().openAtLogin,
       click: (item) => app.setLoginItemSettings({ openAtLogin: item.checked }),
     },
+    { label: 'Beheer…', click: () => toonBeheer(false) },
     { label: 'WhatsApp koppelen…', click: toonWhatsApp },
     { label: sneltoetsGelukt ? `Sneltoets: ${leesbaar(sneltoets())}` : `Sneltoets ${leesbaar(sneltoets())} is bezet door een ander programma`, enabled: false },
     { type: 'separator' },
@@ -270,12 +294,62 @@ if (!app.requestSingleInstanceLock()) {
     ipcMain.on('whatsapp:start', (e) => { if (vanWaVenster(e)) void whatsapp.start(); });
     ipcMain.on('whatsapp:ontkoppel', (e) => { if (vanWaVenster(e)) void whatsapp.ontkoppel(); });
     // Was er al gekoppeld, dan leest Zarvis vanzelf verder bij het opstarten.
-    if (whatsapp.isGekoppeld()) void whatsapp.start();
+    // Tenzij WhatsApp in de beheersectie uit staat.
+    if (whatsapp.isGekoppeld() && leesInst().whatsappAan !== false) void whatsapp.start();
+
+    const vanBeheer = (e) => beheerVenster && !beheerVenster.isDestroyed() && e.sender === beheerVenster.webContents;
+    ipcMain.handle('beheer:toestand', (e) => {
+      if (!vanBeheer(e)) return null;
+      const inst = leesInst();
+      return {
+        versie: app.getVersion(),
+        sneltoets: leesbaar(sneltoets()),
+        sneltoetsGelukt,
+        bovenop: inst.bovenop !== false,
+        startMee: app.getLoginItemSettings().openAtLogin,
+        whatsapp: { gekoppeld: whatsapp.isGekoppeld(), aan: inst.whatsappAan !== false },
+      };
+    });
+    ipcMain.on('beheer:zet', (e, sleutel, waarde) => {
+      if (!vanBeheer(e)) return;
+      const aan = waarde === true;
+      if (sleutel === 'bovenop') {
+        bewaarInst({ bovenop: aan });
+        if (venster) venster.setAlwaysOnTop(aan, 'floating');
+        if (bronVenster && !bronVenster.isDestroyed()) bronVenster.setAlwaysOnTop(aan, 'floating');
+      } else if (sleutel === 'startMee') {
+        app.setLoginItemSettings({ openAtLogin: aan });
+      } else if (sleutel === 'whatsappAan') {
+        bewaarInst({ whatsappAan: aan });
+        if (!aan) whatsapp.pauzeer(); else if (whatsapp.isGekoppeld()) void whatsapp.start();
+      }
+      // Het systeemvak toont dezelfde vinkjes.
+      try { if (tray) { tray.destroy(); bouwTray(sneltoetsGelukt); } } catch { /* alleen comfort */ }
+    });
+    ipcMain.on('beheer:whatsapp', (e) => { if (vanBeheer(e)) toonWhatsApp(); });
+    ipcMain.on('beheer:klaar', (e) => {
+      if (!vanBeheer(e)) return;
+      bewaarInst({ ingericht: true });
+      beheerVenster.close();
+      toon();
+    });
 
     maakVenster();
     const gelukt = registreerSneltoets();
     sneltoetsGelukt = gelukt;
     try { bouwTray(gelukt); } catch (e) { console.error('systeemvak niet beschikbaar', e); }
+
+    // Eerste start na de installatie: de inrichting met de connectoren.
+    if (!leesInst().ingericht && !process.env.ZARVIS_ZELFTEST) {
+      // Wat in het installatieprogramma aangevinkt is, staat hier al goed.
+      let keuzes = null;
+      try { keuzes = JSON.parse(fs.readFileSync(path.join(path.dirname(process.execPath), 'installatie.json'), 'utf8')); } catch { /* geen installatie, of oud */ }
+      if (keuzes) {
+        if (keuzes.startMee === true) app.setLoginItemSettings({ openAtLogin: true });
+        if (keuzes.whatsapp === false) bewaarInst({ whatsappAan: false });
+      }
+      toonBeheer(true, keuzes);
+    }
 
     if (process.env.ZARVIS_ZELFTEST) require('./zelftest.js')(venster, { gelukt, sneltoets: sneltoets() });
   });

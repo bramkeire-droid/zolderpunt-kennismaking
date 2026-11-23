@@ -97,6 +97,21 @@ const faseVan = (
   };
 };
 
+/**
+ * Bij welke connector een stuk gereedschap hoort. Staat de connector uit in de
+ * beheersectie, dan krijgt het model dat gereedschap niet te zien en wordt het
+ * ook niet uitgevoerd. Wat hier niet staat, hoort bij Compass en staat altijd aan.
+ */
+const CONNECTOR_VAN: Record<string, string> = { lees_whatsapp: 'whatsapp' };
+
+/** Het gereedschap dat deze gebruiker aan heeft staan. */
+export function gereedschapVoor(connectoren: Record<string, unknown> | null | undefined): GereedschapDef[] {
+  return GEREEDSCHAP.filter((g) => {
+    const c = CONNECTOR_VAN[g.name];
+    return !c || connectoren?.[c] !== false;
+  });
+}
+
 export const GEREEDSCHAP: GereedschapDef[] = [
   {
     name: 'zoek_dossier',

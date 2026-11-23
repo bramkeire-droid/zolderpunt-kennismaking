@@ -7,6 +7,7 @@ import { maakBrowserStemIn, maakBrowserStemUit, type StemIn, type StemUit } from
 import { nieuweZinnen, voorUitspraak } from '@/lib/zarvis/zinnen';
 import { startGezicht, type Gezicht } from '@/lib/zarvis/gezicht';
 import { maakAzureStem } from '@/lib/zarvis/azureStem';
+import { leesInstellingen } from '@/lib/zarvis/instellingen';
 import { supabase } from '@/integrations/supabase/client';
 
 /**
@@ -105,7 +106,7 @@ export function ZarvisProvider({ children, zelfstandig = false }: {
   useEffect(() => {
     if (!open || azureGevraagd.current) return;
     azureGevraagd.current = true;
-    void maakAzureStem().then((azure) => {
+    void leesInstellingen().then((inst) => (inst.connectoren.stem === false ? null : maakAzureStem())).then((azure) => {
       if (!azure) return;
       stemIn.current!.annuleer();
       stemUit.current!.zwijg();

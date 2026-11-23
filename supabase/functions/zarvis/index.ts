@@ -28,7 +28,7 @@
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import Anthropic from 'npm:@anthropic-ai/sdk@1';
-import { GEREEDSCHAP, labelVan, voerUit } from './gereedschap.ts';
+import { gereedschapVoor, labelVan, voerUit } from './gereedschap.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -176,6 +176,12 @@ Deno.serve(async (req) => {
   // stond, is niet "het dossier waar je mee bezig bent".
   let context: Context | undefined = body?.context;
   let compassDossier: string | null = null;
+
+  // Welke connectoren deze gebruiker aan heeft staan (beheersectie van Zarvis).
+  // Bestaat er nog geen rij, of faalt de opvraging, dan staat alles aan.
+  const { data: inst } = await alsGebruiker.from('zarvis_instellingen').select('connectoren').maybeSingle();
+  const gereedschap = gereedschapVoor(inst?.connectoren as Record<string, unknown> | undefined);
+  const toegestaan = new Set(gereedschap.map((g) => g.name));
   if (!isUuid(context?.dossier?.id)) {
     const { data: rij } = await alsGebruiker
       .from('zarvis_context').select('lead_id, dossier_naam, view, updated_at').maybeSingle();
@@ -293,7 +299,7 @@ Deno.serve(async (req) => {
               { type: 'text', text: PERSONA },
               { type: 'text', text: contextTekst(context) },
             ],
-            tools: GEREEDSCHAP,
+            tools: gereedschap,
             messages,
           });
           modelStroom = ms;
@@ -320,7 +326,10 @@ Deno.serve(async (req) => {
           );
           const resultaten = await Promise.all(vragen.map(async (v) => {
             stuur({ type: 'stap', id: v.id, label: labelVan(v.name, v.input), status: 'bezig' });
-            const r = await voerUit(alsGebruiker, v.name, v.input);
+            // Ook als het model iets vraagt wat uit staat, wordt het niet uitgevoerd.
+            const r = toegestaan.has(v.name)
+              ? await voerUit(alsGebruiker, v.name, v.input)
+              : { ok: false, tekst: 'Deze connector staat uit in de beheersectie van Zarvis.', detail: 'staat uit', bron: undefined };
             stuur({
               type: 'stap', id: v.id, label: labelVan(v.name, v.input),
               status: r.ok ? 'klaar' : 'mislukt', detail: r.detail,
