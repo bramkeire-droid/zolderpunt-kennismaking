@@ -50,3 +50,7 @@ verify_jwt = true
 # Proef met het gezicht van Zarvis (Anam). Controleert login en rol zelf in code.
 [functions.zarvis-gezicht]
 verify_jwt = true
+
+# De Vlaamse stem van Zarvis (Azure Speech). Controleert login en rol zelf in code.
+[functions.zarvis-stem]
+verify_jwt = true
