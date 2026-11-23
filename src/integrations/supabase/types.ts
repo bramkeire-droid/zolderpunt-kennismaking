@@ -1198,6 +1198,53 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_berichten: {
+        Row: {
+          created_at: string
+          id: string
+          lead_id: string
+          soort: string
+          tekst: string | null
+          telefoon: string
+          user_id: string
+          van_mij: boolean
+          verstuurd_op: string
+          wa_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lead_id: string
+          soort?: string
+          tekst?: string | null
+          telefoon: string
+          user_id?: string
+          van_mij: boolean
+          verstuurd_op: string
+          wa_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lead_id?: string
+          soort?: string
+          tekst?: string | null
+          telefoon?: string
+          user_id?: string
+          van_mij?: boolean
+          verstuurd_op?: string
+          wa_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_berichten_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       zarvis_acties: {
         Row: {
           created_at: string
