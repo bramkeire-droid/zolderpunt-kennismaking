@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Zarvis</title>
+<style>
+  html, body { height: 100%; margin: 0; }
+  body { background: #07090F; color: #F3F5FA; font-family: system-ui, sans-serif; display: flex; flex-direction: column; justify-content: center; padding: 0 24px; -webkit-app-region: drag; }
+  h1 { font-size: 20px; margin: 0 0 8px; }
+  p { margin: 0 0 16px; color: #A9B4C8; line-height: 1.5; font-size: 14px; }
+  button { -webkit-app-region: no-drag; align-self: flex-start; height: 44px; padding: 0 20px; border: 0; border-radius: 22px; background: #2E8BFF; color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; }
+</style>
+</head>
+<body>
+<h1>Zarvis is niet bereikbaar</h1>
+<p>Er is geen verbinding met de server. Controleer je internet en probeer opnieuw.</p>
+<button onclick="history.length > 1 ? history.back() : location.reload()">Opnieuw proberen</button>
+</body>
+</html>

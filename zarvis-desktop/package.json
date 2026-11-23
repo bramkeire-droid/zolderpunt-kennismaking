@@ -1,0 +1,39 @@
+{
+  "name": "zarvis-desktop",
+  "productName": "Zarvis",
+  "version": "0.1.0",
+  "description": "Zarvis als klein venster dat boven je andere werk zweeft.",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "bouw:win": "electron-builder --win portable --x64 --publish never",
+    "bouw:mac": "electron-builder --mac dmg --publish never"
+  },
+  "devDependencies": {
+    "electron": "^45.4.1",
+    "electron-builder": "^26.0.0"
+  },
+  "build": {
+    "appId": "be.zolderpunt.zarvis",
+    "productName": "Zarvis",
+    "files": [
+      "main.js",
+      "preload.js",
+      "offline.html"
+    ],
+    "win": {
+      "target": "portable"
+    },
+    "portable": {
+      "artifactName": "Zarvis.exe"
+    },
+    "mac": {
+      "target": "dmg",
+      "category": "public.app-category.productivity",
+      "extendInfo": {
+        "NSMicrophoneUsageDescription": "Zarvis luistert naar je stem als je de microfoon aanzet."
+      }
+    }
+  }
+}

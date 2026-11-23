@@ -73,9 +73,13 @@ const STEM_SLEUTEL = 'zarvis.stemAan';
 let teller = 0;
 const nieuwId = () => `z${Date.now().toString(36)}${(teller++).toString(36)}`;
 
-export function ZarvisProvider({ children }: { children: ReactNode }) {
+export function ZarvisProvider({ children, zelfstandig = false }: {
+  children: ReactNode;
+  /** Het losse Zarvis-venster: altijd open, geen paneel om te sluiten. */
+  zelfstandig?: boolean;
+}) {
   const nav = useAppNav();
-  const [open, zetOpen] = useState(false);
+  const [open, zetOpen] = useState(zelfstandig);
   const [status, zetStatus] = useState<ZarvisStatus>('rust');
   const [berichten, zetBerichten] = useState<ZarvisBericht[]>([]);
   const [tussentijds, zetTussentijds] = useState('');
