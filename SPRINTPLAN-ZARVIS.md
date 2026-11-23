@@ -160,7 +160,26 @@ Wat we er wel van overnemen, als ontwerp voor het gezicht in fase 5:
 - De **gesprekssignalen** die een gezicht nodig heeft: wat net in de app gebeurde doorgeven zonder dat hij erover begint, hem laten zwijgen terwijl de gebruiker leest, hem midden in een zin stoppen. `ZarvisContext` krijgt die drie als aparte acties wanneer het gezicht komt.
 - **Bevestigen per gereedschap**: een actie die iets verstuurt of boekt wordt eerst hardop voorgelezen en pas na een duidelijk ja uitgevoerd.
 
-**Beslissing van Bram (2026-11-23):** een andere avatardienst zoeken die Nederlands spreekt. Het vergelijkend onderzoek loopt; het resultaat komt hier als 8.3.
+**Beslissing van Bram (2026-11-23):** een andere avatardienst zoeken die Nederlands spreekt. Zie 8.3.
+
+### 8.3 Avatardiensten met Nederlands (onderzoek 2026-11-23)
+
+**Betrouwbaarheid:** dit komt uit zoekresultaten. Geen enkele pagina van een leverancier kon rechtstreeks geopend worden vanuit de bouwomgeving, dus prijzen en beweringen moeten op de echte pagina's nagekeken worden vóór een keuze. Mobiele Safari is voor geen enkele dienst bevestigd.
+
+Eis: realtime, fotorealistisch, Nederlands zoals in Vlaanderen, in een webpagina, waarbij ons eigen model de woorden levert, en liefst verwerking in de EU.
+
+| Dienst | Waarom wel | Waarom niet |
+|---|---|---|
+| **Anam** (voorkeur) | Eigen model blijft het brein: de pagina stuurt de tekst door en het gezicht spreekt ze uit, zonder extra server. Onderbreken zit in de SDK. Nederlandse spraakherkenning gedocumenteerd. Ongeveer $49 voor 250 minuten | EU-verwerking alleen in het duurste plan en geen EU-regio genoemd. Vlaamse stem niet bevestigd. Sessies van hoogstens 10 minuten in dat plan |
+| **Beyond Presence** (tweede) | Duits bedrijf, prijzen in euro, zegt in de EU te hosten. Het gezicht spreekt wat onze eigen stem levert, dus een echte Vlaamse stem kan | Hun documentatie spreekt de EU-hosting tegen. Vraagt een altijd draaiende dienst naast Supabase, die we nu niet hebben |
+| **Simli** (goedkoop) | Ongeveer $0,01 per minuut; krijgt gewoon geluid binnen, dus taal en stem kiezen we zelf | Spraakherkenning, beurtwissel en onderbreken bouwen we dan zelf. Verwerkingslocatie onbekend |
+| **Azure TTS-avatar** (streng EU) | Draait in West-Europa; Vlaamse stemmen Dena en Arnaud bestaan | Ongeveer €0,52 per minuut; niet bevestigd dat de avatar met de Vlaamse stemmen werkt |
+| HeyGen LiveAvatar | Goedkoop per minuut, eigen model mogelijk | Alle data in de VS |
+| Tavus | Technisch een nette pasvorm, Nederlands in de lijst | $0,26 tot $0,35 per minuut |
+
+**Stem zonder gezicht (voor sprint Z4):** de enige uitdrukkelijk Vlaamse combinatie die bevestigd werd in de zoekresultaten is Deepgram Nova-3 met `nl-BE` op hun EU-adres voor herkenning, en Azure (`nl-BE-Dena`, `nl-BE-Arnaud`) of Google Chirp 3 HD in de EU-regio voor de stem. Azure kan beide kanten onder één verwerkersovereenkomst.
+
+**Voorstel:** een korte proef met Anam (gratis 30 minuten) om te horen hoe het Nederlands klinkt, en bij Beyond Presence schriftelijk navragen waar ze verwerken. Pas daarna kiezen.
 
 ## Voortgangs- en aannamelogboek
 
