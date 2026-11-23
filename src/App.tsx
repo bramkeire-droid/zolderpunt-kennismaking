@@ -5,6 +5,7 @@ import { PreIntakeProvider } from '@/contexts/PreIntakeContext';
 import { useLeadSave } from '@/hooks/useLeadSave';
 import AppShell from '@/components/AppShell';
 import { AppNavProvider } from '@/contexts/AppNavContext';
+import { ZarvisProvider } from '@/contexts/ZarvisContext';
 import ExtraInfoMenu from '@/components/ExtraInfoMenu';
 import Dossiers from '@/pages/Dossiers';
 import DossierCommunicatie from '@/pages/DossierCommunicatie';
@@ -435,6 +436,10 @@ function AppContent() {
 
   return (
     <AppNavProvider value={navWaarden}>
+      {/* Het gesprek met Zarvis leeft hier en niet in AppShell: elke pagina
+          brengt een eigen AppShell mee, en het gesprek moet een paginawissel
+          overleven. */}
+      <ZarvisProvider>
       {inhoud()}
       {/* Eén keer gemount, zodat elke plek in de app hem kan openen via
           nav.onNewDossier — de dossierpagina, het menu en het startscherm. */}
@@ -443,6 +448,7 @@ function AppContent() {
         onOpenChange={setNieuwDossierOpen}
         onAangemaakt={(id) => void handleOpenDossierHoofdpagina(id)}
       />
+      </ZarvisProvider>
     </AppNavProvider>
   );
 }
