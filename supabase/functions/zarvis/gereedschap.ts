@@ -12,6 +12,8 @@
 // staat, en elke invoer wordt hier nagekeken voor ze de databank bereikt.
 // ================================================================
 
+import { DOE_CONNECTOR, DOE_GEREEDSCHAP, DOE_UITVOERDERS } from './doen.ts';
+
 // deno-lint-ignore-file no-explicit-any
 type Db = any;
 
@@ -102,7 +104,7 @@ const faseVan = (
  * beheersectie, dan krijgt het model dat gereedschap niet te zien en wordt het
  * ook niet uitgevoerd. Wat hier niet staat, hoort bij Compass en staat altijd aan.
  */
-const CONNECTOR_VAN: Record<string, string> = { lees_whatsapp: 'whatsapp' };
+const CONNECTOR_VAN: Record<string, string> = { lees_whatsapp: 'whatsapp', ...DOE_CONNECTOR };
 
 /** Het gereedschap dat deze gebruiker aan heeft staan. */
 export function gereedschapVoor(connectoren: Record<string, unknown> | null | undefined): GereedschapDef[] {
@@ -428,6 +430,14 @@ const UITVOERDERS: Record<string, Uitvoerder> = {
     },
   },
 };
+
+// Wat Zarvis kan doen (plannen, versturen, aanleren) staat in doen.ts en
+// loopt door dezelfde poort.
+GEREEDSCHAP.push(...DOE_GEREEDSCHAP);
+Object.assign(UITVOERDERS, DOE_UITVOERDERS);
+
+/** Alleen lezen: wat een geplande controle op de achtergrond mag gebruiken. */
+export const LEES_GEREEDSCHAP = GEREEDSCHAP.filter((g) => !(g.name in DOE_UITVOERDERS));
 
 export function labelVan(naam: string, invoer: unknown): string {
   const u = UITVOERDERS[naam];

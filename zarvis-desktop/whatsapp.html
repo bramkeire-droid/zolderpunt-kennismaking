@@ -27,7 +27,7 @@
   <li>Ga naar Instellingen, dan Gekoppelde apparaten.</li>
   <li>Tik op Apparaat koppelen en scan deze code.</li>
 </ol>
-<p id="uitleg">Zarvis leest alleen mee. Er wordt nooit een bericht verstuurd, en alleen gesprekken met nummers uit je dossiers worden bewaard.</p>
+<p id="uitleg">Zarvis leest mee en verstuurt wat je hem laat versturen; een bericht aan een klant leest hij je eerst voor. Alleen gesprekken met nummers uit je dossiers worden bewaard.</p>
 <p id="melding" role="alert"></p>
 <div class="rij">
   <button id="koppel">Koppelen</button>
@@ -46,7 +46,7 @@
     el('ontkoppel').hidden = !(t.status === 'gekoppeld' || t.gekoppeld);
     el('uitleg').textContent = t.status === 'gekoppeld'
       ? `Doorgestuurd naar Compass sinds het starten: ${t.bewaard} berichten bij bekende dossiers.`
-      : 'Zarvis leest alleen mee. Er wordt nooit een bericht verstuurd, en alleen gesprekken met nummers uit je dossiers worden bewaard.';
+      : 'Zarvis leest mee en verstuurt wat je hem laat versturen; een bericht aan een klant leest hij je eerst voor. Alleen gesprekken met nummers uit je dossiers worden bewaard.';
   }
   el('koppel').addEventListener('click', () => window.zarvisWhatsApp.start());
   el('ontkoppel').addEventListener('click', () => { if (confirm('De koppeling met WhatsApp verbreken?')) window.zarvisWhatsApp.ontkoppel(); });

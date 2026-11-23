@@ -59,7 +59,7 @@ SectionGroup /e "Connectoren" GrpCon
   Section "Compass: dossiers, gesprekken, calculaties" SecCompass
     SectionIn RO
   SectionEnd
-  Section "WhatsApp: gesprekken met klanten meelezen" SecWa
+  Section "WhatsApp: meelezen en versturen" SecWa
   SectionEnd
   Section "Vlaamse stem: luisteren en spreken" SecStem
   SectionEnd
@@ -118,7 +118,7 @@ FunctionEnd
   !insertmacro MUI_DESCRIPTION_TEXT ${SecApp} "Het programma zelf."
   !insertmacro MUI_DESCRIPTION_TEXT ${SecStart} "Zarvis staat klaar zodra je inlogt op Windows."
   !insertmacro MUI_DESCRIPTION_TEXT ${SecCompass} "De basis van Zarvis; staat altijd aan."
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecWa} "Leest mee zonder ooit iets te versturen. Alleen nummers uit je dossiers worden bewaard. Koppelen doe je na de installatie met je gsm."
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecWa} "Leest mee en verstuurt wat je Zarvis laat versturen; een bericht aan een klant leest hij je eerst voor. Koppelen doe je na de installatie met je gsm."
   !insertmacro MUI_DESCRIPTION_TEXT ${SecStem} "Vlaams via Azure. Uit: de stem van je computer."
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 

@@ -24,6 +24,8 @@ export type ZarvisBericht = {
   fout?: boolean;
   /** De gebruiker onderbrak dit antwoord. */
   onderbroken?: boolean;
+  /** Zarvis meldt dit uit zichzelf: een herinnering of de uitslag van een taak. */
+  melding?: boolean;
   /** Wat Zarvis opzocht om dit antwoord te geven, in volgorde. */
   stappen?: ZarvisStap[];
 };
@@ -162,6 +164,36 @@ export function ZarvisProvider({ children, zelfstandig = false }: {
       )
       .then(({ error }) => { if (error) console.error('zarvis: context doorgeven mislukt', error.message); });
   }, [zelfstandig, huidigeView, dossierId, dossierNaam]);
+
+  // ── Meldingen: wat Zarvis uit zichzelf komt zeggen ─────────────────────
+  // De uitvoerder op de server legt ze klaar (herinnering, uitslag van een
+  // controle). Het losse venster haalt ze op, toont ze in het gesprek, zegt ze
+  // hardop als er niets anders loopt, en geeft een melding van het systeem.
+  const statusRef = useRef(status);
+  statusRef.current = status;
+  useEffect(() => {
+    if (!zelfstandig) return;
+    let weg = false;
+    type Rij = { id: string; tekst: string };
+    const tabel = () => supabase.from('zarvis_meldingen' as never) as unknown as {
+      select: (k: string) => { is: (k: string, v: null) => { order: (k: string) => { limit: (n: number) => Promise<{ data: Rij[] | null }> } } };
+      update: (w: Record<string, unknown>) => { in: (k: string, v: string[]) => Promise<unknown> };
+    };
+    const kijk = async () => {
+      const { data } = await tabel().select('id, tekst').is('getoond_op', null).order('created_at').limit(5);
+      if (weg || !data?.length) return;
+      await tabel().update({ getoond_op: new Date().toISOString() }).in('id', data.map((m) => m.id));
+      zetBerichten((lijst) => [...lijst, ...data.map((m) => ({ id: nieuwId(), rol: 'zarvis' as const, tekst: m.tekst, melding: true }))]);
+      for (const m of data) {
+        try { if (typeof Notification !== 'undefined' && Notification.permission === 'granted') new Notification('Zarvis', { body: m.tekst }); } catch { /* alleen comfort */ }
+        if (statusRef.current === 'rust' && stemAanRef.current && stemUit.current?.beschikbaar) stemUit.current.zeg(voorUitspraak(m.tekst));
+      }
+    };
+    try { if (typeof Notification !== 'undefined' && Notification.permission === 'default') void Notification.requestPermission(); } catch { /* geen meldingen */ }
+    void kijk();
+    const tik = window.setInterval(() => { void kijk(); }, 20000);
+    return () => { weg = true; window.clearInterval(tik); };
+  }, [zelfstandig]);
 
   const werkLaatsteBij = (fn: (b: ZarvisBericht) => ZarvisBericht) =>
     zetBerichten((lijst) => {

@@ -35,7 +35,7 @@ type Connector = {
 
 const CONNECTOREN: Connector[] = [
   { sleutel: 'compass', naam: 'Compass', uitleg: 'Dossiers, gesprekken, notities en calculaties. De basis van Zarvis; staat altijd aan.', soort: 'vast' },
-  { sleutel: 'whatsapp', naam: 'WhatsApp', uitleg: 'Leest je gesprekken met klanten mee, zonder ooit iets te versturen. Alleen nummers uit je dossiers worden bewaard.', soort: 'gebouwd' },
+  { sleutel: 'whatsapp', naam: 'WhatsApp', uitleg: 'Leest je gesprekken met klanten mee en verstuurt wat je Zarvis laat versturen. Een bericht aan een klant leest Zarvis je eerst voor. Alleen nummers uit je dossiers worden bewaard.', soort: 'gebouwd' },
   { sleutel: 'stem', naam: 'Vlaamse stem', uitleg: 'Luisteren en spreken in het Vlaams via Azure. Uit: de stem van je computer.', soort: 'gebouwd' },
   { sleutel: 'mail', naam: 'Mail', uitleg: 'Mails lezen en aan dossiers koppelen, zoals Maildude.', soort: 'later' },
   { sleutel: 'agenda', naam: 'Agenda en Calendly', uitleg: 'Afspraken lezen en plannen.', soort: 'later' },
