@@ -6,6 +6,7 @@ import { vraagZarvis, type ZarvisContextInfo } from '@/lib/zarvis/client';
 import { maakBrowserStemIn, maakBrowserStemUit, type StemIn, type StemUit } from '@/lib/zarvis/stem';
 import { nieuweZinnen, voorUitspraak } from '@/lib/zarvis/zinnen';
 import { startGezicht, type Gezicht } from '@/lib/zarvis/gezicht';
+import { maakAzureStem } from '@/lib/zarvis/azureStem';
 
 /**
  * Waar Zarvis in het gesprek staat. Het paneel, de aanwezigheid en de knop in de
@@ -78,6 +79,25 @@ export function ZarvisProvider({ children }: { children: ReactNode }) {
   const stemUit = useRef<StemUit>();
   if (!stemIn.current) stemIn.current = maakBrowserStemIn();
   if (!stemUit.current) stemUit.current = maakBrowserStemUit();
+
+  // De eerste keer dat het paneel opengaat: kijken of de Vlaamse stem (Azure)
+  // beschikbaar is. Zo ja, neemt die het over van de browserstem; zo nee blijft
+  // alles zoals het was. De teller dwingt een nieuwe weergave af, want
+  // "kan luisteren" kan hierdoor veranderen (bv. in Firefox of Safari).
+  const [, zetStemVersie] = useState(0);
+  const azureGevraagd = useRef(false);
+  useEffect(() => {
+    if (!open || azureGevraagd.current) return;
+    azureGevraagd.current = true;
+    void maakAzureStem().then((azure) => {
+      if (!azure) return;
+      stemIn.current!.annuleer();
+      stemUit.current!.zwijg();
+      stemIn.current = azure.stemIn;
+      stemUit.current = azure.stemUit;
+      zetStemVersie((v) => v + 1);
+    });
+  }, [open]);
 
   const [gezicht, zetGezicht] = useState<GezichtStatus>('uit');
   const [gezichtMelding, zetGezichtMelding] = useState<string | null>(null);
