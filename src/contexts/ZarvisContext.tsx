@@ -5,6 +5,7 @@ import { useAppNav } from '@/contexts/AppNavContext';
 import { vraagZarvis, type ZarvisContextInfo } from '@/lib/zarvis/client';
 import { maakBrowserStemIn, maakBrowserStemUit, type StemIn, type StemUit } from '@/lib/zarvis/stem';
 import { nieuweZinnen, voorUitspraak } from '@/lib/zarvis/zinnen';
+import { startGezicht, type Gezicht } from '@/lib/zarvis/gezicht';
 
 /**
  * Waar Zarvis in het gesprek staat. Het paneel, de aanwezigheid en de knop in de
@@ -22,6 +23,12 @@ export type ZarvisBericht = {
   onderbroken?: boolean;
 };
 
+/** Het gezicht (proef met Anam): uit, bezig met verbinden, of in beeld. */
+export type GezichtStatus = 'uit' | 'verbindt' | 'aan';
+
+/** Het video-element waarin het gezicht verschijnt; het paneel rendert het. */
+export const GEZICHT_VIDEO_ID = 'zarvis-gezicht-video';
+
 interface ZarvisWaarden {
   open: boolean;
   zetOpen: (open: boolean) => void;
@@ -36,6 +43,11 @@ interface ZarvisWaarden {
   /** Zarvis mag hardop antwoorden op een gesproken vraag. */
   stemAan: boolean;
   zetStemAan: (aan: boolean) => void;
+  gezicht: GezichtStatus;
+  /** Waarom het gezicht niet startte of stopte. */
+  gezichtMelding: string | null;
+  /** Zet het gezicht aan of uit. Aanzetten moet vanuit een klik gebeuren. */
+  wisselGezicht: () => void;
   context: ZarvisContextInfo;
   stuur: (tekst: string) => void;
   /** Eén knop: start met luisteren, of rondt het luisteren af. */
@@ -66,6 +78,13 @@ export function ZarvisProvider({ children }: { children: ReactNode }) {
   const stemUit = useRef<StemUit>();
   if (!stemIn.current) stemIn.current = maakBrowserStemIn();
   if (!stemUit.current) stemUit.current = maakBrowserStemUit();
+
+  const [gezicht, zetGezicht] = useState<GezichtStatus>('uit');
+  const [gezichtMelding, zetGezichtMelding] = useState<string | null>(null);
+  const gezichtRef = useRef<Gezicht | null>(null);
+  // Met het gezicht aan staat de microfoon van Anam open: "rust" bestaat dan
+  // niet, Zarvis luistert.
+  const rust = (): ZarvisStatus => (gezichtRef.current ? 'luistert' : 'rust');
 
   const gesprekId = useRef<string | null>(null);
   const lopend = useRef<AbortController | null>(null);
@@ -103,6 +122,8 @@ export function ZarvisProvider({ children }: { children: ReactNode }) {
     const tekst = ruw.trim();
     if (!tekst) return;
 
+    // Een nieuwe vraag terwijl het gezicht nog aan het antwoorden is: eerst zwijgen.
+    if (lopend.current) gezichtRef.current?.zwijg();
     lopend.current?.abort();
     stemIn.current!.annuleer();
     stemUit.current!.zwijg();
@@ -111,7 +132,10 @@ export function ZarvisProvider({ children }: { children: ReactNode }) {
 
     const controller = new AbortController();
     lopend.current = controller;
-    const hardop = gesproken && stemAanRef.current && stemUit.current!.beschikbaar;
+    // Met het gezicht aan spreekt het gezicht elk antwoord uit, ook op een
+    // getypte vraag; de browserstem zwijgt dan.
+    const uitspraak = gezichtRef.current?.begin() ?? null;
+    const hardop = !uitspraak && gesproken && stemAanRef.current && stemUit.current!.beschikbaar;
 
     zetBerichten((lijst) => [
       ...lijst,
@@ -143,6 +167,7 @@ export function ZarvisProvider({ children }: { children: ReactNode }) {
         volledig += g.delta;
         zetStatus('spreekt');
         werkLaatsteBij((b) => ({ ...b, tekst: volledig }));
+        uitspraak?.zeg(g.delta);
         spreekWatKan(false);
       } else if (g.type === 'fout') {
         mislukt = true;
@@ -151,13 +176,14 @@ export function ZarvisProvider({ children }: { children: ReactNode }) {
     }
     if (controller.signal.aborted) return;
     lopend.current = null;
+    uitspraak?.klaar();
 
     if (!mislukt && !volledig) {
       mislukt = true;
       werkLaatsteBij((b) => ({ ...b, tekst: 'Ik kreeg geen antwoord terug. Probeer het opnieuw.', fout: true }));
     }
     if (mislukt || !hardop) {
-      zetStatus('rust');
+      zetStatus(rust());
       return;
     }
 
@@ -199,15 +225,76 @@ export function ZarvisProvider({ children }: { children: ReactNode }) {
     lopend.current = null;
     stemIn.current!.annuleer();
     stemUit.current!.zwijg();
+    gezichtRef.current?.zwijg();
     zetTussentijds('');
     if (wasBezig) {
       werkLaatsteBij((b) =>
         b.tekst ? { ...b, onderbroken: true } : { ...b, tekst: 'Onderbroken.', onderbroken: true });
     }
-    zetStatus('rust');
+    zetStatus(rust());
   }, []);
 
+  const stopGezicht = useCallback(() => {
+    const g = gezichtRef.current;
+    gezichtRef.current = null;
+    zetGezicht('uit');
+    zetStatus((s) => (s === 'luistert' ? 'rust' : s));
+    void g?.stop();
+  }, []);
+
+  const gezichtBezig = useRef(false);
+  const wisselGezicht = useCallback(() => {
+    if (gezichtBezig.current) return;
+    if (gezichtRef.current) {
+      stopGezicht();
+      return;
+    }
+    gezichtBezig.current = true;
+    zetGezichtMelding(null);
+    zetGezicht('verbindt');
+    // Twee stemmen door elkaar wil niemand: de browserstem maakt plaats.
+    stemIn.current!.annuleer();
+    stemUit.current!.zwijg();
+
+    startGezicht(GEZICHT_VIDEO_ID, {
+      opGebruikerZei: (tekst) => void stuurIntern(tekst, true),
+      opOnderbroken: () => {
+        // Anam heeft het gezicht al laten zwijgen; hier stopt enkel het
+        // antwoord dat nog onderweg was.
+        if (!lopend.current) return;
+        lopend.current.abort();
+        lopend.current = null;
+        werkLaatsteBij((b) => (b.tekst ? { ...b, onderbroken: true } : b));
+        zetStatus(rust());
+      },
+      opGesloten: () => {
+        gezichtRef.current = null;
+        zetGezicht('uit');
+        zetGezichtMelding('Het gezicht is gestopt. Een sessie duurt hoogstens vijf minuten; zet het opnieuw aan om verder te gaan.');
+        zetStatus((s) => (s === 'luistert' ? 'rust' : s));
+      },
+    })
+      .then((g) => {
+        // Het paneel ging dicht terwijl de verbinding nog opkwam.
+        if (!openRef.current) {
+          void g.stop();
+          zetGezicht('uit');
+          return;
+        }
+        gezichtRef.current = g;
+        zetGezicht('aan');
+        zetStatus((s) => (s === 'rust' ? 'luistert' : s));
+      })
+      .catch((e: Error) => {
+        zetGezicht('uit');
+        zetGezichtMelding(e.message);
+      })
+      .finally(() => { gezichtBezig.current = false; });
+  }, [stopGezicht, stuurIntern]);
+
   const wisselMicrofoon = useCallback(() => {
+    // Met het gezicht aan luistert Anam; de microfoonknop is dan verborgen.
+    if (gezichtRef.current) return;
     if (status === 'luistert') {
       stemIn.current!.stop();
       return;
@@ -236,13 +323,15 @@ export function ZarvisProvider({ children }: { children: ReactNode }) {
   // achter een gesloten paneel zou niemand verwachten.
   useEffect(() => {
     if (open) return;
+    if (gezichtRef.current) stopGezicht();
     stemIn.current!.annuleer();
     stemUit.current!.zwijg();
     zetTussentijds('');
     zetStatus((s) => (s === 'luistert' || s === 'spreekt' ? (lopend.current ? 'denkt' : 'rust') : s));
-  }, [open]);
+  }, [open, stopGezicht]);
 
   useEffect(() => () => {
+    void gezichtRef.current?.stop();
     lopend.current?.abort();
     stemIn.current?.annuleer();
     stemUit.current?.zwijg();
@@ -252,7 +341,8 @@ export function ZarvisProvider({ children }: { children: ReactNode }) {
     open, zetOpen, status, berichten, tussentijds, micMelding,
     kanLuisteren: stemIn.current.beschikbaar,
     kanSpreken: stemUit.current.beschikbaar,
-    stemAan, zetStemAan, context, stuur, wisselMicrofoon, onderbreek, nieuwGesprek,
+    stemAan, zetStemAan, gezicht, gezichtMelding, wisselGezicht,
+    context, stuur, wisselMicrofoon, onderbreek, nieuwGesprek,
   };
 
   return <Ctx.Provider value={waarden}>{children}</Ctx.Provider>;

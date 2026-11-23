@@ -46,3 +46,7 @@ verify_jwt = false
 # omdat verify_jwt in dit project niet afgedwongen blijkt te worden.
 [functions.zarvis]
 verify_jwt = true
+
+# Proef met het gezicht van Zarvis (Anam). Controleert login en rol zelf in code.
+[functions.zarvis-gezicht]
+verify_jwt = true
