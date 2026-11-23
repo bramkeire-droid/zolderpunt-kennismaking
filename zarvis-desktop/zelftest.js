@@ -19,6 +19,19 @@ module.exports = (venster, info) => {
       venster.webContents.send('zarvis:sneltoets');
       await new Promise((k) => setTimeout(k, 300));
       uit.sneltoetsKomtAan = await venster.webContents.executeJavaScript('window.__geteld');
+      // Het gegevensvenster: mag open als tweede venster, naast Zarvis en bovenop.
+      const { BrowserWindow } = require('electron');
+      await venster.webContents.executeJavaScript(`window.__bron = window.open('/zarvis/bron', 'zarvis-bron', 'popup=yes'); window.open('https://example.com/', 'vreemd'); true`, true);
+      await new Promise((k) => setTimeout(k, 1500));
+      const andere = BrowserWindow.getAllWindows().filter((w) => w !== venster);
+      uit.bron = andere.map((w) => ({ url: w.webContents.getURL(), bovenop: w.isAlwaysOnTop(), plek: w.getBounds(), overlapt: !(w.getBounds().x + w.getBounds().width <= venster.getBounds().x || w.getBounds().x >= venster.getBounds().x + venster.getBounds().width) }));
+      if (andere[0]) {
+        const binnen = (belofte) => Promise.race([belofte, new Promise((k) => setTimeout(() => k(null), 4000))]);
+        uit.bronNode = await binnen(andere[0].webContents.executeJavaScript('typeof require + "/" + typeof window.zarvisSchil'));
+        const b = await binnen(andere[0].webContents.capturePage());
+        if (b) fs.writeFileSync(process.env.ZARVIS_ZELFTEST.replace('.png', '-bron.png'), b.toPNG());
+        uit.bronBeeld = !!b;
+      }
       // Weg-navigeren naar een vreemd adres moet geweigerd worden.
       await venster.webContents.executeJavaScript(`window.location.href = 'https://example.com/'; true`);
       await new Promise((k) => setTimeout(k, 800));
@@ -38,4 +51,6 @@ module.exports = (venster, info) => {
     app.exit(0);
   };
   venster.webContents.once('did-finish-load', () => setTimeout(klaar, 2500));
+  // Loopt er iets vast, dan toch een uitslag in plaats van een hangend proces.
+  setTimeout(() => { console.log('ZELFTEST-VAST ' + JSON.stringify(uit)); app.exit(1); }, 40000);
 };

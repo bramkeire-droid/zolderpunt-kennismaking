@@ -13,10 +13,25 @@ export type ZarvisContextInfo = {
   dossier: { id: string; naam: string } | null;
 };
 
+/**
+ * De gegevens achter een opzoeking, klaar om te tonen in het gegevensvenster.
+ * Zelfde vorm als `Bron` in supabase/functions/zarvis/gereedschap.ts.
+ */
+export type ZarvisBron = {
+  titel: string;
+  ondertitel?: string;
+  secties: Array<{
+    kop?: string;
+    velden?: Array<{ label: string; waarde: string }>;
+    lijst?: Array<{ links?: string; tekst: string; rechts?: string; nadruk?: boolean }>;
+    leeg?: string;
+  }>;
+};
+
 export type ZarvisGebeurtenis =
   | { type: 'start'; gesprek_id: string; compass_dossier?: string | null }
   | { type: 'tekst'; delta: string }
-  | { type: 'stap'; id: string; label: string; status: 'bezig' | 'klaar' | 'mislukt'; detail?: string }
+  | { type: 'stap'; id: string; label: string; status: 'bezig' | 'klaar' | 'mislukt'; detail?: string; bron?: ZarvisBron }
   | { type: 'klaar' }
   | { type: 'fout'; bericht: string };
 

@@ -324,6 +324,8 @@ Deno.serve(async (req) => {
             stuur({
               type: 'stap', id: v.id, label: labelVan(v.name, v.input),
               status: r.ok ? 'klaar' : 'mislukt', detail: r.detail,
+              // De gegevens zelf, voor het gegevensvenster naast het gesprek.
+              bron: r.bron,
             });
             stappen.push({ naam: v.name, invoer: v.input, status: r.ok ? 'klaar' : 'mislukt', detail: r.detail });
             return {

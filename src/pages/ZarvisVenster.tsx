@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { Mic, Square, SendHorizonal, RotateCcw, Keyboard, Check, Loader2, AlertTriangle, LogOut } from 'lucide-react';
+import { Mic, Square, SendHorizonal, RotateCcw, Keyboard, Check, Loader2, AlertTriangle, LogOut, PanelRightOpen } from 'lucide-react';
 import { useZarvis, type ZarvisStatus } from '@/contexts/ZarvisContext';
 import { useAuth } from '@/contexts/AuthContext';
-import ZarvisOrb from '@/components/zarvis/ZarvisOrb';
+import ZarvisGat from '@/components/zarvis/ZarvisGat';
+import { meetMicrofoon } from '@/lib/zarvis/niveau';
 import { supabase } from '@/integrations/supabase/client';
+import { BRON_PAD, bronnenVan, openBronKanaal } from '@/lib/zarvis/bronKanaal';
 
 /**
  * Zarvis als eigen venster: klein, donker, bedoeld om open te laten staan boven
@@ -94,6 +96,85 @@ export default function ZarvisVenster() {
     onderkant.current?.scrollIntoView({ block: 'end' });
   }, [aantal, laatste?.tekst, laatste?.stappen?.length]);
 
+  // ── Het gegevensvenster ────────────────────────────────────────────────
+  // Standaard toont het de gegevens van het laatste antwoord dat iets opzocht;
+  // met de knop bij een ouder antwoord kies je dat antwoord.
+  const [gekozenId, zetGekozenId] = useState<string | null>(null);
+  const alle = zarvis?.berichten ?? [];
+  const bronIndex = (() => {
+    if (gekozenId) {
+      const i = alle.findIndex((b) => b.id === gekozenId);
+      if (i >= 0) return i;
+    }
+    for (let i = alle.length - 1; i >= 0; i--) if (bronnenVan(alle[i].stappen).length > 0) return i;
+    return -1;
+  })();
+  const bronBericht = bronIndex >= 0 ? alle[bronIndex] : null;
+  const bronToestand = {
+    soort: 'toon' as const,
+    vraag: bronIndex > 0 && alle[bronIndex - 1].rol === 'gebruiker' ? alle[bronIndex - 1].tekst : null,
+    bronnen: bronnenVan(bronBericht?.stappen),
+    bezig: !!bronBericht?.stappen?.some((s) => s.status === 'bezig'),
+  };
+  const bronSleutel = JSON.stringify(bronToestand);
+  const bronRef = useRef(bronToestand);
+  bronRef.current = bronToestand;
+
+  const kanaal = useRef<ReturnType<typeof openBronKanaal> | null>(null);
+  useEffect(() => {
+    const k = openBronKanaal((b) => { if (b.soort === 'hallo') k.stuur(bronRef.current); });
+    kanaal.current = k;
+    return () => { k.sluit(); kanaal.current = null; };
+  }, []);
+  useEffect(() => { kanaal.current?.stuur(bronRef.current); }, [bronSleutel]);
+
+  const bronVenster = useRef<Window | null>(null);
+  const openBron = () => {
+    if (bronVenster.current && !bronVenster.current.closed) { bronVenster.current.focus(); return; }
+    bronVenster.current = window.open(BRON_PAD, 'zarvis-bron', 'popup=yes,width=420,height=560');
+  };
+  // Zodra een nieuw antwoord gegevens heeft, gaat het venster vanzelf open.
+  // Eén keer per antwoord: sluit je het, dan blijft het dicht tot de volgende
+  // vraag. In een gewone browser houdt de pop-upblokkering dit tegen; daar
+  // dient de knop bij het antwoord.
+  const geopendVoor = useRef<string | null>(null);
+  const nieuwsteMetBron = [...alle].reverse().find((b) => bronnenVan(b.stappen).length > 0)?.id ?? null;
+  useEffect(() => {
+    if (!nieuwsteMetBron || geopendVoor.current === nieuwsteMetBron) return;
+    const eerste = geopendVoor.current === null && alle[alle.length - 1]?.id !== nieuwsteMetBron;
+    geopendVoor.current = nieuwsteMetBron;
+    zetGekozenId(null);
+    // Een oud gesprek dat herladen wordt, opent niets uit zichzelf.
+    if (!eerste && schil()) openBron();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nieuwsteMetBron]);
+
+  // ── De microfoonknop toont jouw stem ───────────────────────────────────
+  const ringBuiten = useRef<HTMLSpanElement>(null);
+  const ringBinnen = useRef<HTMLSpanElement>(null);
+  const [micGemeten, zetMicGemeten] = useState(false);
+  const luistertNu = zarvis?.status === 'luistert';
+  useEffect(() => {
+    if (!luistertNu) return;
+    let weg = false, beeld = 0, stop: (() => void) | null = null;
+    void meetMicrofoon().then((m) => {
+      if (!m) return;
+      if (weg) { m.stop(); return; }
+      stop = m.stop;
+      zetMicGemeten(true);
+      let zacht = 0;
+      const tik = () => {
+        beeld = requestAnimationFrame(tik);
+        const n = m.niveau();
+        zacht += (n - zacht) * (n > zacht ? 0.5 : 0.12);
+        if (ringBinnen.current) ringBinnen.current.style.transform = `scale(${1.08 + zacht * 0.45})`;
+        if (ringBuiten.current) ringBuiten.current.style.transform = `scale(${1.15 + zacht * 1.0})`;
+      };
+      tik();
+    });
+    return () => { weg = true; cancelAnimationFrame(beeld); stop?.(); zetMicGemeten(false); };
+  }, [luistertNu]);
+
   if (!zarvis) return null;
   const {
     status, berichten, tussentijds, micMelding, kanLuisteren,
@@ -114,22 +195,11 @@ export default function ZarvisVenster() {
 
   return (
     <div className="h-screen flex flex-col bg-[#07090F] text-[#F3F5FA] font-body overflow-hidden select-none">
-      {/* ── Kop: aanwezigheid en status; tegelijk het handvat om te slepen ── */}
-      <header style={sleep} className="shrink-0 flex items-center gap-3 px-4 pt-3 pb-2">
-        <ZarvisOrb status={status} maat={44} />
-        <div className="min-w-0 flex-1">
-          <p role="status" className="font-headline font-semibold text-[17px] leading-tight tracking-[-0.01em]">
-            {STATUSTEKST[status]}
-          </p>
-          <p className="text-[13px] text-[#A9B4C8] truncate">
-            {bezigeStap ? `${bezigeStap.label}…`
-              : luistert ? (tussentijds || 'Spreek gerust')
-              : compassDossier ? `In Compass: ${compassDossier}`
-              : sneltoets ? `Sneltoets ${sneltoets}`
-              : 'Verbonden met Compass'}
-          </p>
-        </div>
-        <div style={geenSleep} className="flex gap-1.5">
+      {/* ── Zarvis zelf: het zwarte gat, met de toestand in woorden eronder.
+          Tegelijk het handvat om het venster te verslepen. ── */}
+      <header style={sleep} className="relative shrink-0 h-[196px]">
+        <ZarvisGat status={status} className="absolute inset-0 h-full w-full" />
+        <div style={geenSleep} className="absolute right-3 top-3 flex gap-1.5">
           {berichten.length > 0 && (
             <button className={rondeKnop} onClick={nieuwGesprek} aria-label="Nieuw gesprek" title="Nieuw gesprek">
               <RotateCcw aria-hidden className="h-[18px] w-[18px]" />
@@ -138,6 +208,18 @@ export default function ZarvisVenster() {
           <button className={rondeKnop} onClick={() => void signOut()} aria-label="Uitloggen" title="Uitloggen">
             <LogOut aria-hidden className="h-[18px] w-[18px]" />
           </button>
+        </div>
+        <div className="absolute inset-x-0 bottom-0 px-5 text-center">
+          <p role="status" className="font-headline font-semibold text-[16px] leading-tight tracking-[-0.01em]">
+            {STATUSTEKST[status]}
+          </p>
+          <p className="mt-0.5 text-[13px] text-[#A9B4C8] truncate">
+            {bezigeStap ? `${bezigeStap.label}…`
+              : luistert ? (tussentijds || 'Spreek gerust')
+              : compassDossier ? `In Compass: ${compassDossier}`
+              : sneltoets ? `Sneltoets ${sneltoets}`
+              : 'Verbonden met Compass'}
+          </p>
         </div>
       </header>
 
@@ -197,6 +279,15 @@ export default function ZarvisVenster() {
                       ))}
                     </ul>
                   )}
+                  {bronnenVan(b.stappen).length > 0 && (
+                    <button
+                      onClick={() => { zetGekozenId(b.id); openBron(); }}
+                      className="mb-2.5 inline-flex h-9 items-center gap-2 rounded-full bg-white/[0.08] px-3.5 text-[13px] text-[#D6DDEA] hover:bg-white/[0.16] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8CCBFF]"
+                    >
+                      <PanelRightOpen aria-hidden className="h-4 w-4" />
+                      Toon de gegevens
+                    </button>
+                  )}
                   <p
                     className={`whitespace-pre-wrap break-words ${
                       isLaatste
@@ -246,7 +337,7 @@ export default function ZarvisVenster() {
           ) : (
             <>
               <span className="flex-1 min-w-0 px-3 text-sm text-[#A9B4C8] truncate">
-                {luistert ? 'Ik stop vanzelf als je zwijgt' : bezig ? 'Praat er gerust doorheen' : 'Tik op de microfoon of gebruik de sneltoets'}
+                {luistert ? (tussentijds || 'Jij spreekt. Ik stop vanzelf als je zwijgt.') : bezig ? 'Praat er gerust doorheen' : 'Tik op de microfoon of gebruik de sneltoets'}
               </span>
               <button className={rondeKnop} onClick={() => zetTypen(true)} aria-label="Typen in plaats van spreken">
                 <Keyboard aria-hidden className="h-5 w-5" />
@@ -271,16 +362,25 @@ export default function ZarvisVenster() {
               <SendHorizonal aria-hidden className="h-5 w-5" />
             </button>
           ) : (
-            <button
-              onClick={wisselMicrofoon}
-              aria-pressed={luistert}
-              aria-label={luistert ? 'Klaar met spreken' : 'Spreken'}
-              className={`h-12 w-12 shrink-0 rounded-full flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8CCBFF] ${
-                luistert ? 'bg-[#F3F5FA] text-[#07090F] ring-4 ring-[#2E8BFF]/40' : 'bg-[#2E8BFF] text-white hover:bg-[#4A9BFF]'
-              }`}
-            >
-              {luistert ? <Square aria-hidden className="h-4 w-4 fill-current" /> : <Mic aria-hidden className="h-5 w-5" />}
-            </button>
+            <span className="relative h-14 w-14 shrink-0">
+              {/* Jouw stem: twee ringen die uitzetten met het volume van de microfoon. */}
+              {luistert && (
+                <>
+                  <span ref={ringBuiten} aria-hidden className={`absolute inset-0 scale-[1.25] rounded-full bg-[#2E8BFF]/20 ${micGemeten ? '' : 'animate-ping'}`} />
+                  <span ref={ringBinnen} aria-hidden className="absolute inset-0 scale-[1.12] rounded-full bg-[#2E8BFF]/35" />
+                </>
+              )}
+              <button
+                onClick={wisselMicrofoon}
+                aria-pressed={luistert}
+                aria-label={luistert ? 'Klaar met spreken' : 'Spreken'}
+                className={`relative h-14 w-14 rounded-full flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8CCBFF] ${
+                  luistert ? 'bg-[#2E8BFF] text-white' : 'bg-[#F3F5FA] text-[#07090F] hover:bg-white'
+                }`}
+              >
+                <Mic aria-hidden className="h-6 w-6" />
+              </button>
+            </span>
           )}
         </div>
       </footer>

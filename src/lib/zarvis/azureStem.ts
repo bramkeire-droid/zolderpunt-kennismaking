@@ -7,6 +7,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import type { StemIn, StemUit } from './stem';
+import { meetSpeler } from './niveau';
 
 const STEM_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/zarvis-stem`;
 // Azure geeft een bewijs van tien minuten; ruim daarvoor vernieuwen.
@@ -158,6 +159,8 @@ export async function maakAzureStem(): Promise<{ stemIn: StemIn; stemUit: StemUi
         speler.onended = () => klaar();
         speler.onerror = () => klaar();
         speler.src = url;
+        // Het zwarte gat beweegt mee op het echte volume van de stem.
+        void meetSpeler(speler);
         speler.play().catch(() => klaar());
       });
       URL.revokeObjectURL(url);
