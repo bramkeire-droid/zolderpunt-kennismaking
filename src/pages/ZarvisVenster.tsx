@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Mic, Square, SendHorizonal, RotateCcw, Keyboard, Check, Loader2, AlertTriangle, LogOut, PanelRightOpen } from 'lucide-react';
+import { Mic, Square, SendHorizonal, RotateCcw, Keyboard, Check, Loader2, AlertTriangle, LogOut, PanelRightOpen, BellRing } from 'lucide-react';
 import { useZarvis, type ZarvisStatus } from '@/contexts/ZarvisContext';
 import { useAuth } from '@/contexts/AuthContext';
 import ZarvisGat from '@/components/zarvis/ZarvisGat';
@@ -231,7 +231,7 @@ export default function ZarvisVenster() {
               Vraag me iets over je dossiers.
             </p>
             <p className="mt-2 text-sm leading-relaxed text-[#A9B4C8]">
-              Ik lees gegevens, gesprekken, notities en calculaties. Aanpassen of versturen kan ik nog niet.
+              Ik lees dossiers, gesprekken en calculaties, herinner je op een tijdstip, kijk iets op vaste tijden na en verstuur een WhatsApp.
             </p>
           </div>
         ) : (
@@ -257,6 +257,16 @@ export default function ZarvisVenster() {
                         Opnieuw proberen
                       </button>
                     )}
+                  </div>
+                );
+              }
+              if (b.melding) {
+                return (
+                  <div key={b.id} className="rounded-2xl border border-[#2E8BFF]/40 bg-[#2E8BFF]/10 px-4 py-3">
+                    <p className="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.1em] text-[#8CCBFF]">
+                      <BellRing aria-hidden className="h-3.5 w-3.5" /> Zarvis meldt
+                    </p>
+                    <p className="mt-1 text-[15px] leading-relaxed whitespace-pre-wrap break-words">{b.tekst}</p>
                   </div>
                 );
               }

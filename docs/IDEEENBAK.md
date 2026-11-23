@@ -157,7 +157,7 @@ Nummers zijn doorlopend en worden nooit hergebruikt.
 - **Mijn open vragen erover**: (1) Verwittigen via WhatsApp botst met de afspraak dat de koppeling alleen leest: Zarvis moet dan één bericht sturen, alleen naar je eigen nummer. Wil je dat, wetend dat versturen het risico op blokkering vergroot? Alternatief zonder dat risico: een melding van Windows via het programma, of een mail. (2) "Dit" in je voorbeeld is vandaag alleen na te kijken in wat Zarvis kan lezen (dossiers, gesprekken, WhatsApp). Mail kan pas na IDEE-10.
 - **Behandeling**: eerst, vóór IDEE-10 verder gaat: het is een basisvermogen van Zarvis en klein tegenover de rollen. Verwittigen begint met een Windows-melding; WhatsApp komt erbij zodra Bram vraag 1 beantwoordt.
 - **Aanvulling 2026-11-24, Bram zei letterlijk**: "Timerfuncties zullen ook cruciaal zijn. "Stuur op tijdstip x een whatsapp naar persoon y" "Kan je le herinneren over een uur aan x"" Eenmalige taken op een tijdstip horen in dezelfde bouwsteen. Een WhatsApp naar een klant versturen is een externe actie: volgens de afspraak "intern zelf, extern vragen" toont Zarvis het bericht eerst en verstuurt pas na ja; en het vraagt dat de koppeling mag versturen.
-- **Status**: open
+- **Status**: afgewerkt (2026-11-24), op het testen op een echte pc na. Gebouwd: tabellen `zarvis_taken`, `zarvis_meldingen`, `whatsapp_uit`; een klok in de databank die elke minuut de functie `zarvis-taken` wekt; gereedschap `plan_taak`, `toon_taken`, `stop_taak`, `stuur_whatsapp`; versturen via het programma op de pc; meldingen in het Zarvis-venster, hardop en als Windows-melding. Bram besliste op 2026-11-24: "natuurlijk moet Zarvis versturen".
 
 ## IDEE-17 — Zarvis leest emoties
 - **Datum**: 2026-11-24
@@ -175,7 +175,7 @@ Nummers zijn doorlopend en worden nooit hergebruikt.
 - **Eerste inschatting**: Twee soorten leren, met een verschillende weg. (A) Een werkwijze met gereedschap dat al bestaat (bijvoorbeeld 'maak elke maandag een overzicht van offertes zonder antwoord'): Zarvis schrijft die zelf weg als vaardigheid in een tabel (naam, wanneer te gebruiken, stappen) en kan ze meteen. Dat is in de app te bouwen. (B) Iets waarvoor nieuwe code nodig is (een nieuwe connector): Zarvis kan zijn eigen code niet veilig herschrijven terwijl hij draait. De weg is dat Zarvis een bouwopdracht aanmaakt die een codeer-agent in de cloud oppakt: onderzoeken, bouwen, testen, een pull request openen, uitrollen, en Zarvis meldt daarna dat het kan. Dat is dezelfde keten die nu met de hand loopt in deze sessies. Vereist: een log van 'kon ik niet' (wat gevraagd werd, waarom niet), een wachtrij van bouwopdrachten, en een grens op wat zonder Bram live mag.
 - **Mijn open vragen erover**: (1) Mag een door Zarvis gebouwde vaardigheid zonder jouw nazicht live, of wil je elke keer een ja geven voor ze aan staat? Mijn voorstel: lezen mag vanzelf, schrijven of versturen pas na jouw ja. (2) De codeer-agent kost per bouwopdracht; wil je een maandplafond?
 - **Behandeling**: na IDEE-16. Eerst het 'kon ik niet'-log en soort A; daarna soort B.
-- **Status**: open
+- **Status**: deels afgewerkt (2026-11-24). Gebouwd: `leer_vaardigheid` (werkwijzen met bestaand gereedschap, gaan bij elk gesprek mee), `meld_tekort` (wat nog niet kon komt op de bouwlijst), en een nachtelijke bouwer die die lijst oppakt (`docs/ZARVIS-BOUWER.md`). Open: Zarvis die tijdens het gesprek zelf een bouw start en meldt wanneer het klaar is.
 
 ## IDEE-19 — Google Maps: routes en ritafstanden
 - **Datum**: 2026-11-24

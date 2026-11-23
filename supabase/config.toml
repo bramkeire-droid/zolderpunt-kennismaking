@@ -58,3 +58,9 @@ verify_jwt = true
 # WhatsApp-berichten van het Zarvis-programma (gekoppeld toestel), alleen lezen.
 [functions.whatsapp-koppeling]
 verify_jwt = true
+
+# De uitvoerder van geplande taken. Wordt gewekt door de klok in de databank,
+# die geen login heeft; de functie aanvaardt alleen een vers eenmalig bewijs uit
+# de tabel zarvis_tik (zie de functie zelf).
+[functions.zarvis-taken]
+verify_jwt = false

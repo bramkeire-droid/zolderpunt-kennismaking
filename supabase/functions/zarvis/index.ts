@@ -89,8 +89,14 @@ Je kan de dossiers van Compass lezen met je gereedschap: een dossier zoeken, de 
 Hoe je met gegevens omgaat
 Zeg alleen wat je in de gegevens gelezen hebt. Staat iets er niet in, zeg dan dat het niet in het dossier staat; vul het niet aan uit je verbeelding. Noem bij een feit kort waar het vandaan komt, bijvoorbeeld het gesprek van een bepaalde datum. Bedragen zeg je zoals ze er staan, met erbij of het exclusief of inclusief btw is. Een datum zeg je als dag en maand.
 
-Wat je vandaag nog niet kan
-Je kan nog niets aanpassen of versturen: geen notitie toevoegen, geen veld wijzigen, geen mail of bericht versturen. Je hebt ook nog geen toegang tot de mails, WhatsApp, de agenda en Bouwflow. Vraagt iemand daarom, zeg dan in een zin dat het er nog niet in zit, en bied aan wat wel kan, zoals de tekst alvast formuleren.
+Wat je kan doen
+Je kan iets plannen: een herinnering op een tijdstip, een controle die je op vaste tijden herhaalt tot een einde, en een WhatsApp die op een tijdstip vertrekt. Je kan nu een WhatsApp versturen via de WhatsApp van de gebruiker. Je kan tonen wat gepland staat en een taak stoppen. Reken zelf niet met tijdzones: geef kloktijden zoals ze in België gelden.
+
+Berichten naar buiten
+Een bericht aan de gebruiker zelf verstuur je meteen. Een bericht aan een klant of iemand anders lees je eerst volledig voor en je vraagt of het zo weg mag; pas na een duidelijk ja verstuur of plan je het. Dat geldt ook als de gebruiker gehaast klinkt.
+
+Wat je nog niet kan, en wat je dan doet
+Je kan nog geen gegevens in een dossier aanpassen, geen mail lezen of versturen, niet in de agenda, niet in Bouwflow, niet op het web zoeken en de pc niet bedienen. Vraagt de gebruiker iets wat je niet kan, dan noteer je het eerst met meld_tekort en zeg je daarna, in je eigen woorden: dat kan ik nog niet, ik heb het op de bouwlijst gezet; en je biedt aan wat wel kan. Kan het wel met je bestaande gereedschap maar ken je de werkwijze niet, vraag dan: wil je dat ik dat aanleer? Na ja bewaar je de werkwijze met leer_vaardigheid en bevestig je dat je het vanaf nu kan.
 
 Weet je iets niet zeker, zeg dat dan. Een eerlijk "dat weet ik niet" is hier meer waard dan een vlot antwoord dat niet klopt.`;
 
@@ -111,7 +117,9 @@ function contextTekst(c: Context | undefined): string {
     : viaCompass
       ? 'De medewerker praat met je vanuit het losse Zarvis-venster. In Compass staat geen dossier open.'
       : `Waar de medewerker nu is: pagina "${view}", geen dossier open.`;
-  return `${waar} Vandaag is het ${vandaag}.`;
+  const uur = new Date().toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Brussels' });
+  const datum = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Brussels' });
+  return `${waar} Vandaag is het ${vandaag} (${datum}), ${uur} in België.`;
 }
 
 const isUuid = (v: unknown): v is string =>
@@ -182,6 +190,13 @@ Deno.serve(async (req) => {
   const { data: inst } = await alsGebruiker.from('zarvis_instellingen').select('connectoren').maybeSingle();
   const gereedschap = gereedschapVoor(inst?.connectoren as Record<string, unknown> | undefined);
   const toegestaan = new Set(gereedschap.map((g) => g.name));
+
+  // Wat Zarvis zichzelf aanleerde, gaat bij elk gesprek mee.
+  const { data: geleerd } = await alsGebruiker.from('zarvis_vaardigheden')
+    .select('naam, wanneer, stappen').order('created_at', { ascending: false }).limit(25);
+  const vaardigheden = (geleerd ?? []).length > 0
+    ? 'Werkwijzen die je aangeleerd kreeg:\n' + (geleerd ?? []).map((v: { naam: string; wanneer: string; stappen: string }) => `- ${v.naam}. Wanneer: ${v.wanneer}. Stappen: ${v.stappen}`).join('\n')
+    : '';
   if (!isUuid(context?.dossier?.id)) {
     const { data: rij } = await alsGebruiker
       .from('zarvis_context').select('lead_id, dossier_naam, view, updated_at').maybeSingle();
@@ -297,7 +312,7 @@ Deno.serve(async (req) => {
             output_config: { effort: 'low' },
             system: [
               { type: 'text', text: PERSONA },
-              { type: 'text', text: contextTekst(context) },
+              { type: 'text', text: contextTekst(context) + (vaardigheden ? `\n\n${vaardigheden}` : '') },
             ],
             tools: gereedschap,
             messages,

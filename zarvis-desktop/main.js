@@ -268,10 +268,10 @@ if (!app.requestSingleInstanceLock()) {
     session.defaultSession.setPermissionRequestHandler((wc, permissie, antwoord, details) => {
       let vanZarvis = false;
       try { vanZarvis = new URL(details.requestingUrl || wc.getURL()).origin === OORSPRONG; } catch { /* nee */ }
-      antwoord(vanZarvis && (permissie === 'media' || permissie === 'audioCapture'));
+      antwoord(vanZarvis && (permissie === 'media' || permissie === 'audioCapture' || permissie === 'notifications'));
     });
     session.defaultSession.setPermissionCheckHandler((_wc, permissie, oorsprong) =>
-      oorsprong === OORSPRONG && (permissie === 'media' || permissie === 'audioCapture'));
+      oorsprong === OORSPRONG && (permissie === 'media' || permissie === 'audioCapture' || permissie === 'notifications'));
 
     ipcMain.on('zarvis:verberg', () => venster && venster.hide());
 
