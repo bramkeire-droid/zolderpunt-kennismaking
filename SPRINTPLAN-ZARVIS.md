@@ -1,7 +1,7 @@
 # SPRINTPLAN — Zarvis fase 1: praten met je dossiers
 
 > Bouwdocument voor de eerste fase van Zarvis, de assistent bovenop Zolderpunt Compass.
-> Gebaseerd op het interview met Bram van 2026-11-23. Status: **goedgekeurd door Bram op 2026-11-23**; sprint Z0 loopt.
+> Gebaseerd op het interview met Bram van 2026-11-23. Status: **goedgekeurd door Bram op 2026-11-23**; volgorde bijgestuurd op dezelfde dag (zie 4).
 > Onderaan komt het voortgangs- en aannamelogboek per sessie, zoals in SPRINTPLAN-COMMUNICATIE.md.
 
 ---
@@ -34,7 +34,7 @@ Niet in fase 1: mails of WhatsApp versturen, agenda, Bouwflow-fases verplaatsen,
 - **Eén nieuwe edge function `zarvis`** met `verify_jwt = true`. Ze draait de redeneerlus: model krijgt de vraag, kiest gereedschap, de functie voert het uit, het model formuleert het antwoord. Antwoord komt gestreamd terug.
 - **Gereedschap draait met het token van de ingelogde gebruiker**, niet met de service-sleutel. Zarvis kan dus nooit meer dan Bram zelf in Compass kan; de bestaande RLS blijft de grens. Dat is meteen de voorbereiding op het team.
 - **Model: Claude via de Anthropic-API**, met een eigen secret `ANTHROPIC_API_KEY` in Compass. De bestaande functies blijven op `LOVABLE_API_KEY` draaien; Zarvis krijgt een aparte pot zodat de kost apart leesbaar is.
-- **Mail-CRM wordt gelezen via het bestaande loket** (`compass-loket`), met hetzelfde gebruikerstoken. Zarvis schrijft niets naar Mail-CRM.
+- **(Uitbreiding) Mail-CRM wordt gelezen via het bestaande loket** (`compass-loket`), met hetzelfde gebruikerstoken. Zarvis schrijft niets naar Mail-CRM.
 - **Stem en gezicht zitten achter twee smalle interfaces** (`StemIn`, `StemUit`). Fase 1 vult ze in met druk-om-te-praten; fase 5 vervangt de invulling door een realtime stem met gezicht zonder dat de rest verandert.
 - **Alles additief**: geen bestaande kolommen, views, policies of functies wijzigen. Enige aanraking van bestaande code: `AppShell.tsx` krijgt de Zarvis-knop en het paneel.
 
@@ -82,19 +82,26 @@ RLS: een gebruiker leest en schrijft alleen zijn eigen rijen; admin leest alles.
 
 ### 3.4 Stem in fase 1
 
-Druk-om-te-praten: opname in de browser, omzetten naar tekst, antwoord voorgelezen. De spraakdienst wordt **pas in sprint Z3 gekozen**, na een proef met echte Vlaamse zinnen vol klantnamen, straatnamen en ZL-nummers. Voorwaarde: verwerking in de EU en werkend in Safari op iPhone. Tot Z3 werkt Zarvis volledig via tekst.
+Eén microfoonknop: tik om te spreken, Zarvis stopt vanzelf als je zwijgt. Een gesproken vraag krijgt een gesproken antwoord, zin per zin terwijl het nog geschreven wordt; een getypte vraag krijgt enkel tekst. Na een gesproken antwoord luistert Zarvis meteen verder, zodat je handsfree kan doorvragen; hoort hij niets, dan gaat hij stil terug in rust. Spreken terwijl hij antwoordt onderbreekt hem.
+
+De definitieve spraakdienst wordt **in sprint Z4 gekozen**, na een proef met echte Vlaamse zinnen vol klantnamen, straatnamen en ZL-nummers. Voorwaarde: verwerking in de EU en werkend in Safari op iPhone. Tot dan draait de voorlopige browserstem (zie 4).
 
 ## 4. Sprints
 
+**Bijsturing van Bram (2026-11-23): eerst UI, UX en dialoog; koppelingen toevoegen en testen is uitbreiding.** De volgorde is daarop omgegooid: wat je ziet, hoort en zegt komt vooraan, het gereedschap daarna, en de koppelingen met andere systemen helemaal achteraan.
+
 | Sprint | Inhoud | Klaar wanneer |
 |---|---|---|
-| **Z0 — Fundering** | Secret `ANTHROPIC_API_KEY`; tabellen uit 3.2; lege `zarvis`-functie met logincontrole; nagaan welke bestaande policies ruimer zijn dan "ingelogd" (zie 6.1) | Functie weigert zonder login (401) en antwoordt met login; migratie staat live |
-| **Z1 — Lezen** | Alle leesgereedschappen; redeneerlus; gestreamd antwoord; tekstpaneel in `AppShell` | Twintig vaste testvragen (zie 5) geven het antwoord dat ook in de databank staat |
-| **Z2 — Doen** | Drie schrijfgereedschappen; `zarvis_acties`; actiekaartjes; ongedaan maken; logboek | Elke actie is terug te vinden in de brontabel én in het logboek; terugdraaien herstelt de oude waarde |
-| **Z3 — Stem** | Proef en keuze spraakdienst; microfoonknop; voorlezen; gsm-weergave | Tien gesproken opdrachten op iPhone en op bureau correct uitgevoerd |
-| **Z4 — Afwerken** | Kostenoverzicht per dag uit `zarvis_berichten`; foutafhandeling (loket onbereikbaar, dossier niet gevonden, dubbelzinnige naam); regressie | Regressielijst R1–R4 uit SPRINTPLAN-COMMUNICATIE groen; kost per gesprek zichtbaar |
+| **Z0 — Fundering** | Secret `ANTHROPIC_API_KEY`; tabellen uit 3.2; functie met login- en rolcontrole; policies nakijken | Functie weigert zonder login (401) en antwoordt met login; migratie staat live |
+| **Z1 — Het gesprek** | Zarvis-knop in de app-balk; paneel (zijpaneel op bureau, volledig scherm op gsm); aanwezigheid met vier toestanden; gestreamd antwoord; spreken en hardop antwoorden; onderbreken; doorvragen zonder knop; gesprek wordt bewaard | Een gesprek van vijf beurten lukt getypt op bureau en gesproken op gsm, zonder dat de gebruiker moet wachten op het volledige antwoord |
+| **Z2 — Lezen** | Leesgereedschap uit 3.1 op de eigen Compass-databank; Zarvis antwoordt vanuit het dossier waarin je zit | Twintig vaste testvragen (zie 5) geven het antwoord dat ook in de databank staat |
+| **Z3 — Doen** | Drie schrijfgereedschappen; `zarvis_acties`; actiekaartjes; ongedaan maken; logboek; kostenoverzicht per dag | Elke actie staat in de brontabel én in het logboek; terugdraaien herstelt de oude waarde; regressielijst R1–R4 groen |
+| **Z4 — Definitieve stem** | Proef en keuze van een spraakdienst met verwerking in de EU; vervangt de voorlopige browserstem | Tien gesproken opdrachten op iPhone en op bureau correct verstaan |
+| **Uitbreiding — Koppelingen** | Mail-CRM-loket, daarna (fase 3) mail en WhatsApp versturen, agenda en Calendly, Bouwflow, Todoist. Elke koppeling apart toevoegen en testen | Per koppeling een eigen testlijst |
 
-Na Z1 is Zarvis al bruikbaar via tekst. Z3 mag naar achter schuiven zonder de rest te blokkeren.
+Z1 is bruikbaar zodra de functie live staat en de sleutel geplakt is. Tot Z2 zegt Zarvis eerlijk dat hij de dossiers nog niet leest.
+
+**Voorlopige stem in Z1.** Om de dialoog nu al te kunnen beleven gebruikt Z1 de spraak die in de browser zit. Twee beperkingen: herkenning werkt in Chrome en Edge, wisselvallig in Safari en niet in Firefox (dan verdwijnt de microfoonknop en blijft typen); en Chrome stuurt de opname naar Google, wat **niet** de afgesproken EU-verwerking is. Z4 vervangt dit. Wie dat tot dan niet wil, typt.
 
 ## 5. Hoe ik verifieer
 
@@ -129,3 +136,12 @@ Na Z1 is Zarvis al bruikbaar via tekst. Z3 mag naar achter schuiven zonder de re
   - Functie `supabase/functions/zarvis/index.ts` geschreven: controleert login en rol, antwoordt met wie aanklopt. **Nog niet live en nog niet uitgevoerd** — Lovable zet functies pas uit na merge naar `main`; lokaal typechecken met Deno lukte niet in de bouwomgeving.
   - Policies doorgelicht (zie 6.1).
   - **Open voor Z0:** (a) PR mergen en publiceren, (b) Bram plakt `ANTHROPIC_API_KEY`, (c) daarna live nagaan: zonder login 401, met login `ok: true` en `model_sleutel_aanwezig: true`.
+- **2026-11-23 (bijsturing + Z1)** — Bram: "Plaats de UI, UX en dialoog vooraan de build. Alle connectoren toevoegen en testen is uitbreiding van de app." Sprints herschikt (zie 4). Gebouwd:
+  - `ZarvisKnop` in de app-balk en `ZarvisPaneel` in `AppShell`; gesprekstoestand in `ZarvisContext` op App-niveau, zodat een gesprek een paginawissel overleeft.
+  - `ZarvisOrb`: de aanwezigheid, met vier toestanden (rust, luistert, denkt, spreekt). Hier komt in fase 5 het gezicht.
+  - `src/lib/zarvis/`: stem achter de interfaces `StemIn` / `StemUit` (voorlopig de browser), zinnen knippen voor het voorlezen, client voor de antwoordstroom.
+  - Functie `zarvis` uitgebreid van logincontrole naar een gestreamde dialoog die vraag en antwoord bewaart in `zarvis_berichten`, met verbruikte tokens.
+  - **Geverifieerd** in een echte browser met een nagebootste server (bureau 1280 px en gsm 390 px): knop 44 px hoog; getypte vraag toont "Even denken" en daarna het volledige antwoord; vervolgvraag gaat in hetzelfde gesprek; serverfout toont de melding met "Opnieuw proberen"; gesproken vraag wordt verstuurd, antwoord in vier zinnen uitgesproken, daarna luistert Zarvis verder en valt bij stilte zonder melding terug in rust; geen horizontale scroll op gsm; geen consolefouten. Typecheck, lint en build in orde; 213 tests groen met tijdzone Brussel.
+  - **Niet geverifieerd:** de functie zelf tegen het echte model (nog niet live, geen sleutel; wel getypecheckt tegen de Anthropic-SDK 1.13.0); echte microfoon en echte stem (de browserproef gebruikte nagebootste spraak); iPhone Safari.
+  - **Los van Zarvis opgemerkt:** de test `rapportMailTekst › bevestigt dag en uur` faalt in een omgeving op UTC (verwacht 14:00, krijgt 13:00) en slaagt met tijdzone Brussel. Bestond al vóór deze wijzigingen.
+  - **Aanname:** model `claude-opus-5-5` op lage inspanning voor snelheid, instelbaar via secret `ZARVIS_MODEL`; bij een afwijzing om veiligheidsredenen neemt een ander model automatisch over.
