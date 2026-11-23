@@ -64,6 +64,18 @@ export async function maakAzureStem(): Promise<{ stemIn: StemIn; stemUit: StemUi
   // ── Luisteren ──────────────────────────────────────────────────────────────
   type Herkenner = { close: () => void; stopContinuousRecognitionAsync: (cb?: () => void) => void };
   let actief: Herkenner | null = null;
+  // De microfoon wordt gefilterd vóór de herkenning: echo weg (Zarvis hoort
+  // zichzelf niet), ruis en muziek op de achtergrond gedempt, en waar de
+  // computer het kan ook stemisolatie. Dat maakt de dichtste stem de duidelijkste;
+  // het herkent nog niet wíé er spreekt.
+  let stroom: MediaStream | null = null;
+  const laatLos = () => { stroom?.getTracks().forEach((t) => t.stop()); stroom = null; };
+  const gefilterdeMicrofoon = () => navigator.mediaDevices.getUserMedia({
+    audio: {
+      echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1,
+      advanced: [{ voiceIsolation: true } as MediaTrackConstraintSet],
+    },
+  });
   let beurt = 0;
 
   const stemIn: StemIn = {
@@ -72,16 +84,23 @@ export async function maakAzureStem(): Promise<{ stemIn: StemIn; stemUit: StemUi
       const mijnBeurt = ++beurt;
       actief?.close();
       actief = null;
+      laatLos();
       void (async () => {
         try {
-          const [b, sdk] = await Promise.all([
+          const [b, sdk, micro] = await Promise.all([
             versBewijs(),
             import('microsoft-cognitiveservices-speech-sdk'),
+            // Lukt de gefilterde microfoon niet, dan de gewone van het systeem.
+            gefilterdeMicrofoon().catch(() => null),
           ]);
-          if (mijnBeurt !== beurt) return;
+          if (mijnBeurt !== beurt) { micro?.getTracks().forEach((t) => t.stop()); return; }
+          stroom = micro;
           const config = sdk.SpeechConfig.fromAuthorizationToken(b.token, b.regio);
           config.speechRecognitionLanguage = b.taal;
-          const herkenner = new sdk.SpeechRecognizer(config, sdk.AudioConfig.fromDefaultMicrophoneInput());
+          const herkenner = new sdk.SpeechRecognizer(
+            config,
+            micro ? sdk.AudioConfig.fromStreamInput(micro) : sdk.AudioConfig.fromDefaultMicrophoneInput(),
+          );
           actief = herkenner;
           herkenner.recognizing = (_s, e) => {
             if (mijnBeurt === beurt) opTussentijds(e.result.text);
@@ -90,6 +109,7 @@ export async function maakAzureStem(): Promise<{ stemIn: StemIn; stemUit: StemUi
           herkenner.recognizeOnceAsync(
             (resultaat) => {
               herkenner.close();
+              laatLos();
               if (actief === herkenner) actief = null;
               if (mijnBeurt !== beurt) return;
               if (resultaat.reason === sdk.ResultReason.RecognizedSpeech) {
@@ -106,6 +126,7 @@ export async function maakAzureStem(): Promise<{ stemIn: StemIn; stemUit: StemUi
             },
             (fout) => {
               herkenner.close();
+              laatLos();
               if (actief === herkenner) actief = null;
               if (mijnBeurt !== beurt) return;
               opFout(
@@ -116,6 +137,7 @@ export async function maakAzureStem(): Promise<{ stemIn: StemIn; stemUit: StemUi
             },
           );
         } catch {
+          laatLos();
           if (mijnBeurt === beurt) opFout('De spraakherkenning kon niet starten. Typ je vraag of probeer opnieuw.');
         }
       })();
@@ -127,6 +149,7 @@ export async function maakAzureStem(): Promise<{ stemIn: StemIn; stemUit: StemUi
       beurt++;
       actief?.close();
       actief = null;
+      laatLos();
     },
   };
 

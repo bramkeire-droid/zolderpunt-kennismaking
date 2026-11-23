@@ -212,3 +212,12 @@ Nummers zijn doorlopend en worden nooit hergebruikt.
 - **Mijn open vragen erover**: (1) Mag Zarvis klikken terwijl jij weg bent, of alleen terwijl je erbij zit? Je voorbeeld vraagt het eerste. (2) Welke programma's eerst?
 - **Behandeling**: na IDEE-16 en IDEE-18. Eerst alleen kijken (schermafdruk lezen en melden), dan pas klikken.
 - **Status**: open
+
+## IDEE-23 — Zarvis herkent Brams stem
+- **Datum**: 2026-11-24
+- **Bram zei letterlijk**: "Ik speel veel muziek, Zarvis moet het verschil kennen tussen mijn stem en achtergrondmuziek en tussen mijn stem en die van anderen"
+- **Waar ik mee bezig was**: afronden van taken, timers en versturen.
+- **Eerste inschatting**: Twee verschillende problemen. (1) Muziek op de achtergrond: op te lossen met filtering van de microfoon vóór de herkenning (echo weg, ruis en muziek gedempt, stemisolatie waar de pc het kan). Gebouwd op 2026-11-24 voor de Azure-stem. (2) Andere stemmen: dat vraagt sprekerherkenning. Bram spreekt één keer een halve minuut in; daarvan wordt een stemafdruk gemaakt; elke uiting wordt ermee vergeleken en genegeerd als ze niet van hem is. De dienst van Azure hiervoor is stopgezet, dus het wordt een model dat op de pc zelf draait, in het programma. De RTX 5080 is daar ruim genoeg voor. Risico's: een stemafdruk is een biometrisch gegeven en blijft daarom op de pc; en de drempel moet op Brams echte stem afgesteld worden, dus dit is niet af zonder dat hij het zelf test met muziek aan en iemand anders in de kamer.
+- **Mijn open vragen erover**: Als iemand anders iets zegt terwijl Zarvis luistert: negeren zonder iets te zeggen, of melden "dat was niet jouw stem"? Mijn voorstel: negeren.
+- **Behandeling**: stap 1 gebouwd; stap 2 eerst, vóór de sneltoets ooit vervangen wordt door een wekwoord, want dan luistert Zarvis de hele tijd.
+- **Status**: deels afgewerkt (2026-11-24): filtering gebouwd, sprekerherkenning open.

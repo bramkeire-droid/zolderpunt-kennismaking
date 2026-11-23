@@ -84,7 +84,8 @@ export async function meetSpeler(speler: HTMLMediaElement): Promise<void> {
 export async function meetMicrofoon(): Promise<{ niveau: Meter; stop: () => void } | null> {
   try {
     if (!navigator.mediaDevices?.getUserMedia) return null;
-    const stroom = await navigator.mediaDevices.getUserMedia({ audio: true });
+    // Zelfde filter als de herkenning, zodat de knop jouw stem toont en niet de muziek.
+    const stroom = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
     const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     const ctx = new Ctx();
     await ctx.resume().catch(() => {});
