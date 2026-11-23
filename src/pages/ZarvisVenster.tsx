@@ -20,6 +20,7 @@ type Schil = {
   opSneltoets: (cb: () => void) => () => void;
   sneltoets?: string;
   verberg?: () => void;
+  zetSessie?: (sessie: { token: string | null; sleutel: string }) => void;
 };
 const schil = (): Schil | undefined => (window as unknown as { zarvisSchil?: Schil }).zarvisSchil;
 
@@ -54,6 +55,18 @@ export default function ZarvisVenster() {
   useEffect(() => schil()?.opSneltoets(() => wisselRef.current?.()), []);
 
   useEffect(() => { document.title = 'Zarvis'; }, []);
+
+  // De schil stuurt WhatsApp-gesprekken door onder deze login; ze krijgt
+  // daarvoor het toegangsbewijs, en een nieuw telkens het vernieuwd wordt.
+  useEffect(() => {
+    const zet = schil()?.zetSessie;
+    if (!zet) return;
+    const sleutel = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
+    void supabase.auth.getSession().then(({ data }) => zet({ token: data.session?.access_token ?? null, sleutel }));
+    const { data: abonnement } = supabase.auth.onAuthStateChange((_gebeurtenis, sessie) =>
+      zet({ token: sessie?.access_token ?? null, sleutel }));
+    return () => abonnement.subscription.unsubscribe();
+  }, []);
 
   // Welk dossier in Compass open staat. Compass schrijft dat weg; dit venster
   // kijkt bij het openen, telkens het de aandacht krijgt, en verder af en toe.

@@ -12,4 +12,6 @@ contextBridge.exposeInMainWorld('zarvisSchil', {
     return () => ipcRenderer.removeListener('zarvis:sneltoets', luisteraar);
   },
   verberg() { ipcRenderer.send('zarvis:verberg'); },
+  /** De login doorgeven, zodat de schil WhatsApp-gesprekken onder deze gebruiker kan doorsturen. */
+  zetSessie(sessie) { ipcRenderer.send('zarvis:sessie', sessie); },
 });

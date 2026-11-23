@@ -23,6 +23,12 @@ module.exports = (venster, info) => {
       await venster.webContents.executeJavaScript(`window.location.href = 'https://example.com/'; true`);
       await new Promise((k) => setTimeout(k, 800));
       uit.naVreemdAdres = venster.webContents.getURL();
+      // De login-brug bestaat, en de WhatsApp-module laadt zonder te verbinden.
+      uit.sessieBrug = await venster.webContents.executeJavaScript(`typeof window.zarvisSchil.zetSessie`);
+      try {
+        const b = await import('baileys');
+        uit.whatsappBibliotheek = typeof b.default === 'function' && typeof b.useMultiFileAuthState === 'function' && !!b.Browsers && !!b.DisconnectReason;
+      } catch (e) { uit.whatsappBibliotheek = String(e).slice(0, 200); }
       const beeld = await venster.webContents.capturePage();
       fs.writeFileSync(process.env.ZARVIS_ZELFTEST, beeld.toPNG());
     } catch (e) {

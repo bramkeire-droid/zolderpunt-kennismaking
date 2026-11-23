@@ -32,6 +32,37 @@ let venster = null;
 let tray = null;
 let stopt = false;
 
+// ── WhatsApp (gekoppeld toestel, alleen lezen; zie whatsapp.js) ─────────────
+let whatsapp = null;
+let waVenster = null;
+// De login van de gebruiker, doorgegeven door de Zarvis-pagina. Alleen in het
+// geheugen: bij het afsluiten is ze weg.
+let sessie = { token: null, sleutel: null };
+let sneltoetsGelukt = false;
+
+async function stuurWaToestand() {
+  if (!waVenster || waVenster.isDestroyed() || !whatsapp) return;
+  const t = whatsapp.toestand();
+  let qrBeeld = null;
+  if (t.qr) {
+    try { qrBeeld = await require('qrcode').toDataURL(t.qr, { margin: 1, width: 448 }); } catch { /* geen code */ }
+  }
+  if (waVenster && !waVenster.isDestroyed()) {
+    waVenster.webContents.send('whatsapp:toestand', { ...t, qr: undefined, qrBeeld, gekoppeld: whatsapp.isGekoppeld() });
+  }
+}
+
+function toonWhatsApp() {
+  if (waVenster && !waVenster.isDestroyed()) { waVenster.show(); waVenster.focus(); return; }
+  waVenster = new BrowserWindow({
+    width: 380, height: 640, resizable: false, title: 'WhatsApp koppelen', backgroundColor: '#07090F',
+    autoHideMenuBar: true,
+    webPreferences: { preload: path.join(__dirname, 'preload-whatsapp.js'), contextIsolation: true, nodeIntegration: false, sandbox: true },
+  });
+  waVenster.loadFile(path.join(__dirname, 'whatsapp.html'));
+  waVenster.on('closed', () => { waVenster = null; });
+}
+
 const sneltoets = () => process.env.ZARVIS_SNELTOETS || leesInst().sneltoets || STANDAARD_SNELTOETS;
 const leesbaar = (s) => s.replace('Control', 'Ctrl').replace('CommandOrControl', 'Ctrl').replace(/\+/g, ' + ').replace('Space', 'Spatie');
 
@@ -137,6 +168,7 @@ function bouwTray(sneltoetsGelukt) {
       label: 'Starten met de computer', type: 'checkbox', checked: app.getLoginItemSettings().openAtLogin,
       click: (item) => app.setLoginItemSettings({ openAtLogin: item.checked }),
     },
+    { label: 'WhatsApp koppelen…', click: toonWhatsApp },
     { label: sneltoetsGelukt ? `Sneltoets: ${leesbaar(sneltoets())}` : `Sneltoets ${leesbaar(sneltoets())} is bezet door een ander programma`, enabled: false },
     { type: 'separator' },
     { label: 'Zarvis afsluiten', click: () => { stopt = true; app.quit(); } },
@@ -162,8 +194,30 @@ if (!app.requestSingleInstanceLock()) {
 
     ipcMain.on('zarvis:verberg', () => venster && venster.hide());
 
+    // De Zarvis-pagina geeft de login door, zodat WhatsApp-gesprekken onder
+    // die gebruiker naar de server gaan. Alleen van het Zarvis-venster zelf.
+    ipcMain.on('zarvis:sessie', (e, s) => {
+      if (!venster || e.sender !== venster.webContents) return;
+      sessie = { token: s && typeof s.token === 'string' ? s.token : null, sleutel: s && typeof s.sleutel === 'string' ? s.sleutel : null };
+      if (sessie.token && whatsapp) void whatsapp.stuurDoor();
+    });
+
+    whatsapp = require('./whatsapp.js')({
+      map: app.getPath('userData'),
+      geefToken: () => sessie.token,
+      get publiekeSleutel() { return sessie.sleutel; },
+      opToestand: () => { void stuurWaToestand(); },
+    });
+    const vanWaVenster = (e) => waVenster && !waVenster.isDestroyed() && e.sender === waVenster.webContents;
+    ipcMain.on('whatsapp:toestand', (e) => { if (vanWaVenster(e)) void stuurWaToestand(); });
+    ipcMain.on('whatsapp:start', (e) => { if (vanWaVenster(e)) void whatsapp.start(); });
+    ipcMain.on('whatsapp:ontkoppel', (e) => { if (vanWaVenster(e)) void whatsapp.ontkoppel(); });
+    // Was er al gekoppeld, dan leest Zarvis vanzelf verder bij het opstarten.
+    if (whatsapp.isGekoppeld()) void whatsapp.start();
+
     maakVenster();
     const gelukt = registreerSneltoets();
+    sneltoetsGelukt = gelukt;
     try { bouwTray(gelukt); } catch (e) { console.error('systeemvak niet beschikbaar', e); }
 
     if (process.env.ZARVIS_ZELFTEST) require('./zelftest.js')(venster, { gelukt, sneltoets: sneltoets() });
