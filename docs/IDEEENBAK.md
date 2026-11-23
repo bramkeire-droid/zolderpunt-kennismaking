@@ -93,3 +93,48 @@ Nummers zijn doorlopend en worden nooit hergebruikt.
   1. Graph `$search` leest `"participants:a OR participants:b"` als letterlijke tekst, niet als zoeklogica → bij twee adressen kwam er bijna niets terug. Nu één zoekopdracht per (mailbox, adres).
   2. **De grote**: `.in()` met 100 graph_message_ids (152 tekens elk) maakt een URL van ~15.000 tekens; die faalt op de gateway en de fout werd genegeerd (`const { data } = await q`). Gevolg: stilzwijgend te weinig of nul rijen. Gemeten: één adres gaf 33 mails, na de fix 106 — er verdween dus 69% zonder enig signaal. Nu batches van 20 + fouten worden gerapporteerd. Dezelfde valkuil preventief gefixt in `verrijk()` (email_cc/call_deelnemers waren ongebatcht tot 500 uuid's, viel niet op omdat email_cc leeg is).
 - **Verificatie**: 106 kandidaten; 2025+2026 = 80+26; in+uit = 63+43; belhouse+zolderpunt = 105+1 — alle drie exact 106. Nul AI-calls verbruikt (alleen 'tellen' gedraaid).
+
+## IDEE-10 — Zarvis doet alles wat Maildude doet, maar beter
+- **Datum**: 2026-11-23
+- **Bram zei letterlijk**: "Jarvis moet alles kunnen wat Maildude kan maar beter. Automatische koppelingen met dossiers. Alleen de laatste 6 maanden relevante mails supersnel laden om index supersnel te minimaliseren?" En over alle vijf (IDEE-10 tot 14): "Geen van bovenstaande kan je licht opnemen. Stel je voor dat deze functies 100% verantwoordelijk krijgen en als dusdanig gebouwd moeten worden"
+- **Waar ik mee bezig was**: Zarvis als los bureaubladvenster is opgeleverd (PR #25); volgende stap was Compass het open dossier laten doorgeven aan Zarvis. WhatsApp als gekoppeld toestel wacht op Brams "go".
+- **Eerste inschatting**: Maildude is de Mail-CRM (apart Supabase-project `ipnebgcuokehllepqwwm`, met `mail-sync`, AI-samenvattingen, koppeling aan dossiers op ZL-nummer, review-wachtrij in Mail Hub). Zarvis leest daar vandaag niets van. Raakt: een leesgereedschap op het bestaande loket, daarna de koppellogica zelf (nu met confidence-drempels en een review-wachtrij), en de indexstrategie. Groot: meerdere sprints. Risico: het is een tweede databank met eigen afspraken ("additief-principe", `mail-sync` en de drempels blijven dicht volgens SPRINTPLAN-COMMUNICATIE) en er hangt dagelijks werk aan. Uit IDEE-5 staat genoteerd dat 38% van de betaalde AI-calls naar mails ging die daarna genegeerd werden; "zuiniger" is dus aantoonbaar haalbaar.
+- **Mijn open vragen erover**: (1) Vervangt Zarvis Maildude, of blijft Maildude de motor en wordt Zarvis de bediening? (2) "Laatste 6 maanden": voor alle mailboxen, en wat met oudere mails van dossiers die nog lopen? (3) Wat betekent "beter" concreet: minder foute koppelingen, sneller, goedkoper, of minder handwerk in de review-wachtrij? (4) Mag de regel "Compass schrijft niets naar de Mail-CRM-databank" vervallen?
+- **Behandeling**: parkeren tot het open dossier doorgegeven wordt aan Zarvis; daarna als eerste van deze vijf, want het sluit aan op het leesgereedschap dat er al is.
+- **Status**: open
+
+## IDEE-11 — Zarvis als marketeer en Google Ads-expert
+- **Datum**: 2026-11-23
+- **Bram zei letterlijk**: "Zolderpunt website en het marketing dashboard altijd live. Jarvis moet ook mijn marketeer en google ads expert worden."
+- **Waar ik mee bezig was**: zie IDEE-10.
+- **Eerste inschatting**: De website is een apart Lovable-project ("Zolderpunt Website", stuurt leads door via Make en Zapier). Een marketingdashboard heb ik nog niet gezien; ik weet niet of het bestaat of gebouwd moet worden. Voor Google Ads is toegang tot het advertentieaccount nodig; in deze omgeving zie ik wel een Ahrefs-koppeling, geen Google Ads-koppeling. Groot. Risico: advertentiebudget is echt geld; wijzigingen aan campagnes horen achter de goedkeuringsstap, nooit automatisch.
+- **Mijn open vragen erover**: (1) Welk marketingdashboard: bestaat het al, en waar? (2) "Altijd live": bewaking dat site en dashboard bereikbaar zijn, of dat de cijfers altijd actueel zijn? (3) Mag Zarvis campagnes en budgetten wijzigen, of alleen analyseren en voorstellen? (4) Welke bronnen: Google Ads, Analytics, Search Console, Ahrefs, Meta?
+- **Behandeling**: parkeren tot IDEE-10 loopt; eerst nagaan welke toegang er bestaat.
+- **Status**: open
+
+## IDEE-12 — Werf-app: arbeidsuren, tijdsnormen, loonadministratie
+- **Datum**: 2026-11-23
+- **Bram zei letterlijk**: "Werf app om arbeidsuren, tijdsnormen, loonsadministratie klaar te maken"
+- **Waar ik mee bezig was**: zie IDEE-10.
+- **Eerste inschatting**: Er bestaat een Lovable-project "Zolderpunt Werf Base" (rollen, registraties, projecten, werkbonnen, afstemming, personeel, eigen Supabase). Ik heb de code nog niet gezien. Loonadministratie in België is gereglementeerd (sociaal secretariaat, RSZ, Checkinatwork op werven); een fout raakt lonen van mensen. Groot, en het deel met het hoogste risico van de vijf.
+- **Mijn open vragen erover**: (1) "Klaarmaken": de bestaande app afwerken, of de gegevens klaarzetten voor het sociaal secretariaat? Welk secretariaat, welk formaat? (2) Tijdsnormen: normtijden per taak om na te calculeren, of wettelijke arbeidstijd? (3) Wie registreert uren: eigen personeel, onderaannemers, beide? (4) Is er al echte data in de app?
+- **Behandeling**: parkeren; eerst de bestaande app lezen voor ik iets voorstel.
+- **Status**: open
+
+## IDEE-13 — FINDASHBOARD: Zarvis als persoonlijke CFO
+- **Datum**: 2026-11-23
+- **Bram zei letterlijk**: "FINDASHBOARD om mijn persoonlijk CFO te zijn"
+- **Waar ik mee bezig was**: zie IDEE-10.
+- **Eerste inschatting**: Vermoedelijk het Lovable-project "Belhouse Financial Compass" (dagelijkse snapshots uit Yuki-boekhouding in Supabase, KPI's met uitleg, trends, scenario's). Niet bevestigd dat dit hetzelfde is als "FINDASHBOARD". Een CFO-rol betekent cashflow, marges per project, btw en vooruitblik; cijfers moeten aantoonbaar kloppen met de boekhouding, anders is elk advies gevaarlijk. Groot.
+- **Mijn open vragen erover**: (1) Is FINDASHBOARD het project "Belhouse Financial Compass"? (2) Persoonlijk of van de vennootschap, of beide? (3) Welke beslissingen wil je ermee nemen: prijszetting, aanwerven, investeren, liquiditeit? (4) Hoe actueel en volledig zijn de Yuki-gegevens?
+- **Behandeling**: parkeren; eerst het bestaande dashboard en zijn databron lezen.
+- **Status**: open
+
+## IDEE-14 — INVENSYNC: Zarvis als beheerder van de inventaris
+- **Datum**: 2026-11-23
+- **Bram zei letterlijk**: "INVENSYNC om beheerder van mijn inventaris te zijn."
+- **Waar ik mee bezig was**: zie IDEE-10.
+- **Eerste inschatting**: Lovable-project "INVENSYNC" (omschreven als Belhouse Inventory Hub: materialen en prijzen voor een houtbewerkingsbedrijf). Code nog niet gezien. "Beheerder" betekent voorraadstanden, bestelpunten, prijzen en koppeling met wat projecten verbruiken; de waarde hangt af van of de standen in de app overeenkomen met wat er echt ligt.
+- **Mijn open vragen erover**: (1) Wordt de app vandaag gebruikt en klopt de voorraad erin? (2) Mag Zarvis bestellingen voorbereiden bij leveranciers, of alleen signaleren? (3) Moet verbruik gekoppeld worden aan dossiers in Compass en aan de calculator? (4) Voor Belhouse, voor Zolderpunt, of beide?
+- **Behandeling**: parkeren; eerst de bestaande app lezen.
+- **Status**: open
