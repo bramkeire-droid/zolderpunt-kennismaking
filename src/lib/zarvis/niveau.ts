@@ -19,7 +19,7 @@ export function meterVan(analyser: AnalyserNode): Meter {
 // ── De stem van Zarvis ───────────────────────────────────────────────────────
 let spreekMeter: Meter | null = null;
 let spreekAnalyser: AnalyserNode | null = null;
-let spectrumBuffer: Uint8Array | null = null;
+let spectrumBuffer: Uint8Array<ArrayBuffer> | null = null;
 
 /** Het echte volume van Zarvis' stem, of null als dat niet te meten valt. */
 export const spreekNiveau = (): number | null => (spreekMeter ? spreekMeter() : null);
