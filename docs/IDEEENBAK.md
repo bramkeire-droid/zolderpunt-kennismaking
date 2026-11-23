@@ -101,6 +101,7 @@ Nummers zijn doorlopend en worden nooit hergebruikt.
 - **Eerste inschatting**: Maildude is de Mail-CRM (apart Supabase-project `ipnebgcuokehllepqwwm`, met `mail-sync`, AI-samenvattingen, koppeling aan dossiers op ZL-nummer, review-wachtrij in Mail Hub). Zarvis leest daar vandaag niets van. Raakt: een leesgereedschap op het bestaande loket, daarna de koppellogica zelf (nu met confidence-drempels en een review-wachtrij), en de indexstrategie. Groot: meerdere sprints. Risico: het is een tweede databank met eigen afspraken ("additief-principe", `mail-sync` en de drempels blijven dicht volgens SPRINTPLAN-COMMUNICATIE) en er hangt dagelijks werk aan. Uit IDEE-5 staat genoteerd dat 38% van de betaalde AI-calls naar mails ging die daarna genegeerd werden; "zuiniger" is dus aantoonbaar haalbaar.
 - **Mijn open vragen erover**: (1) Vervangt Zarvis Maildude, of blijft Maildude de motor en wordt Zarvis de bediening? (2) "Laatste 6 maanden": voor alle mailboxen, en wat met oudere mails van dossiers die nog lopen? (3) Wat betekent "beter" concreet: minder foute koppelingen, sneller, goedkoper, of minder handwerk in de review-wachtrij? (4) Mag de regel "Compass schrijft niets naar de Mail-CRM-databank" vervallen?
 - **Behandeling**: parkeren tot het open dossier doorgegeven wordt aan Zarvis; daarna als eerste van deze vijf, want het sluit aan op het leesgereedschap dat er al is.
+- **Aanvulling 2026-11-24, Bram zei letterlijk**: "Zoeg dat ZARVIS aan verschillende mailboxn gekoppeld wordt zoals maildude". Meerdere mailboxen, niet één. Bram gaf op 2026-11-24 ook toestemming om in de Mail-CRM-databank te schrijven.
 - **Status**: open
 
 ## IDEE-11 — Zarvis als marketeer en Google Ads-expert
@@ -155,4 +156,59 @@ Nummers zijn doorlopend en worden nooit hergebruikt.
 - **Eerste inschatting**: Drie stukken. (1) Een tabel met taken per gebruiker: wat nakijken, hoe vaak, tot wanneer, wanneer klaar. (2) Een uitvoerder op de server (geplande taak elk kwartier) die elke taak die aan de beurt is door Zarvis laat nakijken met hetzelfde gereedschap, onder de rechten van de eigenaar, en stopt bij de einddatum of zodra de voorwaarde vervuld is. (3) Verwittigen. Zarvis moet ook een gereedschap krijgen om zo'n taak aan te maken, te tonen en te stoppen, en het venster moet lopende taken tonen. Risico: een taak die blijft lopen kost bij elke beurt een oproep naar het model; daarom verplicht een einde en een maximum aantal beurten.
 - **Mijn open vragen erover**: (1) Verwittigen via WhatsApp botst met de afspraak dat de koppeling alleen leest: Zarvis moet dan één bericht sturen, alleen naar je eigen nummer. Wil je dat, wetend dat versturen het risico op blokkering vergroot? Alternatief zonder dat risico: een melding van Windows via het programma, of een mail. (2) "Dit" in je voorbeeld is vandaag alleen na te kijken in wat Zarvis kan lezen (dossiers, gesprekken, WhatsApp). Mail kan pas na IDEE-10.
 - **Behandeling**: eerst, vóór IDEE-10 verder gaat: het is een basisvermogen van Zarvis en klein tegenover de rollen. Verwittigen begint met een Windows-melding; WhatsApp komt erbij zodra Bram vraag 1 beantwoordt.
+- **Aanvulling 2026-11-24, Bram zei letterlijk**: "Timerfuncties zullen ook cruciaal zijn. "Stuur op tijdstip x een whatsapp naar persoon y" "Kan je le herinneren over een uur aan x"" Eenmalige taken op een tijdstip horen in dezelfde bouwsteen. Een WhatsApp naar een klant versturen is een externe actie: volgens de afspraak "intern zelf, extern vragen" toont Zarvis het bericht eerst en verstuurt pas na ja; en het vraagt dat de koppeling mag versturen.
+- **Status**: open
+
+## IDEE-17 — Zarvis leest emoties
+- **Datum**: 2026-11-24
+- **Bram zei letterlijk**: "En hoe zal Zarvis lijn emoties kunnen lezen?"
+- **Waar ik mee bezig was**: het zwarte gat herschrijven als echte simulatie.
+- **Eerste inschatting**: Drie bronnen, in volgorde van haalbaarheid. (1) Wat je zegt: het model leest toon en ongeduld al uit je woorden; dat vraagt alleen een instructie en een veld 'stemming' bij elk antwoord. (2) Hoe je het zegt: toonhoogte, tempo en volume van je stem. De microfoon wordt al gemeten voor de knop; daar zijn eenvoudige kenmerken uit te halen, en er bestaan diensten die emotie uit spraak schatten (te onderzoeken op Nederlands en op verwerking binnen de EU). (3) Je gezicht via de webcam: technisch mogelijk, maar het zwaarst voor privacy en het minst betrouwbaar; ik raad het af als eerste stap. Wat Zarvis ermee doet: korter antwoorden als je gehaast klinkt, niet doorvragen als je geïrriteerd bent, en het zwarte gat dat meekleurt.
+- **Mijn open vragen erover**: (1) Wil je dat Zarvis je stemming alleen gebruikt om zijn toon aan te passen, of ook bijhoudt over de tijd? Bijhouden is een gevoelig gegeven. (2) Webcam: ja of nee?
+- **Behandeling**: na IDEE-16; stap 1 en 2, zonder webcam en zonder bijhouden tot Bram anders beslist.
+- **Status**: open
+
+## IDEE-18 — Zelflerend: een vaardigheid die ontbreekt zelf onderzoeken en bouwen
+- **Datum**: 2026-11-24
+- **Bram zei letterlijk**: "Hoe zal je omgaan met vragen die Zarvis nog niet kan beantwoorden. Ik wil dat Zarvis zelflerend is. "Ik kan dat nog niet Bram, wil je dat ik die skill nu onderzoek en aanleer?" En dan ook effectief zelfstandig bouwt en bevestigd dat het vanaf dan wel mogelijk is"
+- **Waar ik mee bezig was**: het zwarte gat herschrijven als echte simulatie.
+- **Eerste inschatting**: Twee soorten leren, met een verschillende weg. (A) Een werkwijze met gereedschap dat al bestaat (bijvoorbeeld 'maak elke maandag een overzicht van offertes zonder antwoord'): Zarvis schrijft die zelf weg als vaardigheid in een tabel (naam, wanneer te gebruiken, stappen) en kan ze meteen. Dat is in de app te bouwen. (B) Iets waarvoor nieuwe code nodig is (een nieuwe connector): Zarvis kan zijn eigen code niet veilig herschrijven terwijl hij draait. De weg is dat Zarvis een bouwopdracht aanmaakt die een codeer-agent in de cloud oppakt: onderzoeken, bouwen, testen, een pull request openen, uitrollen, en Zarvis meldt daarna dat het kan. Dat is dezelfde keten die nu met de hand loopt in deze sessies. Vereist: een log van 'kon ik niet' (wat gevraagd werd, waarom niet), een wachtrij van bouwopdrachten, en een grens op wat zonder Bram live mag.
+- **Mijn open vragen erover**: (1) Mag een door Zarvis gebouwde vaardigheid zonder jouw nazicht live, of wil je elke keer een ja geven voor ze aan staat? Mijn voorstel: lezen mag vanzelf, schrijven of versturen pas na jouw ja. (2) De codeer-agent kost per bouwopdracht; wil je een maandplafond?
+- **Behandeling**: na IDEE-16. Eerst het 'kon ik niet'-log en soort A; daarna soort B.
+- **Status**: open
+
+## IDEE-19 — Google Maps: routes en ritafstanden
+- **Datum**: 2026-11-24
+- **Bram zei letterlijk**: "Connecties met google maps om routes en ritafstanden te bespreken"
+- **Waar ik mee bezig was**: het zwarte gat herschrijven als echte simulatie.
+- **Eerste inschatting**: Een gereedschap dat een route opvraagt tussen twee adressen (afstand, rijtijd met verkeer) via de Routes API van Google. Adressen van klanten staan al in de dossiers. Nodig: een Google Cloud-sleutel als secret. Klein werk.
+- **Mijn open vragen erover**: Geen blokkerende. Vertrekpunt standaard het kantooradres.
+- **Behandeling**: na IDEE-16, samen met IDEE-20.
+- **Status**: open
+
+## IDEE-20 — Agenda en locatie: verwittigen als je nog niet onderweg bent
+- **Datum**: 2026-11-24
+- **Bram zei letterlijk**: "Connectie met lijn google calendar ol mij te verwittigen als mijn locatie nog steeds op kantoor is en niet onderweg naar lijn afspraak"
+- **Waar ik mee bezig was**: het zwarte gat herschrijven als echte simulatie.
+- **Eerste inschatting**: Bouwt op IDEE-16 (taken op tijd) en IDEE-19 (rijtijd). Zarvis leest je agenda, berekent wanneer je moet vertrekken, en verwittigt als je dan nog niet weg bent. Het moeilijke stuk is je locatie: een pc weet die niet betrouwbaar. Opties: je gsm deelt zijn locatie (vraagt een app of een snelkoppeling op de gsm), of Zarvis leidt 'nog op kantoor' af uit het feit dat je pc nog actief gebruikt wordt. Dat laatste is meteen te bouwen en meestal juist.
+- **Mijn open vragen erover**: Mag Zarvis 'je pc is nog actief' als teken nemen dat je nog op kantoor bent, tot er een oplossing via je gsm is?
+- **Behandeling**: na IDEE-19.
+- **Status**: open
+
+## IDEE-21 — Browser: Zarvis surft zelf
+- **Datum**: 2026-11-24
+- **Bram zei letterlijk**: "Browser capabilities zullen super belangrijk zijn"
+- **Waar ik mee bezig was**: het zwarte gat herschrijven als echte simulatie.
+- **Eerste inschatting**: Zarvis krijgt een eigen browser om iets op te zoeken, een pagina te lezen, een formulier in te vullen. Twee niveaus: (1) opzoeken en lezen op het web via de zoek- en leesfunctie van het model zelf: klein werk, geen risico. (2) Een echte browser besturen op jouw pc met jouw logins (bijvoorbeeld in Bouwflow klikken): dat hoort bij IDEE-22.
+- **Mijn open vragen erover**: Geen blokkerende voor niveau 1.
+- **Behandeling**: niveau 1 na IDEE-16; niveau 2 met IDEE-22.
+- **Status**: open
+
+## IDEE-22 — Computer use: Zarvis bedient je pc
+- **Datum**: 2026-11-24
+- **Bram zei letterlijk**: "Een eigen computeruse functie zal SUPER belangrijk zijn. "Zarvis, kan ke over een uur de voortgang in dit programma checken en dan op voltooien klikken""
+- **Waar ik mee bezig was**: het zwarte gat herschrijven als echte simulatie.
+- **Eerste inschatting**: Het programma op je pc is hiervoor de juiste plek: het kan een schermafdruk nemen, die naar het model sturen, en klikken en typen. Het model kan dat (computer use). Wat het zwaar maakt is veiligheid: een assistent die op je pc mag klikken, kan ook verkeerd klikken. Nodig: per programma toestemming, een zichtbare aanduiding dat Zarvis bezig is, een noodstop met één toets, een log met schermafdrukken van wat hij deed, en nooit betalingen of verwijderen zonder jouw ja. Samen met IDEE-16 geeft dit precies je voorbeeld.
+- **Mijn open vragen erover**: (1) Mag Zarvis klikken terwijl jij weg bent, of alleen terwijl je erbij zit? Je voorbeeld vraagt het eerste. (2) Welke programma's eerst?
+- **Behandeling**: na IDEE-16 en IDEE-18. Eerst alleen kijken (schermafdruk lezen en melden), dan pas klikken.
 - **Status**: open
