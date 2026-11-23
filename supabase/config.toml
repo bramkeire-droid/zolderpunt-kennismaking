@@ -41,3 +41,8 @@ verify_jwt = false
 
 [functions.push-nieuwe-dossiers]
 verify_jwt = false
+
+# Zarvis (SPRINTPLAN-ZARVIS). De functie controleert de login ook zelf in code,
+# omdat verify_jwt in dit project niet afgedwongen blijkt te worden.
+[functions.zarvis]
+verify_jwt = true

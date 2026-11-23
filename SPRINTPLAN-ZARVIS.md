@@ -1,7 +1,7 @@
 # SPRINTPLAN — Zarvis fase 1: praten met je dossiers
 
 > Bouwdocument voor de eerste fase van Zarvis, de assistent bovenop Zolderpunt Compass.
-> Gebaseerd op het interview met Bram van 2026-11-23. Status: **voorstel, nog niet goedgekeurd**.
+> Gebaseerd op het interview met Bram van 2026-11-23. Status: **goedgekeurd door Bram op 2026-11-23**; sprint Z0 loopt.
 > Onderaan komt het voortgangs- en aannamelogboek per sessie, zoals in SPRINTPLAN-COMMUNICATIE.md.
 
 ---
@@ -105,22 +105,27 @@ Na Z1 is Zarvis al bruikbaar via tekst. Z3 mag naar achter schuiven zonder de re
 
 ## 6. Risico's en open punten
 
-1. **Ruime policies.** Enkele tabellen hebben policies die "Allow all" heten (`pre_intake`, `transcript_analyses`, `bouwflow_phases`) en dertien functies staan op `verify_jwt = false`. Ik heb nog niet nagegaan of die ook zonder login bereikbaar zijn. Zarvis maakt dat niet erger, maar "Zarvis kan nooit meer dan de gebruiker" is maar zoveel waard als die grens. Nakijken in Z0; aanpassen is een aparte beslissing van Bram.
+1. **Ruime policies — nagekeken op 2026-11-23, tabellen in orde.** De "Allow all"-namen staan alleen nog in oude migratiebestanden. Op de live databank heeft elke tabel RLS aan, mag lezen alleen wie ingelogd is en vraagt schrijven een rol (admin of user). Enige tabel die zonder login leesbaar is: `google_reviews_cache`, en dat is de bedoeling. Let wel: de migratiebestanden in deze repo lopen dus achter op de live policies. **Nog niet nagekeken:** de dertien functies met `verify_jwt = false`; of ze elk hun eigen controle doen, is een aparte doorlichting.
 2. **Verkeerd dossier.** Het grootste praktische risico is een notitie in het dossier van de verkeerde klant. Daarom: wedervraag bij twijfel, klantnaam en ZL-nummer op elk actiekaartje, en ongedaan maken.
 3. **Types lopen achter.** Nieuwere tabellen staan niet in de gegenereerde Supabase-types; de app werkt daar met `as any`. De Zarvis-tabellen volgen hetzelfde patroon tot de types opnieuw gegenereerd worden.
 4. **Kost onbekend.** Ik geef pas een bedrag na Z1, gemeten op echte vragen. Geen schatting vooraf.
 5. **Nuance Labs niet bekeken.** Hun platform was vanuit de bouwomgeving niet bereikbaar. Raakt fase 1 niet, wel fase 5.
 
-## 7. Beslissingen die ik van Bram nodig heb
+## 7. Beslissingen van Bram
 
 | # | Vraag | Mijn voorstel |
 |---|---|---|
-| B1 | Aparte Anthropic-sleutel voor Zarvis in Compass? | Ja, zodat de kost los van Mail-CRM leesbaar is |
-| B2 | Mag Zarvis "Wat we weten" zonder vragen overschrijven als er al iets staat? | Aanvullen mag vanzelf; een bestaande waarde vervangen vraagt eerst bevestiging |
-| B3 | Bewaren we de volledige gesprekken met Zarvis? | Ja, ze zijn in fase 2 grondstof voor het bedrijfsgeheugen en het leren uit correcties |
+| B1 | Aparte Anthropic-sleutel voor Zarvis in Compass? | **Beslist 2026-11-23: ja.** Secret `ANTHROPIC_API_KEY`, Bram plakt hem |
+| B2 | Mag Zarvis "Wat we weten" zonder vragen overschrijven als er al iets staat? | **Beslist 2026-11-23:** aanvullen mag vanzelf; een bestaande waarde vervangen vraagt eerst bevestiging |
+| B3 | Bewaren we de volledige gesprekken met Zarvis? | **Beslist 2026-11-23: ja**, grondstof voor fase 2 |
 
 ---
 
 ## Voortgangs- en aannamelogboek
 
 - **2026-11-23** — Interview afgerond, dit plan opgesteld. Nog geen code geschreven. Aannames: Anthropic-API als model (Mail-CRM gebruikt die al); fase 1 zonder gezicht en zonder wekwoord, zoals in het interview voorgesteld en met "Go" bevestigd.
+- **2026-11-23 (Z0)** — Plan en B1–B3 goedgekeurd. Gedaan:
+  - Migratie `20261123210000_zarvis_fundering.sql` toegepast op de live databank via de Lovable-koppeling (Compass staat niet in Brams Supabase-account, dus niet via Supabase MCP). Geverifieerd met een query: drie tabellen bestaan, RLS aan, niet leesbaar zonder login, policies S/I(/U) aanwezig.
+  - Functie `supabase/functions/zarvis/index.ts` geschreven: controleert login en rol, antwoordt met wie aanklopt. **Nog niet live en nog niet uitgevoerd** — Lovable zet functies pas uit na merge naar `main`; lokaal typechecken met Deno lukte niet in de bouwomgeving.
+  - Policies doorgelicht (zie 6.1).
+  - **Open voor Z0:** (a) PR mergen en publiceren, (b) Bram plakt `ANTHROPIC_API_KEY`, (c) daarna live nagaan: zonder login 401, met login `ok: true` en `model_sleutel_aanwezig: true`.
