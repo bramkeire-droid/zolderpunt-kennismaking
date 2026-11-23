@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { Mic, Square, SendHorizonal, Volume2, VolumeX, RotateCcw, X, FolderOpen } from 'lucide-react';
+import { Mic, Square, SendHorizonal, Volume2, VolumeX, RotateCcw, X, FolderOpen, Video, VideoOff } from 'lucide-react';
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet';
-import { useZarvis, type ZarvisStatus } from '@/contexts/ZarvisContext';
+import { useZarvis, GEZICHT_VIDEO_ID, type ZarvisStatus } from '@/contexts/ZarvisContext';
 import ZarvisOrb from './ZarvisOrb';
 
 const STATUSTEKST: Record<ZarvisStatus, string> = {
@@ -50,8 +50,10 @@ export default function ZarvisPaneel() {
   if (!zarvis) return null;
   const {
     open, zetOpen, status, berichten, tussentijds, micMelding, kanLuisteren, kanSpreken,
-    stemAan, zetStemAan, context, stuur, wisselMicrofoon, onderbreek, nieuwGesprek,
+    stemAan, zetStemAan, gezicht, gezichtMelding, wisselGezicht,
+    context, stuur, wisselMicrofoon, onderbreek, nieuwGesprek,
   } = zarvis;
+  const metGezicht = gezicht !== 'uit';
 
   const bezig = status === 'denkt' || status === 'spreekt';
   const luistert = status === 'luistert';
@@ -89,7 +91,17 @@ export default function ZarvisPaneel() {
               Zarvis
             </span>
             <div className="ml-auto flex">
-              {kanSpreken && kanLuisteren && (
+              <button
+                className={balkKnop}
+                onClick={wisselGezicht}
+                disabled={gezicht === 'verbindt'}
+                aria-pressed={metGezicht}
+                aria-label={metGezicht ? 'Gezicht uitzetten' : 'Gezicht aanzetten'}
+                title={metGezicht ? 'Gezicht uitzetten' : 'Gezicht aanzetten (proef): Zarvis krijgt een gezicht en luistert mee'}
+              >
+                {metGezicht ? <VideoOff className="h-5 w-5" /> : <Video className="h-5 w-5" />}
+              </button>
+              {kanSpreken && kanLuisteren && !metGezicht && (
                 <button
                   className={balkKnop}
                   onClick={() => zetStemAan(!stemAan)}
@@ -111,13 +123,30 @@ export default function ZarvisPaneel() {
             </div>
           </div>
 
+          {/* Het video-element staat er altijd, ook verborgen: de SDK zoekt
+              het op id zodra de verbinding er is. */}
+          <div className={metGezicht ? 'relative mx-5 mb-3 aspect-[4/3] max-h-[38vh] overflow-hidden bg-black' : 'hidden'}>
+            <video
+              id={GEZICHT_VIDEO_ID}
+              autoPlay
+              playsInline
+              aria-label="Het gezicht van Zarvis"
+              className="h-full w-full object-cover"
+            />
+            {gezicht === 'verbindt' && (
+              <p className="absolute inset-0 flex items-center justify-center text-sm text-white/70">
+                Het gezicht komt eraan…
+              </p>
+            )}
+          </div>
+
           <div className="flex items-center gap-4 px-5 pb-5 pt-1">
-            <ZarvisOrb status={status} maat={berichten.length > 0 ? 72 : 104} className="transition-[width,height] duration-300" />
+            <ZarvisOrb status={status} maat={metGezicht ? 40 : berichten.length > 0 ? 72 : 104} className="transition-[width,height] duration-300" />
             <div className="min-w-0 flex-1">
               <p role="status" className="font-headline font-semibold text-xl tracking-[-0.02em] text-white">
                 {STATUSTEKST[status]}
               </p>
-              {luistert ? (
+              {luistert && !metGezicht ? (
                 <p className="mt-1 text-[15px] leading-snug text-white/80 line-clamp-3 min-h-[1.4em]">
                   {tussentijds || <span className="text-white/45">Spreek gerust, ik stop vanzelf als je zwijgt.</span>}
                 </p>
@@ -206,8 +235,11 @@ export default function ZarvisPaneel() {
           {micMelding && (
             <p role="alert" className="mb-2 text-sm font-body text-destructive">{micMelding}</p>
           )}
+          {gezichtMelding && (
+            <p role="alert" className="mb-2 text-sm font-body text-destructive">{gezichtMelding}</p>
+          )}
           <div className="flex items-end gap-2">
-            {kanLuisteren && (
+            {kanLuisteren && !metGezicht && (
               <button
                 onClick={wisselMicrofoon}
                 aria-pressed={luistert}
@@ -232,7 +264,7 @@ export default function ZarvisPaneel() {
                   verstuur();
                 }
               }}
-              placeholder={kanLuisteren ? 'Of typ je vraag' : 'Typ je vraag'}
+              placeholder={metGezicht ? 'Spreek, of typ je vraag' : kanLuisteren ? 'Of typ je vraag' : 'Typ je vraag'}
               aria-label="Bericht aan Zarvis"
               className="flex-1 min-h-14 max-h-[132px] resize-none bg-background border border-input px-3.5 py-[15px] text-[15px] font-body leading-snug text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-primary"
             />
