@@ -8,6 +8,7 @@ import { AppNavProvider } from '@/contexts/AppNavContext';
 import { ZarvisProvider } from '@/contexts/ZarvisContext';
 import ZarvisVenster from '@/pages/ZarvisVenster';
 import ZarvisBron from '@/pages/ZarvisBron';
+import ZarvisBeheer from '@/pages/ZarvisBeheer';
 import ExtraInfoMenu from '@/components/ExtraInfoMenu';
 import Dossiers from '@/pages/Dossiers';
 import DossierCommunicatie from '@/pages/DossierCommunicatie';
@@ -479,6 +480,12 @@ function AuthGate() {
   // gewoon browservenster.
   // Het gegevensvenster naast Zarvis: toont waarop het antwoord steunt. Het
   // krijgt zijn inhoud van het Zarvis-venster en vraagt zelf niets op.
+  // De beheersectie van Zarvis: welke connectoren aan staan. Het programma
+  // toont ze bij de eerste start en later via het systeemvak.
+  if (window.location.pathname === '/zarvis/beheer') {
+    return <ZarvisBeheer />;
+  }
+
   if (window.location.pathname === '/zarvis/bron') {
     return <ZarvisBron />;
   }

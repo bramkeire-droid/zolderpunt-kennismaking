@@ -1,13 +1,13 @@
 {
   "name": "zarvis-desktop",
   "productName": "Zarvis",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Zarvis als klein venster dat boven je andere werk zweeft.",
   "private": true,
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "bouw:win": "electron-builder --win portable --x64 --publish never",
+    "bouw:win": "node bouw-installatie.js",
     "bouw:mac": "electron-builder --mac dmg --publish never"
   },
   "devDependencies": {
@@ -21,16 +21,14 @@
       "main.js",
       "preload.js",
       "preload-whatsapp.js",
+      "preload-beheer.js",
       "offline.html",
       "whatsapp.html",
       "whatsapp.js",
       "whatsapp-vertaal.js"
     ],
     "win": {
-      "target": "portable"
-    },
-    "portable": {
-      "artifactName": "Zarvis.exe"
+      "target": "dir"
     },
     "mac": {
       "target": "dmg",

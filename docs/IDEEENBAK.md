@@ -147,3 +147,12 @@ Nummers zijn doorlopend en worden nooit hergebruikt.
 - **Mijn open vragen erover**: (1) Wil je één Zarvis die zelf de juiste rol kiest, of kies jij de rol? (2) Waar wil je het totaaloverzicht: in het zwevende venster, of op een groter scherm ernaast? (3) Welke rol mag je spontaan onderbreken, en welke wacht tot de briefing?
 - **Behandeling**: eerst, vóór de eerste rol na dossiers gebouwd wordt: uitwerken op het ontwerpcanvas in de nieuwe donkere stijl.
 - **Status**: open
+
+## IDEE-16 — Herhalende taken en verwittigen
+- **Datum**: 2026-11-24
+- **Bram zei letterlijk**: "Herhalende taken uitvoeren moet mogelijk zijn. "Kan je elke uur tot vnvd 20u controleren of dit is binnen gekomen en lij verwittigen via whatsapp?""
+- **Waar ik mee bezig was**: het installatieprogramma met de beheersectie.
+- **Eerste inschatting**: Drie stukken. (1) Een tabel met taken per gebruiker: wat nakijken, hoe vaak, tot wanneer, wanneer klaar. (2) Een uitvoerder op de server (geplande taak elk kwartier) die elke taak die aan de beurt is door Zarvis laat nakijken met hetzelfde gereedschap, onder de rechten van de eigenaar, en stopt bij de einddatum of zodra de voorwaarde vervuld is. (3) Verwittigen. Zarvis moet ook een gereedschap krijgen om zo'n taak aan te maken, te tonen en te stoppen, en het venster moet lopende taken tonen. Risico: een taak die blijft lopen kost bij elke beurt een oproep naar het model; daarom verplicht een einde en een maximum aantal beurten.
+- **Mijn open vragen erover**: (1) Verwittigen via WhatsApp botst met de afspraak dat de koppeling alleen leest: Zarvis moet dan één bericht sturen, alleen naar je eigen nummer. Wil je dat, wetend dat versturen het risico op blokkering vergroot? Alternatief zonder dat risico: een melding van Windows via het programma, of een mail. (2) "Dit" in je voorbeeld is vandaag alleen na te kijken in wat Zarvis kan lezen (dossiers, gesprekken, WhatsApp). Mail kan pas na IDEE-10.
+- **Behandeling**: eerst, vóór IDEE-10 verder gaat: het is een basisvermogen van Zarvis en klein tegenover de rollen. Verwittigen begint met een Windows-melding; WhatsApp komt erbij zodra Bram vraag 1 beantwoordt.
+- **Status**: open
