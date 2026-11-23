@@ -21,11 +21,44 @@ export type GereedschapDef = {
   input_schema: { type: 'object'; properties: Record<string, unknown>; required?: string[] };
 };
 
+/**
+ * Wat het gegevensvenster toont bij een opzoeking: dezelfde gegevens waarop het
+ * antwoord steunt, in een vorm om te lezen. Bewust algemeen (velden en lijsten),
+ * zodat elke latere rol van Zarvis hetzelfde venster kan vullen.
+ */
+export type Bron = {
+  titel: string;
+  ondertitel?: string;
+  secties: Array<{
+    kop?: string;
+    velden?: Array<{ label: string; waarde: string }>;
+    lijst?: Array<{ links?: string; tekst: string; rechts?: string; nadruk?: boolean }>;
+    leeg?: string;
+  }>;
+};
+
 type Uitvoerder = {
   /** Wat de gebruiker ziet terwijl het loopt. */
   label: (invoer: Record<string, unknown>) => string;
-  voer: (db: Db, invoer: Record<string, unknown>) => Promise<{ resultaat: unknown; detail: string }>;
+  voer: (db: Db, invoer: Record<string, unknown>) => Promise<{ resultaat: unknown; detail: string; bron?: Bron }>;
 };
+
+const dag = (iso: unknown) => {
+  if (typeof iso !== 'string' || !iso) return '';
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('nl-BE', { day: 'numeric', month: 'short', timeZone: 'Europe/Brussels' });
+};
+const dagUur = (iso: unknown) => {
+  if (typeof iso !== 'string' || !iso) return '';
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? '' : d.toLocaleString('nl-BE', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Brussels' });
+};
+const euro = (n: unknown) =>
+  typeof n === 'number' ? `€ ${Math.round(n).toLocaleString('nl-BE')}` : '';
+/** Alleen velden die iets bevatten: een lege rij zegt niets. */
+const velden = (paren: Array<[string, unknown]>) =>
+  paren.filter(([, v]) => v !== null && v !== undefined && v !== '')
+    .map(([label, v]) => ({ label, waarde: String(v) }));
 
 const isUuid = (v: unknown): v is string =>
   typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
@@ -156,6 +189,16 @@ const UITVOERDERS: Record<string, Uitvoerder> = {
       return {
         resultaat: { aantal: dossiers.length, dossiers },
         detail: dossiers.length === 1 ? '1 dossier' : `${dossiers.length} dossiers`,
+        bron: {
+          titel: `Zoekresultaat: ${term}`,
+          secties: [{
+            lijst: dossiers.map((d: any) => ({
+              tekst: d.klant + (d.adres ? ` · ${d.adres}` : ''),
+              rechts: [d.dossiernummer, d.fase].filter(Boolean).join(' · '),
+            })),
+            leeg: 'Geen dossier gevonden.',
+          }],
+        },
       };
     },
   },
@@ -193,6 +236,17 @@ const UITVOERDERS: Record<string, Uitvoerder> = {
           nog_niet_ingevuld: ontbreekt,
         },
         detail: naamVan(l),
+        bron: {
+          titel: naamVan(l),
+          ondertitel: [l.bouwflow_project_number, faseVan(l, fases).fase].filter(Boolean).join(' · '),
+          secties: [
+            { kop: 'Klant', velden: velden([['Partner', l.partner_naam], ['Telefoon', l.telefoon], ['E-mail', l.email], ['Adres', l.adres]]) },
+            { kop: 'Project', velden: velden([['Type', l.project_type], ['Oppervlakte', l.oppervlakte_m2 ? `${l.oppervlakte_m2} m²` : null], ['Timing', l.project_timing], ['Volgende stap', l.volgende_stap]]) },
+            { kop: 'Bedragen', velden: velden([['Budget excl. btw', euro(l.budget_excl)], ['Offerte excl. btw', euro(l.offerte_bedrag_excl)], ['Offerte', [l.offerte_nummer, dag(l.offerte_datum)].filter(Boolean).join(' · ')]]) },
+            { kop: 'Gepland', velden: velden([['Videocall', dagUur(pre?.[0]?.videocall_scheduled_at)], ['Plaatsbezoek', dagUur(pre?.[0]?.plaatsbezoek_scheduled_at)]]) },
+            ...(ontbreekt.length > 0 ? [{ kop: 'Nog niet ingevuld', lijst: ontbreekt.map((o) => ({ tekst: o })) }] : []),
+          ].filter((sec) => (sec.velden?.length ?? 0) > 0 || (sec.lijst?.length ?? 0) > 0),
+        },
       };
     },
   },
@@ -223,6 +277,22 @@ const UITVOERDERS: Record<string, Uitvoerder> = {
             .map((y: any) => ({ soort: y.soort, tekst: y.tekst, op: y.created_at })),
         },
         detail: `${(g.data ?? []).length} gesprekken · ${notities.length} notities`,
+        bron: {
+          titel: 'Gesprekken en notities',
+          secties: [
+            ...(g.data ?? []).map((x: any) => ({
+              kop: `${x.type === 'videocall' ? 'Videocall' : 'Telefoongesprek'} · ${dagUur(x.gestart_op)}`,
+              lijst: notities.filter((y: any) => y.gesprek_id === x.id).reverse()
+                .map((y: any) => ({ links: y.soort, tekst: y.tekst, nadruk: y.soort === 'beslissing' })),
+              leeg: 'Geen notities bij dit gesprek.',
+            })),
+            ...(notities.some((y: any) => !y.gesprek_id) ? [{
+              kop: 'Losse notities',
+              lijst: notities.filter((y: any) => !y.gesprek_id).reverse()
+                .map((y: any) => ({ links: y.soort, tekst: y.tekst, rechts: dag(y.created_at), nadruk: y.soort === 'beslissing' })),
+            }] : []),
+          ],
+        },
       };
     },
   },
@@ -238,6 +308,16 @@ const UITVOERDERS: Record<string, Uitvoerder> = {
       return {
         resultaat: { aantal: (data ?? []).length, calculaties: data ?? [] },
         detail: (data ?? []).length === 1 ? '1 calculatie' : `${(data ?? []).length} calculaties`,
+        bron: {
+          titel: 'Calculaties',
+          ondertitel: 'Bedragen exclusief btw',
+          secties: (data ?? []).length === 0
+            ? [{ leeg: 'Nog geen calculatie bewaard.' }]
+            : (data ?? []).map((c: any) => ({
+              kop: `${dag(c.created_at)}${c.bron ? ` · ${c.bron}` : ''}`,
+              velden: velden([['Meest waarschijnlijk', euro(c.budget_excl)], ['Minimum', euro(c.budget_min_excl)], ['Maximum', euro(c.budget_max_excl)], ['Btw', c.btw_percentage != null ? `${c.btw_percentage}%` : null]]),
+            })),
+        },
       };
     },
   },
@@ -259,6 +339,17 @@ const UITVOERDERS: Record<string, Uitvoerder> = {
       return {
         resultaat: { aantal: berichten.length, berichten },
         detail: berichten.length === 1 ? '1 bericht' : `${berichten.length} berichten`,
+        bron: {
+          titel: 'WhatsApp met de klant',
+          secties: [{
+            lijst: berichten.slice(-60).map((b: any) => ({
+              links: b.van === 'wij' ? 'wij' : 'klant',
+              tekst: b.tekst || `(${b.soort ?? 'bericht'})`,
+              rechts: dagUur(b.op),
+            })),
+            leeg: 'Nog geen WhatsApp-berichten bij dit dossier.',
+          }],
+        },
       };
     },
   },
@@ -310,6 +401,14 @@ const UITVOERDERS: Record<string, Uitvoerder> = {
           dossiers,
         },
         detail: `${dossiers.length} dossiers`,
+        bron: {
+          titel: 'Alle dossiers',
+          ondertitel: `${dossiers.length} dossiers`,
+          secties: [
+            { kop: 'Per categorie', velden: Object.entries(perCategorie).sort((a, b) => b[1] - a[1]).map(([k, n]) => ({ label: k, waarde: String(n) })) },
+            { kop: 'Per fase', velden: Object.entries(perFase).sort((a, b) => b[1] - a[1]).map(([k, n]) => ({ label: k, waarde: String(n) })) },
+          ],
+        },
       };
     },
   },
@@ -329,15 +428,15 @@ export async function voerUit(
   db: Db,
   naam: string,
   invoer: unknown,
-): Promise<{ ok: boolean; tekst: string; detail: string }> {
+): Promise<{ ok: boolean; tekst: string; detail: string; bron?: Bron }> {
   const u = UITVOERDERS[naam];
   if (!u) return { ok: false, tekst: `Onbekend gereedschap: ${naam}`, detail: 'bestaat niet' };
   const i = invoer && typeof invoer === 'object' ? (invoer as Record<string, unknown>) : {};
   try {
-    const { resultaat, detail } = await u.voer(db, i);
+    const { resultaat, detail, bron } = await u.voer(db, i);
     // Begrensd: één gereedschap mag het gesprek niet volstorten.
     const tekst = JSON.stringify(resultaat);
-    return { ok: true, tekst: tekst.length > 60000 ? tekst.slice(0, 60000) + '… (afgekapt)' : tekst, detail };
+    return { ok: true, tekst: tekst.length > 60000 ? tekst.slice(0, 60000) + '… (afgekapt)' : tekst, detail, bron };
   } catch (e) {
     const bericht = e instanceof Error ? e.message : 'onbekende fout';
     return { ok: false, tekst: `Mislukt: ${bericht}`, detail: 'mislukt' };

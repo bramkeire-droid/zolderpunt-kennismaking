@@ -1,7 +1,7 @@
 {
   "name": "zarvis-desktop",
   "productName": "Zarvis",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Zarvis als klein venster dat boven je andere werk zweeft.",
   "private": true,
   "main": "main.js",

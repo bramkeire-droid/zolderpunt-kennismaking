@@ -15,6 +15,7 @@ const fs = require('node:fs');
 
 const URL_ZARVIS = process.env.ZARVIS_URL || 'https://zolderpunt-kennismaking.lovable.app/zarvis';
 const OORSPRONG = new URL(URL_ZARVIS).origin;
+const URL_BRON = `${OORSPRONG}/zarvis/bron`;
 const STANDAARD_SNELTOETS = 'Control+Shift+Space';
 
 // ── Instellingen die een herstart overleven ─────────────────────────────────
@@ -29,6 +30,7 @@ function bewaarInst(wijziging) {
 }
 
 let venster = null;
+let bronVenster = null;
 let tray = null;
 let stopt = false;
 
@@ -65,6 +67,23 @@ function toonWhatsApp() {
 
 const sneltoets = () => process.env.ZARVIS_SNELTOETS || leesInst().sneltoets || STANDAARD_SNELTOETS;
 const leesbaar = (s) => s.replace('Control', 'Ctrl').replace('CommandOrControl', 'Ctrl').replace(/\+/g, ' + ').replace('Space', 'Spatie');
+
+// Waar het gegevensvenster komt: waar je het de vorige keer liet staan, en
+// anders vlak naast Zarvis, aan de kant waar plaats is.
+function plekVoorBron() {
+  const b = leesInst().bron;
+  const hoofd = venster.getBounds();
+  const werk = screen.getDisplayMatching(hoofd).workArea;
+  const breedte = (b && b.breedte) || 420;
+  const hoogte = (b && b.hoogte) || Math.max(hoofd.height, 480);
+  const binnen = (x, y) => x >= werk.x - 40 && y >= werk.y - 40 && x + breedte <= werk.x + werk.width + 40 && y + hoogte <= werk.y + werk.height + 40;
+  if (b && typeof b.x === 'number' && binnen(b.x, b.y)) return { x: b.x, y: b.y, width: breedte, height: hoogte };
+  const links = hoofd.x - breedte - 12;
+  const rechts = hoofd.x + hoofd.width + 12;
+  const x = links >= werk.x ? links : (rechts + breedte <= werk.x + werk.width ? rechts : werk.x);
+  const y = Math.min(Math.max(hoofd.y + hoofd.height - hoogte, werk.y), werk.y + werk.height - hoogte);
+  return { x, y, width: breedte, height: hoogte };
+}
 
 function maakVenster() {
   const inst = leesInst();
@@ -108,8 +127,41 @@ function maakVenster() {
   // Het venster toont alleen Zarvis. Elke andere link gaat naar de gewone browser.
   const magHier = (url) => { try { return new URL(url).origin === OORSPRONG || url.startsWith('file:'); } catch { return false; } };
   venster.webContents.setWindowOpenHandler(({ url }) => {
+    // Eén uitzondering: het gegevensvenster van Zarvis zelf. Dat komt als
+    // tweede klein venster naast het gesprek te staan, ook bovenop.
+    if (url === URL_BRON) {
+      return {
+        action: 'allow',
+        overrideBrowserWindowOptions: {
+          ...plekVoorBron(),
+          minWidth: 320,
+          minHeight: 320,
+          frame: false,
+          alwaysOnTop: leesInst().bovenop !== false,
+          backgroundColor: '#07090F',
+          title: 'Zarvis · gegevens',
+          webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true },
+        },
+      };
+    }
     if (/^https?:/.test(url)) shell.openExternal(url);
     return { action: 'deny' };
+  });
+  venster.webContents.on('did-create-window', (kind) => {
+    bronVenster = kind;
+    if (leesInst().bovenop !== false) kind.setAlwaysOnTop(true, 'floating');
+    kind.on('page-title-updated', (e) => e.preventDefault());
+    // Het gegevensvenster toont alleen gegevens: het opent niets en gaat nergens heen.
+    kind.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+    kind.webContents.on('will-navigate', (e, url) => { if (url !== URL_BRON) e.preventDefault(); });
+    const onthoudBron = () => {
+      if (kind.isDestroyed()) return;
+      const b = kind.getBounds();
+      bewaarInst({ bron: { x: b.x, y: b.y, breedte: b.width, hoogte: b.height } });
+    };
+    kind.on('moved', onthoudBron);
+    kind.on('resized', onthoudBron);
+    kind.on('closed', () => { if (bronVenster === kind) bronVenster = null; });
   });
   venster.webContents.on('will-navigate', (e, url) => {
     if (!magHier(url)) { e.preventDefault(); if (/^https?:/.test(url)) shell.openExternal(url); }
@@ -129,6 +181,7 @@ function maakVenster() {
     if (stopt) return;
     e.preventDefault();
     venster.hide();
+    if (bronVenster && !bronVenster.isDestroyed()) bronVenster.close();
   });
 }
 
@@ -162,7 +215,11 @@ function bouwTray(sneltoetsGelukt) {
     { type: 'separator' },
     {
       label: 'Altijd bovenop', type: 'checkbox', checked: inst.bovenop !== false,
-      click: (item) => { bewaarInst({ bovenop: item.checked }); if (venster) venster.setAlwaysOnTop(item.checked, 'floating'); },
+      click: (item) => {
+        bewaarInst({ bovenop: item.checked });
+        if (venster) venster.setAlwaysOnTop(item.checked, 'floating');
+        if (bronVenster && !bronVenster.isDestroyed()) bronVenster.setAlwaysOnTop(item.checked, 'floating');
+      },
     },
     {
       label: 'Starten met de computer', type: 'checkbox', checked: app.getLoginItemSettings().openAtLogin,

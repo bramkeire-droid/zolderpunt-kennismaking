@@ -2,7 +2,7 @@ import {
   createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode,
 } from 'react';
 import { useAppNav } from '@/contexts/AppNavContext';
-import { vraagZarvis, type ZarvisContextInfo } from '@/lib/zarvis/client';
+import { vraagZarvis, type ZarvisContextInfo, type ZarvisBron } from '@/lib/zarvis/client';
 import { maakBrowserStemIn, maakBrowserStemUit, type StemIn, type StemUit } from '@/lib/zarvis/stem';
 import { nieuweZinnen, voorUitspraak } from '@/lib/zarvis/zinnen';
 import { startGezicht, type Gezicht } from '@/lib/zarvis/gezicht';
@@ -32,6 +32,8 @@ export type ZarvisStap = {
   label: string;
   status: 'bezig' | 'klaar' | 'mislukt';
   detail?: string;
+  /** De gegevens zelf, voor het gegevensvenster. */
+  bron?: ZarvisBron;
 };
 
 /** Het gezicht (proef met Anam): uit, bezig met verbinden, of in beeld. */
@@ -225,7 +227,7 @@ export function ZarvisProvider({ children, zelfstandig = false }: {
         uitspraak?.zeg(g.delta);
         spreekWatKan(false);
       } else if (g.type === 'stap') {
-        const stap: ZarvisStap = { id: g.id, label: g.label, status: g.status, detail: g.detail };
+        const stap: ZarvisStap = { id: g.id, label: g.label, status: g.status, detail: g.detail, bron: g.bron };
         werkLaatsteBij((b) => {
           const lijst = b.stappen ?? [];
           const i = lijst.findIndex((x) => x.id === stap.id);
