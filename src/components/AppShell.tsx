@@ -3,6 +3,8 @@ import HoofdMenu from '@/components/HoofdMenu';
 import DossierActionsBar from '@/components/dossier/DossierActionsBar';
 import { useAppNav } from '@/contexts/AppNavContext';
 import type { CalculatieBron } from '@/lib/calculaties';
+import ZarvisKnop from '@/components/zarvis/ZarvisKnop';
+import ZarvisPaneel from '@/components/zarvis/ZarvisPaneel';
 
 interface Props {
   /** Waar je bent, kort. */
@@ -68,6 +70,7 @@ export default function AppShell({
               {primair.iconPosition === 'right' && primair.icon}
             </button>
           )}
+          <ZarvisKnop />
         </div>
       </header>
 
@@ -88,6 +91,8 @@ export default function AppShell({
       <div className={`flex-1 min-h-0 flex flex-col overflow-hidden ${className ?? ''}`}>
         {children}
       </div>
+
+      <ZarvisPaneel />
     </div>
   );
 }
