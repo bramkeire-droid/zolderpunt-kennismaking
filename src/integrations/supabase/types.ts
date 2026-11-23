@@ -1245,6 +1245,63 @@ export type Database = {
           },
         ]
       }
+      whatsapp_uit: {
+        Row: {
+          created_at: string
+          fout: string | null
+          id: string
+          lead_id: string | null
+          naam: string | null
+          status: string
+          taak_id: string | null
+          tekst: string
+          telefoon: string | null
+          user_id: string
+          verstuurd_op: string | null
+        }
+        Insert: {
+          created_at?: string
+          fout?: string | null
+          id?: string
+          lead_id?: string | null
+          naam?: string | null
+          status?: string
+          taak_id?: string | null
+          tekst: string
+          telefoon?: string | null
+          user_id?: string
+          verstuurd_op?: string | null
+        }
+        Update: {
+          created_at?: string
+          fout?: string | null
+          id?: string
+          lead_id?: string | null
+          naam?: string | null
+          status?: string
+          taak_id?: string | null
+          tekst?: string
+          telefoon?: string | null
+          user_id?: string
+          verstuurd_op?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_uit_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_uit_taak_id_fkey"
+            columns: ["taak_id"]
+            isOneToOne: false
+            referencedRelation: "zarvis_taken"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       zarvis_acties: {
         Row: {
           created_at: string
@@ -1437,6 +1494,164 @@ export type Database = {
           ingericht_op?: string | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      zarvis_meldingen: {
+        Row: {
+          created_at: string
+          getoond_op: string | null
+          id: string
+          taak_id: string | null
+          tekst: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          getoond_op?: string | null
+          id?: string
+          taak_id?: string | null
+          tekst: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          getoond_op?: string | null
+          id?: string
+          taak_id?: string | null
+          tekst?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "zarvis_meldingen_taak_id_fkey"
+            columns: ["taak_id"]
+            isOneToOne: false
+            referencedRelation: "zarvis_taken"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      zarvis_taken: {
+        Row: {
+          beurten: number
+          created_at: string
+          doel: Json | null
+          elke_minuten: number | null
+          id: string
+          laatste_resultaat: string | null
+          max_beurten: number
+          opdracht: string
+          soort: string
+          status: string
+          tot: string | null
+          updated_at: string
+          user_id: string
+          verwittig: string
+          volgende_op: string
+        }
+        Insert: {
+          beurten?: number
+          created_at?: string
+          doel?: Json | null
+          elke_minuten?: number | null
+          id?: string
+          laatste_resultaat?: string | null
+          max_beurten?: number
+          opdracht: string
+          soort: string
+          status?: string
+          tot?: string | null
+          updated_at?: string
+          user_id?: string
+          verwittig?: string
+          volgende_op: string
+        }
+        Update: {
+          beurten?: number
+          created_at?: string
+          doel?: Json | null
+          elke_minuten?: number | null
+          id?: string
+          laatste_resultaat?: string | null
+          max_beurten?: number
+          opdracht?: string
+          soort?: string
+          status?: string
+          tot?: string | null
+          updated_at?: string
+          user_id?: string
+          verwittig?: string
+          volgende_op?: string
+        }
+        Relationships: []
+      }
+      zarvis_tekorten: {
+        Row: {
+          created_at: string
+          id: string
+          reden: string | null
+          status: string
+          user_id: string
+          vraag: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          reden?: string | null
+          status?: string
+          user_id?: string
+          vraag: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          reden?: string | null
+          status?: string
+          user_id?: string
+          vraag?: string
+        }
+        Relationships: []
+      }
+      zarvis_tik: {
+        Row: {
+          created_at: string
+          nonce: string
+        }
+        Insert: {
+          created_at?: string
+          nonce?: string
+        }
+        Update: {
+          created_at?: string
+          nonce?: string
+        }
+        Relationships: []
+      }
+      zarvis_vaardigheden: {
+        Row: {
+          created_at: string
+          id: string
+          naam: string
+          stappen: string
+          user_id: string
+          wanneer: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          naam: string
+          stappen: string
+          user_id?: string
+          wanneer: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          naam?: string
+          stappen?: string
+          user_id?: string
+          wanneer?: string
         }
         Relationships: []
       }
