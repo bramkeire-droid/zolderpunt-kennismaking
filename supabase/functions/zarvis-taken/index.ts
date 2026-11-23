@@ -15,7 +15,7 @@
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import Anthropic from 'npm:@anthropic-ai/sdk@1';
-import { LEES_GEREEDSCHAP, voerUit } from '../zarvis/gereedschap.ts';
+import { LEES_GEREEDSCHAP, voerUit } from '../_shared/zarvis/gereedschap.ts';
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
