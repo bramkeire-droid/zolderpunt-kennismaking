@@ -6,6 +6,7 @@ import { useLeadSave } from '@/hooks/useLeadSave';
 import AppShell from '@/components/AppShell';
 import { AppNavProvider } from '@/contexts/AppNavContext';
 import { ZarvisProvider } from '@/contexts/ZarvisContext';
+import ZarvisVenster from '@/pages/ZarvisVenster';
 import ExtraInfoMenu from '@/components/ExtraInfoMenu';
 import Dossiers from '@/pages/Dossiers';
 import DossierCommunicatie from '@/pages/DossierCommunicatie';
@@ -470,6 +471,17 @@ function AuthGate() {
 
   if (!user) {
     return <LoginPage />;
+  }
+
+  // Het losse Zarvis-venster: geen Compass eromheen, alleen Zarvis. Dit adres
+  // wordt geladen door de bureaubladschil (zarvis-desktop) en werkt ook in een
+  // gewoon browservenster.
+  if (window.location.pathname === '/zarvis') {
+    return (
+      <ZarvisProvider zelfstandig>
+        <ZarvisVenster />
+      </ZarvisProvider>
+    );
   }
 
   return (
