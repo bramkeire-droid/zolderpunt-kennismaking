@@ -28,7 +28,7 @@
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import Anthropic from 'npm:@anthropic-ai/sdk@1';
-import { gereedschapVoor, labelVan, voerUit } from './gereedschap.ts';
+import { gereedschapVoor, labelVan, voerUit } from '../_shared/zarvis/gereedschap.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
