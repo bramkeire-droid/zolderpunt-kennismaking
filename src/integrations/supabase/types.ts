@@ -1198,6 +1198,148 @@ export type Database = {
         }
         Relationships: []
       }
+      zarvis_acties: {
+        Row: {
+          created_at: string
+          fout: string | null
+          gereedschap: string
+          gesprek_id: string | null
+          id: string
+          invoer: Json
+          lead_id: string | null
+          na: Json | null
+          status: string
+          teruggedraaid_op: string | null
+          user_id: string
+          voor: Json | null
+        }
+        Insert: {
+          created_at?: string
+          fout?: string | null
+          gereedschap: string
+          gesprek_id?: string | null
+          id?: string
+          invoer?: Json
+          lead_id?: string | null
+          na?: Json | null
+          status?: string
+          teruggedraaid_op?: string | null
+          user_id?: string
+          voor?: Json | null
+        }
+        Update: {
+          created_at?: string
+          fout?: string | null
+          gereedschap?: string
+          gesprek_id?: string | null
+          id?: string
+          invoer?: Json
+          lead_id?: string | null
+          na?: Json | null
+          status?: string
+          teruggedraaid_op?: string | null
+          user_id?: string
+          voor?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "zarvis_acties_gesprek_id_fkey"
+            columns: ["gesprek_id"]
+            isOneToOne: false
+            referencedRelation: "zarvis_gesprekken"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "zarvis_acties_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      zarvis_berichten: {
+        Row: {
+          created_at: string
+          gereedschap: Json | null
+          gesprek_id: string
+          id: string
+          inhoud: string
+          model: string | null
+          rol: string
+          tokens_in: number | null
+          tokens_uit: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          gereedschap?: Json | null
+          gesprek_id: string
+          id?: string
+          inhoud: string
+          model?: string | null
+          rol: string
+          tokens_in?: number | null
+          tokens_uit?: number | null
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          gereedschap?: Json | null
+          gesprek_id?: string
+          id?: string
+          inhoud?: string
+          model?: string | null
+          rol?: string
+          tokens_in?: number | null
+          tokens_uit?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "zarvis_berichten_gesprek_id_fkey"
+            columns: ["gesprek_id"]
+            isOneToOne: false
+            referencedRelation: "zarvis_gesprekken"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      zarvis_gesprekken: {
+        Row: {
+          created_at: string
+          id: string
+          lead_id: string | null
+          titel: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lead_id?: string | null
+          titel?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lead_id?: string | null
+          titel?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "zarvis_gesprekken_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
