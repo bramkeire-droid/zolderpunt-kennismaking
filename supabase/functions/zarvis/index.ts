@@ -39,7 +39,33 @@ const json = (body: unknown, status = 200) =>
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
 
+// Twee wegen naar hetzelfde model:
+//   1. Een eigen Anthropic-sleutel (secret ANTHROPIC_API_KEY) — heeft voorrang
+//      zodra hij bestaat, en geeft een aparte rekening voor Zarvis.
+//   2. De ingebouwde AI-route van Lovable (secret LOVABLE_API_KEY, staat al in
+//      dit project). Die spreekt hetzelfde berichtformaat op /v1/messages, maar
+//      noemt het model met een voorvoegsel en rekent af op het Lovable-tegoed.
+// Live nagekeken op 2026-11-23: de Lovable-route aanvaardt de sleutel zowel in
+// Authorization (wat de SDK stuurt) als in x-api-key, en ook de instelling
+// output_config.effort.
+const LOVABLE_GATEWAY = 'https://ai.gateway.lovable.dev';
 const MODEL = Deno.env.get('ZARVIS_MODEL') ?? 'claude-opus-5-5';
+
+type Route = { naam: 'anthropic' | 'lovable'; client: Anthropic; model: string };
+
+function kiesRoute(): Route | null {
+  const eigen = Deno.env.get('ANTHROPIC_API_KEY');
+  if (eigen) return { naam: 'anthropic', client: new Anthropic({ apiKey: eigen }), model: MODEL };
+  const lovable = Deno.env.get('LOVABLE_API_KEY');
+  if (lovable) {
+    return {
+      naam: 'lovable',
+      client: new Anthropic({ apiKey: lovable, baseURL: LOVABLE_GATEWAY }),
+      model: MODEL.startsWith('anthropic/') ? MODEL : `anthropic/${MODEL}`,
+    };
+  }
+  return null;
+}
 const MAX_BERICHT = 4000;
 // Hoeveel eerdere beurten meegaan. Genoeg voor een lang gesprek, begrensd zodat
 // één eindeloos gesprek de kost niet ongemerkt opdrijft.
@@ -72,8 +98,10 @@ const isUuid = (v: unknown): v is string =>
   typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
 
 function foutVoorGebruiker(e: unknown): string {
-  if (e instanceof Anthropic.AuthenticationError) return 'De sleutel van Zarvis wordt geweigerd. Kijk de secret ANTHROPIC_API_KEY na.';
-  if (e instanceof Anthropic.PermissionDeniedError) return 'De sleutel van Zarvis heeft geen toegang tot dit model.';
+  if (e instanceof Anthropic.AuthenticationError) return 'De sleutel van Zarvis wordt geweigerd.';
+  // 402 komt van de Lovable-route als het tegoed op is.
+  if (e instanceof Anthropic.APIError && e.status === 402) return 'Het AI-tegoed is op. Vul het aan in Lovable.';
+  if (e instanceof Anthropic.PermissionDeniedError) return 'Zarvis krijgt geen toegang tot het taalmodel (limiet bereikt of model niet beschikbaar).';
   if (e instanceof Anthropic.RateLimitError) return 'Het is even te druk. Probeer het over een minuut opnieuw.';
   if (e instanceof Anthropic.APIConnectionError) return 'Ik raak niet tot bij het taalmodel. Probeer het opnieuw.';
   if (e instanceof Anthropic.APIError) return `Het taalmodel gaf een fout (${e.status ?? 'onbekend'}). Probeer het opnieuw.`;
@@ -123,8 +151,8 @@ Deno.serve(async (req) => {
     return json({ error: `Je bericht is te lang (meer dan ${MAX_BERICHT} tekens).` }, 400);
   }
 
-  const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
-  if (!apiKey) {
+  const route = kiesRoute();
+  if (!route) {
     return json({ error: 'Zarvis heeft nog geen sleutel. Voeg de secret ANTHROPIC_API_KEY toe.' }, 503);
   }
 
@@ -174,7 +202,7 @@ Deno.serve(async (req) => {
 
   // Het model eist dat een gesprek met de gebruiker begint.
   while (historiek.length > 0 && historiek[0].rol !== 'gebruiker') historiek.shift();
-  const messages: Anthropic.Beta.BetaMessageParam[] = [
+  const messages: Anthropic.MessageParam[] = [
     ...historiek.map((r) => ({
       role: r.rol === 'gebruiker' ? ('user' as const) : ('assistant' as const),
       content: r.inhoud,
@@ -183,9 +211,8 @@ Deno.serve(async (req) => {
   ];
 
   // --- Antwoorden, als stroom -----------------------------------------------
-  const anthropic = new Anthropic({ apiKey });
   const encoder = new TextEncoder();
-  let modelStroom: ReturnType<typeof anthropic.beta.messages.stream> | null = null;
+  let modelStroom: { abort(): void } | null = null;
   let weg = false;
 
   const stroom = new ReadableStream<Uint8Array>({
@@ -203,34 +230,45 @@ Deno.serve(async (req) => {
 
       let tekst = '';
       let gebruik: { in: number | null; uit: number | null; model: string } =
-        { in: null, uit: null, model: MODEL };
+        { in: null, uit: null, model: route.model };
       let fout: string | null = null;
 
       try {
-        const ms = anthropic.beta.messages.stream({
-          model: MODEL,
+        const basis = {
+          model: route.model,
           max_tokens: 8000,
-          // Als het model een vraag om veiligheidsredenen afwijst, neemt een
-          // ander model het in dezelfde aanroep over.
-          betas: ['server-side-fallback-2026-07-01'],
-          fallbacks: 'default',
           // Een gesprek moet vlot gaan; diep nadenken is hier zelden nodig.
-          output_config: { effort: 'low' },
+          output_config: { effort: 'low' as const },
           system: [
-            { type: 'text', text: PERSONA },
-            { type: 'text', text: contextTekst(body?.context) },
+            { type: 'text' as const, text: PERSONA },
+            { type: 'text' as const, text: contextTekst(body?.context) },
           ],
           messages,
-        });
-
-        modelStroom = ms;
-
-        ms.on('text', (delta) => {
+        };
+        // Met de eigen sleutel: als het model een vraag om veiligheidsredenen
+        // afwijst, neemt een ander model het in dezelfde aanroep over. Die
+        // vangnet-instelling is op de Lovable-route niet uitgetest en blijft
+        // daar dus weg.
+        const opTekst = (delta: string) => {
           tekst += delta;
           stuur({ type: 'tekst', delta });
-        });
-
-        const eind = await ms.finalMessage();
+        };
+        let eind: Anthropic.Message | Anthropic.Beta.BetaMessage;
+        if (route.naam === 'anthropic') {
+          const ms = route.client.beta.messages.stream({
+            ...basis,
+            betas: ['server-side-fallback-2026-07-01'],
+            fallbacks: 'default',
+          });
+          modelStroom = ms;
+          ms.on('text', opTekst);
+          eind = await ms.finalMessage();
+        } else {
+          const ms = route.client.messages.stream(basis);
+          modelStroom = ms;
+          ms.on('text', opTekst);
+          eind = await ms.finalMessage();
+        }
         gebruik = {
           in: eind.usage.input_tokens
             + (eind.usage.cache_read_input_tokens ?? 0)

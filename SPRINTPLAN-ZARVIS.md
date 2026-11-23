@@ -128,6 +128,59 @@ Z1 is bruikbaar zodra de functie live staat en de sleutel geplakt is. Tot Z2 zeg
 
 ---
 
+## 8. Wat we overnemen uit OpenJarvis en Nuance Labs
+
+Bram vroeg Zarvis als combinatie van OpenJarvis en Nuance Labs. Dit is wat die twee bij nader inzien opleveren.
+
+### 8.1 OpenJarvis (github.com/open-jarvis/openjarvis, Apache 2.0)
+
+Een Python-raamwerk voor een persoonlijke assistent op eigen toestel, met lokale modellen. De code nemen we niet over (andere taal, andere omgeving, andere keuze voor cloud); de ideeën wel. De studie gebeurde op de broncode door een hulpagent; zijn verslag is niet regel per regel nagetrokken.
+
+| Idee uit OpenJarvis | Hoe het in Zarvis komt | Waar |
+|---|---|---|
+| Goedkeuringswachtrij: een voorgestelde actie wacht op een ja, en "altijd goed voor dit soort actie" wordt onthouden | Status `wacht_op_goedkeuring` in `zarvis_acties` bestaat al. Twee afwijkingen: de **code** bepaalt de risicoklasse, niet het model; en wat naar een klant gaat, wordt nooit automatisch goedgekeurd | Z3 en uitbreiding |
+| Eén poort voor elk gereedschap (limiet, rechten, bevestiging) en een logboek dat niet achteraf aan te passen is | Elk gereedschap loopt via één uitvoerder; `zarvis_acties` is het logboek | Z2 en Z3 |
+| Geplande taken als rijen in de databank, met een logboek per run en een toestand die naar de volgende run meegaat | `pg_cron` + edge function, zoals de bestaande Bouwflow-sync | fase 4 |
+| Briefing in twee stappen: eerst gegevens verzamelen met vaste queries, dan één keer laten verwoorden onder "alleen deze feiten" | Ochtendbriefing | fase 4 |
+| Geheugen in twee sporen: feiten automatisch uit gesprekken gehaald, met een vertrouwensniveau, naast wat je uitdrukkelijk laat onthouden | Bedrijfsgeheugen | fase 2 |
+| Vaardigheden als catalogus: alleen naam en omschrijving in de instructie, de volledige werkwijze pas laden als ze nodig is | Het handboek als bron van werkwijzen | fase 2 |
+| Vast en wisselend deel van de instructie gescheiden houden | Al zo gebouwd in de functie `zarvis` (persona vast, context apart) | gedaan |
+| Antwoord zin per zin uitspreken | Al zo gebouwd (`src/lib/zarvis/zinnen.ts`) | gedaan |
+
+OpenJarvis heeft **geen** wekwoord, **geen** onderbreken tijdens het spreken en **geen** leren uit gecorrigeerde tekst. Die drie bouwen we zelf; onderbreken zit al in Z1.
+
+### 8.2 Nuance Labs (Nuance Live)
+
+Een persona met gezicht en stem waarmee je realtime praat via audio en video (LiveKit). Het werk geeft de persona door aan je eigen pagina of server, die het resultaat terugmeldt. Er is een JavaScript-SDK (`@nuancelabs/js-sdk`, met een React-hook). Als model past dat precies: zij het gezicht, onze functie het werk.
+
+**Niet bruikbaar voor Zarvis zoals het nu is: de persona spreekt en verstaat alleen Engels.** Hun documentatie zegt dat letterlijk, en een instructie met niet-Engelse tekens of de vraag om een andere taal te spreken wordt geweigerd. Verder: de API is in preview, gesprekken draaien op gedeelde capaciteit en kunnen vroegtijdig eindigen; waar de data verwerkt wordt, staat niet in de documentatie. Brams account (nagekeken op 2026-11-23): 10 credits per dag, 1 gesprek tegelijk.
+
+Wat we er wel van overnemen, als ontwerp voor het gezicht in fase 5:
+- De **rolverdeling**: het gezicht praat, het eigen systeem doet het werk en meldt terug.
+- De **gesprekssignalen** die een gezicht nodig heeft: wat net in de app gebeurde doorgeven zonder dat hij erover begint, hem laten zwijgen terwijl de gebruiker leest, hem midden in een zin stoppen. `ZarvisContext` krijgt die drie als aparte acties wanneer het gezicht komt.
+- **Bevestigen per gereedschap**: een actie die iets verstuurt of boekt wordt eerst hardop voorgelezen en pas na een duidelijk ja uitgevoerd.
+
+**Beslissing van Bram (2026-11-23):** een andere avatardienst zoeken die Nederlands spreekt. Zie 8.3.
+
+### 8.3 Avatardiensten met Nederlands (onderzoek 2026-11-23)
+
+**Betrouwbaarheid:** dit komt uit zoekresultaten. Geen enkele pagina van een leverancier kon rechtstreeks geopend worden vanuit de bouwomgeving, dus prijzen en beweringen moeten op de echte pagina's nagekeken worden vóór een keuze. Mobiele Safari is voor geen enkele dienst bevestigd.
+
+Eis: realtime, fotorealistisch, Nederlands zoals in Vlaanderen, in een webpagina, waarbij ons eigen model de woorden levert, en liefst verwerking in de EU.
+
+| Dienst | Waarom wel | Waarom niet |
+|---|---|---|
+| **Anam** (voorkeur) | Eigen model blijft het brein: de pagina stuurt de tekst door en het gezicht spreekt ze uit, zonder extra server. Onderbreken zit in de SDK. Nederlandse spraakherkenning gedocumenteerd. Ongeveer $49 voor 250 minuten | EU-verwerking alleen in het duurste plan en geen EU-regio genoemd. Vlaamse stem niet bevestigd. Sessies van hoogstens 10 minuten in dat plan |
+| **Beyond Presence** (tweede) | Duits bedrijf, prijzen in euro, zegt in de EU te hosten. Het gezicht spreekt wat onze eigen stem levert, dus een echte Vlaamse stem kan | Hun documentatie spreekt de EU-hosting tegen. Vraagt een altijd draaiende dienst naast Supabase, die we nu niet hebben |
+| **Simli** (goedkoop) | Ongeveer $0,01 per minuut; krijgt gewoon geluid binnen, dus taal en stem kiezen we zelf | Spraakherkenning, beurtwissel en onderbreken bouwen we dan zelf. Verwerkingslocatie onbekend |
+| **Azure TTS-avatar** (streng EU) | Draait in West-Europa; Vlaamse stemmen Dena en Arnaud bestaan | Ongeveer €0,52 per minuut; niet bevestigd dat de avatar met de Vlaamse stemmen werkt |
+| HeyGen LiveAvatar | Goedkoop per minuut, eigen model mogelijk | Alle data in de VS |
+| Tavus | Technisch een nette pasvorm, Nederlands in de lijst | $0,26 tot $0,35 per minuut |
+
+**Stem zonder gezicht (voor sprint Z4):** de enige uitdrukkelijk Vlaamse combinatie die bevestigd werd in de zoekresultaten is Deepgram Nova-3 met `nl-BE` op hun EU-adres voor herkenning, en Azure (`nl-BE-Dena`, `nl-BE-Arnaud`) of Google Chirp 3 HD in de EU-regio voor de stem. Azure kan beide kanten onder één verwerkersovereenkomst.
+
+**Voorstel:** een korte proef met Anam (gratis 30 minuten) om te horen hoe het Nederlands klinkt, en bij Beyond Presence schriftelijk navragen waar ze verwerken. Pas daarna kiezen.
+
 ## Voortgangs- en aannamelogboek
 
 - **2026-11-23** — Interview afgerond, dit plan opgesteld. Nog geen code geschreven. Aannames: Anthropic-API als model (Mail-CRM gebruikt die al); fase 1 zonder gezicht en zonder wekwoord, zoals in het interview voorgesteld en met "Go" bevestigd.
@@ -145,3 +198,5 @@ Z1 is bruikbaar zodra de functie live staat en de sleutel geplakt is. Tot Z2 zeg
   - **Niet geverifieerd:** de functie zelf tegen het echte model (nog niet live, geen sleutel; wel getypecheckt tegen de Anthropic-SDK 1.13.0); echte microfoon en echte stem (de browserproef gebruikte nagebootste spraak); iPhone Safari.
   - **Los van Zarvis opgemerkt:** de test `rapportMailTekst › bevestigt dag en uur` faalt in een omgeving op UTC (verwacht 14:00, krijgt 13:00) en slaagt met tijdzone Brussel. Bestond al vóór deze wijzigingen.
   - **Aanname:** model `claude-opus-5-5` op lage inspanning voor snelheid, instelbaar via secret `ZARVIS_MODEL`; bij een afwijzing om veiligheidsredenen neemt een ander model automatisch over.
+- **2026-11-23 (live + studie)** — PR #20 gemerged en gepubliceerd. Live nagekeken: de gepubliceerde app bevat de Zarvis-knop en het paneel; de functie `zarvis` is door de Lovable-agent ongewijzigd uitgerold (Lovable doet dat niet vanzelf na een merge) en weigert zonder login met 401. **Zarvis antwoordt nog niet:** de secret `ANTHROPIC_API_KEY` ontbreekt. OpenJarvis en de Nuance-documentatie bestudeerd; zie 8. Nuance Live blijkt alleen Engels te doen; Bram kiest voor een andere avatardienst met Nederlands.
+- **2026-11-23 (Lovable-route)** — Bram koos ervoor Zarvis voorlopig zonder eigen Anthropic-sleutel te laten draaien. De functie `zarvis` kiest nu zelf: een eigen `ANTHROPIC_API_KEY` heeft voorrang zodra hij bestaat; anders gaat het via de ingebouwde AI-route van Lovable (`LOVABLE_API_KEY`, staat al in het project), met hetzelfde model. **Gevolgen:** de kost gaat van het Lovable-tegoed en is dus niet apart leesbaar (wijkt af van B1 tot er een eigen sleutel is); volgens Lovable bewaart de aanbieder de gegevens bij deze modellen; het vangnet bij een afwijzing om veiligheidsredenen staat op deze route uit omdat het daar niet uitgetest is. **Geverifieerd:** een rechtstreekse testaanroep naar de Lovable-route met exact dit verzoek gaf een geldig antwoord; de functie is getypecheckt en getest tegen een nagebootste server met hetzelfde antwoordformaat. **Niet geverifieerd:** een echte vraag via de ingelogde app.
