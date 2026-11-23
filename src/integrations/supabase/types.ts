@@ -1419,6 +1419,27 @@ export type Database = {
           },
         ]
       }
+      zarvis_instellingen: {
+        Row: {
+          connectoren: Json
+          ingericht_op: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          connectoren?: Json
+          ingericht_op?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          connectoren?: Json
+          ingericht_op?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
