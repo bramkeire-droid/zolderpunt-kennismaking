@@ -22,6 +22,15 @@ export type ZarvisBericht = {
   fout?: boolean;
   /** De gebruiker onderbrak dit antwoord. */
   onderbroken?: boolean;
+  /** Wat Zarvis opzocht om dit antwoord te geven, in volgorde. */
+  stappen?: ZarvisStap[];
+};
+
+export type ZarvisStap = {
+  id: string;
+  label: string;
+  status: 'bezig' | 'klaar' | 'mislukt';
+  detail?: string;
 };
 
 /** Het gezicht (proef met Anam): uit, bezig met verbinden, of in beeld. */
@@ -189,6 +198,15 @@ export function ZarvisProvider({ children }: { children: ReactNode }) {
         werkLaatsteBij((b) => ({ ...b, tekst: volledig }));
         uitspraak?.zeg(g.delta);
         spreekWatKan(false);
+      } else if (g.type === 'stap') {
+        const stap: ZarvisStap = { id: g.id, label: g.label, status: g.status, detail: g.detail };
+        werkLaatsteBij((b) => {
+          const lijst = b.stappen ?? [];
+          const i = lijst.findIndex((x) => x.id === stap.id);
+          return { ...b, stappen: i < 0 ? [...lijst, stap] : lijst.map((x, j) => (j === i ? stap : x)) };
+        });
+        // Opzoeken is denken: de aanwezigheid toont dat, de regel eronder zegt wat.
+        if (stap.status === 'bezig') zetStatus('denkt');
       } else if (g.type === 'fout') {
         mislukt = true;
         werkLaatsteBij((b) => ({ ...b, tekst: g.bericht, fout: true }));

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Mic, Square, SendHorizonal, Volume2, VolumeX, RotateCcw, X, FolderOpen, Video, VideoOff } from 'lucide-react';
+import { Mic, Square, SendHorizonal, Volume2, VolumeX, RotateCcw, X, FolderOpen, Video, VideoOff, Check, Loader2, AlertTriangle } from 'lucide-react';
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet';
 import { useZarvis, GEZICHT_VIDEO_ID, type ZarvisStatus } from '@/contexts/ZarvisContext';
 import ZarvisOrb from './ZarvisOrb';
@@ -11,12 +11,16 @@ const STATUSTEKST: Record<ZarvisStatus, string> = {
   spreekt: 'Zarvis antwoordt',
 };
 
-// Enkel dingen die Zarvis vandaag al kan. Zolang hij de dossiers niet leest,
-// stelt hij ook geen vragen voor die daarop steunen.
-const AANZETTEN = [
+// Enkel dingen die Zarvis vandaag al kan: de dossiers lezen en meedenken.
+const AANZETTEN_ALGEMEEN = [
+  'Welke dossiers in offerte blijven het langst liggen?',
+  'Wat staat er deze week gepland?',
   'Help me een antwoord formuleren op een klant die de prijs te hoog vindt',
-  'Bereid met mij een moeilijk telefoongesprek voor',
-  'Wat ga je binnenkort voor mij kunnen doen?',
+];
+const AANZETTEN_DOSSIER = [
+  'Vat dit dossier samen',
+  'Wat heeft de klant beslist, en wat moest ik onthouden?',
+  'Wat weten we nog niet over dit project?',
 ];
 
 const balkKnop =
@@ -65,6 +69,9 @@ export default function ZarvisPaneel() {
   };
 
   const laatsteVraag = [...berichten].reverse().find((b) => b.rol === 'gebruiker')?.tekst;
+  const aanzetten = context.dossier ? AANZETTEN_DOSSIER : AANZETTEN_ALGEMEEN;
+  // Wat Zarvis op dit moment opzoekt, als regel onder de status.
+  const bezigeStap = berichten[berichten.length - 1]?.stappen?.find((x) => x.status === 'bezig');
 
   return (
     <Sheet open={open} onOpenChange={zetOpen}>
@@ -152,7 +159,9 @@ export default function ZarvisPaneel() {
                 </p>
               ) : (
                 <p className="mt-1 flex items-center gap-1.5 text-[13px] text-white/60 min-w-0">
-                  {context.dossier ? (
+                  {bezigeStap ? (
+                    <span className="truncate">{bezigeStap.label}…</span>
+                  ) : context.dossier ? (
                     <>
                       <FolderOpen className="h-3.5 w-3.5 shrink-0" />
                       <span className="truncate">In dossier {context.dossier.naam}</span>
@@ -174,13 +183,13 @@ export default function ZarvisPaneel() {
                 Ik ben Zarvis. Praten kunnen we al{kanLuisteren ? ', met je stem of getypt' : ''}.
               </p>
               <p className="mt-2 font-body text-sm leading-relaxed text-muted-foreground">
-                Je dossiers lezen en er iets in aanpassen kan ik nog niet. Dat komt in de volgende stap.
+                Ik kan je dossiers lezen: gegevens, gesprekken, notities en calculaties. Er iets in aanpassen of iets versturen kan ik nog niet.
               </p>
               <p className="mt-6 mb-2 text-[11px] font-headline font-bold uppercase tracking-wider text-muted-foreground">
                 Probeer eens
               </p>
               <div className="flex flex-col gap-2">
-                {AANZETTEN.map((a) => (
+                {aanzetten.map((a) => (
                   <button
                     key={a}
                     onClick={() => stuur(a)}
@@ -212,6 +221,23 @@ export default function ZarvisPaneel() {
                   </div>
                 ) : (
                   <div key={b.id} className="border-l-2 border-primary pl-3.5">
+                    {b.stappen && b.stappen.length > 0 && (
+                      <ul className="mb-2 flex flex-col gap-1" aria-label="Wat Zarvis opzocht">
+                        {b.stappen.map((st) => (
+                          <li key={st.id} className="flex items-center gap-2 text-[13px] font-body text-muted-foreground">
+                            {st.status === 'bezig' ? (
+                              <Loader2 aria-hidden className="h-3.5 w-3.5 shrink-0 animate-spin text-primary" />
+                            ) : st.status === 'klaar' ? (
+                              <Check aria-hidden className="h-3.5 w-3.5 shrink-0 text-emerald-700" />
+                            ) : (
+                              <AlertTriangle aria-hidden className="h-3.5 w-3.5 shrink-0 text-destructive" />
+                            )}
+                            <span className="truncate">{st.label}</span>
+                            {st.detail && st.status !== 'bezig' && <span className="shrink-0">· {st.detail}</span>}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                     {b.tekst ? (
                       <p className="text-[15px] font-body leading-relaxed text-foreground whitespace-pre-wrap break-words">
                         {b.tekst}
