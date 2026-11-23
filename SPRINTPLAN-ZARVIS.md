@@ -128,6 +128,40 @@ Z1 is bruikbaar zodra de functie live staat en de sleutel geplakt is. Tot Z2 zeg
 
 ---
 
+## 8. Wat we overnemen uit OpenJarvis en Nuance Labs
+
+Bram vroeg Zarvis als combinatie van OpenJarvis en Nuance Labs. Dit is wat die twee bij nader inzien opleveren.
+
+### 8.1 OpenJarvis (github.com/open-jarvis/openjarvis, Apache 2.0)
+
+Een Python-raamwerk voor een persoonlijke assistent op eigen toestel, met lokale modellen. De code nemen we niet over (andere taal, andere omgeving, andere keuze voor cloud); de ideeën wel. De studie gebeurde op de broncode door een hulpagent; zijn verslag is niet regel per regel nagetrokken.
+
+| Idee uit OpenJarvis | Hoe het in Zarvis komt | Waar |
+|---|---|---|
+| Goedkeuringswachtrij: een voorgestelde actie wacht op een ja, en "altijd goed voor dit soort actie" wordt onthouden | Status `wacht_op_goedkeuring` in `zarvis_acties` bestaat al. Twee afwijkingen: de **code** bepaalt de risicoklasse, niet het model; en wat naar een klant gaat, wordt nooit automatisch goedgekeurd | Z3 en uitbreiding |
+| Eén poort voor elk gereedschap (limiet, rechten, bevestiging) en een logboek dat niet achteraf aan te passen is | Elk gereedschap loopt via één uitvoerder; `zarvis_acties` is het logboek | Z2 en Z3 |
+| Geplande taken als rijen in de databank, met een logboek per run en een toestand die naar de volgende run meegaat | `pg_cron` + edge function, zoals de bestaande Bouwflow-sync | fase 4 |
+| Briefing in twee stappen: eerst gegevens verzamelen met vaste queries, dan één keer laten verwoorden onder "alleen deze feiten" | Ochtendbriefing | fase 4 |
+| Geheugen in twee sporen: feiten automatisch uit gesprekken gehaald, met een vertrouwensniveau, naast wat je uitdrukkelijk laat onthouden | Bedrijfsgeheugen | fase 2 |
+| Vaardigheden als catalogus: alleen naam en omschrijving in de instructie, de volledige werkwijze pas laden als ze nodig is | Het handboek als bron van werkwijzen | fase 2 |
+| Vast en wisselend deel van de instructie gescheiden houden | Al zo gebouwd in de functie `zarvis` (persona vast, context apart) | gedaan |
+| Antwoord zin per zin uitspreken | Al zo gebouwd (`src/lib/zarvis/zinnen.ts`) | gedaan |
+
+OpenJarvis heeft **geen** wekwoord, **geen** onderbreken tijdens het spreken en **geen** leren uit gecorrigeerde tekst. Die drie bouwen we zelf; onderbreken zit al in Z1.
+
+### 8.2 Nuance Labs (Nuance Live)
+
+Een persona met gezicht en stem waarmee je realtime praat via audio en video (LiveKit). Het werk geeft de persona door aan je eigen pagina of server, die het resultaat terugmeldt. Er is een JavaScript-SDK (`@nuancelabs/js-sdk`, met een React-hook). Als model past dat precies: zij het gezicht, onze functie het werk.
+
+**Niet bruikbaar voor Zarvis zoals het nu is: de persona spreekt en verstaat alleen Engels.** Hun documentatie zegt dat letterlijk, en een instructie met niet-Engelse tekens of de vraag om een andere taal te spreken wordt geweigerd. Verder: de API is in preview, gesprekken draaien op gedeelde capaciteit en kunnen vroegtijdig eindigen; waar de data verwerkt wordt, staat niet in de documentatie. Brams account (nagekeken op 2026-11-23): 10 credits per dag, 1 gesprek tegelijk.
+
+Wat we er wel van overnemen, als ontwerp voor het gezicht in fase 5:
+- De **rolverdeling**: het gezicht praat, het eigen systeem doet het werk en meldt terug.
+- De **gesprekssignalen** die een gezicht nodig heeft: wat net in de app gebeurde doorgeven zonder dat hij erover begint, hem laten zwijgen terwijl de gebruiker leest, hem midden in een zin stoppen. `ZarvisContext` krijgt die drie als aparte acties wanneer het gezicht komt.
+- **Bevestigen per gereedschap**: een actie die iets verstuurt of boekt wordt eerst hardop voorgelezen en pas na een duidelijk ja uitgevoerd.
+
+**Beslissing van Bram (2026-11-23):** een andere avatardienst zoeken die Nederlands spreekt. Het vergelijkend onderzoek loopt; het resultaat komt hier als 8.3.
+
 ## Voortgangs- en aannamelogboek
 
 - **2026-11-23** — Interview afgerond, dit plan opgesteld. Nog geen code geschreven. Aannames: Anthropic-API als model (Mail-CRM gebruikt die al); fase 1 zonder gezicht en zonder wekwoord, zoals in het interview voorgesteld en met "Go" bevestigd.
@@ -145,3 +179,4 @@ Z1 is bruikbaar zodra de functie live staat en de sleutel geplakt is. Tot Z2 zeg
   - **Niet geverifieerd:** de functie zelf tegen het echte model (nog niet live, geen sleutel; wel getypecheckt tegen de Anthropic-SDK 1.13.0); echte microfoon en echte stem (de browserproef gebruikte nagebootste spraak); iPhone Safari.
   - **Los van Zarvis opgemerkt:** de test `rapportMailTekst › bevestigt dag en uur` faalt in een omgeving op UTC (verwacht 14:00, krijgt 13:00) en slaagt met tijdzone Brussel. Bestond al vóór deze wijzigingen.
   - **Aanname:** model `claude-opus-5-5` op lage inspanning voor snelheid, instelbaar via secret `ZARVIS_MODEL`; bij een afwijzing om veiligheidsredenen neemt een ander model automatisch over.
+- **2026-11-23 (live + studie)** — PR #20 gemerged en gepubliceerd. Live nagekeken: de gepubliceerde app bevat de Zarvis-knop en het paneel; de functie `zarvis` is door de Lovable-agent ongewijzigd uitgerold (Lovable doet dat niet vanzelf na een merge) en weigert zonder login met 401. **Zarvis antwoordt nog niet:** de secret `ANTHROPIC_API_KEY` ontbreekt. OpenJarvis en de Nuance-documentatie bestudeerd; zie 8. Nuance Live blijkt alleen Engels te doen; Bram kiest voor een andere avatardienst met Nederlands.
