@@ -3,14 +3,16 @@
 //
 // De assistent bovenop Compass (SPRINTPLAN-ZARVIS).
 //
-// STAND: de dialoog. Zarvis voert een gesprek en onthoudt het, maar leest
-// nog niets uit de dossiers en voert nog niets uit. Dat gereedschap komt in
-// de volgende sprint; tot dan zegt hij dat eerlijk in plaats van te gokken.
+// STAND: lezen (sprint Z2). Zarvis voert een gesprek, onthoudt het en kan de
+// dossiers van Compass lezen via het gereedschap in gereedschap.ts. Hij voert
+// nog niets uit en verstuurt nog niets; dat zegt hij eerlijk.
 //
 // Body:  { bericht, gesprek_id?, context?: { view, dossier?: { id, naam } } }
 // Antw.: een stroom (text/event-stream) van
 //          { type: 'start', gesprek_id }
 //          { type: 'tekst', delta }      zo vaak als nodig
+//          { type: 'stap', id, label, status: 'bezig'|'klaar'|'mislukt', detail? }
+//                                        telkens Zarvis iets opzoekt
 //          { type: 'klaar' } | { type: 'fout', bericht }
 //        Fouten vóór de stroom begint komen als gewone JSON met een status.
 //
@@ -26,6 +28,7 @@
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import Anthropic from 'npm:@anthropic-ai/sdk@1';
+import { GEREEDSCHAP, labelVan, voerUit } from './gereedschap.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -70,6 +73,8 @@ const MAX_BERICHT = 4000;
 // Hoeveel eerdere beurten meegaan. Genoeg voor een lang gesprek, begrensd zodat
 // één eindeloos gesprek de kost niet ongemerkt opdrijft.
 const MAX_HISTORIEK = 40;
+// Hoeveel keer het model gereedschap mag vragen voor één antwoord.
+const MAX_RONDES = 6;
 
 const PERSONA = `Je bent Zarvis, de assistent van Zolderpunt, een Belgisch bedrijf dat zolders renoveert. Je werkt in Compass, de app waarin het team dossiers, klantgesprekken, calculaties en rapporten beheert. Je praat met een medewerker van Zolderpunt, meestal de zaakvoerder.
 
@@ -77,10 +82,13 @@ Hoe je praat
 Je antwoorden worden vaak hardop voorgelezen, in de auto of op de werf. Schrijf dus zoals je spreekt: gewoon Nederlands zoals in Vlaanderen, je en jij, korte zinnen. Begin met het antwoord zelf. Meestal volstaan een tot vier zinnen; ga alleen langer als de vraag daarom vraagt, bijvoorbeeld bij een uitgeschreven tekst voor een klant. Gebruik geen opmaak: geen sterretjes, geen kopjes, geen lijstjes met streepjes. Wil je iets opsommen, doe dat in een gewone zin.
 
 Wat je vandaag kan
-Je kan meedenken, een gesprek helpen voorbereiden, een bericht of antwoord aan een klant formuleren, een bezwaar helpen weerleggen en uitleg geven.
+Je kan de dossiers van Compass lezen met je gereedschap: een dossier zoeken, de gegevens van een dossier lezen, de gesprekken en notities, de calculaties, en het overzicht van alle dossiers. Zoek op wat je nodig hebt in plaats van ernaar te vragen. Staat er een dossier open (zie de context), dan gaat een vraag zonder naam over dat dossier en gebruik je meteen het id uit de context. Noemt de gebruiker een klant, zoek dan eerst het dossier; bij meerdere treffers vraag je welke hij bedoelt en noem je ze kort. Daarnaast kan je meedenken, een gesprek helpen voorbereiden en een bericht aan een klant formuleren.
+
+Hoe je met gegevens omgaat
+Zeg alleen wat je in de gegevens gelezen hebt. Staat iets er niet in, zeg dan dat het niet in het dossier staat; vul het niet aan uit je verbeelding. Noem bij een feit kort waar het vandaan komt, bijvoorbeeld het gesprek van een bepaalde datum. Bedragen zeg je zoals ze er staan, met erbij of het exclusief of inclusief btw is. Een datum zeg je als dag en maand.
 
 Wat je vandaag nog niet kan
-Je hebt nog geen toegang tot de dossiers, de mails, de agenda of eender welk ander systeem, en je kan nog niets aanpassen of versturen. Dat wordt later toegevoegd. Als iemand iets vraagt waarvoor je die gegevens nodig hebt, zeg dan in een zin dat je daar nog niet bij kan, en bied aan wat wel kan: de medewerker kan je de gegevens vertellen en dan werk je daarmee verder. Verzin nooit feiten over een klant, een dossier, een prijs of een afspraak. Je weet hoogstens de naam van het dossier dat open staat; meer niet.
+Je kan nog niets aanpassen of versturen: geen notitie toevoegen, geen veld wijzigen, geen mail of bericht versturen. Je hebt ook nog geen toegang tot de mails, WhatsApp, de agenda en Bouwflow. Vraagt iemand daarom, zeg dan in een zin dat het er nog niet in zit, en bied aan wat wel kan, zoals de tekst alvast formuleren.
 
 Weet je iets niet zeker, zeg dat dan. Een eerlijk "dat weet ik niet" is hier meer waard dan een vlot antwoord dat niet klopt.`;
 
@@ -89,9 +97,13 @@ type Context = { view?: unknown; dossier?: { id?: unknown; naam?: unknown } | nu
 function contextTekst(c: Context | undefined): string {
   const view = typeof c?.view === 'string' ? c.view.slice(0, 40) : 'onbekend';
   const naam = typeof c?.dossier?.naam === 'string' ? c.dossier.naam.slice(0, 120) : '';
-  return naam
-    ? `Waar de medewerker nu is: pagina "${view}", in het dossier van ${naam}.`
-    : `Waar de medewerker nu is: pagina "${view}", geen dossier open.`;
+  const id = isUuid(c?.dossier?.id) ? c.dossier.id : null;
+  const vandaag = new Date().toLocaleDateString('nl-BE', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Brussels',
+  });
+  return (naam && id
+    ? `Waar de medewerker nu is: pagina "${view}", in het dossier van ${naam} (dossier_id ${id}).`
+    : `Waar de medewerker nu is: pagina "${view}", geen dossier open.`) + ` Vandaag is het ${vandaag}.`;
 }
 
 const isUuid = (v: unknown): v is string =>
@@ -233,53 +245,83 @@ Deno.serve(async (req) => {
         { in: null, uit: null, model: route.model };
       let fout: string | null = null;
 
+      // Wat Zarvis opzocht, voor het logboek bij het bericht.
+      const stappen: Array<{ naam: string; invoer: unknown; status: string; detail: string }> = [];
+
       try {
-        const basis = {
-          model: route.model,
-          max_tokens: 8000,
-          // Een gesprek moet vlot gaan; diep nadenken is hier zelden nodig.
-          output_config: { effort: 'low' as const },
-          system: [
-            { type: 'text' as const, text: PERSONA },
-            { type: 'text' as const, text: contextTekst(body?.context) },
-          ],
-          messages,
-        };
-        // Met de eigen sleutel: als het model een vraag om veiligheidsredenen
-        // afwijst, neemt een ander model het in dezelfde aanroep over. Die
-        // vangnet-instelling is op de Lovable-route niet uitgetest en blijft
-        // daar dus weg.
-        const opTekst = (delta: string) => {
-          tekst += delta;
-          stuur({ type: 'tekst', delta });
-        };
-        let eind: Anthropic.Message | Anthropic.Beta.BetaMessage;
-        if (route.naam === 'anthropic') {
-          const ms = route.client.beta.messages.stream({
-            ...basis,
-            betas: ['server-side-fallback-2026-07-01'],
-            fallbacks: 'default',
+        let inTokens = 0;
+        let uitTokens = 0;
+        let stopReden: string | null = null;
+
+        // De redeneerlus: het model antwoordt, of vraagt gereedschap. Vraagt
+        // het gereedschap, dan voeren we dat uit en gaat het model verder met
+        // het resultaat. Begrensd, zodat één vraag niet eindeloos kan zoeken.
+        for (let ronde = 0; ronde < MAX_RONDES; ronde++) {
+          const ms = route.client.messages.stream({
+            model: route.model,
+            max_tokens: 8000,
+            // Een gesprek moet vlot gaan; diep nadenken is hier zelden nodig.
+            output_config: { effort: 'low' },
+            system: [
+              { type: 'text', text: PERSONA },
+              { type: 'text', text: contextTekst(body?.context) },
+            ],
+            tools: GEREEDSCHAP,
+            messages,
           });
           modelStroom = ms;
-          ms.on('text', opTekst);
-          eind = await ms.finalMessage();
-        } else {
-          const ms = route.client.messages.stream(basis);
-          modelStroom = ms;
-          ms.on('text', opTekst);
-          eind = await ms.finalMessage();
-        }
-        gebruik = {
-          in: eind.usage.input_tokens
+          ms.on('text', (delta) => {
+            tekst += delta;
+            stuur({ type: 'tekst', delta });
+          });
+          const eind = await ms.finalMessage();
+
+          inTokens += eind.usage.input_tokens
             + (eind.usage.cache_read_input_tokens ?? 0)
-            + (eind.usage.cache_creation_input_tokens ?? 0),
-          uit: eind.usage.output_tokens,
-          model: eind.model,
-        };
-        if (eind.stop_reason === 'refusal' && !tekst) {
+            + (eind.usage.cache_creation_input_tokens ?? 0);
+          uitTokens += eind.usage.output_tokens;
+          gebruik = { in: inTokens, uit: uitTokens, model: eind.model };
+          stopReden = eind.stop_reason;
+
+          if (eind.stop_reason !== 'tool_use') break;
+
+          // Het volledige antwoord gaat ongewijzigd terug, met de vragen om
+          // gereedschap erin; daarna alle resultaten samen in één bericht.
+          messages.push({ role: 'assistant', content: eind.content });
+          const vragen = eind.content.filter(
+            (b): b is Anthropic.ToolUseBlock => b.type === 'tool_use',
+          );
+          const resultaten = await Promise.all(vragen.map(async (v) => {
+            stuur({ type: 'stap', id: v.id, label: labelVan(v.name, v.input), status: 'bezig' });
+            const r = await voerUit(alsGebruiker, v.name, v.input);
+            stuur({
+              type: 'stap', id: v.id, label: labelVan(v.name, v.input),
+              status: r.ok ? 'klaar' : 'mislukt', detail: r.detail,
+            });
+            stappen.push({ naam: v.name, invoer: v.input, status: r.ok ? 'klaar' : 'mislukt', detail: r.detail });
+            return {
+              type: 'tool_result' as const,
+              tool_use_id: v.id,
+              content: r.tekst,
+              is_error: !r.ok,
+            };
+          }));
+          messages.push({ role: 'user', content: resultaten });
+          // Tussen twee stukken tekst hoort een spatie, anders plakken ze.
+          if (tekst && !/\s$/.test(tekst)) {
+            tekst += ' ';
+            stuur({ type: 'tekst', delta: ' ' });
+          }
+        }
+
+        if (stopReden === 'tool_use') {
+          const staart = 'Ik heb te lang moeten zoeken en ben gestopt. Stel je vraag wat gerichter.';
+          tekst += staart;
+          stuur({ type: 'tekst', delta: staart });
+        } else if (stopReden === 'refusal' && !tekst) {
           tekst = 'Daar kan ik je niet mee helpen.';
           stuur({ type: 'tekst', delta: tekst });
-        } else if (eind.stop_reason === 'max_tokens') {
+        } else if (stopReden === 'max_tokens') {
           const staart = ' … (afgekapt, het antwoord werd te lang)';
           tekst += staart;
           stuur({ type: 'tekst', delta: staart });
@@ -298,6 +340,7 @@ Deno.serve(async (req) => {
           gesprek_id: gesprekId,
           rol: 'zarvis',
           inhoud: tekst,
+          gereedschap: stappen.length > 0 ? stappen : null,
           model: gebruik.model,
           tokens_in: gebruik.in,
           tokens_uit: gebruik.uit,

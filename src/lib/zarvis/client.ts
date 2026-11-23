@@ -16,6 +16,7 @@ export type ZarvisContextInfo = {
 export type ZarvisGebeurtenis =
   | { type: 'start'; gesprek_id: string }
   | { type: 'tekst'; delta: string }
+  | { type: 'stap'; id: string; label: string; status: 'bezig' | 'klaar' | 'mislukt'; detail?: string }
   | { type: 'klaar' }
   | { type: 'fout'; bericht: string };
 
