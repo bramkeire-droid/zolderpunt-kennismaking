@@ -14,7 +14,7 @@ export type ZarvisContextInfo = {
 };
 
 export type ZarvisGebeurtenis =
-  | { type: 'start'; gesprek_id: string }
+  | { type: 'start'; gesprek_id: string; compass_dossier?: string | null }
   | { type: 'tekst'; delta: string }
   | { type: 'stap'; id: string; label: string; status: 'bezig' | 'klaar' | 'mislukt'; detail?: string }
   | { type: 'klaar' }

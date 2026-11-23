@@ -75,6 +75,8 @@ const MAX_BERICHT = 4000;
 const MAX_HISTORIEK = 40;
 // Hoeveel keer het model gereedschap mag vragen voor één antwoord.
 const MAX_RONDES = 6;
+// Hoe lang wat Compass doorgaf als "nu open" telt.
+const CONTEXT_GELDIG_MS = 4 * 60 * 60 * 1000;
 
 const PERSONA = `Je bent Zarvis, de assistent van Zolderpunt, een Belgisch bedrijf dat zolders renoveert. Je werkt in Compass, de app waarin het team dossiers, klantgesprekken, calculaties en rapporten beheert. Je praat met een medewerker van Zolderpunt, meestal de zaakvoerder.
 
@@ -98,12 +100,18 @@ function contextTekst(c: Context | undefined): string {
   const view = typeof c?.view === 'string' ? c.view.slice(0, 40) : 'onbekend';
   const naam = typeof c?.dossier?.naam === 'string' ? c.dossier.naam.slice(0, 120) : '';
   const id = isUuid(c?.dossier?.id) ? c.dossier.id : null;
+  const viaCompass = (c as { viaCompass?: boolean } | undefined)?.viaCompass === true;
   const vandaag = new Date().toLocaleDateString('nl-BE', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Brussels',
   });
-  return (naam && id
-    ? `Waar de medewerker nu is: pagina "${view}", in het dossier van ${naam} (dossier_id ${id}).`
-    : `Waar de medewerker nu is: pagina "${view}", geen dossier open.`) + ` Vandaag is het ${vandaag}.`;
+  const waar = naam && id
+    ? viaCompass
+      ? `De medewerker praat met je vanuit het losse Zarvis-venster. In Compass heeft hij het dossier van ${naam} open staan (dossier_id ${id}); een vraag zonder naam gaat daarover.`
+      : `Waar de medewerker nu is: pagina "${view}", in het dossier van ${naam} (dossier_id ${id}).`
+    : viaCompass
+      ? 'De medewerker praat met je vanuit het losse Zarvis-venster. In Compass staat geen dossier open.'
+      : `Waar de medewerker nu is: pagina "${view}", geen dossier open.`;
+  return `${waar} Vandaag is het ${vandaag}.`;
 }
 
 const isUuid = (v: unknown): v is string =>
@@ -163,6 +171,25 @@ Deno.serve(async (req) => {
     return json({ error: `Je bericht is te lang (meer dan ${MAX_BERICHT} tekens).` }, 400);
   }
 
+  // Het losse venster heeft zelf geen dossier open. Dan geldt wat Compass voor
+  // deze gebruiker doorgaf, zolang dat recent is: een dossier dat gisteren open
+  // stond, is niet "het dossier waar je mee bezig bent".
+  let context: Context | undefined = body?.context;
+  let compassDossier: string | null = null;
+  if (!isUuid(context?.dossier?.id)) {
+    const { data: rij } = await alsGebruiker
+      .from('zarvis_context').select('lead_id, dossier_naam, view, updated_at').maybeSingle();
+    const vers = rij?.updated_at && Date.now() - new Date(rij.updated_at).getTime() < CONTEXT_GELDIG_MS;
+    if (rij && vers) {
+      context = {
+        view: rij.view,
+        dossier: rij.lead_id ? { id: rij.lead_id, naam: rij.dossier_naam } : null,
+        viaCompass: true,
+      } as Context;
+      compassDossier = rij.lead_id ? (rij.dossier_naam ?? null) : null;
+    }
+  }
+
   const route = kiesRoute();
   if (!route) {
     return json({ error: 'Zarvis heeft nog geen sleutel. Voeg de secret ANTHROPIC_API_KEY toe.' }, 503);
@@ -191,7 +218,7 @@ Deno.serve(async (req) => {
     }
     historiek = ((rijen ?? []) as Rij[]).reverse();
   } else {
-    const leadId = isUuid(body?.context?.dossier?.id) ? body.context.dossier.id : null;
+    const leadId = isUuid(context?.dossier?.id) ? context.dossier.id : null;
     const { data: nieuw, error } = await alsGebruiker
       .from('zarvis_gesprekken')
       .insert({ lead_id: leadId, titel: bericht.slice(0, 80) })
@@ -238,7 +265,7 @@ Deno.serve(async (req) => {
         }
       };
 
-      stuur({ type: 'start', gesprek_id: gesprekId });
+      stuur({ type: 'start', gesprek_id: gesprekId, compass_dossier: compassDossier });
 
       let tekst = '';
       let gebruik: { in: number | null; uit: number | null; model: string } =
@@ -264,7 +291,7 @@ Deno.serve(async (req) => {
             output_config: { effort: 'low' },
             system: [
               { type: 'text', text: PERSONA },
-              { type: 'text', text: contextTekst(body?.context) },
+              { type: 'text', text: contextTekst(context) },
             ],
             tools: GEREEDSCHAP,
             messages,

@@ -3,6 +3,7 @@ import { Mic, Square, SendHorizonal, RotateCcw, Keyboard, Check, Loader2, AlertT
 import { useZarvis, type ZarvisStatus } from '@/contexts/ZarvisContext';
 import { useAuth } from '@/contexts/AuthContext';
 import ZarvisOrb from '@/components/zarvis/ZarvisOrb';
+import { supabase } from '@/integrations/supabase/client';
 
 /**
  * Zarvis als eigen venster: klein, donker, bedoeld om open te laten staan boven
@@ -53,6 +54,25 @@ export default function ZarvisVenster() {
   useEffect(() => schil()?.opSneltoets(() => wisselRef.current?.()), []);
 
   useEffect(() => { document.title = 'Zarvis'; }, []);
+
+  // Welk dossier in Compass open staat. Compass schrijft dat weg; dit venster
+  // kijkt bij het openen, telkens het de aandacht krijgt, en verder af en toe.
+  const [compassDossier, zetCompassDossier] = useState<string | null>(null);
+  useEffect(() => {
+    let weg = false;
+    const kijk = async () => {
+      const { data } = await (supabase.from('zarvis_context' as never) as unknown as {
+        select: (k: string) => { maybeSingle: () => Promise<{ data: { lead_id: string | null; dossier_naam: string | null; updated_at: string } | null }> };
+      }).select('lead_id, dossier_naam, updated_at').maybeSingle();
+      if (weg) return;
+      const vers = data && Date.now() - new Date(data.updated_at).getTime() < 4 * 60 * 60 * 1000;
+      zetCompassDossier(vers && data.lead_id ? (data.dossier_naam || 'dossier zonder naam') : null);
+    };
+    void kijk();
+    const tik = window.setInterval(() => { if (!document.hidden) void kijk(); }, 15000);
+    window.addEventListener('focus', kijk);
+    return () => { weg = true; window.clearInterval(tik); window.removeEventListener('focus', kijk); };
+  }, []);
   useEffect(() => { if (typen) veld.current?.focus(); }, [typen]);
 
   const aantal = zarvis?.berichten.length ?? 0;
@@ -91,6 +111,7 @@ export default function ZarvisVenster() {
           <p className="text-[13px] text-[#A9B4C8] truncate">
             {bezigeStap ? `${bezigeStap.label}…`
               : luistert ? (tussentijds || 'Spreek gerust')
+              : compassDossier ? `In Compass: ${compassDossier}`
               : sneltoets ? `Sneltoets ${sneltoets}`
               : 'Verbonden met Compass'}
           </p>

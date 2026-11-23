@@ -7,6 +7,7 @@ import { maakBrowserStemIn, maakBrowserStemUit, type StemIn, type StemUit } from
 import { nieuweZinnen, voorUitspraak } from '@/lib/zarvis/zinnen';
 import { startGezicht, type Gezicht } from '@/lib/zarvis/gezicht';
 import { maakAzureStem } from '@/lib/zarvis/azureStem';
+import { supabase } from '@/integrations/supabase/client';
 
 /**
  * Waar Zarvis in het gesprek staat. Het paneel, de aanwezigheid en de knop in de
@@ -137,6 +138,27 @@ export function ZarvisProvider({ children, zelfstandig = false }: {
   );
   const contextRef = useRef(context);
   contextRef.current = context;
+
+  // Zarvis leeft in een eigen venster. Compass vertelt hier waar de gebruiker
+  // mee bezig is, zodat een vraag in dat venster zonder naam over het open
+  // dossier kan gaan. Het losse venster zelf schrijft niets: het heeft geen
+  // dossier open.
+  useEffect(() => {
+    if (zelfstandig) return;
+    void (supabase.from('zarvis_context' as never) as unknown as {
+      upsert: (rij: unknown, opties: { onConflict: string }) => Promise<{ error: { message: string } | null }>;
+    })
+      .upsert(
+        {
+          lead_id: dossierId ?? null,
+          dossier_naam: dossierId ? (dossierNaam ?? null) : null,
+          view: huidigeView ?? null,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'user_id' },
+      )
+      .then(({ error }) => { if (error) console.error('zarvis: context doorgeven mislukt', error.message); });
+  }, [zelfstandig, huidigeView, dossierId, dossierNaam]);
 
   const werkLaatsteBij = (fn: (b: ZarvisBericht) => ZarvisBericht) =>
     zetBerichten((lijst) => {
