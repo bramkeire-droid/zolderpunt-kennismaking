@@ -18,9 +18,38 @@ export function meterVan(analyser: AnalyserNode): Meter {
 
 // ── De stem van Zarvis ───────────────────────────────────────────────────────
 let spreekMeter: Meter | null = null;
+let spreekAnalyser: AnalyserNode | null = null;
+let spectrumBuffer: Uint8Array | null = null;
 
 /** Het echte volume van Zarvis' stem, of null als dat niet te meten valt. */
 export const spreekNiveau = (): number | null => (spreekMeter ? spreekMeter() : null);
+
+/** Aantal toonbanden waarin de stem verdeeld wordt, van laag naar hoog. */
+export const BANDEN = 8;
+
+/**
+ * Vult `doel` met de sterkte van de stem per toonband (0 tot 1), van laag naar
+ * hoog over het bereik van spraak. Geeft false als er niets te meten valt.
+ */
+export function spreekSpectrum(doel: Float32Array): boolean {
+  const a = spreekAnalyser;
+  if (!a) return false;
+  if (!spectrumBuffer || spectrumBuffer.length !== a.frequencyBinCount) spectrumBuffer = new Uint8Array(a.frequencyBinCount);
+  a.getByteFrequencyData(spectrumBuffer);
+  const hzPerBak = a.context.sampleRate / a.fftSize;
+  // Gelijke stappen in toonhoogte tussen 90 en 6000 Hz.
+  let onder = 90;
+  for (let i = 0; i < BANDEN; i++) {
+    const boven = onder * Math.pow(6000 / 90, 1 / BANDEN);
+    const van = Math.max(1, Math.floor(onder / hzPerBak));
+    const tot = Math.max(van + 1, Math.ceil(boven / hzPerBak));
+    let som = 0;
+    for (let k = van; k < tot && k < spectrumBuffer.length; k++) som += spectrumBuffer[k];
+    doel[i] = Math.min(1, (som / (tot - van) / 255) * 1.6);
+    onder = boven;
+  }
+  return true;
+}
 
 let gekoppeld = false;
 /**
@@ -43,6 +72,7 @@ export async function meetSpeler(speler: HTMLMediaElement): Promise<void> {
     bron.connect(analyser);
     analyser.connect(ctx.destination);
     spreekMeter = meterVan(analyser);
+    spreekAnalyser = analyser;
   } catch { /* geen meter; de stem zelf speelt gewoon */ }
 }
 
