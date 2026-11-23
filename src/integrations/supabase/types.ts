@@ -1305,6 +1305,38 @@ export type Database = {
           },
         ]
       }
+      zarvis_context: {
+        Row: {
+          dossier_naam: string | null
+          lead_id: string | null
+          updated_at: string
+          user_id: string
+          view: string | null
+        }
+        Insert: {
+          dossier_naam?: string | null
+          lead_id?: string | null
+          updated_at?: string
+          user_id?: string
+          view?: string | null
+        }
+        Update: {
+          dossier_naam?: string | null
+          lead_id?: string | null
+          updated_at?: string
+          user_id?: string
+          view?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "zarvis_context_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       zarvis_gesprekken: {
         Row: {
           created_at: string
