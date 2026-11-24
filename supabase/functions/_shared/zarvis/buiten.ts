@@ -5,6 +5,7 @@
 import type { Bron } from './gereedschap.ts';
 
 // deno-lint-ignore no-explicit-any
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Db = any;
 type Uit = { resultaat: unknown; detail: string; bron?: Bron };
 type Def = { name: string; description: string; input_schema: { type: 'object'; properties: Record<string, unknown>; required?: string[] } };

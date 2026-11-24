@@ -184,7 +184,7 @@ Nummers zijn doorlopend en worden nooit hergebruikt.
 - **Eerste inschatting**: Een gereedschap dat een route opvraagt tussen twee adressen (afstand, rijtijd met verkeer) via de Routes API van Google. Adressen van klanten staan al in de dossiers. Nodig: een Google Cloud-sleutel als secret. Klein werk.
 - **Mijn open vragen erover**: Geen blokkerende. Vertrekpunt standaard het kantooradres.
 - **Behandeling**: na IDEE-16, samen met IDEE-20.
-- **Status**: open
+- **Status**: gebouwd en getest tegen een nagebootste Google (2026-11-24); nog niet gemerged of uitgerold, wacht op de sleutel `GOOGLE_MAPS_API_KEY`.
 
 ## IDEE-20 — Agenda en locatie: verwittigen als je nog niet onderweg bent
 - **Datum**: 2026-11-24
@@ -221,3 +221,39 @@ Nummers zijn doorlopend en worden nooit hergebruikt.
 - **Mijn open vragen erover**: Als iemand anders iets zegt terwijl Zarvis luistert: negeren zonder iets te zeggen, of melden "dat was niet jouw stem"? Mijn voorstel: negeren.
 - **Behandeling**: stap 1 gebouwd; stap 2 eerst, vóór de sneltoets ooit vervangen wordt door een wekwoord, want dan luistert Zarvis de hele tijd.
 - **Status**: deels afgewerkt (2026-11-24): filtering gebouwd, sprekerherkenning open.
+
+## IDEE-24 — Weerbericht
+- **Datum**: 2026-11-24
+- **Bram zei letterlijk**: niet bewaard. Het cloudgesprek waarin Bram dit zei, is niet mee overgekomen; alleen het trefwoord "weerbericht" is doorgegeven.
+- **Waar ik mee bezig was**: het gereedschap voor ritten met Google Maps (IDEE-19).
+- **Eerste inschatting**: Klein. De gratis dienst Open-Meteo werkt zonder sleutel (nagekeken in het cloudgesprek, niet opnieuw hier). Eén gereedschap `weerbericht` in `buiten.ts`: plaats of dossier, vandaag en de komende dagen.
+- **Mijn open vragen erover**: Geen blokkerende.
+- **Behandeling**: na IDEE-19, zelfde bestand en zelfde patroon.
+- **Status**: open
+
+## IDEE-25 — Familiale komische modus
+- **Datum**: 2026-11-24
+- **Bram zei letterlijk**: niet bewaard (zie IDEE-24); alleen het trefwoord "familiale komische modus" is doorgegeven.
+- **Waar ik mee bezig was**: het gereedschap voor ritten met Google Maps (IDEE-19).
+- **Eerste inschatting**: Een toon die je aan- en uitzet: grappig en geschikt voor het hele gezin. Technisch een extra stuk instructie per modus, gekozen in de beheersectie of met een zin ("Zarvis, komische modus").
+- **Mijn open vragen erover**: Wat bedoelde Bram precies: alleen de toon, of ook andere inhoud (moppen, spelletjes voor de kinderen)?
+- **Behandeling**: samen met IDEE-26, één schakelaar "modus".
+- **Status**: open
+
+## IDEE-26 — Savage modus
+- **Datum**: 2026-11-24
+- **Bram zei letterlijk**: niet bewaard (zie IDEE-24); alleen het trefwoord "savage modus" is doorgegeven.
+- **Waar ik mee bezig was**: het gereedschap voor ritten met Google Maps (IDEE-19).
+- **Eerste inschatting**: De tegenhanger van IDEE-25: scherp en ongezouten. Zelfde techniek. De modus verandert alleen hoe Zarvis tegen Bram praat, nooit de toon van een bericht aan een klant.
+- **Mijn open vragen erover**: Hoe ver mag het gaan?
+- **Behandeling**: samen met IDEE-25.
+- **Status**: open
+
+## IDEE-27 — Smartphone use
+- **Datum**: 2026-11-24
+- **Bram zei letterlijk**: niet bewaard (zie IDEE-24); alleen het trefwoord "smartphone use" is doorgegeven.
+- **Waar ik mee bezig was**: het gereedschap voor ritten met Google Maps (IDEE-19).
+- **Eerste inschatting**: Onduidelijk zonder Brams woorden. Twee lezingen: (1) Zarvis gebruiken vanop de gsm; (2) Zarvis bedient de gsm zoals computer use de pc bedient (IDEE-22). De tweede is veel zwaarder.
+- **Mijn open vragen erover**: Welke van de twee?
+- **Behandeling**: wacht op Brams antwoord.
+- **Status**: open
