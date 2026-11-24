@@ -184,7 +184,7 @@ Nummers zijn doorlopend en worden nooit hergebruikt.
 - **Eerste inschatting**: Een gereedschap dat een route opvraagt tussen twee adressen (afstand, rijtijd met verkeer) via de Routes API van Google. Adressen van klanten staan al in de dossiers. Nodig: een Google Cloud-sleutel als secret. Klein werk.
 - **Mijn open vragen erover**: Geen blokkerende. Vertrekpunt standaard het kantooradres.
 - **Behandeling**: na IDEE-16, samen met IDEE-20.
-- **Status**: open
+- **Status**: gebouwd, niet uitgerold (2026-11-24). `bereken_route` staat in `supabase/functions/_shared/zarvis/buiten.ts` en is getest tegen een nagebootste Google. Nog te doen: de functie `zarvis` uitrollen, publiceren, en Bram moet de secret `GOOGLE_MAPS_API_KEY` toevoegen (Routes API aan in Google Cloud). Niet getest tegen de echte dienst.
 
 ## IDEE-20 — Agenda en locatie: verwittigen als je nog niet onderweg bent
 - **Datum**: 2026-11-24
@@ -221,3 +221,39 @@ Nummers zijn doorlopend en worden nooit hergebruikt.
 - **Mijn open vragen erover**: Als iemand anders iets zegt terwijl Zarvis luistert: negeren zonder iets te zeggen, of melden "dat was niet jouw stem"? Mijn voorstel: negeren.
 - **Behandeling**: stap 1 gebouwd; stap 2 eerst, vóór de sneltoets ooit vervangen wordt door een wekwoord, want dan luistert Zarvis de hele tijd.
 - **Status**: deels afgewerkt (2026-11-24): filtering gebouwd, sprekerherkenning open.
+
+## IDEE-24 — Weerbericht
+- **Datum**: 2026-11-24
+- **Bram zei letterlijk**: "Weerbericht"
+- **Waar ik mee bezig was**: ritten met Google Maps en de verkenning van Maildude.
+- **Eerste inschatting**: Een gereedschap `weerbericht` in `supabase/functions/_shared/zarvis/buiten.ts`, naast `bereken_route`. De gratis dienst Open-Meteo werkt zonder sleutel en is op 2026-11-24 live nagekeken vanuit de databank: eerst een plaatsnaam omzetten naar coördinaten (`https://geocoding-api.open-meteo.com/v1/search?name=Aalter&count=1&language=nl`, antwoord `results[0].latitude/longitude/name`), dan de voorspelling (`https://api.open-meteo.com/v1/forecast?latitude=..&longitude=..&current=temperature_2m,weather_code,wind_speed_10m,precipitation&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_gusts_10m_max&timezone=Europe%2FBrussels&forecast_days=N`, antwoord met `current` en `daily` als lijsten per dag). De weercode is een WMO-code en moet naar gewoon Nederlands vertaald worden. Voor een dakwerker tellen vooral regen en rukwinden; laat Zarvis die uit zichzelf noemen bij een werf of plaatsbezoek. Plaats: uit de vraag, of uit het adres van een dossier (postcode en gemeente eruit halen; de dienst kent alleen plaatsnamen, geen straten).
+- **Mijn open vragen erover**: Geen blokkerende. Vaste plaats als er geen genoemd wordt: laten aanleren met `leer_vaardigheid`, niet in de code zetten.
+- **Behandeling**: eerst: klein, geen sleutel nodig.
+- **Status**: open
+
+## IDEE-25 — Familiale komische modus
+- **Datum**: 2026-11-24
+- **Bram zei letterlijk**: "familiaire komische modus"
+- **Waar ik mee bezig was**: ritten met Google Maps en de verkenning van Maildude.
+- **Eerste inschatting**: Een stijl van praten die Bram aan en uit zet met zijn stem. Bedoeld voor als de familie erbij is: warm, grappig, proper, en zonder zakelijke of vertrouwelijke gegevens hardop te zeggen tenzij hij er uitdrukkelijk om vraagt. Bouw: kolom `stijl` in `zarvis_instellingen` (waarden gewoon, familie, savage), een gereedschap `zet_stijl`, en per stijl een extra alinea in de instructie van `supabase/functions/zarvis/index.ts`. Het zwarte gat kan per stijl een eigen tint of tempo krijgen zodat zichtbaar is welke modus aan staat.
+- **Mijn open vragen erover**: Moet Zarvis in deze modus bedragen en klantnamen verzwijgen als er anderen bij zijn? Mijn voorstel: ja, tenzij Bram er op dat moment zelf om vraagt.
+- **Behandeling**: samen met IDEE-26, één bouwsteen.
+- **Status**: open
+
+## IDEE-26 — Savage modus
+- **Datum**: 2026-11-24
+- **Bram zei letterlijk**: "savage modus"
+- **Waar ik mee bezig was**: ritten met Google Maps en de verkenning van Maildude.
+- **Eerste inschatting**: Zelfde bouwsteen als IDEE-25. Stijl: snoeihard eerlijk, droog, sarcastisch, zonder omwegen, ook over Brams eigen keuzes. Twee grenzen die in de instructie moeten staan en niet door de modus opgeheven worden: de feiten blijven kloppen (alleen zeggen wat gelezen is), en alles wat naar buiten gaat (WhatsApp of mail aan een klant) blijft professioneel, wat de modus ook is.
+- **Mijn open vragen erover**: Geen blokkerende.
+- **Behandeling**: samen met IDEE-25.
+- **Status**: open
+
+## IDEE-27 — Smartphone use: Zarvis bedient apps op de gsm
+- **Datum**: 2026-11-24
+- **Bram zei letterlijk**: "connectie met apps op mijn gsm via computeruse maar dan \"smartphoneuse\""
+- **Waar ik mee bezig was**: ritten met Google Maps en de verkenning van Maildude.
+- **Eerste inschatting**: Zelfde idee als IDEE-22 (computer use) maar op de gsm. Haalbaarheid hangt af van het toestel. Android: te doen, via een eigen app met toegankelijkheidsrechten of via een verbinding met de pc (scherm lezen, tikken, typen). iPhone: Apple laat een app geen andere apps bedienen; daar blijft alleen over wat via Opdrachten (Shortcuts), meldingen en officiële koppelingen kan, of het spiegelen van de iPhone op een Mac. Veiligheid zoals bij IDEE-22: per app toestemming, zichtbaar dat Zarvis bezig is, noodstop, log met schermafdrukken, nooit betalen of verwijderen zonder ja.
+- **Mijn open vragen erover**: Welk toestel heeft Bram: Android of iPhone? Dat bepaalt of dit kan.
+- **Behandeling**: na IDEE-22; eerst het toestel kennen.
+- **Status**: open
