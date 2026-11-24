@@ -237,6 +237,41 @@ export type Database = {
           },
         ]
       }
+      dossier_fase_log: {
+        Row: {
+          fase: string | null
+          id: number
+          lead_id: string
+          op: string
+          vorige_fase: string | null
+          zeker: boolean
+        }
+        Insert: {
+          fase?: string | null
+          id?: never
+          lead_id: string
+          op?: string
+          vorige_fase?: string | null
+          zeker?: boolean
+        }
+        Update: {
+          fase?: string | null
+          id?: never
+          lead_id?: string
+          op?: string
+          vorige_fase?: string | null
+          zeker?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dossier_fase_log_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dossier_wijziging_log: {
         Row: {
           door: string | null
