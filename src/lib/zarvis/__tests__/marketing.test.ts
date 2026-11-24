@@ -50,7 +50,7 @@ describe('marketing', () => {
     await M.sluit_zoektermen_uit.voer({}, { zoektermen: Array.from({ length: 50 }, (_, i) => `term ${i}`) }, { token: 't' });
     expect(body(f).termen).toHaveLength(20);
     const g = zetLoket({ weer_toegelaten: ['a'], niet_gevonden: [] });
-    await M.laat_zoektermen_weer_toe.voer({}, { zoektermen: ['a'] }, { token: 't' });
+    await M.laat_zoektermen_weer_toe.voer({}, { zoektermen: ['a'], bevestigd: true }, { token: 't' });
     expect(body(g)).toEqual({ action: 'laat_weer_toe', termen: ['a'] });
   });
 

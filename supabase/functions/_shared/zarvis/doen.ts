@@ -9,7 +9,7 @@ import type { Bron } from './gereedschap.ts';
 
 // deno-lint-ignore no-explicit-any
 type Db = any;
-type Uit = { resultaat: unknown; detail: string; bron?: Bron };
+type Uit = { resultaat: unknown; detail: string; bron?: Bron; wachtOpJa?: boolean };
 type Def = { name: string; description: string; input_schema: { type: 'object'; properties: Record<string, unknown>; required?: string[] } };
 
 const isUuid = (v: unknown): v is string =>
@@ -56,7 +56,7 @@ export const DOE_GEREEDSCHAP: Def[] = [
   {
     name: 'plan_taak',
     description:
-      'Plant iets voor later of herhaald. soort "herinnering": herinner de gebruiker op een tijdstip aan iets. soort "controle": kijk op vaste tijden iets na in de gegevens waar je bij kan (dossiers, gesprekken, WhatsApp) en verwittig zodra het zo is; stopt vanzelf bij "tot". soort "whatsapp": verstuur op een tijdstip een WhatsApp (tekst in "opdracht"). Geef het moment als over_minuten, of als kloktijd in België in "op" (JJJJ-MM-DDTUU:MM). Voor een WhatsApp aan een klant: lees eerst de tekst voor en plan pas na een duidelijk ja van de gebruiker (bevestigd true).',
+      'Plant iets voor later of herhaald. soort "herinnering": herinner de gebruiker op een tijdstip aan iets. soort "controle": kijk op vaste tijden iets na in de gegevens waar je bij kan (dossiers, gesprekken, WhatsApp) en verwittig zodra het zo is; stopt vanzelf bij "tot". soort "whatsapp": verstuur op een tijdstip een WhatsApp (tekst in "opdracht"). Geef het moment als over_minuten, of als kloktijd in België in "op" (JJJJ-MM-DDTUU:MM). Een WhatsApp aan een klant wordt niet meteen gepland: er komt een kaart met Ja en Nee in het venster, en de gebruiker keurt de tekst zelf goed met de knop.',
     input_schema: {
       type: 'object',
       properties: {
@@ -69,7 +69,6 @@ export const DOE_GEREEDSCHAP: Def[] = [
         verwittig: { type: 'string', enum: ['melding', 'whatsapp', 'beide', 'bel'], description: 'Hoe de gebruiker verwittigd wordt: een melding op zijn pc, een WhatsApp naar zijn eigen nummer, beide, of "bel": Zarvis belt hem op zijn gsm en leest de boodschap voor. Kies bel alleen als de gebruiker erom vraagt of zegt dat het dringend is.' },
         dossier_id: { type: 'string', description: 'Alleen bij soort whatsapp aan een klant: het dossier van die klant.' },
         naar_mij: { type: 'boolean', description: 'Alleen bij soort whatsapp: stuur naar de gebruiker zelf.' },
-        bevestigd: { type: 'boolean', description: 'Alleen bij soort whatsapp aan een klant: de gebruiker hoorde de tekst en zei ja.' },
       },
       required: ['soort', 'opdracht'],
     },
@@ -87,14 +86,13 @@ export const DOE_GEREEDSCHAP: Def[] = [
   {
     name: 'stuur_whatsapp',
     description:
-      'Verstuurt nu een WhatsApp via de WhatsApp van de gebruiker. Naar de gebruiker zelf (naar_mij true) mag meteen. Naar een klant: lees eerst de volledige tekst voor en vraag of het zo weg mag; roep dit pas aan met bevestigd true nadat de gebruiker duidelijk ja zei.',
+      'Verstuurt nu een WhatsApp via de WhatsApp van de gebruiker. Naar de gebruiker zelf (naar_mij true) mag meteen. Naar een klant vertrekt er niets meteen: er komt een kaart met Ja en Nee in het venster met de volledige tekst, en de gebruiker keurt zelf goed met de knop. Lees de tekst ook voor.',
     input_schema: {
       type: 'object',
       properties: {
         tekst: { type: 'string' },
         dossier_id: { type: 'string', description: 'Het dossier van de klant.' },
         naar_mij: { type: 'boolean' },
-        bevestigd: { type: 'boolean' },
       },
       required: ['tekst'],
     },
@@ -172,7 +170,7 @@ export const DOE_UITVOERDERS: Record<string, { label: (i: Record<string, unknown
         const b = await bestemming(db, invoer);
         if (typeof b === 'string') return { resultaat: { fout: b }, detail: 'geen bestemming' };
         if (b.telefoon && invoer.bevestigd !== true) {
-          return { resultaat: { niet_gepland: true, uitleg: `Lees de tekst voor aan de gebruiker en vraag of dit zo naar ${b.naam} mag. Plan pas na ja, met bevestigd true.` }, detail: 'wacht op ja' };
+          return { resultaat: { niet_gepland: true, naar: b.naam, tekst: opdracht, eerste_keer: eerst.toISOString() }, wachtOpJa: true, detail: `aan ${b.naam}, wacht op ja`, bron: { titel: `Voorstel: WhatsApp aan ${b.naam} plannen`, ondertitel: `Nog niet gepland. Vertrekt ${moment(eerst.toISOString())} na jouw ja.`, secties: [{ lijst: [{ links: 'wij', tekst: opdracht }] }] } };
         }
         doel = b.telefoon ? b : { mij: true };
       }
@@ -243,7 +241,7 @@ export const DOE_UITVOERDERS: Record<string, { label: (i: Record<string, unknown
       const b = await bestemming(db, invoer);
       if (typeof b === 'string') return { resultaat: { fout: b }, detail: 'geen bestemming' };
       if (b.telefoon && invoer.bevestigd !== true) {
-        return { resultaat: { niet_verstuurd: true, uitleg: `Lees de tekst voor en vraag of dit zo naar ${b.naam} mag. Verstuur pas na ja, met bevestigd true.` }, detail: 'wacht op ja' };
+        return { resultaat: { niet_verstuurd: true, naar: b.naam, tekst }, wachtOpJa: true, detail: `aan ${b.naam}, wacht op ja`, bron: { titel: `Voorstel: WhatsApp aan ${b.naam}`, ondertitel: 'Nog niet verstuurd. Wacht op jouw ja.', secties: [{ lijst: [{ links: 'wij', tekst }] }] } };
       }
       const { error } = await db.from('whatsapp_uit').insert({ telefoon: b.telefoon, naam: b.naam, tekst, lead_id: b.lead_id });
       if (error) throw new Error(error.message);

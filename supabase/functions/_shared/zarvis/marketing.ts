@@ -20,7 +20,8 @@ import type { Bron } from './gereedschap.ts';
 type Db = any;
 type Uit = { resultaat: unknown; detail: string; bron?: Bron };
 type Def = { name: string; description: string; input_schema: { type: 'object'; properties: Record<string, unknown>; required?: string[] } };
-type Ctx = { token?: string };
+type Ctx = { token?: string; goedgekeurd?: boolean };
+type Uit2 = Uit & { wachtOpJa?: boolean };
 
 const LOKET_URL = 'https://hxisdviyjmjbgaiydlfk.supabase.co/functions/v1/compass-marketing-loket';
 const euro = (n: unknown) => `${Number(n ?? 0).toFixed(2).replace('.', ',')} euro`;
@@ -42,19 +43,19 @@ export const MARKETING_GEREEDSCHAP: Def[] = [
   {
     name: 'sluit_zoektermen_uit',
     description:
-      'Sluit zoektermen uit in Google Ads, zodat er geen geld meer naar gaat. Dit gebeurt ALLEEN na een duidelijk ja van de gebruiker. Eerste keer: roep dit aan zonder "bevestigd"; er verandert dan niets, je krijgt een voorstel terug. Lees dat voor: welke termen, wat ze kostten, en welke het loket weigerde. Vraag of het zo mag. Pas na zijn ja roep je dit opnieuw aan met dezelfde termen en bevestigd: true. Stel alleen termen voor waar marketing_zoektermen "mag_uitgesloten" bij zegt en die duidelijk niets met een zolder laten inrichten of renoveren te maken hebben. De uitsluiting gaat de nacht erna in en is terug te draaien.',
-    input_schema: { type: 'object', properties: { zoektermen: { type: 'array', items: { type: 'string' }, description: 'De zoektermen, letterlijk zoals in marketing_zoektermen. Hoogstens 20.' }, bevestigd: { type: 'boolean', description: 'Alleen true als de gebruiker het voorstel hoorde en ja zei.' } }, required: ['zoektermen'] },
+      'Sluit zoektermen uit in Google Ads, zodat er geen geld meer naar gaat. Dit gebeurt ALLEEN na een duidelijk ja van de gebruiker. Als je dit aanroept, verandert er niets: er komt een kaart met Ja en Nee in het venster, en de gebruiker keurt zelf goed met de knop. Zeg kort welke termen je voorstelt, wat ze kostten en welke het loket weigerde. Stel alleen termen voor waar marketing_zoektermen "mag_uitgesloten" bij zegt en die duidelijk niets met een zolder laten inrichten of renoveren te maken hebben. De uitsluiting gaat de nacht erna in en is terug te draaien.',
+    input_schema: { type: 'object', properties: { zoektermen: { type: 'array', items: { type: 'string' }, description: 'De zoektermen, letterlijk zoals in marketing_zoektermen. Hoogstens 20.' } }, required: ['zoektermen'] },
   },
   {
     name: 'laat_zoektermen_weer_toe',
-    description: 'Draait een uitsluiting terug: de zoektermen mogen weer advertenties tonen. Alleen op vraag van de gebruiker. Gaat de nacht erna in.',
+    description: 'Stelt voor een uitsluiting terug te draaien: de zoektermen mogen weer advertenties tonen. Er komt een kaart met Ja en Nee; de gebruiker keurt goed met de knop. Gaat de nacht erna in.',
     input_schema: { type: 'object', properties: { zoektermen: { type: 'array', items: { type: 'string' } } }, required: ['zoektermen'] },
   },
   {
     name: 'stel_dagbudget_in',
     description:
-      'Zet het dagbudget van de Google Ads-campagne. ALLEEN na een duidelijk ja van de gebruiker, en nooit boven 45 euro per dag: dat plafond zit in het loket. Budget verhogen is het laatste middel: zoek altijd eerst wat niets kost (zoektermen uitsluiten, kwaliteit, regio, de pagina van de site). Het loket weigert een verhoging zolang er zoektermen uit te sluiten zijn of het budget niet echt remt, en zegt dan waarom; breng die reden over. Eerste keer zonder "bevestigd": er verandert niets, je krijgt een voorstel. Lees het voor met wat het per maand meer of minder kost, vraag of het mag, en roep pas na ja opnieuw aan met bevestigd: true. Gaat de nacht erna in.',
-    input_schema: { type: 'object', properties: { bedrag: { type: 'number', description: 'Nieuw dagbudget in euro, 5 tot 45.' }, bevestigd: { type: 'boolean', description: 'Alleen true als de gebruiker het voorstel hoorde en ja zei.' } }, required: ['bedrag'] },
+      'Zet het dagbudget van de Google Ads-campagne. ALLEEN na een duidelijk ja van de gebruiker, en nooit boven 45 euro per dag: dat plafond zit in het loket. Budget verhogen is het laatste middel: zoek altijd eerst wat niets kost (zoektermen uitsluiten, kwaliteit, regio, de pagina van de site). Het loket weigert een verhoging zolang er zoektermen uit te sluiten zijn of het budget niet echt remt, en zegt dan waarom; breng die reden over. Als je dit aanroept, verandert er niets: er komt een kaart met Ja en Nee in het venster, en de gebruiker keurt zelf goed met de knop. Zeg kort wat het per maand meer of minder kost. Gaat de nacht erna in.',
+    input_schema: { type: 'object', properties: { bedrag: { type: 'number', description: 'Nieuw dagbudget in euro, 5 tot 45.' } }, required: ['bedrag'] },
   },
 ];
 
@@ -74,7 +75,7 @@ async function loket<T>(ctx: Ctx | undefined, body: Record<string, unknown>): Pr
 
 type Term = { zoekterm: string; kost: number; klikken: number; conversies: number; beslist?: string; mag_uitgesloten?: boolean };
 
-export const MARKETING_UITVOERDERS: Record<string, { label: (i: Record<string, unknown>) => string; voer: (db: Db, i: Record<string, unknown>, ctx?: Ctx) => Promise<Uit> }> = {
+export const MARKETING_UITVOERDERS: Record<string, { label: (i: Record<string, unknown>) => string; voer: (db: Db, i: Record<string, unknown>, ctx?: Ctx) => Promise<Uit2> }> = {
   marketing_overzicht: {
     label: () => 'Marketingcijfers ophalen',
     async voer(_db, invoer, ctx) {
@@ -117,6 +118,7 @@ export const MARKETING_UITVOERDERS: Record<string, { label: (i: Record<string, u
       if (r.voorstel) {
         return {
           resultaat: r,
+          wachtOpJa: r.voorstel.length > 0,
           detail: `voorstel: ${r.voorstel.length}, wacht op ja`,
           bron: {
             titel: 'Voorstel: zoektermen uitsluiten', ondertitel: 'Er is niets veranderd. Wacht op jouw ja.',
@@ -151,6 +153,7 @@ export const MARKETING_UITVOERDERS: Record<string, { label: (i: Record<string, u
       const st = (r.voorstel ?? r.gedaan)!;
       return {
         resultaat: r,
+        wachtOpJa: !r.gedaan,
         detail: r.gedaan ? `${st.dagbudget_nu} naar ${st.dagbudget_nieuw} euro` : 'voorstel, wacht op ja',
         bron: {
           titel: r.gedaan ? 'Dagbudget aangepast' : 'Voorstel: dagbudget', ondertitel: r.wanneer,
@@ -168,6 +171,10 @@ export const MARKETING_UITVOERDERS: Record<string, { label: (i: Record<string, u
     async voer(_db, invoer, ctx) {
       const lijst = termen(invoer);
       if (!lijst.length) return { resultaat: { fout: 'Geef de zoektermen.' }, detail: 'leeg' };
+      // Het loket heeft hier geen voorstelstand: zonder ja wordt het dus niet aangeroepen.
+      if (invoer.bevestigd !== true) {
+        return { resultaat: { voorstel: { weer_toelaten: lijst } }, wachtOpJa: true, detail: 'voorstel, wacht op ja', bron: { titel: 'Voorstel: zoektermen weer toelaten', ondertitel: 'Er is niets veranderd. Wacht op jouw ja.', secties: [{ lijst: lijst.map((t) => ({ tekst: t })) }] } };
+      }
       const r = await loket<{ weer_toegelaten: string[]; niet_gevonden: string[] }>(ctx, { action: 'laat_weer_toe', termen: lijst });
       if ('fout' in r) return { resultaat: r, detail: 'loket' };
       return { resultaat: r, detail: `${r.weer_toegelaten.length} weer toegelaten` };
