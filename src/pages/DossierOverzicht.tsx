@@ -14,6 +14,7 @@ import KlantDossiers from '@/components/dossier/KlantDossiers';
 import CalculatieHistoriek from '@/components/dossier/CalculatieHistoriek';
 import AangeleverdDoorKlant from '@/components/dossier/AangeleverdDoorKlant';
 import KlantWerfFormulier from '@/components/dossier/KlantWerfFormulier';
+import KlantExtraGegevens from '@/components/dossier/KlantExtraGegevens';
 import WatWeWetenFormulier from '@/components/dossier/WatWeWetenFormulier';
 import { DOSSIER_BIJGEWERKT } from '@/lib/klantWerf';
 import { bepaalVolgendeActie, dossierWaarde, euro, URGENTIE_STIJL } from '@/lib/pipeline';
@@ -203,6 +204,7 @@ export default function DossierOverzicht({ leadId, onOpenDossier }: Props) {
               {melding && <p className="mb-2 rounded border border-amber-200 bg-amber-50 p-2 text-xs text-amber-800">{melding}</p>}
               <Regel icon={Phone} label="Telefoon" waarde={lead.telefoon} />
               <Regel icon={Mail} label="E-mail" waarde={lead.email} />
+              <KlantExtraGegevens customerId={lead.customer_id} />
               <Regel icon={MapPin} label="Adres" waarde={lead.adres} />
               <Regel icon={User} label="Gevonden via" waarde={lead.gevonden_via} />
               <Regel icon={FileText} label="Zoekt" waarde={lead.gezocht_naar} />

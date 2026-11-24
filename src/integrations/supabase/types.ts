@@ -154,6 +154,41 @@ export type Database = {
         }
         Relationships: []
       }
+      klant_contactgegevens: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          customer_id: string
+          id: string
+          soort: string
+          waarde: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          customer_id: string
+          id?: string
+          soort: string
+          waarde: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string
+          id?: string
+          soort?: string
+          waarde?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "klant_contactgegevens_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           achternaam: string
