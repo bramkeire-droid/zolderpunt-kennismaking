@@ -154,41 +154,6 @@ export type Database = {
         }
         Relationships: []
       }
-      klant_contactgegevens: {
-        Row: {
-          created_at: string
-          created_by: string | null
-          customer_id: string
-          id: string
-          soort: string
-          waarde: string
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string | null
-          customer_id: string
-          id?: string
-          soort: string
-          waarde: string
-        }
-        Update: {
-          created_at?: string
-          created_by?: string | null
-          customer_id?: string
-          id?: string
-          soort?: string
-          waarde?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "klant_contactgegevens_customer_id_fkey"
-            columns: ["customer_id"]
-            isOneToOne: false
-            referencedRelation: "customers"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       customers: {
         Row: {
           achternaam: string
@@ -271,6 +236,7 @@ export type Database = {
       }
       gesprek_notities: {
         Row: {
+          bron: string | null
           created_at: string
           door_user: string | null
           gesprek_id: string | null
@@ -280,6 +246,7 @@ export type Database = {
           tekst: string
         }
         Insert: {
+          bron?: string | null
           created_at?: string
           door_user?: string | null
           gesprek_id?: string | null
@@ -289,6 +256,7 @@ export type Database = {
           tekst: string
         }
         Update: {
+          bron?: string | null
           created_at?: string
           door_user?: string | null
           gesprek_id?: string | null
@@ -574,6 +542,41 @@ export type Database = {
           value?: string
         }
         Relationships: []
+      }
+      klant_contactgegevens: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          customer_id: string
+          id: string
+          soort: string
+          waarde: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          customer_id: string
+          id?: string
+          soort: string
+          waarde: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string
+          id?: string
+          soort?: string
+          waarde?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "klant_contactgegevens_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       koppeling_gezondheid: {
         Row: {
@@ -1723,6 +1726,7 @@ export type Database = {
         Returns: boolean
       }
       lead_fotos_pad_toegestaan: { Args: { _name: string }; Returns: boolean }
+      mailcrm_dossiers: { Args: never; Returns: Json }
       search_leads_fuzzy: {
         Args: { q: string }
         Returns: {
