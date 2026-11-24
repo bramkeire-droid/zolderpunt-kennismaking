@@ -27,12 +27,12 @@ describe('bereken_route', () => {
   });
 
   it('vraagt een vertrekadres als er geen is', async () => {
-    env.GOOGLE_MAPS_API_KEY = 'x';
+    env.ZARVIS_ROUTES_KEY = 'x';
     expect((await route.voer(db(null), { naar: 'Gent' })).detail).toBe('geen vertrekadres');
   });
 
   it('rekent afstand, rijtijd en vertraging uit naar het adres van een klant', async () => {
-    env.GOOGLE_MAPS_API_KEY = 'x';
+    env.ZARVIS_ROUTES_KEY = 'x';
     env.ZARVIS_VERTREKADRES = 'Dorpsstraat 1, Aalter';
     const f = zetFetch(200, { routes: [{ distanceMeters: 48260, duration: '4500s', staticDuration: '2700s' }] });
     const uit = await route.voer(db({ voornaam: 'Jan', achternaam: 'Peeters', adres: 'Korenmarkt 1, Gent' }), { dossier_id: ID });
@@ -50,7 +50,7 @@ describe('bereken_route', () => {
   });
 
   it('geeft een vertrekuur in de toekomst door en negeert er een in het verleden', async () => {
-    env.GOOGLE_MAPS_API_KEY = 'x';
+    env.ZARVIS_ROUTES_KEY = 'x';
     const f = zetFetch(200, { routes: [{ distanceMeters: 1000, duration: '60s' }] });
     await route.voer(db(null), { naar: 'Gent', van: 'Brugge', vertrek_op: '2999-01-01T08:00' });
     await route.voer(db(null), { naar: 'Gent', van: 'Brugge', vertrek_op: '2001-01-01T08:00' });
@@ -59,7 +59,7 @@ describe('bereken_route', () => {
   });
 
   it('meldt een dossier zonder adres, een geweigerde sleutel en geen route', async () => {
-    env.GOOGLE_MAPS_API_KEY = 'x';
+    env.ZARVIS_ROUTES_KEY = 'x';
     env.ZARVIS_VERTREKADRES = 'Aalter';
     expect((await route.voer(db({ voornaam: 'Jan', adres: null }), { dossier_id: ID })).detail).toBe('geen adres');
     expect((await route.voer(db(null), { dossier_id: ID })).detail).toBe('niet gevonden');
