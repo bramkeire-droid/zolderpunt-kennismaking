@@ -18,9 +18,14 @@
 //   { actie: 'notitie', dossier_id, tekst, bevestigd? }   (L5) SCHRIJFT na bevestiging: een notitie bij
 //                             een dossier (gesprek_notities, bron 'zarvis'); zonder bevestigd een droge proef
 //   { actie: 'notitie_terug', notitie_id, bevestigd? }    (L5) de weg terug: wist alleen een notitie van Zarvis
+//   { actie: 'klant_dubbels' }   (L4) klanten zonder dossier die op een klant met dossier lijken
+//                             (zelfde gsm, zelfde mailadres of zelfde naam), met de droge proef per paar
+//   { actie: 'klant_samenvoegen', van, naar, bevestigd? }  (L4) SCHRIJFT na bevestiging, via de databankfunctie
+//                             zarvis_klant_samenvoegen (logboek, terug te zetten); standaard droog
+//   { actie: 'klant_samenvoegen_terug', log_id, bevestigd? }  (L4) zet een samenvoeging terug; standaard droog
 //
 // Het loket leest met de serversleutel van Compass. De grens zit dus hier in de
-// code: geen vrije vragen aan de databank; schrijven alleen de notitie hierboven.
+// code: geen vrije vragen aan de databank; schrijven alleen de notitie en het samenvoegen hierboven.
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { voerUit } from '../_shared/zarvis/gereedschap.ts';
@@ -222,6 +227,45 @@ Deno.serve(async (req) => {
         .select('id, created_at').single();
       if (fout) throw new Error(fout.message);
       return json({ gemaakt: true, notitie_id: n.id, op: n.created_at, ...voorstel });
+    }
+    if (body?.actie === 'klant_dubbels') {
+      // (L4) Alleen lezen. Een klant zonder dossier die op een klant met dossier lijkt.
+      const [klanten, dossiers] = await Promise.all([
+        db.from('customers').select('id, voornaam, achternaam, email, telefoon').limit(2000),
+        db.from('leads').select('customer_id, bouwflow_project_number').not('customer_id', 'is', null).limit(4000),
+      ]);
+      if (klanten.error || dossiers.error) throw new Error((klanten.error ?? dossiers.error)!.message);
+      const perKlant = new Map<string, string[]>();
+      for (const d of dossiers.data ?? []) perKlant.set(d.customer_id, [...(perKlant.get(d.customer_id) ?? []), d.bouwflow_project_number ?? '-']);
+      const tel = (t: string | null) => { const c = (t ?? '').replace(/\D/g, ''); return c.length >= 9 ? c.slice(-9) : ''; };
+      const naam = (k: { voornaam: string; achternaam: string }) => `${k.voornaam} ${k.achternaam}`.trim().toLowerCase();
+      const alle = klanten.data ?? [];
+      const paren: { van: string; naar: string; klant: string; dossiers_van_naar: string[]; waarom: string[] }[] = [];
+      for (const a of alle.filter((k) => !perKlant.has(k.id))) {
+        for (const b of alle.filter((k) => perKlant.has(k.id))) {
+          const waarom = [
+            tel(a.telefoon) && tel(a.telefoon) === tel(b.telefoon) ? 'zelfde gsm' : '',
+            a.email && b.email && a.email.toLowerCase() === b.email.toLowerCase() ? 'zelfde mailadres' : '',
+            naam(a) && naam(a) === naam(b) ? 'zelfde naam' : '',
+          ].filter(Boolean);
+          if (waarom.length) paren.push({ van: a.id, naar: b.id, klant: `${b.voornaam} ${b.achternaam}`.trim(), dossiers_van_naar: perKlant.get(b.id) ?? [], waarom });
+        }
+      }
+      const proeven = await Promise.all(paren.slice(0, 20).map((p) => db.rpc('zarvis_klant_samenvoegen', { p_van: p.van, p_naar: p.naar })));
+      return json({ paren: paren.slice(0, 20).map((p, i) => ({ ...p, droge_proef: proeven[i].data ?? { fout: proeven[i].error?.message } })), totaal: paren.length });
+    }
+    if (body?.actie === 'klant_samenvoegen' || body?.actie === 'klant_samenvoegen_terug') {
+      const b = body as typeof body & { van?: unknown; naar?: unknown; log_id?: unknown; bevestigd?: unknown };
+      const { data, error } = body.actie === 'klant_samenvoegen'
+        ? (isUuid(b.van) && isUuid(b.naar)
+          ? await db.rpc('zarvis_klant_samenvoegen', { p_van: b.van, p_naar: b.naar, p_bevestigd: b.bevestigd === true, p_door: gebruiker.email })
+          : { data: { fout: 'Geef van en naar (klant-id).' }, error: null })
+        : (isUuid(b.log_id)
+          ? await db.rpc('zarvis_klant_samenvoegen_terug', { p_log: b.log_id, p_bevestigd: b.bevestigd === true })
+          : { data: { fout: 'Geef het log_id.' }, error: null });
+      if (error) throw new Error(error.message);
+      if (data?.fout) return json({ error: data.fout }, 409);
+      return json(data);
     }
     return json({ error: 'Onbekende vraag.' }, 400);
   } catch (e) {
