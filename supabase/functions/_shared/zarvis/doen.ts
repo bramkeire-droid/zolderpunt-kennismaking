@@ -126,7 +126,29 @@ export const DOE_GEREEDSCHAP: Def[] = [
       required: ['vraag'],
     },
   },
+  {
+    name: 'zet_stijl',
+    description:
+      'Zet de stijl waarin je praat: "gewoon", "familie" (de familiale komische modus, voor als het gezin erbij is) of "savage" (snoeihard en sarcastisch). Gebruik dit zodra de gebruiker om een modus vraagt of ze uitzet. De stijl blijft tot hij ze verandert.',
+    input_schema: {
+      type: 'object',
+      properties: { stijl: { type: 'string', enum: ['gewoon', 'familie', 'savage'] } },
+      required: ['stijl'],
+    },
+  },
 ];
+
+/**
+ * Hoe Zarvis praat per stijl. De tekst komt bij de instructie van elk gesprek.
+ * Twee grenzen gelden in elke stijl en staan er daarom telkens bij: de feiten
+ * blijven kloppen, en wat naar buiten gaat blijft professioneel.
+ */
+const GRENZEN = 'Wat niet verandert: je zegt alleen wat je gelezen hebt, en een bericht aan een klant of iemand anders blijft professioneel en lees je eerst voor.';
+export const STIJLEN: Record<string, string> = {
+  gewoon: '',
+  familie: `Stijl: familiale komische modus. Het gezin luistert mee, ook kinderen. Wees warm, speels en grappig, met propere humor waar iedereen om kan lachen. Zeg geen bedragen, klantnamen of andere zakelijke of vertrouwelijke gegevens hardop, tenzij de gebruiker er op dat moment uitdrukkelijk om vraagt; zeg dan eerst kort dat het zakelijk is. ${GRENZEN}`,
+  savage: `Stijl: savage modus. Wees snoeihard eerlijk, droog en sarcastisch, zonder omwegen en zonder complimenten, ook over de keuzes van de gebruiker zelf. Kort en raak. ${GRENZEN}`,
+};
 
 /** Bij welke connector dit gereedschap hoort (zie gereedschap.ts). */
 export const DOE_CONNECTOR: Record<string, string> = { stuur_whatsapp: 'whatsapp' };
@@ -243,6 +265,18 @@ export const DOE_UITVOERDERS: Record<string, { label: (i: Record<string, unknown
       const { error } = await db.from('zarvis_vaardigheden').insert({ naam, wanneer: wanneerTekst, stappen });
       if (error) throw new Error(error.message);
       return { resultaat: { aangeleerd: true, naam }, detail: 'aangeleerd', bron: { titel: `Aangeleerd: ${naam}`, secties: [{ velden: [{ label: 'Wanneer', waarde: wanneerTekst }, { label: 'Stappen', waarde: stappen }] }] } };
+    },
+  },
+
+  zet_stijl: {
+    label: (i) => `Stijl: ${String(i.stijl ?? '').slice(0, 20)}`,
+    async voer(db, invoer) {
+      const stijl = String(invoer.stijl ?? '');
+      if (!(stijl in STIJLEN)) return { resultaat: { fout: 'Kies gewoon, familie of savage.' }, detail: 'onbekende stijl' };
+      // user_id vult de databank zelf in (auth.uid()); de RLS laat alleen een beheerder schrijven.
+      const { error } = await db.from('zarvis_instellingen').upsert({ stijl, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
+      if (error) return { resultaat: { fout: 'De stijl bewaren lukte niet. Alleen een beheerder kan de stijl veranderen.' }, detail: 'niet bewaard' };
+      return { resultaat: { stijl, vanaf_nu: STIJLEN[stijl] || 'Praat weer gewoon, zoals in je basisinstructie.' }, detail: stijl };
     },
   },
 

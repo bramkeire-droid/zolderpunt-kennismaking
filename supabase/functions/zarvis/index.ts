@@ -29,6 +29,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import Anthropic from 'npm:@anthropic-ai/sdk@1';
 import { gereedschapVoor, labelVan, voerUit } from '../_shared/zarvis/gereedschap.ts';
+import { STIJLEN } from '../_shared/zarvis/doen.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -90,7 +91,7 @@ Hoe je met gegevens omgaat
 Zeg alleen wat je in de gegevens gelezen hebt. Staat iets er niet in, zeg dan dat het niet in het dossier staat; vul het niet aan uit je verbeelding. Noem bij een feit kort waar het vandaan komt, bijvoorbeeld het gesprek van een bepaalde datum. Bedragen zeg je zoals ze er staan, met erbij of het exclusief of inclusief btw is. Een datum zeg je als dag en maand.
 
 Wat je kan doen
-Je kan iets plannen: een herinnering op een tijdstip, een controle die je op vaste tijden herhaalt tot een einde, en een WhatsApp die op een tijdstip vertrekt. Je kan nu een WhatsApp versturen via de WhatsApp van de gebruiker. Je kan tonen wat gepland staat en een taak stoppen. Reken zelf niet met tijdzones: geef kloktijden zoals ze in België gelden. Je kan ook een rit berekenen met Google Maps: afstand en rijtijd met verkeer, naar een adres of naar een klant uit een dossier.
+Je kan iets plannen: een herinnering op een tijdstip, een controle die je op vaste tijden herhaalt tot een einde, en een WhatsApp die op een tijdstip vertrekt. Je kan nu een WhatsApp versturen via de WhatsApp van de gebruiker. Je kan tonen wat gepland staat en een taak stoppen. Reken zelf niet met tijdzones: geef kloktijden zoals ze in België gelden. Je kan ook een rit berekenen met Google Maps: afstand en rijtijd met verkeer, naar een adres of naar een klant uit een dossier. Je kan het weerbericht geven voor een plaats of voor het adres van een klant; bij een werf of plaatsbezoek noem je regen en rukwinden uit jezelf. Je kan van stijl wisselen met zet_stijl: gewoon, de familiale komische modus, of de savage modus.
 
 Berichten naar buiten
 Een bericht aan de gebruiker zelf verstuur je meteen. Een bericht aan een klant of iemand anders lees je eerst volledig voor en je vraagt of het zo weg mag; pas na een duidelijk ja verstuur of plan je het. Dat geldt ook als de gebruiker gehaast klinkt.
@@ -187,7 +188,8 @@ Deno.serve(async (req) => {
 
   // Welke connectoren deze gebruiker aan heeft staan (beheersectie van Zarvis).
   // Bestaat er nog geen rij, of faalt de opvraging, dan staat alles aan.
-  const { data: inst } = await alsGebruiker.from('zarvis_instellingen').select('connectoren').maybeSingle();
+  const { data: inst } = await alsGebruiker.from('zarvis_instellingen').select('connectoren, stijl').maybeSingle();
+  const stijl = STIJLEN[String(inst?.stijl ?? '')] ?? '';
   const gereedschap = gereedschapVoor(inst?.connectoren as Record<string, unknown> | undefined);
   const toegestaan = new Set(gereedschap.map((g) => g.name));
 
@@ -312,7 +314,7 @@ Deno.serve(async (req) => {
             output_config: { effort: 'low' },
             system: [
               { type: 'text', text: PERSONA },
-              { type: 'text', text: contextTekst(context) + (vaardigheden ? `\n\n${vaardigheden}` : '') },
+              { type: 'text', text: contextTekst(context) + (vaardigheden ? `\n\n${vaardigheden}` : '') + (stijl ? `\n\n${stijl}` : '') },
             ],
             tools: gereedschap,
             messages,

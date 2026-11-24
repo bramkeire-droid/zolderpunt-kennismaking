@@ -35,7 +35,35 @@ export const BUITEN_GEREEDSCHAP: Def[] = [
       },
     },
   },
+  {
+    name: 'weerbericht',
+    description:
+      'Geeft het weer van nu en de voorspelling per dag voor een plaats in België (of elders): temperatuur, neerslag, kans op regen, wind en rukwinden. Geef de plaats als gemeente, of een dossier_id om het weer bij die klant te kennen. Voor werk op een dak tellen vooral regen en rukwinden: noem die uit jezelf bij een werf of plaatsbezoek.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        plaats: { type: 'string', description: 'Gemeente of stad, bijvoorbeeld "Aalter". Geen straat.' },
+        dossier_id: { type: 'string', description: 'Dossier van de klant, in plaats van "plaats".' },
+        dagen: { type: 'number', description: 'Hoeveel dagen vooruit, 1 tot 7. Standaard 3.' },
+      },
+    },
+  },
 ];
+
+// WMO-weercodes in gewoon Nederlands.
+const WEER: Array<[number, string]> = [
+  [0, 'helder'], [1, 'overwegend helder'], [2, 'half bewolkt'], [3, 'bewolkt'], [48, 'mist'],
+  [55, 'motregen'], [57, 'ijzelende motregen'], [61, 'lichte regen'], [63, 'regen'], [65, 'zware regen'],
+  [67, 'ijzel'], [71, 'lichte sneeuw'], [73, 'sneeuw'], [75, 'zware sneeuw'], [77, 'korrelsneeuw'],
+  [80, 'lichte buien'], [81, 'buien'], [82, 'zware buien'], [86, 'sneeuwbuien'], [95, 'onweer'], [99, 'onweer met hagel'],
+];
+const weerTekst = (code: unknown) => WEER.find(([tot]) => Number(code) <= tot)?.[1] ?? 'onbekend';
+
+/** Haalt de gemeente uit een Belgisch adres: wat na de postcode komt. */
+export const gemeenteUit = (adres: string) => /\b\d{4}\s+([^,\d]+)/.exec(adres)?.[1].trim() ?? '';
+
+const GEO_URL = 'https://geocoding-api.open-meteo.com/v1/search';
+const WEER_URL = 'https://api.open-meteo.com/v1/forecast';
 
 /** Bij welke connector dit gereedschap hoort. */
 export const BUITEN_CONNECTOR: Record<string, string> = { bereken_route: 'maps' };
@@ -107,6 +135,56 @@ export function maakBuitenUitvoerders(belgischMoment: (lokaal: string) => Date |
               { label: 'Afstand', waarde: `${String(km).replace('.', ',')} km` },
               { label: vertrek ? 'Rijtijd bij vertrek' : 'Rijtijd nu', waarde: duur(metVerkeer) },
               { label: 'Zonder verkeer', waarde: duur(zonder) },
+            ] }],
+          },
+        };
+      },
+    },
+
+    weerbericht: {
+      label: (i) => `Weer opzoeken${typeof i.plaats === 'string' && i.plaats ? ` in ${i.plaats.slice(0, 40)}` : ''}`,
+      async voer(db, invoer) {
+        let plaats = typeof invoer.plaats === 'string' ? invoer.plaats.trim().slice(0, 100) : '';
+        if (!plaats && isUuid(invoer.dossier_id)) {
+          const { data: l, error } = await db.from('leads').select('adres').eq('id', invoer.dossier_id).maybeSingle();
+          if (error) throw new Error(error.message);
+          if (!l) return { resultaat: { fout: 'Dat dossier bestaat niet of je hebt er geen toegang toe.' }, detail: 'niet gevonden' };
+          plaats = gemeenteUit(String(l.adres ?? ''));
+          if (!plaats) return { resultaat: { fout: 'Ik vind geen gemeente in het adres van dit dossier. Vraag de plaats.' }, detail: 'geen gemeente' };
+        }
+        if (!plaats) return { resultaat: { fout: 'Geef een plaats of een dossier_id. Ken je de vaste plaats van de gebruiker niet, vraag ze één keer en bewaar ze met leer_vaardigheid.' }, detail: 'geen plaats' };
+        const dagen = Math.min(7, Math.max(1, Math.round(Number(invoer.dagen)) || 3));
+
+        const geo = await fetch(`${GEO_URL}?name=${encodeURIComponent(plaats)}&count=5&language=nl`);
+        if (!geo.ok) return { resultaat: { fout: `De weerdienst gaf fout ${geo.status} bij het zoeken van de plaats.` }, detail: `fout ${geo.status}` };
+        const gevonden = ((await geo.json()) as { results?: Array<{ latitude: number; longitude: number; name: string; country_code?: string }> }).results ?? [];
+        // Een Belgische plaats gaat voor op een naamgenoot elders.
+        const p = gevonden.find((g) => g.country_code === 'BE') ?? gevonden[0];
+        if (!p) return { resultaat: { fout: `De weerdienst kent geen plaats "${plaats}".` }, detail: 'plaats onbekend' };
+
+        const res = await fetch(`${WEER_URL}?latitude=${p.latitude}&longitude=${p.longitude}&current=temperature_2m,weather_code,wind_speed_10m,precipitation&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_gusts_10m_max&timezone=Europe%2FBrussels&forecast_days=${dagen}`);
+        if (!res.ok) return { resultaat: { fout: `De weerdienst gaf fout ${res.status}.` }, detail: `fout ${res.status}` };
+        const w = await res.json() as { current?: Record<string, number>; daily?: Record<string, Array<number | string>> };
+        const d = w.daily;
+        if (!w.current || !d?.time?.length) return { resultaat: { fout: 'De weerdienst gaf geen voorspelling terug.' }, detail: 'leeg' };
+        const perDag = d.time.map((dag, i) => ({
+          dag: String(dag),
+          weer: weerTekst(d.weather_code?.[i]),
+          min: d.temperature_2m_min?.[i], max: d.temperature_2m_max?.[i],
+          neerslag_mm: d.precipitation_sum?.[i], kans_op_regen_procent: d.precipitation_probability_max?.[i],
+          rukwinden_kmu: d.wind_gusts_10m_max?.[i],
+        }));
+        const nu = { weer: weerTekst(w.current.weather_code), temperatuur: w.current.temperature_2m, wind_kmu: w.current.wind_speed_10m, neerslag_mm: w.current.precipitation };
+        const dagNaam = (iso: string) => new Date(`${iso}T12:00:00Z`).toLocaleDateString('nl-BE', { weekday: 'short', day: 'numeric', month: 'short' });
+        return {
+          resultaat: { plaats: p.name, nu, per_dag: perDag },
+          detail: `${p.name} · ${Math.round(nu.temperatuur)}° · ${nu.weer}`,
+          bron: {
+            titel: `Weer in ${p.name}`,
+            ondertitel: 'Open-Meteo',
+            secties: [{ velden: [
+              { label: 'Nu', waarde: `${Math.round(nu.temperatuur)}°, ${nu.weer}, wind ${Math.round(nu.wind_kmu)} km/u` },
+              ...perDag.map((x) => ({ label: dagNaam(x.dag), waarde: `${x.weer}, ${Math.round(Number(x.min))}° tot ${Math.round(Number(x.max))}°, ${x.neerslag_mm} mm (${x.kans_op_regen_procent}%), rukwinden ${Math.round(Number(x.rukwinden_kmu))} km/u` })),
             ] }],
           },
         };
