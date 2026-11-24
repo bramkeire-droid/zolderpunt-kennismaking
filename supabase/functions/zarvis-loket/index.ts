@@ -27,6 +27,7 @@
 //   { actie: 'offertes_zonder_antwoord', dagen? }  (B-153) offertes in de wachtstand, oudste eerst. Lezen.
 //   { actie: 'calculaties_vergelijk', dossier_id, a?, b? }  (B-151) wat erbij, weg, duurder of goedkoper. Lezen.
 //   { actie: 'dossiers_bij_bouwflow', ids }  (B-190) Bouwflow-projectnummer naar dossier. Lezen.
+//   { actie: 'dossiers_bij_namen', namen }  (B-172) kandidaat-dossiers per naam. Lezen.
 //   { actie: 'klant_dubbels' }   (L4) klanten zonder dossier die op een klant met dossier lijken
 //                             (zelfde gsm, zelfde mailadres of zelfde naam), met de droge proef per paar
 //   { actie: 'klant_samenvoegen', van, naar, bevestigd? }  (L4) SCHRIJFT na bevestiging, via de databankfunctie
@@ -458,6 +459,25 @@ Deno.serve(async (req) => {
       const koppeling: Record<string, { dossier_id: string; klant: string; dossiernummer: string | null }> = {};
       for (const l of data ?? []) koppeling[String(l.bouwflow_project_pk_id)] = { dossier_id: l.id, klant: [l.voornaam, l.achternaam].filter(Boolean).join(' '), dossiernummer: l.bouwflow_project_number ?? null };
       return json({ koppeling, niet_gevonden: ids.filter((x) => !koppeling[String(x)]) });
+    }
+    if (body?.actie === 'dossiers_bij_namen') {
+      // B-172: alleen lezen. Per naam (bv. de klant van een factuur in Yuki) de dossiers waarvan de klantnaam erop lijkt:
+      // alle woorden van de naam (zonder bv/nv/bvba) komen voor in voornaam en achternaam. Hoogstens 50 namen.
+      const b = body as typeof body & { namen?: unknown };
+      const namen = (Array.isArray(b.namen) ? b.namen : []).filter((x): x is string => typeof x === 'string' && x.trim().length >= 3).slice(0, 50);
+      if (!namen.length) return json({ per_naam: {} });
+      const { data, error } = await db.from('leads').select('id, voornaam, achternaam, bouwflow_project_number, updated_at').limit(3000);
+      if (error) throw new Error(error.message);
+      const RECHTSVORM = new Set(['bv', 'nv', 'bvba', 'srl', 'sa', 'vof', 'cv', 'commv']);
+      const schoon = (t: string) => t.toLowerCase().normalize('NFD').replace(/\p{M}/gu, '').replace(/[^a-z0-9 ]/g, ' ').split(/\s+/).filter((w) => w.length >= 2 && !RECHTSVORM.has(w));
+      const dossiers = (data ?? []).map((l) => ({ l, woorden: new Set(schoon(`${l.voornaam ?? ''} ${l.achternaam ?? ''}`)) }));
+      const per_naam: Record<string, { dossier_id: string; klant: string; dossiernummer: string | null }[]> = {};
+      for (const naam of namen) {
+        const w = schoon(naam);
+        per_naam[naam] = w.length ? dossiers.filter((d) => w.every((x) => d.woorden.has(x))).slice(0, 5)
+          .map((d) => ({ dossier_id: d.l.id, klant: [d.l.voornaam, d.l.achternaam].filter(Boolean).join(' '), dossiernummer: d.l.bouwflow_project_number ?? null })) : [];
+      }
+      return json({ per_naam });
     }
     if (body?.actie === 'klant_dubbels') {
       // (L4) Alleen lezen. Een klant zonder dossier die op een klant met dossier lijkt.
