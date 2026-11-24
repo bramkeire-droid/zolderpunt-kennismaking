@@ -10,6 +10,7 @@
 //   { gereedschap, invoer }   een van de vijf leesgereedschappen voor dossiers
 //   { actie: 'contact', dossier_id }   naam, adres, telefoon, mailadres en dossiernummer van één dossier
 //   { actie: 'context' }      welk dossier de gebruiker in Compass open heeft (gezocht op zijn mailadres)
+//   { actie: 'agenda', dagen }  plaatsbezoeken en videocalls van vandaag en de dagen erna, met klant en adres
 //   { actie: 'nummers', sleutels }   bij welk dossier elk gevraagd telefoonnummer hoort (laatste negen cijfers);
 //                             het loket geeft alleen antwoord voor de gevraagde nummers, nooit de hele lijst
 //
@@ -59,7 +60,7 @@ Deno.serve(async (req) => {
   const gebruiker = await zarvisGebruiker(auth.slice(7));
   if (!gebruiker) return json({ error: 'Geen toegang: alleen een gebruiker van Zarvis.' }, 403);
 
-  const body = await req.json().catch(() => null) as { gereedschap?: unknown; invoer?: unknown; actie?: unknown; dossier_id?: unknown; sleutels?: unknown } | null;
+  const body = await req.json().catch(() => null) as { gereedschap?: unknown; invoer?: unknown; actie?: unknown; dossier_id?: unknown; sleutels?: unknown; dagen?: unknown } | null;
   const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 
   try {
@@ -85,6 +86,38 @@ Deno.serve(async (req) => {
       if (!hier) return json({ open: null });
       const { data: rij } = await db.from('zarvis_context').select('lead_id, dossier_naam, view, updated_at').eq('user_id', hier.id).maybeSingle();
       return json({ open: rij ?? null });
+    }
+    if (body?.actie === 'agenda') {
+      const dagen = Math.min(Math.max(Math.round(Number(body.dagen)) || 2, 1), 14);
+      // Vanaf middernacht vandaag, Belgische tijd.
+      const nu = new Date();
+      const lokaal = new Date(nu.toLocaleString('en-US', { timeZone: 'Europe/Brussels' }));
+      const verschil = lokaal.getTime() - nu.getTime();
+      lokaal.setHours(0, 0, 0, 0);
+      const van = new Date(lokaal.getTime() - verschil).toISOString();
+      const tot = new Date(lokaal.getTime() - verschil + dagen * 86400000).toISOString();
+      const [bezoeken, calls] = await Promise.all([
+        db.from('pre_intake').select('lead_id, plaatsbezoek_scheduled_at').gte('plaatsbezoek_scheduled_at', van).lt('plaatsbezoek_scheduled_at', tot),
+        db.from('pre_intake').select('lead_id, videocall_scheduled_at').gte('videocall_scheduled_at', van).lt('videocall_scheduled_at', tot),
+      ]);
+      if (bezoeken.error || calls.error) throw new Error((bezoeken.error ?? calls.error)!.message);
+      const ruw = [
+        ...(bezoeken.data ?? []).map((r) => ({ soort: 'plaatsbezoek', op: r.plaatsbezoek_scheduled_at as string, lead_id: r.lead_id as string | null })),
+        ...(calls.data ?? []).map((r) => ({ soort: 'videocall', op: r.videocall_scheduled_at as string, lead_id: r.lead_id as string | null })),
+      ].sort((a, b) => a.op.localeCompare(b.op));
+      const ids = [...new Set(ruw.map((r) => r.lead_id).filter((x): x is string => !!x))];
+      const { data: leads, error } = ids.length
+        ? await db.from('leads').select('id, voornaam, achternaam, adres').in('id', ids)
+        : { data: [], error: null };
+      if (error) throw new Error(error.message);
+      const lead = new Map((leads ?? []).map((l) => [l.id, l]));
+      return json({
+        dagen,
+        afspraken: ruw.map((r) => {
+          const l = r.lead_id ? lead.get(r.lead_id) : null;
+          return { soort: r.soort, op: r.op, dossier_id: r.lead_id, klant: l ? [l.voornaam, l.achternaam].filter(Boolean).join(' ') : null, adres: l?.adres ?? null };
+        }),
+      });
     }
     if (body?.actie === 'nummers') {
       const gevraagd = new Set((Array.isArray(body.sleutels) ? body.sleutels : []).filter((x): x is string => typeof x === 'string' && /^\d{9}$/.test(x)).slice(0, 400));
