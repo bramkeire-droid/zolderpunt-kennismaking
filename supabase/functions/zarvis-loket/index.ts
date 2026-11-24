@@ -318,12 +318,16 @@ Deno.serve(async (req) => {
       // stap, of in een vroege fase zonder afspraak in de toekomst. "Opvolging lange termijn" alleen op vraag.
       const b = body as typeof body & { dagen?: unknown; ook_lange_termijn?: unknown };
       const dagen = Math.min(Math.max(Math.round(Number(b.dagen)) || 14, 1), 365);
-      const [kaart, leads, pre] = await Promise.all([
+      const [kaart, leads, pre, faselog] = await Promise.all([
         db.from('bouwflow_phase_category_map').select('phase_id, phase_title, compass_category'),
         db.from('leads').select('id, voornaam, achternaam, bouwflow_project_number, bouwflow_phase, category_override, volgende_stap, updated_at').limit(2000),
         db.from('pre_intake').select('lead_id, videocall_scheduled_at, plaatsbezoek_scheduled_at').limit(4000),
+        // B-088 (2026-11-24): sinds wanneer elk dossier in zijn fase zit, uit dossier_fase_log (nieuwste rij per dossier).
+        db.from('dossier_fase_log').select('lead_id, op, zeker').order('op', { ascending: false }).limit(1000),
       ]);
       if (kaart.error || leads.error || pre.error) throw new Error((kaart.error ?? leads.error ?? pre.error)!.message);
+      const inFase = new Map<string, { op: string; zeker: boolean }>();
+      for (const r of faselog.error ? [] : faselog.data ?? []) if (!inFase.has(r.lead_id)) inFase.set(r.lead_id, { op: r.op, zeker: r.zeker });
       const fase = new Map((kaart.data ?? []).map((f) => [String(f.phase_id), f]));
       const nu = Date.now();
       const afspraak = new Map<string, string>();
@@ -343,10 +347,12 @@ Deno.serve(async (req) => {
         ].filter(Boolean);
         return { dossier_id: l.id, klant: [l.voornaam, l.achternaam].filter(Boolean).join(' ') || null, dossiernummer: l.bouwflow_project_number ?? null,
           fase: f?.phase_title ?? null, categorie, stil_dagen: stil, volgende_stap: (l.volgende_stap ?? '').trim() || null,
-          volgende_afspraak: afspraak.get(l.id) ?? null, redenen };
+          volgende_afspraak: afspraak.get(l.id) ?? null, redenen,
+          dagen_in_fase: inFase.has(l.id) ? Math.floor((nu - new Date(inFase.get(l.id)!.op).getTime()) / 86400000) : null,
+          dagen_in_fase_zeker: inFase.get(l.id)?.zeker ?? false };
       }).filter((d) => d.categorie && !dicht.has(d.categorie) && (b.ook_lange_termijn === true || d.categorie !== 'opvolging') && d.redenen.length > 0)
         .sort((a, z) => z.stil_dagen - a.stil_dagen);
-      return json({ dagen, totaal: lijst.length, dossiers: lijst.slice(0, 40), let_op: 'Compass bewaart geen geschiedenis van fases: "stil" is de laatste wijziging van het dossier, niet hoe lang het in zijn fase zit.' });
+      return json({ dagen, totaal: lijst.length, dossiers: lijst.slice(0, 40), let_op: 'Dagen in de fase komt uit de fasegeschiedenis die Compass sinds 24 november 2026 bijhoudt. Is dagen_in_fase_zeker false, dan is het de laatste wijziging van het dossier van vóór die datum, niet het echte moment van de fasewissel.' });
     }
     if (body?.actie === 'tijdlijn') {
       // B-089: alleen lezen. Wat er met een klant gebeurde over de kanalen van Compass heen, nieuwste eerst:
