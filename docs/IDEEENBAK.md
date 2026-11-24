@@ -238,7 +238,7 @@ Nummers zijn doorlopend en worden nooit hergebruikt.
 - **Eerste inschatting**: Een stijl van praten die Bram aan en uit zet met zijn stem. Bedoeld voor als de familie erbij is: warm, grappig, proper, en zonder zakelijke of vertrouwelijke gegevens hardop te zeggen tenzij hij er uitdrukkelijk om vraagt. Bouw: kolom `stijl` in `zarvis_instellingen` (waarden gewoon, familie, savage), een gereedschap `zet_stijl`, en per stijl een extra alinea in de instructie van `supabase/functions/zarvis/index.ts`. Het zwarte gat kan per stijl een eigen tint of tempo krijgen zodat zichtbaar is welke modus aan staat.
 - **Mijn open vragen erover**: Moet Zarvis in deze modus bedragen en klantnamen verzwijgen als er anderen bij zijn? Mijn voorstel: ja, tenzij Bram er op dat moment zelf om vraagt.
 - **Behandeling**: samen met IDEE-26, één bouwsteen.
-- **Status**: gebouwd (2026-11-24): `zet_stijl` met stijl familie. De tint van het zwarte gat per stijl is niet gebouwd.
+- **Status**: gebouwd (2026-11-24): `zet_stijl` met stijl familie. Het zwarte gat kleurt mee: goud voor familie, rood voor savage (bekeken op Brams grafische kaart).
 
 ## IDEE-26 — Savage modus
 - **Datum**: 2026-11-24
@@ -247,7 +247,7 @@ Nummers zijn doorlopend en worden nooit hergebruikt.
 - **Eerste inschatting**: Zelfde bouwsteen als IDEE-25. Stijl: snoeihard eerlijk, droog, sarcastisch, zonder omwegen, ook over Brams eigen keuzes. Twee grenzen die in de instructie moeten staan en niet door de modus opgeheven worden: de feiten blijven kloppen (alleen zeggen wat gelezen is), en alles wat naar buiten gaat (WhatsApp of mail aan een klant) blijft professioneel, wat de modus ook is.
 - **Mijn open vragen erover**: Geen blokkerende.
 - **Behandeling**: samen met IDEE-25.
-- **Status**: gebouwd (2026-11-24): `zet_stijl` met stijl savage. De tint van het zwarte gat per stijl is niet gebouwd.
+- **Status**: gebouwd (2026-11-24): `zet_stijl` met stijl savage. Het zwarte gat kleurt mee: goud voor familie, rood voor savage (bekeken op Brams grafische kaart).
 
 ## IDEE-27 — Smartphone use: Zarvis bedient apps op de gsm
 - **Datum**: 2026-11-24

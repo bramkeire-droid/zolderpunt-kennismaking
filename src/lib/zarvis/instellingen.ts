@@ -34,3 +34,13 @@ export async function bewaarInstellingen(connectoren: Record<string, boolean>, i
   const { error } = await tabel().upsert(rij, { onConflict: 'user_id' });
   return error ? 'Bewaren lukte niet. Probeer opnieuw.' : null;
 }
+
+/** De stijl waarin Zarvis praat (gewoon, familie, savage); Zarvis zet ze zelf met zet_stijl. */
+export async function leesStijl(): Promise<string> {
+  try {
+    const { data } = await (tabel().select('stijl').maybeSingle() as unknown as Promise<{ data: { stijl?: string } | null }>);
+    return data?.stijl ?? 'gewoon';
+  } catch {
+    return 'gewoon';
+  }
+}

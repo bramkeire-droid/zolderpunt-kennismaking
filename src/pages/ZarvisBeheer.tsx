@@ -127,7 +127,7 @@ export default function ZarvisBeheer() {
     if (afronden) { if (brug()) brug()!.klaar(); else zetStap(3); }
   };
 
-  const kader = 'min-h-screen bg-[#07090F] text-[#F3F5FA] font-body';
+  const kader = 'zarvis-donker min-h-screen bg-[#07090F] text-[#F3F5FA] font-body';
   if (!rolGeladen || !geladen) {
     return <div className={`${kader} flex items-center justify-center`}><Loader2 aria-label="Laden" className="h-6 w-6 animate-spin text-[#8CCBFF]" /></div>;
   }

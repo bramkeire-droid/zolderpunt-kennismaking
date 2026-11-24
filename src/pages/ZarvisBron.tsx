@@ -42,7 +42,7 @@ export default function ZarvisBron() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-[#07090F] text-[#F3F5FA] font-body overflow-hidden">
+    <div className="zarvis-donker h-screen flex flex-col bg-[#07090F] text-[#F3F5FA] font-body overflow-hidden">
       <header style={sleep} className="shrink-0 flex items-start gap-3 px-5 pt-4 pb-3 select-none">
         <div className="min-w-0 flex-1">
           <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#8CCBFF]">Gegevens</p>

@@ -34,7 +34,7 @@ precision highp float;
 uniform vec2 u_res;
 uniform float u_t, u_fase, u_spreek, u_luister, u_denk, u_helling, u_draai;
 uniform float u_band[${BANDEN}];
-uniform vec3 u_bg;
+uniform vec3 u_bg, u_tint;
 
 const float R_IN = 2.7;    // binnenrand van de schijf (de waarnemingshorizon ligt op 1)
 const float R_UIT = 11.5;  // buitenrand
@@ -136,18 +136,27 @@ void main(){
 
   float I = 1. - exp(-licht * 1.25);
   I += (hash(gl_FragCoord.xy + u_t) - .5) * .014;
-  gl_FragColor = vec4(u_bg + I * vec3(.93, .96, 1.), 1.);
+  gl_FragColor = vec4(u_bg + I * u_tint, 1.);
 }`;
 
 interface Props {
   status: ZarvisStatus;
+  /** De stijl waarin Zarvis praat; het licht van de schijf kleurt mee. */
+  stijl?: string;
   className?: string;
 }
 
-export default function ZarvisGat({ status, className }: Props) {
+// Kleur van het licht per stijl: koel wit, warm goud voor de familie, rood voor savage.
+const TINT: Record<string, [number, number, number]> = {
+  gewoon: [0.93, 0.96, 1], familie: [1, 0.8, 0.5], savage: [1, 0.38, 0.3],
+};
+
+export default function ZarvisGat({ status, stijl, className }: Props) {
   const doek = useRef<HTMLCanvasElement>(null);
   const statusRef = useRef(status);
   statusRef.current = status;
+  const stijlRef = useRef(stijl);
+  stijlRef.current = stijl;
   const [zonderWebgl, zetZonderWebgl] = useState(false);
 
   useEffect(() => {
@@ -179,7 +188,8 @@ export default function ZarvisGat({ status, className }: Props) {
     gl.vertexAttribPointer(plek, 2, gl.FLOAT, false, 0, 0);
     const u = (naam: string) => gl.getUniformLocation(prog, naam);
     const uRes = u('u_res'), uT = u('u_t'), uFase = u('u_fase'), uSpreek = u('u_spreek'), uLuister = u('u_luister'),
-      uDenk = u('u_denk'), uHelling = u('u_helling'), uDraai = u('u_draai'), uBand = u('u_band[0]'), uBg = u('u_bg');
+      uDenk = u('u_denk'), uHelling = u('u_helling'), uDraai = u('u_draai'), uBand = u('u_band[0]'), uBg = u('u_bg'), uTint = u('u_tint');
+    const tint = [...TINT.gewoon];
     gl.uniform3f(uBg, 7 / 255, 9 / 255, 15 / 255);
 
     const pasAan = () => {
@@ -250,6 +260,10 @@ export default function ZarvisGat({ status, className }: Props) {
       helling = naar(helling, doelHelling + my * 0.045, dt, 2.2);
       draai = naar(draai, mx * 0.16, dt, 2.2);
 
+      // De kleur schuift rustig naar die van de stijl, zonder sprong.
+      const doel = TINT[stijlRef.current ?? ''] ?? TINT.gewoon;
+      for (let i = 0; i < 3; i++) tint[i] += (doel[i] - tint[i]) * 0.04;
+      gl.uniform3f(uTint, tint[0], tint[1], tint[2]);
       gl.uniform1f(uT, t);
       gl.uniform1f(uFase, fase);
       gl.uniform1f(uSpreek, rustig ? Math.min(spreek, 0.45) : spreek);
