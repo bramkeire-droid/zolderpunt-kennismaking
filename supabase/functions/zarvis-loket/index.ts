@@ -26,6 +26,8 @@
 //   { actie: 'documenten', dossier_id }  (B-098) rapport, foto's en documenten (links van een uur). Lezen.
 //   { actie: 'offertes_zonder_antwoord', dagen? }  (B-153) offertes in de wachtstand, oudste eerst. Lezen.
 //   { actie: 'calculaties_vergelijk', dossier_id, a?, b? }  (B-151) wat erbij, weg, duurder of goedkoper. Lezen.
+//   { actie: 'calculatie_opbouw', dossier_id, calculatie_id? }  (B-150) per post bedrag en aandeel, top 3, en wat de
+//                             verschuiving van totaal en marge tegenover de vorige versie verklaart. Lezen.
 //   { actie: 'dossiers_bij_bouwflow', ids }  (B-190) Bouwflow-projectnummer naar dossier. Lezen.
 //   { actie: 'dossiers_bij_namen', namen }  (B-172) kandidaat-dossiers per naam. Lezen.
 //   { actie: 'klant_dubbels' }   (L4) klanten zonder dossier die op een klant met dossier lijken
@@ -60,6 +62,21 @@ const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(metSoort(body, status)), { status, headers: { ...cors, 'Content-Type': 'application/json' } });
 const isUuid = (v: unknown): v is string =>
   typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
+
+// Een post zoals de calculator hem bewaart in calculaties.inbegrepen_posten (naarOpgeslagenPosten in src/lib/prijscalculator.ts).
+type Post = { post: string; bedrag: number; categorie?: string };
+const postenVan = (x: unknown) => (Array.isArray(x) ? x as Post[] : []).filter((p) => p?.post);
+const rond = (n: number) => Math.round(n * 100) / 100;
+/** Wat kwam erbij, viel weg of werd duurder/goedkoper tussen twee versies van inbegrepen_posten (B-151, ook B-150). */
+function verschilPosten(oudX: unknown, nieuwX: unknown) {
+  const A = new Map(postenVan(oudX).map((p) => [p.post, p])), B = new Map(postenVan(nieuwX).map((p) => [p.post, p]));
+  const erbij = [...B.values()].filter((p) => !A.has(p.post)).map((p) => ({ post: p.post, bedrag: p.bedrag }));
+  const weg = [...A.values()].filter((p) => !B.has(p.post)).map((p) => ({ post: p.post, bedrag: p.bedrag }));
+  const anders = [...B.values()].filter((p) => A.has(p.post) && Number(A.get(p.post)!.bedrag) !== Number(p.bedrag))
+    .map((p) => ({ post: p.post, was: A.get(p.post)!.bedrag, nu: p.bedrag, verschil: rond(Number(p.bedrag) - Number(A.get(p.post)!.bedrag)) }))
+    .sort((x, y) => Math.abs(y.verschil) - Math.abs(x.verschil));
+  return { erbij, weg, anders, ongewijzigd: [...B.keys()].filter((k) => A.has(k) && Number(A.get(k)!.bedrag) === Number(B.get(k)!.bedrag)).length };
+}
 
 /** Is dit iemand met een rol in Zarvis? Geeft zijn mailadres, of null. */
 async function zarvisGebruiker(token: string): Promise<{ email: string } | null | 'login' | 'app'> {
@@ -444,19 +461,61 @@ Deno.serve(async (req) => {
       if (error) throw new Error(error.message);
       if (!data || data.length < 2) return json({ error: 'Er zijn geen twee calculaties om te vergelijken.' }, 409);
       const [nieuw, oud] = data;
-      type P = { post: string; bedrag: number; categorie?: string };
-      const lees = (x: unknown) => new Map((Array.isArray(x) ? x as P[] : []).filter((p) => p?.post).map((p) => [p.post, p]));
-      const A = lees(oud.inbegrepen_posten), B = lees(nieuw.inbegrepen_posten);
-      const erbij = [...B.values()].filter((p) => !A.has(p.post)).map((p) => ({ post: p.post, bedrag: p.bedrag }));
-      const weg = [...A.values()].filter((p) => !B.has(p.post)).map((p) => ({ post: p.post, bedrag: p.bedrag }));
-      const anders = [...B.values()].filter((p) => A.has(p.post) && Number(A.get(p.post)!.bedrag) !== Number(p.bedrag))
-        .map((p) => ({ post: p.post, was: A.get(p.post)!.bedrag, nu: p.bedrag, verschil: Math.round((Number(p.bedrag) - Number(A.get(p.post)!.bedrag)) * 100) / 100 }))
-        .sort((x, y) => Math.abs(y.verschil) - Math.abs(x.verschil));
       const kort = (c: typeof nieuw) => ({ id: c.id, op: c.created_at, bron: c.bron, budget_excl: c.budget_excl, min: c.budget_min_excl, max: c.budget_max_excl });
       return json({
         oud: kort(oud), nieuw: kort(nieuw),
         verschil_totaal_excl: nieuw.budget_excl != null && oud.budget_excl != null ? Math.round((Number(nieuw.budget_excl) - Number(oud.budget_excl)) * 100) / 100 : null,
-        erbij, weg, anders, ongewijzigd: [...B.keys()].filter((k) => A.has(k) && Number(A.get(k)!.bedrag) === Number(B.get(k)!.bedrag)).length,
+        ...verschilPosten(oud.inbegrepen_posten, nieuw.inbegrepen_posten),
+      });
+    }
+    if (body?.actie === 'calculatie_opbouw') {
+      // B-150: alleen lezen. Hoe een calculatie is opgebouwd: per post het bedrag en het aandeel in de som van de posten
+      // (de calculator bewaart per post het meest waarschijnlijke bedrag, afgerond; budget_excl is daar de som van).
+      // Met een vorige versie: wat de verschuiving van het totaal en van de vork (marge) verklaart.
+      const b = body as typeof body & { calculatie_id?: unknown };
+      if (!isUuid(body.dossier_id)) return json({ error: 'Geef een dossier_id.' }, 400);
+      const { data, error } = await db.from('calculaties')
+        .select('id, bron, budget_excl, budget_min_excl, budget_max_excl, inbegrepen_posten, calculator_state, created_at')
+        .eq('lead_id', body.dossier_id).order('created_at', { ascending: false }).limit(200);
+      if (error) throw new Error(error.message);
+      const rijen = data ?? [];
+      const i = isUuid(b.calculatie_id) ? rijen.findIndex((c) => c.id === b.calculatie_id) : 0;
+      const c = rijen[i];
+      if (!c) return json({ error: 'Geen calculatie gevonden voor dit dossier.' }, 404);
+      const vorige = rijen[i + 1] ?? null;
+      const posten = postenVan(c.inbegrepen_posten).map((p) => ({ post: p.post, bedrag: Number(p.bedrag) || 0, categorie: p.categorie ?? 'standaard' }));
+      const som = posten.reduce((t, p) => t + p.bedrag, 0);
+      const lijst = posten.map((p) => ({ ...p, procent: som ? rond(p.bedrag / som * 100) : null })).sort((x, y) => y.bedrag - x.bedrag);
+      const top3 = lijst.slice(0, 3);
+      // De verschoven marge staat in calculator_state.marge: factoren op het tariefdeel en de argumenten waarom.
+      type Marge = { min?: unknown; max?: unknown; argumenten?: { kader?: string; tekst?: string }[] };
+      const marge = (x: typeof c) => {
+        const m = (x.calculator_state as { marge?: Marge } | null)?.marge;
+        return m && typeof m.min === 'number' && typeof m.max === 'number'
+          ? { factor_min: m.min, factor_max: m.max, argumenten: (Array.isArray(m.argumenten) ? m.argumenten : []).filter((a) => a?.tekst).map((a) => ({ kader: a.kader ?? null, tekst: a.tekst })) }
+          : null;
+      };
+      const kort = (x: typeof c) => ({ id: x.id, op: x.created_at, bron: x.bron, budget_excl: x.budget_excl, min: x.budget_min_excl, max: x.budget_max_excl });
+      const verschil = (a: unknown, z: unknown) => a != null && z != null ? rond(Number(z) - Number(a)) : null;
+      const let_op: string[] = [];
+      if (!marge(c)) let_op.push('Bij deze calculatie is geen verschoven marge bewaard: de vork komt uit de standaard bandbreedte van de tarieven op dat moment. Die factor staat niet in de calculatie, dus we geven hem niet.');
+      if (c.budget_excl != null && Math.abs(Number(c.budget_excl) - som) > posten.length) let_op.push('De som van de posten wijkt af van het bewaarde totaal; de aandelen zijn berekend op de som van de posten.');
+      if (!vorige) let_op.push('Er is geen vorige versie; er valt geen verschuiving te verklaren.');
+      return json({
+        calculatie: kort(c),
+        totaal_excl: c.budget_excl, som_posten: som, aantal_posten: posten.length,
+        posten: lijst,
+        top3: { posten: top3.map((p) => p.post), procent: som ? rond(top3.reduce((t, p) => t + p.bedrag, 0) / som * 100) : null },
+        marge: { min_excl: c.budget_min_excl, max_excl: c.budget_max_excl, verschoven: marge(c) },
+        verschuiving: vorige ? {
+          vorige: kort(vorige),
+          verschil_totaal_excl: verschil(vorige.budget_excl, c.budget_excl),
+          verschil_min_excl: verschil(vorige.budget_min_excl, c.budget_min_excl),
+          verschil_max_excl: verschil(vorige.budget_max_excl, c.budget_max_excl),
+          marge_was: marge(vorige), marge_nu: marge(c),
+          ...verschilPosten(vorige.inbegrepen_posten, c.inbegrepen_posten),
+        } : null,
+        let_op,
       });
     }
     if (body?.actie === 'dossiers_bij_bouwflow') {
