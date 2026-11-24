@@ -292,3 +292,12 @@ Nummers zijn doorlopend en worden nooit hergebruikt.
 - **Mijn open vragen erover**: (1) Mag Zarvis leren uit je verstuurde mails en WhatsApp-berichten om te schrijven zoals jij? (2) Wil je elke les zien en goedkeuren voor ze telt, of achteraf kunnen schrappen? (3) Moet het brein ook werken als iemand anders dan jij Zarvis gebruikt, of is het strikt van jou?
 - **Behandeling**: eerst grondig onderzoek (hoe bouwen anderen een geheugen dat klopt en bijgewerkt blijft; wat staat er al in Maildude), dan een ontwerp aan Bram voorleggen, dan bouwen.
 - **Status**: open
+
+## IDEE-31 — Waarom woont Zarvis in Compass en niet op zichzelf?
+- **Datum**: 2026-11-24
+- **Bram zei letterlijk**: "Waarom bouw jij alles vanuit zolderpunt compass? Terwijl hij net zo goed verbonden is met alle andere tools?"
+- **Waar ik mee bezig was**: de sleutels voor Zarvis invullen (stap 2: inloggen bij Twilio), net na golf 0.
+- **Eerste inschatting**: Terechte vraag over de architectuur. Vandaag zit alles van Zarvis in de repo en de databank van Compass: de functies, de tabellen `zarvis_*`, de pagina `/zarvis`, de login en de rollen. Dat is zo gegroeid omdat Zarvis begon als assistent voor dossiers. Gevolgen: elke andere app heeft een loket nodig dat de login van Compass nakijkt; Compass wordt een knooppunt waar ook marketing, financiën en lonen langs lopen; een storing of een foute uitrol van Compass raakt Zarvis en omgekeerd; wie in Compass beheerder is, is het vanzelf in Zarvis. Het alternatief is een eigen project voor Zarvis (eigen repo, eigen databank, eigen login), met Compass als één van de gekoppelde apps, gelijk aan de andere. Dat past bij Brams eerste beeld ("Ze leeft apart. Ze is gewoon volledig geconnecteerd ermee.") en bij het doel om het bedrijf verkoopbaar te maken. Kost: een verhuis van functies, tabellen en de pagina, een loket in Compass zoals in de andere apps, en de logins opnieuw regelen. Het bureaubladprogramma wijst vandaag naar het adres van Compass.
+- **Mijn open vragen erover**: (1) Wil je Zarvis als eigen product dat je los van Compass kan verkopen of aan een ander bedrijf kan koppelen? (2) Eén login voor alles (Zarvis als de plek waar je inlogt), of blijft elke app zijn eigen login houden?
+- **Behandeling**: eerst, vóór golf 1 begint: golf 1 zet nieuwe tabellen (het brein) en nieuwe functies in Compass, en elke stap daar maakt een latere verhuis duurder. Eerst een kort onderzoek en een voorstel met de kost van verhuizen nu tegenover later.
+- **Status**: open
