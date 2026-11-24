@@ -39,6 +39,7 @@ const CONNECTOREN: Connector[] = [
   { sleutel: 'stem', naam: 'Vlaamse stem', uitleg: 'Luisteren en spreken in het Vlaams via Azure. Uit: de stem van je computer.', soort: 'gebouwd' },
   { sleutel: 'maps', naam: 'Google Maps', uitleg: 'Ritten berekenen: afstand en rijtijd met verkeer, naar een adres of naar een klant. Vraagt een sleutel van Google op de server; ontbreekt die, dan zegt Zarvis dat zelf.', soort: 'gebouwd' },
   { sleutel: 'mail', naam: 'Mail', uitleg: 'Leest de mails en telefoongesprekken die aan een dossier gekoppeld zijn, uit de twee mailboxen van Mail-CRM. Versturen en zelf koppelen kan nog niet.', soort: 'gebouwd' },
+  { sleutel: 'web', naam: 'Web', uitleg: 'Zoeken op het openbare web en een pagina lezen, voor wat niet in Compass staat. Zonder je logins: alleen wat iedereen kan zien.', soort: 'gebouwd' },
   { sleutel: 'agenda', naam: 'Agenda en Calendly', uitleg: 'Afspraken lezen en plannen.', soort: 'later' },
   { sleutel: 'bouwflow', naam: 'Bouwflow', uitleg: 'Rechtstreeks in Bouwflow werken. Wat Compass al uit Bouwflow overneemt, leest Zarvis vandaag via Compass.', soort: 'later' },
   { sleutel: 'todoist', naam: 'Todoist', uitleg: 'Taken lezen en aanmaken.', soort: 'later' },

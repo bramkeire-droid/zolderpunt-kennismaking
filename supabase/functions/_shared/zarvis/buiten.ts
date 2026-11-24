@@ -113,7 +113,9 @@ export function maakBuitenUitvoerders(belgischMoment: (lokaal: string) => Date |
           const fout = await res.json().catch(() => null) as { error?: { message?: string } } | null;
           console.error('zarvis: routes', res.status, fout?.error?.message);
           return {
-            resultaat: { fout: res.status === 403 || res.status === 401 ? 'Google Maps weigert de sleutel, of de Routes API staat niet aan voor deze sleutel.' : `Google Maps gaf fout ${res.status}.` },
+            // De uitleg van Google gaat mee (er staat geen sleutel in): zonder die uitleg
+            // is een ongeldige sleutel (fout 400) niet te onderscheiden van een fout adres.
+            resultaat: { fout: `${res.status === 403 || res.status === 401 ? 'Google Maps weigert de sleutel, of de Routes API staat niet aan voor deze sleutel.' : `Google Maps gaf fout ${res.status}.`} Uitleg van Google: ${String(fout?.error?.message ?? 'geen').slice(0, 300)}` },
             detail: `fout ${res.status}`,
           };
         }
