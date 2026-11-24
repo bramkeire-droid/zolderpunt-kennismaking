@@ -111,7 +111,7 @@ Nummers zijn doorlopend en worden nooit hergebruikt.
 - **Eerste inschatting**: De website is een apart Lovable-project ("Zolderpunt Website", stuurt leads door via Make en Zapier). Een marketingdashboard heb ik nog niet gezien; ik weet niet of het bestaat of gebouwd moet worden. Voor Google Ads is toegang tot het advertentieaccount nodig; in deze omgeving zie ik wel een Ahrefs-koppeling, geen Google Ads-koppeling. Groot. Risico: advertentiebudget is echt geld; wijzigingen aan campagnes horen achter de goedkeuringsstap, nooit automatisch.
 - **Mijn open vragen erover**: (1) Welk marketingdashboard: bestaat het al, en waar? (2) "Altijd live": bewaking dat site en dashboard bereikbaar zijn, of dat de cijfers altijd actueel zijn? (3) Mag Zarvis campagnes en budgetten wijzigen, of alleen analyseren en voorstellen? (4) Welke bronnen: Google Ads, Analytics, Search Console, Ahrefs, Meta?
 - **Behandeling**: parkeren tot IDEE-10 loopt; eerst nagaan welke toegang er bestaat.
-- **Status**: open
+- **Status**: verkend (2026-11-24), zie `docs/VERKENNING-MARKETING.md`. Google Ads en Search Console lopen al echt in het dashboard van de website; Zarvis kan er nog niet bij. Volgende stap: een leesloket in het project van de website. Wacht op vijf antwoorden van Bram.
 
 ## IDEE-12 — Werf-app: arbeidsuren, tijdsnormen, loonadministratie
 - **Datum**: 2026-11-23
@@ -120,7 +120,7 @@ Nummers zijn doorlopend en worden nooit hergebruikt.
 - **Eerste inschatting**: Er bestaat een Lovable-project "Zolderpunt Werf Base" (rollen, registraties, projecten, werkbonnen, afstemming, personeel, eigen Supabase). Ik heb de code nog niet gezien. Loonadministratie in België is gereglementeerd (sociaal secretariaat, RSZ, Checkinatwork op werven); een fout raakt lonen van mensen. Groot, en het deel met het hoogste risico van de vijf.
 - **Mijn open vragen erover**: (1) "Klaarmaken": de bestaande app afwerken, of de gegevens klaarzetten voor het sociaal secretariaat? Welk secretariaat, welk formaat? (2) Tijdsnormen: normtijden per taak om na te calculeren, of wettelijke arbeidstijd? (3) Wie registreert uren: eigen personeel, onderaannemers, beide? (4) Is er al echte data in de app?
 - **Behandeling**: parkeren; eerst de bestaande app lezen voor ik iets voorstel.
-- **Status**: open
+- **Status**: verkend (2026-11-24), zie `docs/VERKENNING-WERF.md`. Tijdsnormen bestaan in de praktijk nog niet; uren kennen twee waarheden. Volgende stap: een leesloket in Werf dat alleen totalen geeft. Wacht op vijf antwoorden van Bram.
 
 ## IDEE-13 — FINDASHBOARD: Zarvis als persoonlijke CFO
 - **Datum**: 2026-11-23
@@ -129,7 +129,7 @@ Nummers zijn doorlopend en worden nooit hergebruikt.
 - **Eerste inschatting**: Vermoedelijk het Lovable-project "Belhouse Financial Compass" (dagelijkse snapshots uit Yuki-boekhouding in Supabase, KPI's met uitleg, trends, scenario's). Niet bevestigd dat dit hetzelfde is als "FINDASHBOARD". Een CFO-rol betekent cashflow, marges per project, btw en vooruitblik; cijfers moeten aantoonbaar kloppen met de boekhouding, anders is elk advies gevaarlijk. Groot.
 - **Mijn open vragen erover**: (1) Is FINDASHBOARD het project "Belhouse Financial Compass"? (2) Persoonlijk of van de vennootschap, of beide? (3) Welke beslissingen wil je ermee nemen: prijszetting, aanwerven, investeren, liquiditeit? (4) Hoe actueel en volledig zijn de Yuki-gegevens?
 - **Behandeling**: parkeren; eerst het bestaande dashboard en zijn databron lezen.
-- **Status**: open
+- **Status**: verkend (2026-11-24), zie `docs/VERKENNING-FINANCIEN.md`. De cijfers komen elke nacht uit Yuki; cash, openstaande facturen en btw bestaan niet. Volgende stap: een leesloket in FINDASHBOARD. Wacht op vijf antwoorden van Bram.
 
 ## IDEE-14 — INVENSYNC: Zarvis als beheerder van de inventaris
 - **Datum**: 2026-11-23
@@ -138,7 +138,7 @@ Nummers zijn doorlopend en worden nooit hergebruikt.
 - **Eerste inschatting**: Lovable-project "INVENSYNC" (omschreven als Belhouse Inventory Hub: materialen en prijzen voor een houtbewerkingsbedrijf). Code nog niet gezien. "Beheerder" betekent voorraadstanden, bestelpunten, prijzen en koppeling met wat projecten verbruiken; de waarde hangt af van of de standen in de app overeenkomen met wat er echt ligt.
 - **Mijn open vragen erover**: (1) Wordt de app vandaag gebruikt en klopt de voorraad erin? (2) Mag Zarvis bestellingen voorbereiden bij leveranciers, of alleen signaleren? (3) Moet verbruik gekoppeld worden aan dossiers in Compass en aan de calculator? (4) Voor Belhouse, voor Zolderpunt, of beide?
 - **Behandeling**: parkeren; eerst de bestaande app lezen.
-- **Status**: open
+- **Status**: verkend (2026-11-24), zie `docs/VERKENNING-INVENTARIS.md`. Invensync is een prijscatalogus, geen voorraadbeheer: er bestaat nergens een voorraadstand. Wacht op Brams antwoord waar de echte voorraad staat.
 
 ## IDEE-15 — De rollen van Zarvis overzichtelijk tonen
 - **Datum**: 2026-11-23
