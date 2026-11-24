@@ -389,10 +389,10 @@ const UITVOERDERS: Record<string, Uitvoerder> = {
 
   pijplijn_overzicht: {
     label: () => 'Alle dossiers overlopen',
-    async voer(db) {
+    async voer(db, invoer: Record<string, unknown> = {}) {
       const [{ data, error }, pre, fases] = await Promise.all([
         db.from('leads')
-          .select('id, voornaam, achternaam, bouwflow_project_number, bouwflow_phase, category_override, status, volgende_stap, offerte_datum, updated_at')
+          .select('id, voornaam, achternaam, bouwflow_project_number, bouwflow_phase, category_override, status, volgende_stap, offerte_datum, offerte_bedrag_excl, budget_excl, updated_at')
           .order('updated_at', { ascending: false }).limit(400),
         db.from('pre_intake')
           .select('lead_id, videocall_scheduled_at, plaatsbezoek_scheduled_at')
@@ -407,7 +407,19 @@ const UITVOERDERS: Record<string, Uitvoerder> = {
       }
       const perCategorie: Record<string, number> = {};
       const perFase: Record<string, number> = {};
-      const dossiers = (data ?? []).map((l: any) => {
+      // B-099: filters (optioneel) op fase of categorie (deel van de naam) en op laatste wijziging.
+      const filterFase = typeof invoer?.fase === 'string' ? invoer.fase.trim().toLowerCase() : '';
+      const filterCat = typeof invoer?.categorie === 'string' ? invoer.categorie.trim().toLowerCase() : '';
+      const vanaf = typeof invoer?.gewijzigd_vanaf === 'string' ? invoer.gewijzigd_vanaf : '';
+      const totEn = typeof invoer?.gewijzigd_tot === 'string' ? invoer.gewijzigd_tot : '';
+      const dossiers = (data ?? []).filter((l: any) => {
+        const f = faseVan(l, fases);
+        if (filterFase && !(f.fase ?? '').toLowerCase().includes(filterFase)) return false;
+        if (filterCat && !(f.categorie ?? '').toLowerCase().includes(filterCat)) return false;
+        if (vanaf && String(l.updated_at).slice(0, 10) < vanaf) return false;
+        if (totEn && String(l.updated_at).slice(0, 10) > totEn) return false;
+        return true;
+      }).map((l: any) => {
         const f = faseVan(l, fases);
         const cat = f.categorie ?? 'onbekend';
         perCategorie[cat] = (perCategorie[cat] ?? 0) + 1;
@@ -421,6 +433,9 @@ const UITVOERDERS: Record<string, Uitvoerder> = {
           categorie: f.categorie,
           volgende_stap: l.volgende_stap || null,
           offerte_datum: l.offerte_datum,
+          // B-099: het bedrag excl. btw: de offerte als die er is, anders de calculatie in het dossier.
+          bedrag_excl: l.offerte_bedrag_excl ?? l.budget_excl ?? null,
+          bedrag_bron: l.offerte_bedrag_excl != null ? 'offerte' : l.budget_excl != null ? 'calculatie' : null,
           laatst_gewijzigd: l.updated_at,
           ...(afspraken.get(l.id) ?? {}),
         };
