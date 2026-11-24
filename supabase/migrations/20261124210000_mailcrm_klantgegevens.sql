@@ -81,7 +81,8 @@ select cron.alter_job(
       'secret', (select value from public.internal_config where key = 'mailcrm_sync_secret'),
       'alleen_status', true,
       'dossiers', public.mailcrm_dossiers()
-    )
+    ),
+    timeout_milliseconds := 20000
   );
   $job$
 );
