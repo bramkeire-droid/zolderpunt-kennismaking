@@ -415,7 +415,7 @@ Deno.serve(async (req) => {
         .eq('id', body.dossier_id).maybeSingle();
       if (error) throw new Error(error.message);
       if (!l) return json({ error: 'Dossier niet gevonden.' }, 404);
-      const fotoPaden = (Array.isArray(l.fotos) ? l.fotos : []).map((f: { path?: string }) => f?.path).filter((x): x is string => typeof x === 'string');
+      const fotoPaden = (Array.isArray(l.fotos) ? l.fotos : []).map((f: { path?: string; storage_path?: string }) => f?.storage_path || f?.path).filter((x): x is string => typeof x === 'string');
       const ondertekend = async (bucket: string, paden: string[]) => {
         if (!paden.length) return [];
         const { data, error: e } = await db.storage.from(bucket).createSignedUrls(paden, 3600);
@@ -601,7 +601,7 @@ Deno.serve(async (req) => {
             a.email && b.email && a.email.toLowerCase() === b.email.toLowerCase() ? 'zelfde mailadres' : '',
             naam(a) && naam(a) === naam(b) ? 'zelfde naam' : '',
           ].filter(Boolean);
-          if (waarom.length) paren.push({ van: a.id, naar: b.id, klant: `${b.voornaam} ${b.achternaam}`.trim(), dossiers_van_naar: perKlant.get(b.id) ?? [], waarom });
+          if (waarom.length) paren.push({ van: a.id, naar: b.id, klant: [b.voornaam, b.achternaam].filter(Boolean).join(' '), dossiers_van_naar: perKlant.get(b.id) ?? [], waarom });
         }
       }
       const proeven = await Promise.all(paren.slice(0, 20).map((p) => db.rpc('zarvis_klant_samenvoegen', { p_van: p.van, p_naar: p.naar })));
