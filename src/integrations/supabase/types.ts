@@ -205,6 +205,7 @@ export type Database = {
       dossier_chat: {
         Row: {
           bericht: string
+          bron: string | null
           created_at: string
           id: string
           lead_id: string
@@ -212,6 +213,7 @@ export type Database = {
         }
         Insert: {
           bericht: string
+          bron?: string | null
           created_at?: string
           id?: string
           lead_id: string
@@ -219,6 +221,7 @@ export type Database = {
         }
         Update: {
           bericht?: string
+          bron?: string | null
           created_at?: string
           id?: string
           lead_id?: string
@@ -233,6 +236,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      dossier_wijziging_log: {
+        Row: {
+          door: string | null
+          id: string
+          klant_oud: Json
+          lead_id: string
+          nieuw: Json
+          op: string
+          oud: Json
+          teruggedraaid_op: string | null
+        }
+        Insert: {
+          door?: string | null
+          id?: string
+          klant_oud?: Json
+          lead_id: string
+          nieuw: Json
+          op?: string
+          oud: Json
+          teruggedraaid_op?: string | null
+        }
+        Update: {
+          door?: string | null
+          id?: string
+          klant_oud?: Json
+          lead_id?: string
+          nieuw?: Json
+          op?: string
+          oud?: Json
+          teruggedraaid_op?: string | null
+        }
+        Relationships: []
       }
       gesprek_notities: {
         Row: {
@@ -1789,6 +1825,19 @@ export type Database = {
           media_ids: string[]
           notes: string
         }[]
+      }
+      zarvis_dossier_aanvullen: {
+        Args: {
+          p_bevestigd?: boolean
+          p_door?: string
+          p_lead: string
+          p_velden: Json
+        }
+        Returns: Json
+      }
+      zarvis_dossier_aanvullen_terug: {
+        Args: { p_bevestigd?: boolean; p_log: string }
+        Returns: Json
       }
       zarvis_klant_samenvoegen: {
         Args: {
