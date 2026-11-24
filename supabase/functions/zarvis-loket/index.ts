@@ -24,6 +24,8 @@
 //   { actie: 'opvolging', dagen?, ook_lange_termijn? }  (B-088, B-093) dossiers die een stap nodig hebben. Lezen.
 //   { actie: 'tijdlijn', dossier_id }  (B-089) alles over de kanalen van Compass heen. Lezen.
 //   { actie: 'documenten', dossier_id }  (B-098) rapport, foto's en documenten (links van een uur). Lezen.
+//   { actie: 'offertes_zonder_antwoord', dagen? }  (B-153) offertes in de wachtstand, oudste eerst. Lezen.
+//   { actie: 'calculaties_vergelijk', dossier_id, a?, b? }  (B-151) wat erbij, weg, duurder of goedkoper. Lezen.
 //   { actie: 'klant_dubbels' }   (L4) klanten zonder dossier die op een klant met dossier lijken
 //                             (zelfde gsm, zelfde mailadres of zelfde naam), met de droge proef per paar
 //   { actie: 'klant_samenvoegen', van, naar, bevestigd? }  (L4) SCHRIJFT na bevestiging, via de databankfunctie
@@ -378,6 +380,64 @@ Deno.serve(async (req) => {
         fotos: { aantal: fotoPaden.length, eerste: await ondertekend('lead-fotos', fotoPaden.slice(0, 20)) },
         documenten: await ondertekend('dossier-documenten', docPaden.slice(0, 50)),
         let_op: 'Links zijn een uur geldig. Zet ze nooit in een bericht aan iemand anders dan Bram.',
+      });
+    }
+    if (body?.actie === 'offertes_zonder_antwoord') {
+      // B-153: alleen lezen. Dossiers in de categorie offerte met een offertedatum, oudste offerte eerst: hoe oud,
+      // het bedrag, en wanneer er laatst iets gebeurde in WhatsApp en de chat. Mails voegt Zarvis toe uit Mail-CRM.
+      const b = body as typeof body & { dagen?: unknown };
+      const minDagen = Math.min(Math.max(Math.round(Number(b.dagen)) || 0, 0), 365);
+      const [kaart, leads] = await Promise.all([
+        db.from('bouwflow_phase_category_map').select('phase_id, phase_title, compass_category'),
+        db.from('leads').select('id, voornaam, achternaam, bouwflow_project_number, bouwflow_phase, category_override, offerte_datum, offerte_bedrag_excl, offerte_nummer, budget_excl, updated_at').not('offerte_datum', 'is', null).limit(1000),
+      ]);
+      if (kaart.error || leads.error) throw new Error((kaart.error ?? leads.error)!.message);
+      const fase = new Map((kaart.data ?? []).map((f) => [String(f.phase_id), f]));
+      const open = (leads.data ?? []).filter((l) => (l.category_override || fase.get(String(l.bouwflow_phase ?? ''))?.compass_category) === 'offerte');
+      const ids = open.map((l) => l.id);
+      const [wa, chat] = ids.length ? await Promise.all([
+        db.from('whatsapp_berichten').select('lead_id, verstuurd_op, van_mij').in('lead_id', ids).order('verstuurd_op', { ascending: false }).limit(2000),
+        db.from('dossier_chat').select('lead_id, created_at').in('lead_id', ids).order('created_at', { ascending: false }).limit(2000),
+      ]) : [{ data: [], error: null }, { data: [], error: null }];
+      if (wa.error || chat.error) throw new Error((wa.error ?? chat.error)!.message);
+      const laatsteWa = new Map<string, { op: string; van_klant: boolean }>();
+      for (const w of wa.data ?? []) if (!laatsteWa.has(w.lead_id)) laatsteWa.set(w.lead_id, { op: w.verstuurd_op, van_klant: !w.van_mij });
+      const laatsteChat = new Map<string, string>();
+      for (const c of chat.data ?? []) if (!laatsteChat.has(c.lead_id)) laatsteChat.set(c.lead_id, c.created_at);
+      const nu = Date.now();
+      const lijst = open.map((l) => ({
+        dossier_id: l.id, klant: [l.voornaam, l.achternaam].filter(Boolean).join(' ') || null, dossiernummer: l.bouwflow_project_number ?? null,
+        fase: fase.get(String(l.bouwflow_phase ?? ''))?.phase_title ?? null,
+        offerte_datum: l.offerte_datum, offerte_nummer: l.offerte_nummer ?? null, dagen_oud: Math.floor((nu - new Date(l.offerte_datum).getTime()) / 86400000),
+        bedrag_excl: l.offerte_bedrag_excl ?? l.budget_excl ?? null,
+        laatste_whatsapp: laatsteWa.get(l.id) ?? null, laatste_chat: laatsteChat.get(l.id) ?? null, laatst_gewijzigd: l.updated_at,
+      })).filter((x) => x.dagen_oud >= minDagen).sort((a, z) => z.dagen_oud - a.dagen_oud);
+      return json({ totaal: lijst.length, offertes: lijst.slice(0, 50), let_op: 'Alleen dossiers met een ingevulde offertedatum in de categorie offerte. Mails staan er niet in.' });
+    }
+    if (body?.actie === 'calculaties_vergelijk') {
+      // B-151: alleen lezen. De nieuwste twee calculaties van een dossier (of de twee gevraagde): wat kwam erbij,
+      // wat viel weg, wat werd duurder of goedkoper, en het verschil in totaal.
+      const b = body as typeof body & { a?: unknown; b?: unknown };
+      if (!isUuid(body.dossier_id)) return json({ error: 'Geef een dossier_id.' }, 400);
+      let q = db.from('calculaties').select('id, bron, budget_excl, budget_min_excl, budget_max_excl, inbegrepen_posten, created_at').eq('lead_id', body.dossier_id);
+      if (isUuid(b.a) && isUuid(b.b)) q = q.in('id', [b.a, b.b]);
+      const { data, error } = await q.order('created_at', { ascending: false }).limit(2);
+      if (error) throw new Error(error.message);
+      if (!data || data.length < 2) return json({ error: 'Er zijn geen twee calculaties om te vergelijken.' }, 409);
+      const [nieuw, oud] = data;
+      type P = { post: string; bedrag: number; categorie?: string };
+      const lees = (x: unknown) => new Map((Array.isArray(x) ? x as P[] : []).filter((p) => p?.post).map((p) => [p.post, p]));
+      const A = lees(oud.inbegrepen_posten), B = lees(nieuw.inbegrepen_posten);
+      const erbij = [...B.values()].filter((p) => !A.has(p.post)).map((p) => ({ post: p.post, bedrag: p.bedrag }));
+      const weg = [...A.values()].filter((p) => !B.has(p.post)).map((p) => ({ post: p.post, bedrag: p.bedrag }));
+      const anders = [...B.values()].filter((p) => A.has(p.post) && Number(A.get(p.post)!.bedrag) !== Number(p.bedrag))
+        .map((p) => ({ post: p.post, was: A.get(p.post)!.bedrag, nu: p.bedrag, verschil: Math.round((Number(p.bedrag) - Number(A.get(p.post)!.bedrag)) * 100) / 100 }))
+        .sort((x, y) => Math.abs(y.verschil) - Math.abs(x.verschil));
+      const kort = (c: typeof nieuw) => ({ id: c.id, op: c.created_at, bron: c.bron, budget_excl: c.budget_excl, min: c.budget_min_excl, max: c.budget_max_excl });
+      return json({
+        oud: kort(oud), nieuw: kort(nieuw),
+        verschil_totaal_excl: nieuw.budget_excl != null && oud.budget_excl != null ? Math.round((Number(nieuw.budget_excl) - Number(oud.budget_excl)) * 100) / 100 : null,
+        erbij, weg, anders, ongewijzigd: [...B.keys()].filter((k) => A.has(k) && Number(A.get(k)!.bedrag) === Number(B.get(k)!.bedrag)).length,
       });
     }
     if (body?.actie === 'klant_dubbels') {
