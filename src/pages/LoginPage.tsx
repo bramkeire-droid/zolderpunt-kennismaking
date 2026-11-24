@@ -15,12 +15,10 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<'login' | 'forgot'>('login');
-  // In het venster van Zarvis hoort ook het inlogscherm bij Zarvis: donker en rustig.
-  const zarvis = window.location.pathname.startsWith('/zarvis');
-  const veld = zarvis ? 'rounded-xl bg-white/[0.06] border-white/10 text-[#F3F5FA] placeholder:text-[#8792A8]' : 'bg-background';
-  const kop = `text-xl font-headline font-bold text-center mb-2 ${zarvis ? 'text-[#F3F5FA]' : 'text-foreground'}`;
-  const label = `font-body ${zarvis ? 'text-[#C3CBDA]' : ''}`;
-  const link = `text-sm hover:underline w-full text-center block ${zarvis ? 'text-[#8CCBFF]' : 'text-primary'}`;
+  const veld = 'bg-background';
+  const kop = 'text-xl font-headline font-bold text-center mb-2 text-foreground';
+  const label = 'font-body';
+  const link = 'text-sm hover:underline w-full text-center block text-primary';
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,16 +44,14 @@ export default function LoginPage() {
   };
 
   return (
-    <div className={`h-screen flex flex-col relative overflow-hidden ${zarvis ? 'bg-[#07090F]' : 'bg-background'}`}>
-      {!zarvis && <DecorativeAngle position="top-right" size={400} />}
-      {!zarvis && <DecorativeAngle position="bottom-left" color="secondary" size={250} />}
+    <div className="h-screen flex flex-col relative overflow-hidden bg-background">
+      <DecorativeAngle position="top-right" size={400} />
+      <DecorativeAngle position="bottom-left" color="secondary" size={250} />
 
-      <div className={`flex-1 flex flex-col items-center justify-center relative z-10 ${zarvis ? 'px-4' : ''}`}>
-        {zarvis
-          ? <p className="mb-8 font-headline text-[26px] font-semibold tracking-[-0.02em] text-[#F3F5FA]">Zarvis</p>
-          : <img src={logoBlauw} alt="Zolderpunt" className="h-14 mb-12" />}
+      <div className="flex-1 flex flex-col items-center justify-center relative z-10">
+        <img src={logoBlauw} alt="Zolderpunt" className="h-14 mb-12" />
 
-        <div className={`w-full max-w-sm p-8 ${zarvis ? 'rounded-2xl bg-white/[0.05]' : 'bg-card border border-border'}`}>
+        <div className="w-full max-w-sm p-8 bg-card border border-border">
           {mode === 'login' ? (
             <form onSubmit={handleLogin} className="space-y-5">
               <h2 className={kop}>Inloggen</h2>
@@ -84,7 +80,7 @@ export default function LoginPage() {
                 />
               </div>
 
-              <Button type="submit" disabled={loading} className={`w-full font-headline gap-2 ${zarvis ? 'rounded-full bg-[#2E8BFF] text-white hover:bg-[#4A9BFF]' : ''}`}>
+              <Button type="submit" disabled={loading} className="w-full font-headline gap-2">
                 {loading && <Loader2 className="h-4 w-4 animate-spin" />}
                 Inloggen
               </Button>
@@ -113,7 +109,7 @@ export default function LoginPage() {
                 />
               </div>
 
-              <Button type="submit" disabled={loading} className={`w-full font-headline gap-2 ${zarvis ? 'rounded-full bg-[#2E8BFF] text-white hover:bg-[#4A9BFF]' : ''}`}>
+              <Button type="submit" disabled={loading} className="w-full font-headline gap-2">
                 {loading && <Loader2 className="h-4 w-4 animate-spin" />}
                 Verstuur reset-link
               </Button>

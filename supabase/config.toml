@@ -42,33 +42,6 @@ verify_jwt = false
 [functions.push-nieuwe-dossiers]
 verify_jwt = false
 
-# Zarvis (SPRINTPLAN-ZARVIS). De functie controleert de login ook zelf in code,
-# omdat verify_jwt in dit project niet afgedwongen blijkt te worden.
-[functions.zarvis]
-verify_jwt = true
-
-# Proef met het gezicht van Zarvis (Anam). Controleert login en rol zelf in code.
-[functions.zarvis-gezicht]
-verify_jwt = true
-
-# De Vlaamse stem van Zarvis (Azure Speech). Controleert login en rol zelf in code.
-[functions.zarvis-stem]
-verify_jwt = true
-
-# WhatsApp-berichten van het Zarvis-programma (gekoppeld toestel), alleen lezen.
-[functions.whatsapp-koppeling]
-verify_jwt = true
-
-# De uitvoerder van geplande taken. Wordt gewekt door de klok in de databank,
-# die geen login heeft; de functie aanvaardt alleen een vers eenmalig bewijs uit
-# de tabel zarvis_tik (zie de functie zelf).
-[functions.zarvis-taken]
-verify_jwt = false
-
-# De Ja-knop: voert een voorstel uit de wachtrij pas uit nadat de gebruiker zelf goedkeurde.
-[functions.zarvis-goedkeuren]
-verify_jwt = true
-
 # Loket voor Zarvis (eigen project sinds 2026-11-24). De login komt uit het project van Zarvis,
 # dus niet uit dit project: de functie kijkt ze zelf na bij Zarvis.
 [functions.zarvis-loket]
