@@ -38,7 +38,7 @@ const CONNECTOREN: Connector[] = [
   { sleutel: 'whatsapp', naam: 'WhatsApp', uitleg: 'Leest je gesprekken met klanten mee en verstuurt wat je Zarvis laat versturen. Een bericht aan een klant leest Zarvis je eerst voor. Alleen nummers uit je dossiers worden bewaard.', soort: 'gebouwd' },
   { sleutel: 'stem', naam: 'Vlaamse stem', uitleg: 'Luisteren en spreken in het Vlaams via Azure. Uit: de stem van je computer.', soort: 'gebouwd' },
   { sleutel: 'maps', naam: 'Google Maps', uitleg: 'Ritten berekenen: afstand en rijtijd met verkeer, naar een adres of naar een klant. Vraagt een sleutel van Google op de server; ontbreekt die, dan zegt Zarvis dat zelf.', soort: 'gebouwd' },
-  { sleutel: 'mail', naam: 'Mail', uitleg: 'Mails lezen en aan dossiers koppelen, zoals Maildude.', soort: 'later' },
+  { sleutel: 'mail', naam: 'Mail', uitleg: 'Leest de mails en telefoongesprekken die aan een dossier gekoppeld zijn, uit de twee mailboxen van Mail-CRM. Versturen en zelf koppelen kan nog niet.', soort: 'gebouwd' },
   { sleutel: 'agenda', naam: 'Agenda en Calendly', uitleg: 'Afspraken lezen en plannen.', soort: 'later' },
   { sleutel: 'bouwflow', naam: 'Bouwflow', uitleg: 'Rechtstreeks in Bouwflow werken. Wat Compass al uit Bouwflow overneemt, leest Zarvis vandaag via Compass.', soort: 'later' },
   { sleutel: 'todoist', naam: 'Todoist', uitleg: 'Taken lezen en aanmaken.', soort: 'later' },
@@ -73,7 +73,7 @@ export default function ZarvisBeheer() {
     void leesInstellingen().then((i) => {
       // Bij de eerste start gelden de keuzes uit het installatieprogramma.
       const vraag = new URLSearchParams(window.location.search);
-      const uitInstallatie = Object.fromEntries(['whatsapp', 'stem', 'maps'].filter((s) => vraag.get(s) === '0').map((s) => [s, false]));
+      const uitInstallatie = Object.fromEntries(['whatsapp', 'stem', 'maps', 'mail'].filter((s) => vraag.get(s) === '0').map((s) => [s, false]));
       zetAan({ ...i.connectoren, ...uitInstallatie });
       zetGeladen(true);
     });

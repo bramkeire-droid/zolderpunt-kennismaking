@@ -16,6 +16,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import Anthropic from 'npm:@anthropic-ai/sdk@1';
 import { LEES_GEREEDSCHAP, voerUit } from '../_shared/zarvis/gereedschap.ts';
+import { bel } from '../_shared/zarvis/bellen.ts';
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
@@ -45,7 +46,7 @@ function kiesModel(): { client: Anthropic; model: string } | null {
 type Taak = {
   id: string; user_id: string; soort: 'herinnering' | 'controle' | 'whatsapp'; opdracht: string;
   doel: { mij?: boolean; telefoon?: string; naam?: string; lead_id?: string } | null;
-  verwittig: 'melding' | 'whatsapp' | 'beide'; volgende_op: string; elke_minuten: number | null;
+  verwittig: 'melding' | 'whatsapp' | 'beide' | 'bel'; volgende_op: string; elke_minuten: number | null;
   tot: string | null; max_beurten: number; beurten: number;
 };
 
@@ -112,8 +113,12 @@ Deno.serve(async (req) => {
   const uitslag: Array<{ id: string; status: string }> = [];
   for (const taak of (taken ?? []) as Taak[]) {
     const verwittig = async (tekst: string) => {
-      if (taak.verwittig !== 'whatsapp') await db.from('zarvis_meldingen').insert({ user_id: taak.user_id, tekst, taak_id: taak.id });
-      if (taak.verwittig !== 'melding') await db.from('whatsapp_uit').insert({ user_id: taak.user_id, telefoon: null, naam: 'jezelf', tekst: `Zarvis: ${tekst}`, taak_id: taak.id });
+      // Bellen: de boodschap staat ook altijd als melding klaar. Lukt de oproep
+      // niet, dan gaat ze bovendien als WhatsApp weg, met de reden erbij.
+      const oproep = taak.verwittig === 'bel' ? await bel(tekst) : null;
+      const naschrift = oproep && !oproep.gelukt ? ` (Ik kon je niet bellen: ${oproep.reden}.)` : '';
+      if (taak.verwittig !== 'whatsapp') await db.from('zarvis_meldingen').insert({ user_id: taak.user_id, tekst: tekst + naschrift, taak_id: taak.id });
+      if (taak.verwittig === 'whatsapp' || taak.verwittig === 'beide' || naschrift) await db.from('whatsapp_uit').insert({ user_id: taak.user_id, telefoon: null, naam: 'jezelf', tekst: `Zarvis: ${tekst}${naschrift}`, taak_id: taak.id });
     };
     // Eerst verzetten of afsluiten, dan pas uitvoeren: een taak die halverwege
     // faalt, mag niet elke minuut opnieuw beginnen.

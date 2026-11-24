@@ -66,7 +66,7 @@ export const DOE_GEREEDSCHAP: Def[] = [
         op: { type: 'string', description: 'Eerste keer op deze kloktijd in België, als JJJJ-MM-DDTUU:MM.' },
         elke_minuten: { type: 'integer', description: 'Herhaal om de zoveel minuten (minstens 5). Weglaten voor één keer.' },
         tot: { type: 'string', description: 'Herhalen stopt op deze kloktijd in België, als JJJJ-MM-DDTUU:MM. Verplicht bij herhalen.' },
-        verwittig: { type: 'string', enum: ['melding', 'whatsapp', 'beide'], description: 'Hoe de gebruiker verwittigd wordt: een melding op zijn pc, een WhatsApp naar zijn eigen nummer, of beide.' },
+        verwittig: { type: 'string', enum: ['melding', 'whatsapp', 'beide', 'bel'], description: 'Hoe de gebruiker verwittigd wordt: een melding op zijn pc, een WhatsApp naar zijn eigen nummer, beide, of "bel": Zarvis belt hem op zijn gsm en leest de boodschap voor. Kies bel alleen als de gebruiker erom vraagt of zegt dat het dringend is.' },
         dossier_id: { type: 'string', description: 'Alleen bij soort whatsapp aan een klant: het dossier van die klant.' },
         naar_mij: { type: 'boolean', description: 'Alleen bij soort whatsapp: stuur naar de gebruiker zelf.' },
         bevestigd: { type: 'boolean', description: 'Alleen bij soort whatsapp aan een klant: de gebruiker hoorde de tekst en zei ja.' },
@@ -176,7 +176,7 @@ export const DOE_UITVOERDERS: Record<string, { label: (i: Record<string, unknown
         }
         doel = b.telefoon ? b : { mij: true };
       }
-      const verwittig = ['melding', 'whatsapp', 'beide'].includes(String(invoer.verwittig)) ? String(invoer.verwittig) : 'melding';
+      const verwittig = ['melding', 'whatsapp', 'beide', 'bel'].includes(String(invoer.verwittig)) ? String(invoer.verwittig) : 'melding';
       const { data, error } = await db.from('zarvis_taken').insert({
         soort, opdracht, doel, verwittig, volgende_op: eerst.toISOString(), elke_minuten: elke, tot: tot?.toISOString() ?? null,
         max_beurten: elke && tot ? Math.min(200, Math.max(1, Math.ceil((tot.getTime() - eerst.getTime()) / (elke * 60000)) + 1)) : 1,
@@ -190,7 +190,7 @@ export const DOE_UITVOERDERS: Record<string, { label: (i: Record<string, unknown
           { label: 'Wat', waarde: soort === 'herinnering' ? 'Herinnering' : soort === 'whatsapp' ? `WhatsApp aan ${(doel as { naam?: string } | null)?.naam ?? 'jezelf'}` : 'Controle' },
           { label: 'Wanneer', waarde: zin },
           { label: soort === 'whatsapp' ? 'Bericht' : 'Opdracht', waarde: opdracht },
-          ...(soort === 'whatsapp' ? [] : [{ label: 'Verwittigen', waarde: verwittig === 'beide' ? 'melding en WhatsApp' : verwittig }]),
+          ...(soort === 'whatsapp' ? [] : [{ label: 'Verwittigen', waarde: verwittig === 'beide' ? 'melding en WhatsApp' : verwittig === 'bel' ? 'telefoonoproep' : verwittig }]),
         ] }] },
       };
     },

@@ -14,6 +14,7 @@
 
 import { belgischMoment, DOE_CONNECTOR, DOE_GEREEDSCHAP, DOE_UITVOERDERS } from './doen.ts';
 import { BUITEN_CONNECTOR, BUITEN_GEREEDSCHAP, maakBuitenUitvoerders } from './buiten.ts';
+import { MAIL_CONNECTOR, MAIL_GEREEDSCHAP, MAIL_UITVOERDERS } from './mail.ts';
 
 // deno-lint-ignore-file no-explicit-any
 type Db = any;
@@ -43,7 +44,8 @@ export type Bron = {
 type Uitvoerder = {
   /** Wat de gebruiker ziet terwijl het loopt. */
   label: (invoer: Record<string, unknown>) => string;
-  voer: (db: Db, invoer: Record<string, unknown>) => Promise<{ resultaat: unknown; detail: string; bron?: Bron }>;
+  /** ctx.token is het token van de ingelogde gebruiker; alleen nodig voor wat een dienst buiten Compass namens hem aanspreekt. */
+  voer: (db: Db, invoer: Record<string, unknown>, ctx?: { token?: string }) => Promise<{ resultaat: unknown; detail: string; bron?: Bron }>;
 };
 
 const dag = (iso: unknown) => {
@@ -105,7 +107,7 @@ const faseVan = (
  * beheersectie, dan krijgt het model dat gereedschap niet te zien en wordt het
  * ook niet uitgevoerd. Wat hier niet staat, hoort bij Compass en staat altijd aan.
  */
-const CONNECTOR_VAN: Record<string, string> = { lees_whatsapp: 'whatsapp', ...DOE_CONNECTOR, ...BUITEN_CONNECTOR };
+const CONNECTOR_VAN: Record<string, string> = { lees_whatsapp: 'whatsapp', ...DOE_CONNECTOR, ...BUITEN_CONNECTOR, ...MAIL_CONNECTOR };
 
 /** Het gereedschap dat deze gebruiker aan heeft staan. */
 export function gereedschapVoor(connectoren: Record<string, unknown> | null | undefined): GereedschapDef[] {
@@ -439,9 +441,12 @@ Object.assign(UITVOERDERS, DOE_UITVOERDERS);
 // Diensten buiten Compass (Google Maps) staan in buiten.ts.
 GEREEDSCHAP.push(...BUITEN_GEREEDSCHAP);
 Object.assign(UITVOERDERS, maakBuitenUitvoerders(belgischMoment));
+// Mails lezen via het loket van Mail-CRM staat in mail.ts.
+GEREEDSCHAP.push(...MAIL_GEREEDSCHAP);
+Object.assign(UITVOERDERS, MAIL_UITVOERDERS);
 
 /** Alleen lezen: wat een geplande controle op de achtergrond mag gebruiken. */
-export const LEES_GEREEDSCHAP = GEREEDSCHAP.filter((g) => !(g.name in DOE_UITVOERDERS));
+export const LEES_GEREEDSCHAP = GEREEDSCHAP.filter((g) => !(g.name in DOE_UITVOERDERS) && !(g.name in MAIL_UITVOERDERS));
 
 export function labelVan(naam: string, invoer: unknown): string {
   const u = UITVOERDERS[naam];
@@ -457,12 +462,13 @@ export async function voerUit(
   db: Db,
   naam: string,
   invoer: unknown,
+  ctx?: { token?: string },
 ): Promise<{ ok: boolean; tekst: string; detail: string; bron?: Bron }> {
   const u = UITVOERDERS[naam];
   if (!u) return { ok: false, tekst: `Onbekend gereedschap: ${naam}`, detail: 'bestaat niet' };
   const i = invoer && typeof invoer === 'object' ? (invoer as Record<string, unknown>) : {};
   try {
-    const { resultaat, detail, bron } = await u.voer(db, i);
+    const { resultaat, detail, bron } = await u.voer(db, i, ctx);
     // Begrensd: één gereedschap mag het gesprek niet volstorten.
     const tekst = JSON.stringify(resultaat);
     return { ok: true, tekst: tekst.length > 60000 ? tekst.slice(0, 60000) + '… (afgekapt)' : tekst, detail, bron };

@@ -102,7 +102,7 @@ Nummers zijn doorlopend en worden nooit hergebruikt.
 - **Mijn open vragen erover**: (1) Vervangt Zarvis Maildude, of blijft Maildude de motor en wordt Zarvis de bediening? (2) "Laatste 6 maanden": voor alle mailboxen, en wat met oudere mails van dossiers die nog lopen? (3) Wat betekent "beter" concreet: minder foute koppelingen, sneller, goedkoper, of minder handwerk in de review-wachtrij? (4) Mag de regel "Compass schrijft niets naar de Mail-CRM-databank" vervallen?
 - **Behandeling**: parkeren tot het open dossier doorgegeven wordt aan Zarvis; daarna als eerste van deze vijf, want het sluit aan op het leesgereedschap dat er al is.
 - **Aanvulling 2026-11-24, Bram zei letterlijk**: "Zoeg dat ZARVIS aan verschillende mailboxn gekoppeld wordt zoals maildude". Meerdere mailboxen, niet één. Bram gaf op 2026-11-24 ook toestemming om in de Mail-CRM-databank te schrijven.
-- **Status**: open
+- **Status**: deels (2026-11-24): Zarvis leest de mails van een dossier (`lees_mails`, `lees_mail`). Open: zoeken op tekst, koppelen met vaste regels, meerdere mailboxen. Zie `docs/VERKENNING-MAILDUDE.md`; open vraag aan Bram of hij Mail-CRM, de app Maildude of beide bedoelt.
 
 ## IDEE-11 — Zarvis als marketeer en Google Ads-expert
 - **Datum**: 2026-11-23
@@ -265,4 +265,4 @@ Nummers zijn doorlopend en worden nooit hergebruikt.
 - **Eerste inschatting**: Twee stukken. (1) Het bellen zelf: een echte telefoonoproep naar Brams gsm vraagt een beldienst (bijvoorbeeld Twilio) met een sleutel en een nummer; Zarvis leest dan de boodschap voor met de Vlaamse stem. Zonder beldienst kan alleen een WhatsApp-bericht of een melding, en dat is geen bellen. Een WhatsApp-oproep via Baileys is niet betrouwbaar en verhoogt het risico op blokkering. (2) Wat dringend is: een gereedschap `bel_gebruiker` dat een gesprek of een geplande controle (`zarvis-taken`) mag gebruiken, met een rem zodat hij niet 's nachts of tien keer na elkaar belt. "Besproken" wijst op een gesprek in twee richtingen: Bram antwoordt aan de telefoon en Zarvis luistert. Dat is zwaarder dan alleen voorlezen; eerst voorlezen met "bel terug of open Zarvis", daarna het echte gesprek.
 - **Mijn open vragen erover**: (1) Welke dingen zijn dringend genoeg om te bellen? (2) Mag hij ook 's nachts en in het weekend bellen? (3) Een beldienst kost per oproep en vraagt een sleutel: akkoord met Twilio?
 - **Behandeling**: na de lopende taak (Maildude, IDEE-10). Alles tot aan de sleutel bouwen; de sleutel plakt Bram zelf in Lovable.
-- **Status**: open
+- **Status**: gebouwd tot aan de sleutel (2026-11-24): een taak met verwittig "bel" belt via Twilio en leest voor. Wacht op de vier secrets van Bram. Een gesprek in twee richtingen is niet gebouwd.
