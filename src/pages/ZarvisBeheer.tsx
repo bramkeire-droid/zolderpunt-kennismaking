@@ -43,7 +43,7 @@ const CONNECTOREN: Connector[] = [
   { sleutel: 'agenda', naam: 'Agenda en Calendly', uitleg: 'Afspraken lezen en plannen.', soort: 'later' },
   { sleutel: 'bouwflow', naam: 'Bouwflow', uitleg: 'Rechtstreeks in Bouwflow werken. Wat Compass al uit Bouwflow overneemt, leest Zarvis vandaag via Compass.', soort: 'later' },
   { sleutel: 'todoist', naam: 'Todoist', uitleg: 'Taken lezen en aanmaken.', soort: 'later' },
-  { sleutel: 'marketing', naam: 'Marketing en Google Ads', uitleg: 'Leest de cijfers van de website en van Google Ads, en sluit zelf zoektermen uit die geld kosten zonder iets op te leveren. Terugdraaien kan altijd. Budget en biedingen aanpassen kan nog niet.', soort: 'gebouwd' },
+  { sleutel: 'marketing', naam: 'Marketing en Google Ads', uitleg: 'Leest de cijfers van de website en van Google Ads, en stelt voor welke zoektermen uitgesloten moeten worden. Er wordt niets uitgesloten zonder jouw ja; terugdraaien kan altijd. Budget en biedingen aanpassen kan nog niet.', soort: 'gebouwd' },
   { sleutel: 'werf', naam: 'Werf en lonen', uitleg: 'Arbeidsuren, tijdsnormen en loonadministratie.', soort: 'later' },
   { sleutel: 'financien', naam: 'Financiën', uitleg: 'Je cijfers, zoals in FINDASHBOARD.', soort: 'later' },
   { sleutel: 'inventaris', naam: 'Inventaris', uitleg: 'Je voorraad, zoals in INVENSYNC.', soort: 'later' },

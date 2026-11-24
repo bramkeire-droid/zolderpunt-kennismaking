@@ -1,9 +1,13 @@
 // Zarvis als marketeer (IDEE-11 en IDEE-29): de cijfers van de website en van
 // Google Ads lezen, en dure zoektermen zelf uitsluiten.
 //
+// Bram, 2026-11-24: "Er worden alleen zaken uitgesloten na mijn bevestigen".
+// Uitsluiten en terugdraaien gebeurt dus alleen met bevestigd: true; het loket
+// weigert de rest in zijn eigen code.
+//
 // Alles loopt via het loket `compass-marketing-loket` in het project van de
 // website, met het token van de ingelogde gebruiker. Alleen een beheerder van
-// Compass komt daar binnen. De regel voor wat uitgesloten mag worden (minstens
+// Compass komt daar binnen. De regel voor wat voorgesteld mag worden (minstens
 // 5 klikken, 20 euro kost en geen conversie in 90 dagen, hoogstens 20 per keer)
 // zit in het loket, niet hier en niet bij het taalmodel. Uitvoeren in Google Ads
 // doet de nachtelijke synchronisatie van de website, langs de weg die het
@@ -38,12 +42,12 @@ export const MARKETING_GEREEDSCHAP: Def[] = [
   {
     name: 'sluit_zoektermen_uit',
     description:
-      'Sluit zoektermen uit in Google Ads, zodat er geen geld meer naar gaat. Doe dit zelf, zonder eerst te vragen, voor termen waar marketing_zoektermen "mag_uitgesloten" bij zegt en die duidelijk niets met een zolder laten inrichten of renoveren te maken hebben. Twijfel je of een term een echte klant kan zijn, sluit hem dan niet uit en zeg waarom. Het loket weigert zelf wat te weinig bewijs heeft. De uitsluiting gaat vannacht in en is terug te draaien. Zeg achteraf welke termen je uitsloot en hoeveel ze kostten.',
-    input_schema: { type: 'object', properties: { zoektermen: { type: 'array', items: { type: 'string' }, description: 'De zoektermen, letterlijk zoals in marketing_zoektermen. Hoogstens 20.' } }, required: ['zoektermen'] },
+      'Sluit zoektermen uit in Google Ads, zodat er geen geld meer naar gaat. Dit gebeurt ALLEEN na een duidelijk ja van de gebruiker. Eerste keer: roep dit aan zonder "bevestigd"; er verandert dan niets, je krijgt een voorstel terug. Lees dat voor: welke termen, wat ze kostten, en welke het loket weigerde. Vraag of het zo mag. Pas na zijn ja roep je dit opnieuw aan met dezelfde termen en bevestigd: true. Stel alleen termen voor waar marketing_zoektermen "mag_uitgesloten" bij zegt en die duidelijk niets met een zolder laten inrichten of renoveren te maken hebben. De uitsluiting gaat de nacht erna in en is terug te draaien.',
+    input_schema: { type: 'object', properties: { zoektermen: { type: 'array', items: { type: 'string' }, description: 'De zoektermen, letterlijk zoals in marketing_zoektermen. Hoogstens 20.' }, bevestigd: { type: 'boolean', description: 'Alleen true als de gebruiker het voorstel hoorde en ja zei.' } }, required: ['zoektermen'] },
   },
   {
     name: 'laat_zoektermen_weer_toe',
-    description: 'Draait een uitsluiting terug: de zoektermen mogen weer advertenties tonen. Gaat vannacht in.',
+    description: 'Draait een uitsluiting terug: de zoektermen mogen weer advertenties tonen. Alleen op vraag van de gebruiker. Gaat de nacht erna in.',
     input_schema: { type: 'object', properties: { zoektermen: { type: 'array', items: { type: 'string' } } }, required: ['zoektermen'] },
   },
 ];
@@ -102,8 +106,21 @@ export const MARKETING_UITVOERDERS: Record<string, { label: (i: Record<string, u
     async voer(_db, invoer, ctx) {
       const lijst = termen(invoer);
       if (!lijst.length) return { resultaat: { fout: 'Geef de zoektermen.' }, detail: 'leeg' };
-      const r = await loket<{ uitgesloten: Term[]; geweigerd: Array<{ zoekterm: string; reden: string }>; bespaard_per_90_dagen: number; wanneer: string }>(ctx, { action: 'sluit_uit', termen: lijst });
+      const r = await loket<{ voorstel?: Term[]; uitgesloten: Term[]; geweigerd: Array<{ zoekterm: string; reden: string }>; bespaard_per_90_dagen?: number; zou_besparen_per_90_dagen?: number; wanneer: string }>(ctx, { action: 'sluit_uit', termen: lijst, bevestigd: invoer.bevestigd === true });
       if ('fout' in r) return { resultaat: r, detail: 'loket' };
+      if (r.voorstel) {
+        return {
+          resultaat: r,
+          detail: `voorstel: ${r.voorstel.length}, wacht op ja`,
+          bron: {
+            titel: 'Voorstel: zoektermen uitsluiten', ondertitel: 'Er is niets veranderd. Wacht op jouw ja.',
+            secties: [
+              { kop: `Zou ${euro(r.zou_besparen_per_90_dagen)} per 90 dagen besparen`, leeg: 'Niets voor te stellen.', lijst: r.voorstel.map((t) => ({ tekst: t.zoekterm, rechts: `${euro(t.kost)} · ${t.klikken} kl.` })) },
+              ...(r.geweigerd.length ? [{ kop: 'Geweigerd door het loket', lijst: r.geweigerd.map((g) => ({ tekst: g.zoekterm, rechts: g.reden })) }] : []),
+            ],
+          },
+        };
+      }
       return {
         resultaat: r,
         detail: `${r.uitgesloten.length} uitgesloten, ${r.geweigerd.length} geweigerd`,
