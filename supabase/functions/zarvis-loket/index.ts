@@ -69,13 +69,29 @@ const postenVan = (x: unknown) => (Array.isArray(x) ? x as Post[] : []).filter((
 const rond = (n: number) => Math.round(n * 100) / 100;
 /** Wat kwam erbij, viel weg of werd duurder/goedkoper tussen twee versies van inbegrepen_posten (B-151, ook B-150). */
 function verschilPosten(oudX: unknown, nieuwX: unknown) {
-  const A = new Map(postenVan(oudX).map((p) => [p.post, p])), B = new Map(postenVan(nieuwX).map((p) => [p.post, p]));
-  const erbij = [...B.values()].filter((p) => !A.has(p.post)).map((p) => ({ post: p.post, bedrag: p.bedrag }));
-  const weg = [...A.values()].filter((p) => !B.has(p.post)).map((p) => ({ post: p.post, bedrag: p.bedrag }));
-  const anders = [...B.values()].filter((p) => A.has(p.post) && Number(A.get(p.post)!.bedrag) !== Number(p.bedrag))
-    .map((p) => ({ post: p.post, was: A.get(p.post)!.bedrag, nu: p.bedrag, verschil: rond(Number(p.bedrag) - Number(A.get(p.post)!.bedrag)) }))
+  // Sleutel is categorie plus post: twee posten met dezelfde naam in een andere categorie vallen niet samen.
+  const sl = (p: Post) => `${p.categorie ?? 'standaard'}|${p.post}`;
+  const A = new Map(postenVan(oudX).map((p) => [sl(p), p])), B = new Map(postenVan(nieuwX).map((p) => [sl(p), p]));
+  const erbij = [...B.values()].filter((p) => !A.has(sl(p))).map((p) => ({ post: p.post, bedrag: p.bedrag }));
+  const weg = [...A.values()].filter((p) => !B.has(sl(p))).map((p) => ({ post: p.post, bedrag: p.bedrag }));
+  const anders = [...B.values()].filter((p) => A.has(sl(p)) && Number(A.get(sl(p))!.bedrag) !== Number(p.bedrag))
+    .map((p) => ({ post: p.post, was: A.get(sl(p))!.bedrag, nu: p.bedrag, verschil: rond(Number(p.bedrag) - Number(A.get(sl(p))!.bedrag)) }))
     .sort((x, y) => Math.abs(y.verschil) - Math.abs(x.verschil));
   return { erbij, weg, anders, ongewijzigd: [...B.keys()].filter((k) => A.has(k) && Number(A.get(k)!.bedrag) === Number(B.get(k)!.bedrag)).length };
+}
+
+/** Alle rijen van een vraag: PostgREST geeft hoogstens 1000 rijen per keer, dus per 1000 tot een korte pagina.
+ *  maak() bouwt telkens dezelfde vraag opnieuw, met een vaste .order, anders schuiven de pagina's. */
+// deno-lint-ignore no-explicit-any
+async function alle(maak: () => any): Promise<any[]> {
+  // deno-lint-ignore no-explicit-any
+  const rijen: any[] = [];
+  for (let van = 0; ; van += 1000) {
+    const { data, error } = await maak().range(van, van + 999);
+    if (error) throw new Error(error.message);
+    rijen.push(...(data ?? []));
+    if ((data ?? []).length < 1000) return rijen;
+  }
 }
 
 /** Is dit iemand met een rol in Zarvis? Geeft zijn mailadres, of null. */
@@ -196,9 +212,9 @@ Deno.serve(async (req) => {
       const [kaart, leads, calcs] = await Promise.all([
         db.from('bouwflow_phase_category_map').select('phase_id, phase_title, compass_category, sort_order').order('sort_order'),
         db.from('leads').select('id, voornaam, achternaam, bouwflow_phase, category_override, status, updated_at, offerte_datum').limit(2000),
-        db.from('calculaties').select('lead_id, budget_excl, created_at').order('created_at', { ascending: false }).limit(2000),
+        alle(() => db.from('calculaties').select('lead_id, budget_excl, created_at').order('created_at', { ascending: false }).order('id')),
       ]);
-      if (kaart.error || leads.error || calcs.error) throw new Error((kaart.error ?? leads.error ?? calcs.error)!.message);
+      if (kaart.error || leads.error) throw new Error((kaart.error ?? leads.error)!.message);
       const nu = Date.now();
       const dagen = (iso: string | null) => iso ? Math.floor((nu - new Date(iso).getTime()) / 86400000) : null;
       const fases = (kaart.data ?? []).map((f) => ({ fase: f.phase_title as string, categorie: f.compass_category as string, aantal: 0, stil_14_dagen: 0, _id: String(f.phase_id) }));
@@ -211,7 +227,7 @@ Deno.serve(async (req) => {
         if ((dagen(l.updated_at) ?? 0) > 14) f.stil_14_dagen++;
       }
       const laatste = new Map<string, { budget_excl: number | null; created_at: string }>();
-      for (const c of calcs.data ?? []) if (c.lead_id && !laatste.has(c.lead_id)) laatste.set(c.lead_id, c);
+      for (const c of calcs) if (c.lead_id && !laatste.has(c.lead_id)) laatste.set(c.lead_id, c);
       const lopend = (leads.data ?? [])
         .filter((l) => (l.category_override || perId.get(String(l.bouwflow_phase ?? ''))?.categorie) === 'offerte')
         .map((l) => {
@@ -323,11 +339,12 @@ Deno.serve(async (req) => {
         db.from('leads').select('id, voornaam, achternaam, bouwflow_project_number, bouwflow_phase, category_override, volgende_stap, updated_at').limit(2000),
         db.from('pre_intake').select('lead_id, videocall_scheduled_at, plaatsbezoek_scheduled_at').limit(4000),
         // B-088 (2026-11-24): sinds wanneer elk dossier in zijn fase zit, uit dossier_fase_log (nieuwste rij per dossier).
-        db.from('dossier_fase_log').select('lead_id, op, zeker').order('op', { ascending: false }).limit(1000),
+        // Per 1000 geblaard, zodat geen dossier zijn nieuwste rij verliest; een fout gooit nu in plaats van stil leeg te geven.
+        alle(() => db.from('dossier_fase_log').select('lead_id, op, zeker').order('op', { ascending: false }).order('id')),
       ]);
       if (kaart.error || leads.error || pre.error) throw new Error((kaart.error ?? leads.error ?? pre.error)!.message);
       const inFase = new Map<string, { op: string; zeker: boolean }>();
-      for (const r of faselog.error ? [] : faselog.data ?? []) if (!inFase.has(r.lead_id)) inFase.set(r.lead_id, { op: r.op, zeker: r.zeker });
+      for (const r of faselog) if (!inFase.has(r.lead_id)) inFase.set(r.lead_id, { op: r.op, zeker: r.zeker });
       const fase = new Map((kaart.data ?? []).map((f) => [String(f.phase_id), f]));
       const nu = Date.now();
       const afspraak = new Map<string, string>();
@@ -336,9 +353,11 @@ Deno.serve(async (req) => {
       }
       const dicht = new Set(['afgewezen', 'uitv_voltooid', 'uitv_geannuleerd']);
       const vroeg = new Set(['nieuw', 'telefoon', 'video', 'plaatsbezoek']);
+      let zonderCategorie = 0; // geen fase in de kaart en geen override: valt buiten de lijst, maar wordt geteld
       const lijst = (leads.data ?? []).map((l) => {
         const f = fase.get(String(l.bouwflow_phase ?? ''));
         const categorie = l.category_override || f?.compass_category || null;
+        if (!categorie) zonderCategorie++;
         const stil = Math.floor((nu - new Date(l.updated_at).getTime()) / 86400000);
         const redenen = [
           stil > dagen ? `${stil} dagen niet gewijzigd` : '',
@@ -352,7 +371,7 @@ Deno.serve(async (req) => {
           dagen_in_fase_zeker: inFase.get(l.id)?.zeker ?? false };
       }).filter((d) => d.categorie && !dicht.has(d.categorie) && (b.ook_lange_termijn === true || d.categorie !== 'opvolging') && d.redenen.length > 0)
         .sort((a, z) => z.stil_dagen - a.stil_dagen);
-      return json({ dagen, totaal: lijst.length, dossiers: lijst.slice(0, 40), let_op: 'Dagen in de fase komt uit de fasegeschiedenis die Compass sinds 24 november 2026 bijhoudt. Is dagen_in_fase_zeker false, dan is het de laatste wijziging van het dossier van vóór die datum, niet het echte moment van de fasewissel.' });
+      return json({ dagen, totaal: lijst.length, zonder_categorie: zonderCategorie, dossiers: lijst.slice(0, 40), let_op: 'Dagen in de fase komt uit de fasegeschiedenis die Compass sinds 24 november 2026 bijhoudt. Is dagen_in_fase_zeker false, dan is het de laatste wijziging van het dossier van vóór die datum, niet het echte moment van de fasewissel.' });
     }
     if (body?.actie === 'tijdlijn') {
       // B-089: alleen lezen. Wat er met een klant gebeurde over de kanalen van Compass heen, nieuwste eerst:
@@ -361,11 +380,12 @@ Deno.serve(async (req) => {
       const id = body.dossier_id;
       const [l, gesprekken, notities, chat, wa, calcs, pre] = await Promise.all([
         db.from('leads').select('id, voornaam, achternaam, bouwflow_project_number, offerte_datum, offerte_bedrag_excl, created_at').eq('id', id).maybeSingle(),
-        db.from('gesprekken').select('type, gestart_op, beeindigd_op').eq('lead_id', id).limit(50),
-        db.from('gesprek_notities').select('soort, tekst, created_at, bron').eq('lead_id', id).limit(100),
-        db.from('dossier_chat').select('bericht, created_at, bron').eq('lead_id', id).limit(100),
+        // Nieuwste eerst, zodat bij te veel rijen de oudste wegvallen en niet willekeurige.
+        db.from('gesprekken').select('type, gestart_op, beeindigd_op').eq('lead_id', id).order('gestart_op', { ascending: false }).limit(50),
+        db.from('gesprek_notities').select('soort, tekst, created_at, bron').eq('lead_id', id).order('created_at', { ascending: false }).limit(100),
+        db.from('dossier_chat').select('bericht, created_at, bron').eq('lead_id', id).order('created_at', { ascending: false }).limit(100),
         db.from('whatsapp_berichten').select('van_mij, verstuurd_op, soort, tekst').eq('lead_id', id).order('verstuurd_op', { ascending: false }).limit(60),
-        db.from('calculaties').select('budget_excl, created_at').eq('lead_id', id).limit(20),
+        db.from('calculaties').select('budget_excl, created_at').eq('lead_id', id).order('created_at', { ascending: false }).limit(20),
         db.from('pre_intake').select('videocall_scheduled_at, plaatsbezoek_scheduled_at').eq('lead_id', id).limit(5),
       ]);
       for (const r of [l, gesprekken, notities, chat, wa, calcs, pre]) if (r.error) throw new Error(r.error.message);
@@ -403,11 +423,13 @@ Deno.serve(async (req) => {
         return (data ?? []).map((d) => ({ naam: (d.path ?? '').split('/').pop(), link: d.signedUrl }));
       };
       const docPaden: string[] = [];
-      const { data: lijst1 } = await db.storage.from('dossier-documenten').list(l.id, { limit: 100 });
+      const { data: lijst1, error: e1 } = await db.storage.from('dossier-documenten').list(l.id, { limit: 100 });
+      if (e1) throw new Error(e1.message);
       for (const o of lijst1 ?? []) {
         if (o.id) docPaden.push(`${l.id}/${o.name}`);
         else {
-          const { data: lijst2 } = await db.storage.from('dossier-documenten').list(`${l.id}/${o.name}`, { limit: 100 });
+          const { data: lijst2, error: e2 } = await db.storage.from('dossier-documenten').list(`${l.id}/${o.name}`, { limit: 100 });
+          if (e2) throw new Error(e2.message);
           for (const p of lijst2 ?? []) if (p.id) docPaden.push(`${l.id}/${o.name}/${p.name}`);
         }
       }
@@ -417,6 +439,7 @@ Deno.serve(async (req) => {
         rapport_delen: { situatie: l.rapport_situatie_ai ?? null, verwachtingen: l.rapport_verwachtingen_ai ?? null, besproken: l.rapport_besproken_ai ?? null, aandachtspunten: l.rapport_aandachtspunten_ai ?? null },
         fotos: { aantal: fotoPaden.length, eerste: await ondertekend('lead-fotos', fotoPaden.slice(0, 20)) },
         documenten: await ondertekend('dossier-documenten', docPaden.slice(0, 50)),
+        documenten_aantal: docPaden.length, // alle gevonden documenten; de lijst hierboven toont er hoogstens 50
         let_op: 'Links zijn een uur geldig. Zet ze nooit in een bericht aan iemand anders dan Bram.',
       });
     }
@@ -434,16 +457,19 @@ Deno.serve(async (req) => {
       // Compass vult de offertedatum zelden in: ook de fases waarin de offerte (of raming) verstuurd is tellen mee.
       const open = (leads.data ?? []).filter((l) => (l.category_override || fase.get(String(l.bouwflow_phase ?? ''))?.compass_category) === 'offerte'
         && (l.offerte_datum || /verstuurd/i.test(fase.get(String(l.bouwflow_phase ?? ''))?.phase_title ?? '')));
-      const ids = open.map((l) => l.id);
-      const [wa, chat] = ids.length ? await Promise.all([
-        db.from('whatsapp_berichten').select('lead_id, verstuurd_op, van_mij').in('lead_id', ids).order('verstuurd_op', { ascending: false }).limit(2000),
-        db.from('dossier_chat').select('lead_id, created_at').in('lead_id', ids).order('created_at', { ascending: false }).limit(2000),
-      ]) : [{ data: [], error: null }, { data: [], error: null }];
-      if (wa.error || chat.error) throw new Error((wa.error ?? chat.error)!.message);
+      // Per dossier één vraag naar het laatste bericht, zodat de grens van 1000 rijen niet speelt (het zijn weinig dossiers).
       const laatsteWa = new Map<string, { op: string; van_klant: boolean }>();
-      for (const w of wa.data ?? []) if (!laatsteWa.has(w.lead_id)) laatsteWa.set(w.lead_id, { op: w.verstuurd_op, van_klant: !w.van_mij });
       const laatsteChat = new Map<string, string>();
-      for (const c of chat.data ?? []) if (!laatsteChat.has(c.lead_id)) laatsteChat.set(c.lead_id, c.created_at);
+      await Promise.all(open.map(async (l) => {
+        const [wa, chat] = await Promise.all([
+          db.from('whatsapp_berichten').select('verstuurd_op, van_mij').eq('lead_id', l.id).order('verstuurd_op', { ascending: false }).limit(1),
+          db.from('dossier_chat').select('created_at').eq('lead_id', l.id).order('created_at', { ascending: false }).limit(1),
+        ]);
+        if (wa.error || chat.error) throw new Error((wa.error ?? chat.error)!.message);
+        const w = wa.data?.[0], c = chat.data?.[0];
+        if (w) laatsteWa.set(l.id, { op: w.verstuurd_op, van_klant: !w.van_mij });
+        if (c) laatsteChat.set(l.id, c.created_at);
+      }));
       const nu = Date.now();
       const lijst = open.map((l) => ({
         dossier_id: l.id, klant: [l.voornaam, l.achternaam].filter(Boolean).join(' ') || null, dossiernummer: l.bouwflow_project_number ?? null,
@@ -461,6 +487,7 @@ Deno.serve(async (req) => {
       // wat viel weg, wat werd duurder of goedkoper, en het verschil in totaal.
       const b = body as typeof body & { a?: unknown; b?: unknown };
       if (!isUuid(body.dossier_id)) return json({ error: 'Geef een dossier_id.' }, 400);
+      if ((b.a != null) !== (b.b != null)) return json({ error: 'Geef beide calculaties mee (a en b), of geen van beide voor de nieuwste twee.' }, 400);
       let q = db.from('calculaties').select('id, bron, budget_excl, budget_min_excl, budget_max_excl, inbegrepen_posten, created_at').eq('lead_id', body.dossier_id);
       if (isUuid(b.a) && isUuid(b.b)) q = q.in('id', [b.a, b.b]);
       const { data, error } = await q.order('created_at', { ascending: false }).limit(2);
@@ -556,19 +583,19 @@ Deno.serve(async (req) => {
     }
     if (body?.actie === 'klant_dubbels') {
       // (L4) Alleen lezen. Een klant zonder dossier die op een klant met dossier lijkt.
+      // Per 1000 geblaard: beide tabellen kunnen boven de grens van PostgREST gaan.
       const [klanten, dossiers] = await Promise.all([
-        db.from('customers').select('id, voornaam, achternaam, email, telefoon').limit(2000),
-        db.from('leads').select('customer_id, bouwflow_project_number').not('customer_id', 'is', null).limit(4000),
+        alle(() => db.from('customers').select('id, voornaam, achternaam, email, telefoon').order('id')),
+        alle(() => db.from('leads').select('customer_id, bouwflow_project_number').not('customer_id', 'is', null).order('id')),
       ]);
-      if (klanten.error || dossiers.error) throw new Error((klanten.error ?? dossiers.error)!.message);
       const perKlant = new Map<string, string[]>();
-      for (const d of dossiers.data ?? []) perKlant.set(d.customer_id, [...(perKlant.get(d.customer_id) ?? []), d.bouwflow_project_number ?? '-']);
+      for (const d of dossiers) perKlant.set(d.customer_id, [...(perKlant.get(d.customer_id) ?? []), d.bouwflow_project_number ?? '-']);
       const tel = (t: string | null) => { const c = (t ?? '').replace(/\D/g, ''); return c.length >= 9 ? c.slice(-9) : ''; };
-      const naam = (k: { voornaam: string; achternaam: string }) => `${k.voornaam} ${k.achternaam}`.trim().toLowerCase();
-      const alle = klanten.data ?? [];
+      // Twee klanten zonder naam zijn geen dubbels: een lege naamsleutel telt niet (de controle naam(a) && hieronder).
+      const naam = (k: { voornaam: string | null; achternaam: string | null }) => `${k.voornaam ?? ''} ${k.achternaam ?? ''}`.trim().toLowerCase();
       const paren: { van: string; naar: string; klant: string; dossiers_van_naar: string[]; waarom: string[] }[] = [];
-      for (const a of alle.filter((k) => !perKlant.has(k.id))) {
-        for (const b of alle.filter((k) => perKlant.has(k.id))) {
+      for (const a of klanten.filter((k) => !perKlant.has(k.id))) {
+        for (const b of klanten.filter((k) => perKlant.has(k.id))) {
           const waarom = [
             tel(a.telefoon) && tel(a.telefoon) === tel(b.telefoon) ? 'zelfde gsm' : '',
             a.email && b.email && a.email.toLowerCase() === b.email.toLowerCase() ? 'zelfde mailadres' : '',

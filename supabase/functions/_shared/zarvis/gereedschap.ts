@@ -240,7 +240,7 @@ const UITVOERDERS: Record<string, Uitvoerder> = {
     label: () => 'Dossier lezen',
     async voer(db, invoer) {
       const id = eisDossier(invoer);
-      const [{ data: l, error }, { data: pre }, fases] = await Promise.all([
+      const [{ data: l, error }, { data: pre, error: preFout }, fases] = await Promise.all([
         db.from('leads').select(
           'id, voornaam, achternaam, partner_naam, email, telefoon, adres, gevonden_via, gezocht_naar, notities_vooraf, oppervlakte_m2, project_type, project_timing, volgende_stap, gesprek_notities, gesprek_datum, technisch, project_feiten, btw_percentage, budget_excl, budget_min_excl, budget_max_excl, prijs_min_incl_btw, prijs_max_incl_btw, offerte_nummer, offerte_datum, offerte_bedrag_excl, rapport_situatie_ai, rapport_verwachtingen_ai, rapport_besproken_ai, rapport_aandachtspunten_ai, website_omschrijving, bouwflow_project_number, bouwflow_phase, category_override, status, afwijs_reden, afgewezen_op, portal_status, created_at, updated_at',
         ).eq('id', id).maybeSingle(),
@@ -250,6 +250,7 @@ const UITVOERDERS: Record<string, Uitvoerder> = {
         faseTabel(db),
       ]);
       if (error) throw new Error(error.message);
+      if (preFout) throw new Error(preFout.message);
       if (!l) throw new Error('Dit dossier bestaat niet, of je hebt er geen toegang toe.');
 
       const ontbreekt = Object.entries({
@@ -334,13 +335,14 @@ const UITVOERDERS: Record<string, Uitvoerder> = {
     label: () => 'Calculaties lezen',
     async voer(db, invoer) {
       const id = eisDossier(invoer);
-      const [{ data, error }, { data: lead }] = await Promise.all([
+      const [{ data, error }, { data: lead, error: leadFout }] = await Promise.all([
         db.from('calculaties')
           .select('bron, budget_excl, budget_min_excl, budget_max_excl, btw_percentage, inbegrepen_posten, created_at, updated_at')
           .eq('lead_id', id).order('created_at', { ascending: false }).limit(5),
         db.from('leads').select('offerte_bedrag_excl, offerte_nummer, offerte_datum').eq('id', id).maybeSingle(),
       ]);
       if (error) throw new Error(error.message);
+      if (leadFout) throw new Error(leadFout.message);
       // B-152 (2026-11-24, baan LOKETTEN): het offertebedrag van het dossier naast de nieuwste calculatie, en of het
       // binnen de prijsvork (minimum tot maximum) ligt. Alleen lezen; ontbreekt een van beide, dan staat er null.
       const laatste = (data ?? [])[0] as { budget_min_excl?: number | null; budget_max_excl?: number | null } | undefined;
@@ -422,14 +424,16 @@ const UITVOERDERS: Record<string, Uitvoerder> = {
       // B-099: filters (optioneel) op fase of categorie (deel van de naam) en op laatste wijziging.
       const filterFase = typeof invoer?.fase === 'string' ? invoer.fase.trim().toLowerCase() : '';
       const filterCat = typeof invoer?.categorie === 'string' ? invoer.categorie.trim().toLowerCase() : '';
+      // Datums in Brusselse tijd, niet in UTC: een wijziging om 00:30 hoort bij die dag, niet bij de vorige.
+      const brussel = (d: string | number | Date) => new Date(d).toLocaleDateString('sv-SE', { timeZone: 'Europe/Brussels' });
       const vanaf = typeof invoer?.gewijzigd_vanaf === 'string' ? invoer.gewijzigd_vanaf : '';
       const totEn = typeof invoer?.gewijzigd_tot === 'string' ? invoer.gewijzigd_tot : '';
       const dossiers = (data ?? []).filter((l: any) => {
         const f = faseVan(l, fases);
         if (filterFase && !(f.fase ?? '').toLowerCase().includes(filterFase)) return false;
         if (filterCat && !(f.categorie ?? '').toLowerCase().includes(filterCat)) return false;
-        if (vanaf && String(l.updated_at).slice(0, 10) < vanaf) return false;
-        if (totEn && String(l.updated_at).slice(0, 10) > totEn) return false;
+        if (vanaf && brussel(l.updated_at) < vanaf) return false;
+        if (totEn && brussel(l.updated_at) > totEn) return false;
         return true;
       }).map((l: any) => {
         const f = faseVan(l, fases);
@@ -454,8 +458,10 @@ const UITVOERDERS: Record<string, Uitvoerder> = {
       });
       return {
         resultaat: {
-          vandaag: new Date().toISOString().slice(0, 10),
+          vandaag: brussel(Date.now()),
           totaal: dossiers.length,
+          // De vraag haalt hoogstens 400 dossiers (en 400 afspraken); zit ze daarop, dan ontbreken er misschien.
+          afgekapt: (data ?? []).length >= 400 || (pre.data ?? []).length >= 400,
           per_categorie: perCategorie,
           per_fase: perFase,
           dossiers,
