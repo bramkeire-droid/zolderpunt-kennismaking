@@ -1480,18 +1480,21 @@ export type Database = {
         Row: {
           connectoren: Json
           ingericht_op: string | null
+          stijl: string
           updated_at: string
           user_id: string
         }
         Insert: {
           connectoren?: Json
           ingericht_op?: string | null
+          stijl?: string
           updated_at?: string
           user_id?: string
         }
         Update: {
           connectoren?: Json
           ingericht_op?: string | null
+          stijl?: string
           updated_at?: string
           user_id?: string
         }
