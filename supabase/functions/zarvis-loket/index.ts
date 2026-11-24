@@ -81,6 +81,9 @@ Deno.serve(async (req) => {
   if (!gebruiker) return json({ error: 'Geen toegang: alleen een gebruiker van Zarvis.' }, 403);
 
   const body = await req.json().catch(() => null) as { gereedschap?: unknown; invoer?: unknown; actie?: unknown; dossier_id?: unknown; sleutels?: unknown; dagen?: unknown } | null;
+  // Slot (2026-11-24, na een incident): een proefgebruiker (mailadres op .test, bv. proef-loket@zarvis.test) schrijft
+  // nooit echt, ook niet met een geldige ja. Droog mag wel. De controle zit hier in het loket, los van Zarvis.
+  if ((body as { bevestigd?: unknown } | null)?.bevestigd === true && /\.test$/i.test(gebruiker.email)) return json({ error: 'Proefgebruiker (.test): alleen droog. Echt schrijven kan alleen met een echte login.' }, 403);
   const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 
   try {
