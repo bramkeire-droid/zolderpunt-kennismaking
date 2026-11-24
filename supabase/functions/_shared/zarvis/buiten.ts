@@ -73,9 +73,12 @@ export function maakBuitenUitvoerders(belgischMoment: (lokaal: string) => Date |
     bereken_route: {
       label: () => 'Route berekenen',
       async voer(db, invoer) {
-        const sleutel = Deno.env.get('GOOGLE_MAPS_API_KEY');
+        // Eerst de eigen sleutel van Zarvis. GOOGLE_MAPS_API_KEY in Lovable hoort bij de
+        // koppeling van Lovable zelf en werkt niet rechtstreeks bij Google (gemeten op
+        // 2026-11-24: "API key not valid").
+        const sleutel = Deno.env.get('ZARVIS_ROUTES_KEY') ?? Deno.env.get('GOOGLE_MAPS_API_KEY');
         if (!sleutel) {
-          return { resultaat: { fout: 'De sleutel voor Google Maps ontbreekt op de server (secret GOOGLE_MAPS_API_KEY). Zeg dat aan de gebruiker; hij moet ze toevoegen in Lovable.' }, detail: 'sleutel ontbreekt' };
+          return { resultaat: { fout: 'De sleutel voor Google Maps ontbreekt op de server (secret ZARVIS_ROUTES_KEY). Zeg dat aan de gebruiker; hij moet ze toevoegen in Lovable.' }, detail: 'sleutel ontbreekt' };
         }
         let naar = typeof invoer.naar === 'string' ? invoer.naar.trim().slice(0, 300) : '';
         let naam = '';

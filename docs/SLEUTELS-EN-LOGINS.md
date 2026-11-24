@@ -10,7 +10,7 @@ Lovable laat per venster één secret toe zodra een waarde ontbreekt ("Secret va
 |---|---|---|---|---|
 | 1 | `ZARVIS_BEL_NAAR` | ontbreekt | Brams gsm-nummer, vorm `+32...` | bellen |
 | 2 | `TWILIO_VAN_NUMMER` | ontbreekt | Twilio-console, Phone Numbers, Active numbers. Login nodig; `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` en `TWILIO_WA_FROM` staan er al | bellen |
-| 3 | `GOOGLE_MAPS_API_KEY` | staat er (13 juni 2026) maar Google antwoordt "API key not valid" | Google Cloud. Onder het Google-account in Chrome staan twee projecten (`agentic-os`, `My First Project`); in geen van beide staat een Maps-sleutel. De sleutel in Lovable komt dus van een ander account of is verwijderd. Nodig: de Routes API aanzetten en een nieuwe sleutel maken, in een project met een betaalrekening | ritten, vertrekuur (IDEE-20) |
+| 3 | `ZARVIS_ROUTES_KEY` (nieuw; `GOOGLE_MAPS_API_KEY` hoort bij de koppeling van Lovable zelf en werkt niet rechtstreeks bij Google) | ontbreekt | Google Cloud. Onder het Google-account in Chrome staan twee projecten (`agentic-os`, `My First Project`); in geen van beide staat een Maps-sleutel. De sleutel in Lovable komt dus van een ander account of is verwijderd. Nodig: de Routes API aanzetten en een nieuwe sleutel maken, in een project met een betaalrekening | ritten, vertrekuur (IDEE-20) |
 | 4 | `AZURE_SPEECH_KEY` (en `AZURE_SPEECH_REGION`, standaard `westeurope`) | ontbreekt | Azure. Het account `bram@belhouse...` is ingelogd maar heeft **geen abonnement**; een Speech-resource vraagt eerst een abonnement (gratis proef of betalend, met kaart) | de Vlaamse stem en alles rond spraak |
 | 5 | `BRAVE_SEARCH_API_KEY` | ontbreekt | api-dashboard.search.brave.com. Geen login in Chrome; vraagt een account | zoeken op het web |
 
