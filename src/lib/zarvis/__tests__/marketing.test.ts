@@ -29,9 +29,20 @@ describe('marketing', () => {
       bespaard_per_90_dagen: 31.4, wanneer: 'Vannacht.',
     });
     const uit = await M.sluit_zoektermen_uit.voer({}, { zoektermen: ['zolderkamer huren', 'zolder renoveren prijs'] }, { token: 'tok' });
-    expect(body(f)).toEqual({ action: 'sluit_uit', termen: ['zolderkamer huren', 'zolder renoveren prijs'] });
+    expect(body(f)).toEqual({ action: 'sluit_uit', termen: ['zolderkamer huren', 'zolder renoveren prijs'], bevestigd: false });
     expect(uit.detail).toBe('1 uitgesloten, 1 geweigerd');
     expect(uit.bron?.secties).toHaveLength(2);
+  });
+
+  it('stuurt bevestigd alleen door als het letterlijk true is, en toont zonder ja een voorstel', async () => {
+    const f = zetLoket({ voorstel: [{ zoekterm: 'zolderkamer huren', kost: 31.4, klikken: 9, conversies: 0 }], uitgesloten: [], geweigerd: [], zou_besparen_per_90_dagen: 31.4, wanneer: 'Er is niets veranderd.' });
+    const uit = await M.sluit_zoektermen_uit.voer({}, { zoektermen: ['zolderkamer huren'], bevestigd: 'ja' }, { token: 't' });
+    expect(body(f).bevestigd).toBe(false);
+    expect(uit.detail).toBe('voorstel: 1, wacht op ja');
+    expect(uit.bron?.titel).toBe('Voorstel: zoektermen uitsluiten');
+    const g = zetLoket({ uitgesloten: [], geweigerd: [], bespaard_per_90_dagen: 0, wanneer: '' });
+    await M.sluit_zoektermen_uit.voer({}, { zoektermen: ['zolderkamer huren'], bevestigd: true }, { token: 't' });
+    expect(body(g).bevestigd).toBe(true);
   });
 
   it('stuurt hoogstens 20 termen en draait terug met de juiste actie', async () => {
