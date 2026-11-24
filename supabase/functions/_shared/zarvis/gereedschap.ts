@@ -200,7 +200,7 @@ const UITVOERDERS: Record<string, Uitvoerder> = {
 
       let q = db
         .from('leads')
-        .select('id, voornaam, achternaam, partner_naam, adres, bouwflow_project_number, bouwflow_phase, category_override, status, updated_at')
+        .select('id, voornaam, achternaam, partner_naam, adres, bouwflow_project_number, bouwflow_phase, category_override, status, updated_at', { count: 'exact' })
         .order('updated_at', { ascending: false })
         .limit(8);
       // Elk woord moet ergens in naam, adres of dossiernummer voorkomen.
@@ -209,7 +209,7 @@ const UITVOERDERS: Record<string, Uitvoerder> = {
           `voornaam.ilike.%${w}%,achternaam.ilike.%${w}%,partner_naam.ilike.%${w}%,adres.ilike.%${w}%,bouwflow_project_number.ilike.%${w}%`,
         );
       }
-      const [{ data, error }, fases] = await Promise.all([q, faseTabel(db)]);
+      const [{ data, error, count }, fases] = await Promise.all([q, faseTabel(db)]);
       if (error) throw new Error(error.message);
       const dossiers = (data ?? []).map((l: any) => ({
         dossier_id: l.id,
@@ -220,7 +220,8 @@ const UITVOERDERS: Record<string, Uitvoerder> = {
         ...faseVan(l, fases),
       }));
       return {
-        resultaat: { aantal: dossiers.length, dossiers },
+        // Studie 05: ook hoeveel dossiers er in totaal op de zoekterm passen (er worden er hoogstens 8 getoond).
+        resultaat: { aantal: dossiers.length, totaal: count ?? dossiers.length, meer: (count ?? 0) > dossiers.length, dossiers },
         detail: dossiers.length === 1 ? '1 dossier' : `${dossiers.length} dossiers`,
         bron: {
           titel: `Zoekresultaat: ${term}`,
@@ -335,9 +336,9 @@ const UITVOERDERS: Record<string, Uitvoerder> = {
     label: () => 'Calculaties lezen',
     async voer(db, invoer) {
       const id = eisDossier(invoer);
-      const [{ data, error }, { data: lead, error: leadFout }] = await Promise.all([
+      const [{ data, error, count }, { data: lead, error: leadFout }] = await Promise.all([
         db.from('calculaties')
-          .select('bron, budget_excl, budget_min_excl, budget_max_excl, btw_percentage, inbegrepen_posten, created_at, updated_at')
+          .select('bron, budget_excl, budget_min_excl, budget_max_excl, btw_percentage, inbegrepen_posten, created_at, updated_at', { count: 'exact' })
           .eq('lead_id', id).order('created_at', { ascending: false }).limit(5),
         db.from('leads').select('offerte_bedrag_excl, offerte_nummer, offerte_datum').eq('id', id).maybeSingle(),
       ]);
@@ -353,7 +354,8 @@ const UITVOERDERS: Record<string, Uitvoerder> = {
         in_vork: bedrag != null && vork ? (bedrag < vork.min ? 'onder' : bedrag > vork.max ? 'boven' : 'binnen') : null,
       };
       return {
-        resultaat: { aantal: (data ?? []).length, calculaties: data ?? [], offerte },
+        // Hoogstens de 5 nieuwste; totaal telt alle calculaties van het dossier (de app toont ze allemaal).
+        resultaat: { aantal: (data ?? []).length, totaal: count ?? (data ?? []).length, afgekapt: (count ?? 0) > (data ?? []).length, calculaties: data ?? [], offerte },
         detail: (data ?? []).length === 1 ? '1 calculatie' : `${(data ?? []).length} calculaties`,
         bron: {
           titel: 'Calculaties',

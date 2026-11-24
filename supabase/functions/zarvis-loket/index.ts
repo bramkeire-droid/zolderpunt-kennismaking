@@ -38,6 +38,10 @@
 //
 // Het loket leest met de serversleutel van Compass. De grens zit dus hier in de
 // code: geen vrije vragen aan de databank; schrijven alleen de notitie en het samenvoegen hierboven.
+//
+// Spoor in de app (2026-11-24): wat Zarvis echt schrijft (notitie, chat, aanvullen, samenvoegen en hun weg terug)
+// laat ook een regel "via Zarvis (<mailadres>): ..." achter in de chat van het dossier, die Compass bij elk dossier
+// toont. Een chatbericht van Zarvis zelf krijgt die vermelding onderaan in de tekst.
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { voerUit } from '../_shared/zarvis/gereedschap.ts';
@@ -97,17 +101,23 @@ async function alle(maak: () => any): Promise<any[]> {
 /** Is dit iemand met een rol in Zarvis? Geeft zijn mailadres, of null. */
 async function zarvisGebruiker(token: string): Promise<{ email: string } | null | 'login' | 'app'> {
   const kop = { apikey: ZARVIS_SLEUTEL, Authorization: `Bearer ${token}` };
-  const wie = await fetch(`${ZARVIS_URL}/auth/v1/user`, { headers: kop });
+  // Snelheid (2026-11-24): de login en de twee rollen worden tegelijk gevraagd, niet na elkaar (was tot drie
+  // rondes naar Zarvis). Het id voor has_role komt uit het token (sub); het telt alleen als Zarvis het token
+  // aanvaardt en precies dat id teruggeeft.
+  let sub = '';
+  try { sub = String(JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub ?? ''); } catch { /* geen leesbaar token: de loginvraag zegt nee */ }
+  const heeftRol = async (rol: string) => {
+    if (!sub) return false;
+    const r = await fetch(`${ZARVIS_URL}/rest/v1/rpc/has_role`, {
+      method: 'POST', headers: { ...kop, 'Content-Type': 'application/json' }, body: JSON.stringify({ _user_id: sub, _role: rol }),
+    });
+    return r.ok && (await r.json()) === true;
+  };
+  const [wie, admin, user] = await Promise.all([fetch(`${ZARVIS_URL}/auth/v1/user`, { headers: kop }), heeftRol('admin'), heeftRol('user')]);
   if (!wie.ok) return wie.status >= 500 ? 'app' : 'login';
   const g = await wie.json() as { id?: string; email?: string };
-  if (!g.id) return null;
-  for (const rol of ['admin', 'user']) {
-    const r = await fetch(`${ZARVIS_URL}/rest/v1/rpc/has_role`, {
-      method: 'POST', headers: { ...kop, 'Content-Type': 'application/json' }, body: JSON.stringify({ _user_id: g.id, _role: rol }),
-    });
-    if (r.ok && (await r.json()) === true) return { email: (g.email ?? '').toLowerCase() };
-  }
-  return null;
+  if (!g.id || g.id !== sub) return null;
+  return admin || user ? { email: (g.email ?? '').toLowerCase() } : null;
 }
 
 Deno.serve(async (req) => {
@@ -125,6 +135,24 @@ Deno.serve(async (req) => {
   // nooit echt, ook niet met een geldige ja. Droog mag wel. De controle zit hier in het loket, los van Zarvis.
   if ((body as { bevestigd?: unknown } | null)?.bevestigd === true && /\.test$/i.test(gebruiker.email)) return json({ error: 'Proefgebruiker (.test): alleen droog. Echt schrijven kan alleen met een echte login.' }, 403);
   const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+  // De gebruiker in Compass met hetzelfde mailadres als in Zarvis (de ids verschillen tussen de projecten). Hoogstens één keer per aanroep gevraagd.
+  let hierP: Promise<{ id: string } | null> | null = null;
+  const compassGebruiker = () => hierP ??= db.auth.admin.listUsers({ page: 1, perPage: 200 })
+    .then(({ data }) => (data?.users ?? []).find((u) => (u.email ?? '').toLowerCase() === gebruiker.email) ?? null);
+  // Spoor in de app: een regel in de chat van het dossier, met "via Zarvis" en wie het vroeg. Alleen na een echte
+  // schrijfactie. Mislukt het spoor, dan blijft de schrijfactie staan en zegt het antwoord waarom er geen spoor is.
+  const spoor = async (leadIds: unknown[], wat: string): Promise<{ gezet: number; reden?: string }> => {
+    try {
+      const ids = [...new Set(leadIds.filter(isUuid))];
+      if (!ids.length) return { gezet: 0, reden: 'geen dossier om het spoor bij te zetten' };
+      const hier = await compassGebruiker();
+      if (!hier) return { gezet: 0, reden: 'er is in Compass geen gebruiker met dit mailadres; een chatregel heeft een afzender nodig' };
+      const { error } = await db.from('dossier_chat').insert(ids.map((lead_id) => ({ lead_id, user_id: hier.id, bericht: `via Zarvis (${gebruiker.email}): ${wat}`, bron: 'zarvis' })));
+      return error ? { gezet: 0, reden: error.message } : { gezet: ids.length };
+    } catch (e) {
+      return { gezet: 0, reden: e instanceof Error ? e.message : 'onbekende fout' };
+    }
+  };
 
   try {
     if (typeof body?.gereedschap === 'string') {
@@ -144,11 +172,14 @@ Deno.serve(async (req) => {
     }
     if (body?.actie === 'context') {
       // De gebruiker heeft in Compass een ander id dan in Zarvis; zijn mailadres verbindt beide.
-      const { data: lijst } = await db.auth.admin.listUsers({ page: 1, perPage: 200 });
-      const hier = (lijst?.users ?? []).find((u) => (u.email ?? '').toLowerCase() === gebruiker.email);
+      // Tegelijk: de gebruiker in Compass en de (weinige) rijen van zarvis_context; daarna de juiste kiezen.
+      const [hier, { data: rijen }] = await Promise.all([
+        compassGebruiker(),
+        db.from('zarvis_context').select('user_id, lead_id, dossier_naam, view, updated_at').limit(200),
+      ]);
       if (!hier) return json({ open: null });
-      const { data: rij } = await db.from('zarvis_context').select('lead_id, dossier_naam, view, updated_at').eq('user_id', hier.id).maybeSingle();
-      return json({ open: rij ?? null });
+      const rij = (rijen ?? []).find((r) => r.user_id === hier.id);
+      return json({ open: rij ? { lead_id: rij.lead_id, dossier_naam: rij.dossier_naam, view: rij.view, updated_at: rij.updated_at } : null });
     }
     if (body?.actie === 'agenda') {
       const dagen = Math.min(Math.max(Math.round(Number(body.dagen)) || 2, 1), 14);
@@ -211,7 +242,7 @@ Deno.serve(async (req) => {
       // categorie offerte) met het laatste bedrag en hoe oud dat is. Geen namen buiten de calculaties.
       const [kaart, leads, calcs] = await Promise.all([
         db.from('bouwflow_phase_category_map').select('phase_id, phase_title, compass_category, sort_order').order('sort_order'),
-        db.from('leads').select('id, voornaam, achternaam, bouwflow_phase, category_override, status, updated_at, offerte_datum').limit(2000),
+        db.from('leads').select('id, voornaam, achternaam, bouwflow_phase, category_override, updated_at, offerte_datum').limit(2000),
         alle(() => db.from('calculaties').select('lead_id, budget_excl, created_at').order('created_at', { ascending: false }).order('id')),
       ]);
       if (kaart.error || leads.error) throw new Error((kaart.error ?? leads.error)!.message);
@@ -249,6 +280,10 @@ Deno.serve(async (req) => {
         zonder_fase: zonderFase,
         fases: fases.map(({ _id, ...f }) => f),
         lopende_calculaties: lopend,
+        // Studie 05, vorm B: waarde van de offertes in omloop = som van het laatste calculatiebedrag (excl. btw)
+        // van de lopende calculaties hierboven. Dossiers zonder calculatie tellen niet mee; zie met_bedrag.
+        waarde_in_omloop_excl: rond(lopend.reduce((t, x) => t + (Number(x.bedrag_excl) || 0), 0)),
+        met_bedrag: lopend.filter((x) => x.bedrag_excl != null).length,
       });
     }
     if (body?.actie === 'notitie' || body?.actie === 'notitie_terug') {
@@ -257,9 +292,6 @@ Deno.serve(async (req) => {
       // droge proef. De weg terug wist alleen een notitie met bron 'zarvis'.
       const b = body as typeof body & { tekst?: unknown; notitie_id?: unknown; bevestigd?: unknown; soort?: unknown };
       const soort = b.soort === 'beslissing' ? 'beslissing' : 'notitie'; // B-084
-      // Wie: de gebruiker in Compass met hetzelfde mailadres als in Zarvis (zoals bij 'context').
-      const { data: lijst } = await db.auth.admin.listUsers({ page: 1, perPage: 200 });
-      const hier = (lijst?.users ?? []).find((u) => (u.email ?? '').toLowerCase() === gebruiker.email);
       if (body.actie === 'notitie_terug') {
         if (!isUuid(b.notitie_id)) return json({ error: 'Geef een notitie_id.' }, 400);
         const { data: n, error } = await db.from('gesprek_notities').select('id, lead_id, tekst, bron, created_at').eq('id', b.notitie_id).maybeSingle();
@@ -269,21 +301,26 @@ Deno.serve(async (req) => {
         if (b.bevestigd !== true) return json({ droog: true, notitie: n, wat_er_gebeurt: 'Deze notitie wordt gewist.' });
         const { error: weg } = await db.from('gesprek_notities').delete().eq('id', n.id).eq('bron', 'zarvis');
         if (weg) throw new Error(weg.message);
-        return json({ gewist: true, notitie_id: n.id });
+        return json({ gewist: true, notitie_id: n.id, spoor: await spoor([n.lead_id], 'een notitie van Zarvis bij dit dossier gewist.') });
       }
       if (!isUuid(body.dossier_id)) return json({ error: 'Geef een dossier_id.' }, 400);
       const tekst = typeof b.tekst === 'string' ? b.tekst.trim() : '';
       if (!tekst || tekst.length > 4000) return json({ error: 'Geef een tekst van 1 tot 4000 tekens.' }, 400);
-      const { data: l, error } = await db.from('leads').select('id, voornaam, achternaam').eq('id', body.dossier_id).maybeSingle();
+      // Wie: de gebruiker in Compass met hetzelfde mailadres als in Zarvis; tegelijk met het dossier gevraagd.
+      const [{ data: l, error }, hier] = await Promise.all([
+        db.from('leads').select('id, voornaam, achternaam').eq('id', body.dossier_id).maybeSingle(),
+        compassGebruiker(),
+      ]);
       if (error) throw new Error(error.message);
       if (!l) return json({ error: 'Dossier niet gevonden.' }, 404);
       const voorstel = { dossier_id: l.id, klant: [l.voornaam, l.achternaam].filter(Boolean).join(' '), soort, tekst, door: gebruiker.email, door_in_compass: !!hier, bron: 'zarvis' };
-      if (b.bevestigd !== true) return json({ droog: true, ...voorstel, wat_er_gebeurt: 'Er komt een notitie bij dit dossier in Compass, met bron Zarvis.' });
+      if (b.bevestigd !== true) return json({ droog: true, ...voorstel, wat_er_gebeurt: 'Er komt een notitie bij dit dossier in Compass, met bron Zarvis, en een regel "via Zarvis" in de chat van het dossier.' });
       const { data: n, error: fout } = await db.from('gesprek_notities')
         .insert({ lead_id: l.id, soort, tekst, door_user: hier?.id ?? null, bron: 'zarvis' })
         .select('id, created_at').single();
       if (fout) throw new Error(fout.message);
-      return json({ gemaakt: true, notitie_id: n.id, op: n.created_at, ...voorstel });
+      // Een losse notitie (zonder gesprek) toont Compass vandaag nergens; de chatregel maakt ze zichtbaar.
+      return json({ gemaakt: true, notitie_id: n.id, op: n.created_at, ...voorstel, spoor: await spoor([l.id], `${soort} bij dit dossier gezet: ${tekst.slice(0, 300)}${tekst.length > 300 ? '…' : ''}`) });
     }
     if (body?.actie === 'chat' || body?.actie === 'chat_terug') {
       // B-086: SCHRIJFT na bevestiging: een bericht in de chat van het dossier (dossier_chat, bron 'zarvis'),
@@ -298,20 +335,23 @@ Deno.serve(async (req) => {
         if (b.bevestigd !== true) return json({ droog: true, bericht: c, wat_er_gebeurt: 'Dit bericht wordt gewist.' });
         const { error: weg } = await db.from('dossier_chat').delete().eq('id', c.id).eq('bron', 'zarvis');
         if (weg) throw new Error(weg.message);
-        return json({ gewist: true, chat_id: c.id });
+        return json({ gewist: true, chat_id: c.id, spoor: await spoor([c.lead_id], 'een chatbericht van Zarvis gewist.') });
       }
       if (!isUuid(body.dossier_id)) return json({ error: 'Geef een dossier_id.' }, 400);
       const bericht = typeof b.bericht === 'string' ? b.bericht.trim() : '';
       if (!bericht || bericht.length > 2000) return json({ error: 'Geef een bericht van 1 tot 2000 tekens.' }, 400);
-      const { data: l, error } = await db.from('leads').select('id, voornaam, achternaam').eq('id', body.dossier_id).maybeSingle();
+      const [{ data: l, error }, hier] = await Promise.all([
+        db.from('leads').select('id, voornaam, achternaam').eq('id', body.dossier_id).maybeSingle(),
+        compassGebruiker(),
+      ]);
       if (error) throw new Error(error.message);
       if (!l) return json({ error: 'Dossier niet gevonden.' }, 404);
-      const { data: lijst } = await db.auth.admin.listUsers({ page: 1, perPage: 200 });
-      const hier = (lijst?.users ?? []).find((u) => (u.email ?? '').toLowerCase() === gebruiker.email);
       if (!hier) return json({ error: 'Er is in Compass geen gebruiker met dit mailadres; een chatbericht heeft een afzender nodig.' }, 409);
-      const voorstel = { dossier_id: l.id, klant: [l.voornaam, l.achternaam].filter(Boolean).join(' '), bericht, bron: 'zarvis' };
-      if (b.bevestigd !== true) return json({ droog: true, ...voorstel, wat_er_gebeurt: 'Er komt een bericht in de chat van dit dossier, op jouw naam, met bron Zarvis.' });
-      const { data: c, error: fout } = await db.from('dossier_chat').insert({ lead_id: l.id, user_id: hier.id, bericht, bron: 'zarvis' }).select('id, created_at').single();
+      // Spoor: de chat toont alleen de naam van de afzender, niet de bron. Daarom staat "via Zarvis" in de tekst zelf.
+      const zoals_bewaard = `${bericht}\n— via Zarvis (${gebruiker.email})`;
+      const voorstel = { dossier_id: l.id, klant: [l.voornaam, l.achternaam].filter(Boolean).join(' '), bericht, zoals_bewaard, bron: 'zarvis' };
+      if (b.bevestigd !== true) return json({ droog: true, ...voorstel, wat_er_gebeurt: 'Er komt een bericht in de chat van dit dossier, op jouw naam, met bron Zarvis en onderaan "via Zarvis".' });
+      const { data: c, error: fout } = await db.from('dossier_chat').insert({ lead_id: l.id, user_id: hier.id, bericht: zoals_bewaard, bron: 'zarvis' }).select('id, created_at').single();
       if (fout) throw new Error(fout.message);
       return json({ gemaakt: true, chat_id: c.id, op: c.created_at, ...voorstel });
     }
@@ -327,6 +367,14 @@ Deno.serve(async (req) => {
           : { data: { fout: 'Geef het log_id.' }, error: null });
       if (error) throw new Error(error.message);
       if (data?.fout) return json({ error: data.fout, velden: data.velden }, 409);
+      if (data?.gedaan === true) {
+        const velden = (Array.isArray(data.velden) ? data.velden : []).filter((v: { toegelaten?: boolean }) => v?.toegelaten).map((v: { veld?: string }) => v.veld).join(', ');
+        return json({ ...data, spoor: await spoor([body.dossier_id], `dossier aangevuld (${velden}); terug te zetten.`) });
+      }
+      if (data?.teruggezet === true) {
+        const { data: log } = await db.from('dossier_wijziging_log').select('lead_id').eq('id', b.log_id).maybeSingle();
+        return json({ ...data, spoor: await spoor([log?.lead_id], 'een aanvulling van Zarvis in dit dossier teruggezet.') });
+      }
       return json(data);
     }
     if (body?.actie === 'opvolging') {
@@ -378,7 +426,7 @@ Deno.serve(async (req) => {
       // gesprekken, notities, chat, WhatsApp, calculaties, offerte en afspraken. Mails komen uit Mail-CRM.
       if (!isUuid(body.dossier_id)) return json({ error: 'Geef een dossier_id.' }, 400);
       const id = body.dossier_id;
-      const [l, gesprekken, notities, chat, wa, calcs, pre] = await Promise.all([
+      const [l, gesprekken, notities, chat, wa, calcs, pre, faselog, kaart] = await Promise.all([
         db.from('leads').select('id, voornaam, achternaam, bouwflow_project_number, offerte_datum, offerte_bedrag_excl, created_at').eq('id', id).maybeSingle(),
         // Nieuwste eerst, zodat bij te veel rijen de oudste wegvallen en niet willekeurige.
         db.from('gesprekken').select('type, gestart_op, beeindigd_op').eq('lead_id', id).order('gestart_op', { ascending: false }).limit(50),
@@ -387,8 +435,13 @@ Deno.serve(async (req) => {
         db.from('whatsapp_berichten').select('van_mij, verstuurd_op, soort, tekst').eq('lead_id', id).order('verstuurd_op', { ascending: false }).limit(60),
         db.from('calculaties').select('budget_excl, created_at').eq('lead_id', id).order('created_at', { ascending: false }).limit(20),
         db.from('pre_intake').select('videocall_scheduled_at, plaatsbezoek_scheduled_at').eq('lead_id', id).limit(5),
+        // Studie 05 (tijdlijn van fasewissels): uit dossier_fase_log, sinds 24 november 2026 bijgehouden.
+        db.from('dossier_fase_log').select('fase, vorige_fase, op, zeker').eq('lead_id', id).order('op', { ascending: false }).limit(50),
+        db.from('bouwflow_phase_category_map').select('phase_id, phase_title'),
       ]);
-      for (const r of [l, gesprekken, notities, chat, wa, calcs, pre]) if (r.error) throw new Error(r.error.message);
+      for (const r of [l, gesprekken, notities, chat, wa, calcs, pre, faselog, kaart]) if (r.error) throw new Error(r.error.message);
+      const titel = new Map((kaart.data ?? []).map((f) => [String(f.phase_id), f.phase_title as string]));
+      const faseNaam = (f: unknown) => f == null ? 'geen fase' : titel.get(String(f)) ?? `fase ${f}`;
       if (!l.data) return json({ error: 'Dossier niet gevonden.' }, 404);
       const kort = (t: unknown, n = 400) => String(t ?? '').slice(0, n);
       const items = [
@@ -399,6 +452,8 @@ Deno.serve(async (req) => {
         ...(wa.data ?? []).map((w) => ({ op: w.verstuurd_op, kanaal: 'whatsapp', wat: `${w.van_mij ? 'wij' : 'klant'}: ${kort(w.tekst || w.soort)}` })),
         ...(calcs.data ?? []).map((c) => ({ op: c.created_at, kanaal: 'calculatie', wat: 'calculatie bewaard', bedrag_excl: c.budget_excl })),
         ...(l.data.offerte_datum ? [{ op: l.data.offerte_datum, kanaal: 'offerte', wat: 'offerte', bedrag_excl: l.data.offerte_bedrag_excl }] : []),
+        ...(faselog.data ?? []).map((f) => ({ op: f.op, kanaal: 'fase', zeker: f.zeker,
+          wat: f.zeker ? `fase: ${faseNaam(f.vorige_fase)} naar ${faseNaam(f.fase)}` : `fase bij de start van de fasegeschiedenis: ${faseNaam(f.fase)} (echte moment van de wissel niet gekend)` })),
         ...(pre.data ?? []).flatMap((p) => [
           ...(p.videocall_scheduled_at ? [{ op: p.videocall_scheduled_at, kanaal: 'afspraak', wat: 'videocall' }] : []),
           ...(p.plaatsbezoek_scheduled_at ? [{ op: p.plaatsbezoek_scheduled_at, kanaal: 'afspraak', wat: 'plaatsbezoek' }] : []),
@@ -410,9 +465,13 @@ Deno.serve(async (req) => {
       // B-098: alleen lezen. Het rapport, de foto's en de gedeelde documenten van een dossier. Bestanden komen
       // als link die een uur geldig is; de inhoud zelf leest het loket niet.
       if (!isUuid(body.dossier_id)) return json({ error: 'Geef een dossier_id.' }, 400);
-      const { data: l, error } = await db.from('leads')
-        .select('id, rapport_tekst, rapport_gegenereerd_op, rapport_situatie_ai, rapport_verwachtingen_ai, rapport_besproken_ai, rapport_aandachtspunten_ai, fotos')
-        .eq('id', body.dossier_id).maybeSingle();
+      // Snelheid: het dossier en de map met documenten tegelijk; submappen tegelijk; beide soorten links tegelijk.
+      const [{ data: l, error }, { data: lijst1, error: e1 }] = await Promise.all([
+        db.from('leads')
+          .select('id, rapport_tekst, rapport_gegenereerd_op, rapport_situatie_ai, rapport_verwachtingen_ai, rapport_besproken_ai, rapport_aandachtspunten_ai, fotos')
+          .eq('id', body.dossier_id).maybeSingle(),
+        db.storage.from('dossier-documenten').list(body.dossier_id, { limit: 100 }),
+      ]);
       if (error) throw new Error(error.message);
       if (!l) return json({ error: 'Dossier niet gevonden.' }, 404);
       const fotoPaden = (Array.isArray(l.fotos) ? l.fotos : []).map((f: { path?: string; storage_path?: string }) => f?.storage_path || f?.path).filter((x): x is string => typeof x === 'string');
@@ -422,23 +481,21 @@ Deno.serve(async (req) => {
         if (e) throw new Error(e.message);
         return (data ?? []).map((d) => ({ naam: (d.path ?? '').split('/').pop(), link: d.signedUrl }));
       };
-      const docPaden: string[] = [];
-      const { data: lijst1, error: e1 } = await db.storage.from('dossier-documenten').list(l.id, { limit: 100 });
       if (e1) throw new Error(e1.message);
-      for (const o of lijst1 ?? []) {
-        if (o.id) docPaden.push(`${l.id}/${o.name}`);
-        else {
-          const { data: lijst2, error: e2 } = await db.storage.from('dossier-documenten').list(`${l.id}/${o.name}`, { limit: 100 });
-          if (e2) throw new Error(e2.message);
-          for (const p of lijst2 ?? []) if (p.id) docPaden.push(`${l.id}/${o.name}/${p.name}`);
-        }
-      }
+      // Zelfde volgorde als voorheen: per item van de map, een submap op de plaats van die submap.
+      const docPaden = (await Promise.all((lijst1 ?? []).map(async (o) => {
+        if (o.id) return [`${l.id}/${o.name}`];
+        const { data: lijst2, error: e2 } = await db.storage.from('dossier-documenten').list(`${l.id}/${o.name}`, { limit: 100 });
+        if (e2) throw new Error(e2.message);
+        return (lijst2 ?? []).filter((p) => p.id).map((p) => `${l.id}/${o.name}/${p.name}`);
+      }))).flat();
+      const [fotoLinks, docLinks] = await Promise.all([ondertekend('lead-fotos', fotoPaden.slice(0, 20)), ondertekend('dossier-documenten', docPaden.slice(0, 50))]);
       return json({
         dossier_id: l.id,
         rapport: l.rapport_tekst ? { gemaakt_op: l.rapport_gegenereerd_op, tekst: String(l.rapport_tekst).slice(0, 8000) } : null,
         rapport_delen: { situatie: l.rapport_situatie_ai ?? null, verwachtingen: l.rapport_verwachtingen_ai ?? null, besproken: l.rapport_besproken_ai ?? null, aandachtspunten: l.rapport_aandachtspunten_ai ?? null },
-        fotos: { aantal: fotoPaden.length, eerste: await ondertekend('lead-fotos', fotoPaden.slice(0, 20)) },
-        documenten: await ondertekend('dossier-documenten', docPaden.slice(0, 50)),
+        fotos: { aantal: fotoPaden.length, eerste: fotoLinks },
+        documenten: docLinks,
         documenten_aantal: docPaden.length, // alle gevonden documenten; de lijst hierboven toont er hoogstens 50
         let_op: 'Links zijn een uur geldig. Zet ze nooit in een bericht aan iemand anders dan Bram.',
       });
@@ -618,6 +675,17 @@ Deno.serve(async (req) => {
           : { data: { fout: 'Geef het log_id.' }, error: null });
       if (error) throw new Error(error.message);
       if (data?.fout) return json({ error: data.fout }, 409);
+      if (data?.gedaan === true || data?.teruggezet === true) {
+        // Spoor bij elk dossier van de klant die blijft (en bij terugzetten ook de dossiers die teruggaan).
+        let klant = b.naar, terug: unknown[] = [];
+        if (data.teruggezet === true) {
+          const { data: log } = await db.from('klant_samenvoeg_log').select('naar_id, dossiers').eq('id', b.log_id).maybeSingle();
+          klant = log?.naar_id; terug = log?.dossiers ?? [];
+        }
+        const { data: ds } = isUuid(klant) ? await db.from('leads').select('id').eq('customer_id', klant) : { data: [] };
+        return json({ ...data, spoor: await spoor([...(ds ?? []).map((d) => d.id), ...terug],
+          data.gedaan === true ? 'twee klantrijen samengevoegd tot de klant van dit dossier; terug te zetten.' : 'een samenvoeging van klanten teruggezet.') });
+      }
       return json(data);
     }
     return json({ error: 'Onbekende vraag.' }, 400);
