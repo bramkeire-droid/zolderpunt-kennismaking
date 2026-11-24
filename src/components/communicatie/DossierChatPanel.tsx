@@ -12,6 +12,7 @@ type ChatBericht = {
   user_id: string;
   bericht: string;
   created_at: string;
+  bron?: string | null;
 };
 
 interface Props {
@@ -52,7 +53,7 @@ export default function DossierChatPanel({ leadId, dossierNaam, open, onClose }:
       try {
         const [{ data: rijen, error }, profielen, { data: sessie }] = await Promise.all([
           chatTabel()
-            .select('id, lead_id, user_id, bericht, created_at')
+            .select('id, lead_id, user_id, bericht, created_at, bron')
             .eq('lead_id', leadId)
             .order('created_at', { ascending: true })
             .limit(500),
@@ -120,7 +121,7 @@ export default function DossierChatPanel({ leadId, dossierNaam, open, onClose }:
 
       const { data, error } = await chatTabel()
         .insert({ lead_id: leadId, bericht: schoon, user_id: gebruikerId } as any)
-        .select('id, lead_id, user_id, bericht, created_at')
+        .select('id, lead_id, user_id, bericht, created_at, bron')
         .single();
       if (error) throw new Error(error.message);
       const rij = data as unknown as ChatBericht;
@@ -177,7 +178,7 @@ export default function DossierChatPanel({ leadId, dossierNaam, open, onClose }:
                 }`}>
                   <p className="whitespace-pre-wrap break-words">{b.bericht}</p>
                   <p className={`text-[10px] mt-0.5 ${eigen ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
-                    {namen[b.user_id] ?? 'Onbekend'} · {new Date(b.created_at).toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' })}
+                    {namen[b.user_id] ?? 'Onbekend'}{b.bron === 'zarvis' ? ' · via Zarvis' : ''} ·{new Date(b.created_at).toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' })}
                   </p>
                 </div>
               </div>

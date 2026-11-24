@@ -25,7 +25,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   ArrowDownLeft, ArrowUpRight, Phone, Search, RefreshCw, Info, Video,
-  ChevronDown, User, Truck, Users, Boxes,
+  ChevronDown, User, Truck, Users, Boxes, StickyNote,
 } from 'lucide-react';
 
 interface Props {
@@ -334,8 +334,32 @@ export default function DossierCommunicatie({ leadId }: Props) {
     />
   );
 
+  // Notities zonder gesprek (bv. gezet door Zarvis) hangen aan geen tijdlijnrij; apart tonen.
+  const losseNotities = (notitiesPerGesprek.get('los') ?? [])
+    .filter((n) => !zoek.trim() || n.tekst.toLowerCase().includes(zoek.trim().toLowerCase()));
+
   const stroom = (
     <>
+      {losseNotities.length > 0 && (
+        <div className="rounded-lg border border-border bg-card overflow-hidden mb-5">
+          <div className="h-12 flex items-center gap-2 px-4 sm:px-5 bg-muted/40">
+            <StickyNote className="h-4 w-4 text-primary shrink-0" />
+            <span className="text-sm font-semibold text-foreground">Losse notities</span>
+            <span className="text-[12px] text-muted-foreground">({losseNotities.length})</span>
+          </div>
+          <ul className="divide-y divide-border/70 border-t border-border">
+            {losseNotities.map((n) => (
+              <li key={n.id} id={`notitie-los-${n.id}`}>
+                <PostItRij
+                  notitie={n}
+                  onGewijzigd={pasNotitieAan}
+                  auteur={n.door_user ? namen[n.door_user] : undefined}
+                />
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       {gefilterd.length === 0 ? (
         <div className="rounded-lg border border-border bg-card px-4 py-8 text-center text-sm text-muted-foreground">
           {tijdlijn.length === 0

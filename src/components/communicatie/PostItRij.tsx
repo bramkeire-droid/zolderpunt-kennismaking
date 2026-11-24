@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { StickyNote, Gavel, Star, Pencil, Trash2, Check, X, Loader2 } from 'lucide-react';
 import { wijzigNotitie, verwijderNotitie, type GesprekNotitie, type NotitieSoort } from '@/lib/gesprekken';
@@ -140,6 +141,9 @@ export default function PostItRij({ notitie, onGewijzigd, auteur }: Props) {
       <meta.icon className={`h-3.5 w-3.5 mt-0.5 shrink-0 ${meta.tekst}`} />
       <span className="flex-1 whitespace-pre-wrap text-foreground">
         <span className={`text-[11px] ${meta.tekst}`}>{meta.label}</span>{' '}
+        {notitie.bron === 'zarvis' && (
+          <><Badge variant="outline" className="text-[10px] px-1.5 py-0 align-middle">via Zarvis</Badge>{' '}</>
+        )}
         {notitie.tekst}
       </span>
 
