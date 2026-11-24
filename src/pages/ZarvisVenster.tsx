@@ -194,7 +194,7 @@ export default function ZarvisVenster() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-[#07090F] text-[#F3F5FA] font-body overflow-hidden select-none">
+    <div className="zarvis-donker h-screen flex flex-col bg-[#07090F] text-[#F3F5FA] font-body overflow-hidden select-none">
       {/* ── Zarvis zelf: het zwarte gat, met de toestand in woorden eronder.
           Tegelijk het handvat om het venster te verslepen. ── */}
       <header style={sleep} className="relative shrink-0 h-[196px]">
