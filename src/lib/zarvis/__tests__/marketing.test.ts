@@ -62,12 +62,28 @@ describe('marketing', () => {
     expect((await M.marketing_zoektermen.voer({}, {}, { token: 't' })).resultaat).toEqual({ fout: 'Geen toegang: alleen een beheerder van Compass.' });
   });
 
+  it('stelt een dagbudget voor, voert pas uit met bevestigd, en geeft een weigering door', async () => {
+    const stand = { campagne: 'Koopklaar', dagbudget_nu: 35, dagbudget_nieuw: 40, plafond: 45, verloren_door_budget_14_dagen: '14%' };
+    const f = zetLoket({ voorstel: stand, wanneer: 'Er is niets veranderd.' });
+    const uit = await M.stel_dagbudget_in.voer({}, { bedrag: 40 }, { token: 't' });
+    expect(body(f)).toEqual({ action: 'budget', bedrag: 40, bevestigd: false });
+    expect(uit.detail).toBe('voorstel, wacht op ja');
+    const g = zetLoket({ gedaan: stand, wanneer: 'Vannacht.' });
+    expect((await M.stel_dagbudget_in.voer({}, { bedrag: 40, bevestigd: true }, { token: 't' })).detail).toBe('35 naar 40 euro');
+    expect(body(g).bevestigd).toBe(true);
+    zetLoket({ geweigerd: true, reden: 'Het plafond is 45 euro per dag.' });
+    const nee = await M.stel_dagbudget_in.voer({}, { bedrag: 60, bevestigd: true }, { token: 't' });
+    expect(nee.detail).toBe('geweigerd');
+    expect((nee.resultaat as { reden: string }).reden).toContain('plafond');
+  });
+
   it('is nooit beschikbaar voor een geplande controle', async () => {
     const pad = '../../../../supabase/functions/_shared/zarvis/gereedschap';
     const g = await import(/* @vite-ignore */ pad);
     const namen = (l: Array<{ name: string }>) => l.map((x) => x.name);
     expect(namen(g.LEES_GEREEDSCHAP)).not.toContain('sluit_zoektermen_uit');
     expect(namen(g.LEES_GEREEDSCHAP)).not.toContain('marketing_overzicht');
+    expect(namen(g.LEES_GEREEDSCHAP)).not.toContain('stel_dagbudget_in');
     expect(namen(g.gereedschapVoor({ marketing: false }))).not.toContain('sluit_zoektermen_uit');
     expect(namen(g.gereedschapVoor({}))).toContain('sluit_zoektermen_uit');
   });
