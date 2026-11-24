@@ -50,6 +50,12 @@ export const MARKETING_GEREEDSCHAP: Def[] = [
     description: 'Draait een uitsluiting terug: de zoektermen mogen weer advertenties tonen. Alleen op vraag van de gebruiker. Gaat de nacht erna in.',
     input_schema: { type: 'object', properties: { zoektermen: { type: 'array', items: { type: 'string' } } }, required: ['zoektermen'] },
   },
+  {
+    name: 'stel_dagbudget_in',
+    description:
+      'Zet het dagbudget van de Google Ads-campagne. ALLEEN na een duidelijk ja van de gebruiker, en nooit boven 45 euro per dag: dat plafond zit in het loket. Budget verhogen is het laatste middel: zoek altijd eerst wat niets kost (zoektermen uitsluiten, kwaliteit, regio, de pagina van de site). Het loket weigert een verhoging zolang er zoektermen uit te sluiten zijn of het budget niet echt remt, en zegt dan waarom; breng die reden over. Eerste keer zonder "bevestigd": er verandert niets, je krijgt een voorstel. Lees het voor met wat het per maand meer of minder kost, vraag of het mag, en roep pas na ja opnieuw aan met bevestigd: true. Gaat de nacht erna in.',
+    input_schema: { type: 'object', properties: { bedrag: { type: 'number', description: 'Nieuw dagbudget in euro, 5 tot 45.' }, bevestigd: { type: 'boolean', description: 'Alleen true als de gebruiker het voorstel hoorde en ja zei.' } }, required: ['bedrag'] },
+  },
 ];
 
 export const MARKETING_CONNECTOR: Record<string, string> = Object.fromEntries(MARKETING_GEREEDSCHAP.map((g) => [g.name, 'marketing']));
@@ -130,6 +136,28 @@ export const MARKETING_UITVOERDERS: Record<string, { label: (i: Record<string, u
             { kop: `Uitgesloten (kostten ${euro(r.bespaard_per_90_dagen)} in 90 dagen)`, leeg: 'Niets uitgesloten.', lijst: r.uitgesloten.map((t) => ({ tekst: t.zoekterm, rechts: `${euro(t.kost)} · ${t.klikken} kl.` })) },
             ...(r.geweigerd.length ? [{ kop: 'Geweigerd door het loket', lijst: r.geweigerd.map((g) => ({ tekst: g.zoekterm, rechts: g.reden })) }] : []),
           ],
+        },
+      };
+    },
+  },
+
+  stel_dagbudget_in: {
+    label: (i) => `Dagbudget naar ${Number(i.bedrag) || '?'} euro`,
+    async voer(_db, invoer, ctx) {
+      type Stand = { campagne: string; dagbudget_nu: number; dagbudget_nieuw: number; plafond: number; verloren_door_budget_14_dagen: string };
+      const r = await loket<{ geweigerd?: boolean; reden?: string; voorstel?: Stand; gedaan?: Stand; wanneer?: string }>(ctx, { action: 'budget', bedrag: invoer.bedrag, bevestigd: invoer.bevestigd === true });
+      if ('fout' in r) return { resultaat: r, detail: 'loket' };
+      if (r.geweigerd) return { resultaat: r, detail: 'geweigerd' };
+      const st = (r.voorstel ?? r.gedaan)!;
+      return {
+        resultaat: r,
+        detail: r.gedaan ? `${st.dagbudget_nu} naar ${st.dagbudget_nieuw} euro` : 'voorstel, wacht op ja',
+        bron: {
+          titel: r.gedaan ? 'Dagbudget aangepast' : 'Voorstel: dagbudget', ondertitel: r.wanneer,
+          secties: [{ velden: [
+            { label: 'Campagne', waarde: st.campagne }, { label: 'Nu', waarde: euro(st.dagbudget_nu) }, { label: 'Nieuw', waarde: euro(st.dagbudget_nieuw) },
+            { label: 'Plafond', waarde: euro(st.plafond) }, { label: 'Verloren door budget', waarde: st.verloren_door_budget_14_dagen },
+          ] }],
         },
       };
     },
