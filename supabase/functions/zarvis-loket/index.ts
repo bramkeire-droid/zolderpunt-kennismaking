@@ -26,6 +26,7 @@
 //   { actie: 'documenten', dossier_id }  (B-098) rapport, foto's en documenten (links van een uur). Lezen.
 //   { actie: 'offertes_zonder_antwoord', dagen? }  (B-153) offertes in de wachtstand, oudste eerst. Lezen.
 //   { actie: 'calculaties_vergelijk', dossier_id, a?, b? }  (B-151) wat erbij, weg, duurder of goedkoper. Lezen.
+//   { actie: 'dossiers_bij_bouwflow', ids }  (B-190) Bouwflow-projectnummer naar dossier. Lezen.
 //   { actie: 'klant_dubbels' }   (L4) klanten zonder dossier die op een klant met dossier lijken
 //                             (zelfde gsm, zelfde mailadres of zelfde naam), met de droge proef per paar
 //   { actie: 'klant_samenvoegen', van, naar, bevestigd? }  (L4) SCHRIJFT na bevestiging, via de databankfunctie
@@ -116,16 +117,16 @@ Deno.serve(async (req) => {
       const tot = new Date(lokaal.getTime() - verschil + dagen * 86400000).toISOString();
       const [bezoeken, calls] = await Promise.all([
         db.from('pre_intake').select('lead_id, plaatsbezoek_scheduled_at').gte('plaatsbezoek_scheduled_at', van).lt('plaatsbezoek_scheduled_at', tot),
-        db.from('pre_intake').select('lead_id, videocall_scheduled_at').gte('videocall_scheduled_at', van).lt('videocall_scheduled_at', tot),
+        db.from('pre_intake').select('lead_id, videocall_scheduled_at, google_meet_link').gte('videocall_scheduled_at', van).lt('videocall_scheduled_at', tot),
       ]);
       if (bezoeken.error || calls.error) throw new Error((bezoeken.error ?? calls.error)!.message);
       const ruw = [
         ...(bezoeken.data ?? []).map((r) => ({ soort: 'plaatsbezoek', op: r.plaatsbezoek_scheduled_at as string, lead_id: r.lead_id as string | null })),
-        ...(calls.data ?? []).map((r) => ({ soort: 'videocall', op: r.videocall_scheduled_at as string, lead_id: r.lead_id as string | null })),
+        ...(calls.data ?? []).map((r) => ({ soort: 'videocall', op: r.videocall_scheduled_at as string, lead_id: r.lead_id as string | null, meet_link: (r.google_meet_link as string | null) ?? null })),
       ].sort((a, b) => a.op.localeCompare(b.op));
       const ids = [...new Set(ruw.map((r) => r.lead_id).filter((x): x is string => !!x))];
       const { data: leads, error } = ids.length
-        ? await db.from('leads').select('id, voornaam, achternaam, adres').in('id', ids)
+        ? await db.from('leads').select('id, voornaam, achternaam, adres, telefoon, bouwflow_project_number').in('id', ids)
         : { data: [], error: null };
       if (error) throw new Error(error.message);
       const lead = new Map((leads ?? []).map((l) => [l.id, l]));
@@ -133,8 +134,11 @@ Deno.serve(async (req) => {
         dagen,
         afspraken: ruw.map((r) => {
           const l = r.lead_id ? lead.get(r.lead_id) : null;
-          return { soort: r.soort, op: r.op, dossier_id: r.lead_id, klant: l ? [l.voornaam, l.achternaam].filter(Boolean).join(' ') : null, adres: l?.adres ?? null };
+          // B-041: ook de telefoon van de klant, het dossiernummer en (bij een videocall) de Meet-link.
+          return { soort: r.soort, op: r.op, dossier_id: r.lead_id, klant: l ? [l.voornaam, l.achternaam].filter(Boolean).join(' ') : null, adres: l?.adres ?? null,
+            telefoon: l?.telefoon || null, dossiernummer: l?.bouwflow_project_number ?? null, ...('meet_link' in r ? { meet_link: r.meet_link } : {}) };
         }),
+        let_op: 'Compass bewaart per dossier één plaatsbezoek en één videocall, zonder duur en zonder of de afspraak verzet of geannuleerd werd.',
       });
     }
     if (body?.actie === 'nummers') {
@@ -443,6 +447,17 @@ Deno.serve(async (req) => {
         verschil_totaal_excl: nieuw.budget_excl != null && oud.budget_excl != null ? Math.round((Number(nieuw.budget_excl) - Number(oud.budget_excl)) * 100) / 100 : null,
         erbij, weg, anders, ongewijzigd: [...B.keys()].filter((k) => A.has(k) && Number(A.get(k)!.bedrag) === Number(B.get(k)!.bedrag)).length,
       });
+    }
+    if (body?.actie === 'dossiers_bij_bouwflow') {
+      // B-190: alleen lezen. Welk dossier hoort bij welk Bouwflow-project (het werfnummer van de Werf-app).
+      const b = body as typeof body & { ids?: unknown };
+      const ids = (Array.isArray(b.ids) ? b.ids : []).map((x) => Number(x)).filter((x) => Number.isInteger(x) && x > 0).slice(0, 200);
+      if (!ids.length) return json({ koppeling: {} });
+      const { data, error } = await db.from('leads').select('id, voornaam, achternaam, bouwflow_project_number, bouwflow_project_pk_id').in('bouwflow_project_pk_id', ids);
+      if (error) throw new Error(error.message);
+      const koppeling: Record<string, { dossier_id: string; klant: string; dossiernummer: string | null }> = {};
+      for (const l of data ?? []) koppeling[String(l.bouwflow_project_pk_id)] = { dossier_id: l.id, klant: [l.voornaam, l.achternaam].filter(Boolean).join(' '), dossiernummer: l.bouwflow_project_number ?? null };
+      return json({ koppeling, niet_gevonden: ids.filter((x) => !koppeling[String(x)]) });
     }
     if (body?.actie === 'klant_dubbels') {
       // (L4) Alleen lezen. Een klant zonder dossier die op een klant met dossier lijkt.
