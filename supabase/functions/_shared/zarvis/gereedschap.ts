@@ -16,6 +16,7 @@ import { belgischMoment, DOE_CONNECTOR, DOE_GEREEDSCHAP, DOE_UITVOERDERS } from 
 import { BUITEN_CONNECTOR, BUITEN_GEREEDSCHAP, maakBuitenUitvoerders } from './buiten.ts';
 import { MAIL_CONNECTOR, MAIL_GEREEDSCHAP, MAIL_UITVOERDERS } from './mail.ts';
 import { WEB_CONNECTOR, WEB_GEREEDSCHAP, WEB_UITVOERDERS } from './web.ts';
+import { MARKETING_CONNECTOR, MARKETING_GEREEDSCHAP, MARKETING_UITVOERDERS } from './marketing.ts';
 
 // deno-lint-ignore-file no-explicit-any
 type Db = any;
@@ -108,7 +109,7 @@ const faseVan = (
  * beheersectie, dan krijgt het model dat gereedschap niet te zien en wordt het
  * ook niet uitgevoerd. Wat hier niet staat, hoort bij Compass en staat altijd aan.
  */
-const CONNECTOR_VAN: Record<string, string> = { lees_whatsapp: 'whatsapp', ...DOE_CONNECTOR, ...BUITEN_CONNECTOR, ...MAIL_CONNECTOR, ...WEB_CONNECTOR };
+const CONNECTOR_VAN: Record<string, string> = { lees_whatsapp: 'whatsapp', ...DOE_CONNECTOR, ...BUITEN_CONNECTOR, ...MAIL_CONNECTOR, ...WEB_CONNECTOR, ...MARKETING_CONNECTOR };
 
 /** Het gereedschap dat deze gebruiker aan heeft staan. */
 export function gereedschapVoor(connectoren: Record<string, unknown> | null | undefined): GereedschapDef[] {
@@ -448,9 +449,12 @@ Object.assign(UITVOERDERS, MAIL_UITVOERDERS);
 // Zoeken en lezen op het openbare web staat in web.ts.
 GEREEDSCHAP.push(...WEB_GEREEDSCHAP);
 Object.assign(UITVOERDERS, WEB_UITVOERDERS);
+// Marketing (cijfers lezen, zoektermen uitsluiten) staat in marketing.ts.
+GEREEDSCHAP.push(...MARKETING_GEREEDSCHAP);
+Object.assign(UITVOERDERS, MARKETING_UITVOERDERS);
 
 /** Alleen lezen: wat een geplande controle op de achtergrond mag gebruiken. */
-export const LEES_GEREEDSCHAP = GEREEDSCHAP.filter((g) => !(g.name in DOE_UITVOERDERS) && !(g.name in MAIL_UITVOERDERS));
+export const LEES_GEREEDSCHAP = GEREEDSCHAP.filter((g) => !(g.name in DOE_UITVOERDERS) && !(g.name in MAIL_UITVOERDERS) && !(g.name in MARKETING_UITVOERDERS));
 
 export function labelVan(naam: string, invoer: unknown): string {
   const u = UITVOERDERS[naam];
