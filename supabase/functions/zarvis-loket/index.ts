@@ -389,11 +389,13 @@ Deno.serve(async (req) => {
       const minDagen = Math.min(Math.max(Math.round(Number(b.dagen)) || 0, 0), 365);
       const [kaart, leads] = await Promise.all([
         db.from('bouwflow_phase_category_map').select('phase_id, phase_title, compass_category'),
-        db.from('leads').select('id, voornaam, achternaam, bouwflow_project_number, bouwflow_phase, category_override, offerte_datum, offerte_bedrag_excl, offerte_nummer, budget_excl, updated_at').not('offerte_datum', 'is', null).limit(1000),
+        db.from('leads').select('id, voornaam, achternaam, bouwflow_project_number, bouwflow_phase, category_override, offerte_datum, offerte_bedrag_excl, offerte_nummer, budget_excl, updated_at').limit(2000),
       ]);
       if (kaart.error || leads.error) throw new Error((kaart.error ?? leads.error)!.message);
       const fase = new Map((kaart.data ?? []).map((f) => [String(f.phase_id), f]));
-      const open = (leads.data ?? []).filter((l) => (l.category_override || fase.get(String(l.bouwflow_phase ?? ''))?.compass_category) === 'offerte');
+      // Compass vult de offertedatum zelden in: ook de fases waarin de offerte (of raming) verstuurd is tellen mee.
+      const open = (leads.data ?? []).filter((l) => (l.category_override || fase.get(String(l.bouwflow_phase ?? ''))?.compass_category) === 'offerte'
+        && (l.offerte_datum || /verstuurd/i.test(fase.get(String(l.bouwflow_phase ?? ''))?.phase_title ?? '')));
       const ids = open.map((l) => l.id);
       const [wa, chat] = ids.length ? await Promise.all([
         db.from('whatsapp_berichten').select('lead_id, verstuurd_op, van_mij').in('lead_id', ids).order('verstuurd_op', { ascending: false }).limit(2000),
@@ -408,11 +410,13 @@ Deno.serve(async (req) => {
       const lijst = open.map((l) => ({
         dossier_id: l.id, klant: [l.voornaam, l.achternaam].filter(Boolean).join(' ') || null, dossiernummer: l.bouwflow_project_number ?? null,
         fase: fase.get(String(l.bouwflow_phase ?? ''))?.phase_title ?? null,
-        offerte_datum: l.offerte_datum, offerte_nummer: l.offerte_nummer ?? null, dagen_oud: Math.floor((nu - new Date(l.offerte_datum).getTime()) / 86400000),
+        offerte_datum: l.offerte_datum ?? null, offerte_nummer: l.offerte_nummer ?? null,
+        dagen_oud: Math.floor((nu - new Date(l.offerte_datum ?? l.updated_at).getTime()) / 86400000),
+        leeftijd_volgens: l.offerte_datum ? 'offertedatum' : 'laatste wijziging van het dossier',
         bedrag_excl: l.offerte_bedrag_excl ?? l.budget_excl ?? null,
         laatste_whatsapp: laatsteWa.get(l.id) ?? null, laatste_chat: laatsteChat.get(l.id) ?? null, laatst_gewijzigd: l.updated_at,
       })).filter((x) => x.dagen_oud >= minDagen).sort((a, z) => z.dagen_oud - a.dagen_oud);
-      return json({ totaal: lijst.length, offertes: lijst.slice(0, 50), let_op: 'Alleen dossiers met een ingevulde offertedatum in de categorie offerte. Mails staan er niet in.' });
+      return json({ totaal: lijst.length, offertes: lijst.slice(0, 50), let_op: 'Dossiers in de categorie offerte met een offertedatum of in een fase "verstuurd". Zonder offertedatum is de leeftijd de laatste wijziging van het dossier. Mails staan er niet in.' });
     }
     if (body?.actie === 'calculaties_vergelijk') {
       // B-151: alleen lezen. De nieuwste twee calculaties van een dossier (of de twee gevraagde): wat kwam erbij,
