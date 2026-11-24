@@ -91,10 +91,23 @@ export const WEB_UITVOERDERS: Record<string, { label: (i: Record<string, unknown
     async voer(_db, invoer) {
       const zoekterm = String(invoer.zoekterm ?? '').trim().slice(0, 200);
       if (!zoekterm) return { resultaat: { fout: 'Geef een zoekterm.' }, detail: 'leeg' };
-      const res = await fetch(`${Deno.env.get('ZARVIS_TEST_ZOEK') ?? ZOEK_URL}?q=${encodeURIComponent(zoekterm)}&kl=be-nl`, { headers: { 'User-Agent': AGENT, 'Accept-Language': 'nl-BE,nl' } });
-      if (!res.ok) return { resultaat: { fout: `Zoeken lukte niet (fout ${res.status}). Ken je een adres, lees het dan rechtstreeks met lees_webpagina.` }, detail: `fout ${res.status}` };
-      const resultaten = leesResultaten(await res.text());
-      if (!resultaten.length) return { resultaat: { fout: 'De zoekdienst gaf geen leesbare resultaten. Zeg dat zoeken nu niet lukt; verzin geen antwoord.' }, detail: 'geen resultaten' };
+      // Met de sleutel van Brave Search (secret BRAVE_SEARCH_API_KEY) zoeken we daar:
+      // live gemeten op 2026-11-24 weigert DuckDuckGo de server van de functie
+      // (geen resultaten), terwijl dezelfde vraag vanaf een gewone pc wel werkt.
+      const brave = Deno.env.get('BRAVE_SEARCH_API_KEY');
+      let resultaten: ReturnType<typeof leesResultaten>;
+      if (brave) {
+        const res = await fetch(`https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(zoekterm)}&country=be&search_lang=nl&count=6`, { headers: { 'X-Subscription-Token': brave, Accept: 'application/json' } });
+        if (!res.ok) return { resultaat: { fout: `Zoeken lukte niet (Brave Search gaf fout ${res.status}).` }, detail: `fout ${res.status}` };
+        const j = await res.json() as { web?: { results?: Array<{ title?: string; url?: string; description?: string }> } };
+        resultaten = (j.web?.results ?? []).filter((r) => r.url && veiligAdres(r.url)).slice(0, 6)
+          .map((r) => ({ titel: htmlNaarTekst(r.title ?? ''), adres: r.url!, beschrijving: htmlNaarTekst(r.description ?? '').slice(0, 300) }));
+      } else {
+        const res = await fetch(`${ZOEK_URL}?q=${encodeURIComponent(zoekterm)}&kl=be-nl`, { headers: { 'User-Agent': AGENT, 'Accept-Language': 'nl-BE,nl' } });
+        if (!res.ok) return { resultaat: { fout: `Zoeken lukte niet (fout ${res.status}). Ken je een adres, lees het dan rechtstreeks met lees_webpagina.` }, detail: `fout ${res.status}` };
+        resultaten = leesResultaten(await res.text());
+      }
+      if (!resultaten.length) return { resultaat: { fout: `De zoekdienst gaf geen resultaten.${brave ? '' : ' Zoeken werkt pas betrouwbaar met de sleutel BRAVE_SEARCH_API_KEY op de server; zeg dat aan de gebruiker.'} Ken je een adres, lees het dan rechtstreeks met lees_webpagina. Verzin geen antwoord.` }, detail: 'geen resultaten' };
       return {
         resultaat: { zoekterm, resultaten },
         detail: `${resultaten.length} resultaten`,

@@ -45,6 +45,19 @@ describe('zoek_web', () => {
     expect(uit.detail).toBe('2 resultaten');
   });
 
+  it('zoekt bij Brave als de sleutel er is', async () => {
+    vi.stubGlobal('Deno', { env: { get: (k: string) => (k === 'BRAVE_SEARCH_API_KEY' ? 'sleutel' : undefined) } });
+    const f = vi.fn(async (_u: string, _i: RequestInit) => new Response(JSON.stringify({ web: { results: [
+      { title: 'VELUX <strong>MK06</strong>', url: 'https://www.velux.be/mk06', description: '78 x 118 cm' },
+      { title: 'Intern', url: 'https://10.0.0.1/' },
+    ] } })));
+    vi.stubGlobal('fetch', f);
+    const uit = await WEB_UITVOERDERS.zoek_web.voer({}, { zoekterm: 'velux mk06' });
+    expect(f.mock.calls[0][0]).toContain('api.search.brave.com');
+    expect((f.mock.calls[0][1].headers as Record<string, string>)['X-Subscription-Token']).toBe('sleutel');
+    expect((uit.resultaat as { resultaten: unknown[] }).resultaten).toEqual([{ titel: 'VELUX MK06', adres: 'https://www.velux.be/mk06', beschrijving: '78 x 118 cm' }]);
+  });
+
   it('zegt eerlijk dat zoeken niet lukte', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response('<html>geen</html>')));
     expect((await WEB_UITVOERDERS.zoek_web.voer({}, { zoekterm: 'x' })).detail).toBe('geen resultaten');

@@ -166,7 +166,7 @@ Nummers zijn doorlopend en worden nooit hergebruikt.
 - **Eerste inschatting**: Drie bronnen, in volgorde van haalbaarheid. (1) Wat je zegt: het model leest toon en ongeduld al uit je woorden; dat vraagt alleen een instructie en een veld 'stemming' bij elk antwoord. (2) Hoe je het zegt: toonhoogte, tempo en volume van je stem. De microfoon wordt al gemeten voor de knop; daar zijn eenvoudige kenmerken uit te halen, en er bestaan diensten die emotie uit spraak schatten (te onderzoeken op Nederlands en op verwerking binnen de EU). (3) Je gezicht via de webcam: technisch mogelijk, maar het zwaarst voor privacy en het minst betrouwbaar; ik raad het af als eerste stap. Wat Zarvis ermee doet: korter antwoorden als je gehaast klinkt, niet doorvragen als je geïrriteerd bent, en het zwarte gat dat meekleurt.
 - **Mijn open vragen erover**: (1) Wil je dat Zarvis je stemming alleen gebruikt om zijn toon aan te passen, of ook bijhoudt over de tijd? Bijhouden is een gevoelig gegeven. (2) Webcam: ja of nee?
 - **Behandeling**: na IDEE-16; stap 1 en 2, zonder webcam en zonder bijhouden tot Bram anders beslist.
-- **Status**: open
+- **Status**: deels (2026-11-24): stap 1 gebouwd, Zarvis leest uit je woorden hoe je klinkt en past zijn antwoord aan, zonder iets bij te houden. Open: stap 2 (je stem: toonhoogte, tempo, volume) en het zwarte gat dat meekleurt.
 
 ## IDEE-18 — Zelflerend: een vaardigheid die ontbreekt zelf onderzoeken en bouwen
 - **Datum**: 2026-11-24
@@ -202,7 +202,7 @@ Nummers zijn doorlopend en worden nooit hergebruikt.
 - **Eerste inschatting**: Zarvis krijgt een eigen browser om iets op te zoeken, een pagina te lezen, een formulier in te vullen. Twee niveaus: (1) opzoeken en lezen op het web via de zoek- en leesfunctie van het model zelf: klein werk, geen risico. (2) Een echte browser besturen op jouw pc met jouw logins (bijvoorbeeld in Bouwflow klikken): dat hoort bij IDEE-22.
 - **Mijn open vragen erover**: Geen blokkerende voor niveau 1.
 - **Behandeling**: niveau 1 na IDEE-16; niveau 2 met IDEE-22.
-- **Status**: open
+- **Status**: deels (2026-11-24): niveau 1 gebouwd (`zoek_web`, `lees_webpagina`). Een pagina lezen werkt live. Zoeken wordt vanaf de server geweigerd door de gratis zoekdienst en werkt pas met de sleutel `BRAVE_SEARCH_API_KEY`. Niveau 2 hoort bij IDEE-22.
 
 ## IDEE-22 — Computer use: Zarvis bedient je pc
 - **Datum**: 2026-11-24
