@@ -12,7 +12,8 @@
 // staat, en elke invoer wordt hier nagekeken voor ze de databank bereikt.
 // ================================================================
 
-import { DOE_CONNECTOR, DOE_GEREEDSCHAP, DOE_UITVOERDERS } from './doen.ts';
+import { belgischMoment, DOE_CONNECTOR, DOE_GEREEDSCHAP, DOE_UITVOERDERS } from './doen.ts';
+import { BUITEN_CONNECTOR, BUITEN_GEREEDSCHAP, maakBuitenUitvoerders } from './buiten.ts';
 
 // deno-lint-ignore-file no-explicit-any
 type Db = any;
@@ -104,7 +105,7 @@ const faseVan = (
  * beheersectie, dan krijgt het model dat gereedschap niet te zien en wordt het
  * ook niet uitgevoerd. Wat hier niet staat, hoort bij Compass en staat altijd aan.
  */
-const CONNECTOR_VAN: Record<string, string> = { lees_whatsapp: 'whatsapp', ...DOE_CONNECTOR };
+const CONNECTOR_VAN: Record<string, string> = { lees_whatsapp: 'whatsapp', ...DOE_CONNECTOR, ...BUITEN_CONNECTOR };
 
 /** Het gereedschap dat deze gebruiker aan heeft staan. */
 export function gereedschapVoor(connectoren: Record<string, unknown> | null | undefined): GereedschapDef[] {
@@ -435,6 +436,9 @@ const UITVOERDERS: Record<string, Uitvoerder> = {
 // loopt door dezelfde poort.
 GEREEDSCHAP.push(...DOE_GEREEDSCHAP);
 Object.assign(UITVOERDERS, DOE_UITVOERDERS);
+// Diensten buiten Compass (Google Maps) staan in buiten.ts.
+GEREEDSCHAP.push(...BUITEN_GEREEDSCHAP);
+Object.assign(UITVOERDERS, maakBuitenUitvoerders(belgischMoment));
 
 /** Alleen lezen: wat een geplande controle op de achtergrond mag gebruiken. */
 export const LEES_GEREEDSCHAP = GEREEDSCHAP.filter((g) => !(g.name in DOE_UITVOERDERS));

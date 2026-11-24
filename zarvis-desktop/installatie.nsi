@@ -63,6 +63,8 @@ SectionGroup /e "Connectoren" GrpCon
   SectionEnd
   Section "Vlaamse stem: luisteren en spreken" SecStem
   SectionEnd
+  Section "Google Maps: ritten en rijtijden" SecMaps
+  SectionEnd
   Section /o "Mail (nog niet gebouwd)" SecMail
   SectionEnd
   Section /o "Agenda en Calendly (nog niet gebouwd)" SecAgenda
@@ -95,6 +97,7 @@ Section "-Keuzes"
   FileWrite $9 "{"
   !insertmacro Keuze "whatsapp" ${SecWa} ","
   !insertmacro Keuze "stem" ${SecStem} ","
+  !insertmacro Keuze "maps" ${SecMaps} ","
   !insertmacro Keuze "startMee" ${SecStart} ""
   FileWrite $9 "}"
   FileClose $9
@@ -119,6 +122,7 @@ FunctionEnd
   !insertmacro MUI_DESCRIPTION_TEXT ${SecStart} "Zarvis staat klaar zodra je inlogt op Windows."
   !insertmacro MUI_DESCRIPTION_TEXT ${SecCompass} "De basis van Zarvis; staat altijd aan."
   !insertmacro MUI_DESCRIPTION_TEXT ${SecWa} "Leest mee en verstuurt wat je Zarvis laat versturen; een bericht aan een klant leest hij je eerst voor. Koppelen doe je na de installatie met je gsm."
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecMaps} "Afstand en rijtijd met verkeer, naar een adres of naar een klant."
   !insertmacro MUI_DESCRIPTION_TEXT ${SecStem} "Vlaams via Azure. Uit: de stem van je computer."
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 
