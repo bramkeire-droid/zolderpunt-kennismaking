@@ -334,12 +334,24 @@ const UITVOERDERS: Record<string, Uitvoerder> = {
     label: () => 'Calculaties lezen',
     async voer(db, invoer) {
       const id = eisDossier(invoer);
-      const { data, error } = await db.from('calculaties')
-        .select('bron, budget_excl, budget_min_excl, budget_max_excl, btw_percentage, inbegrepen_posten, created_at, updated_at')
-        .eq('lead_id', id).order('created_at', { ascending: false }).limit(5);
+      const [{ data, error }, { data: lead }] = await Promise.all([
+        db.from('calculaties')
+          .select('bron, budget_excl, budget_min_excl, budget_max_excl, btw_percentage, inbegrepen_posten, created_at, updated_at')
+          .eq('lead_id', id).order('created_at', { ascending: false }).limit(5),
+        db.from('leads').select('offerte_bedrag_excl, offerte_nummer, offerte_datum').eq('id', id).maybeSingle(),
+      ]);
       if (error) throw new Error(error.message);
+      // B-152 (2026-11-24, baan LOKETTEN): het offertebedrag van het dossier naast de nieuwste calculatie, en of het
+      // binnen de prijsvork (minimum tot maximum) ligt. Alleen lezen; ontbreekt een van beide, dan staat er null.
+      const laatste = (data ?? [])[0] as { budget_min_excl?: number | null; budget_max_excl?: number | null } | undefined;
+      const bedrag = lead?.offerte_bedrag_excl != null && Number(lead.offerte_bedrag_excl) > 0 ? Number(lead.offerte_bedrag_excl) : null;
+      const vork = laatste?.budget_min_excl != null && laatste?.budget_max_excl != null ? { min: Number(laatste.budget_min_excl), max: Number(laatste.budget_max_excl) } : null;
+      const offerte = {
+        bedrag_excl: bedrag, nummer: lead?.offerte_nummer ?? null, datum: lead?.offerte_datum ?? null,
+        in_vork: bedrag != null && vork ? (bedrag < vork.min ? 'onder' : bedrag > vork.max ? 'boven' : 'binnen') : null,
+      };
       return {
-        resultaat: { aantal: (data ?? []).length, calculaties: data ?? [] },
+        resultaat: { aantal: (data ?? []).length, calculaties: data ?? [], offerte },
         detail: (data ?? []).length === 1 ? '1 calculatie' : `${(data ?? []).length} calculaties`,
         bron: {
           titel: 'Calculaties',
