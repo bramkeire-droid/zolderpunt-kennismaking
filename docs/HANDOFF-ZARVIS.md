@@ -89,7 +89,7 @@ Elk idee staat met Brams letterlijke woorden, een inschatting en open vragen in 
 | 16 | Herhalende taken, timers, herinneringen, bericht op tijdstip | Gebouwd en live |
 | 17 | Emoties lezen | Niet begonnen |
 | 18 | Zelflerend: "Ik kan dat nog niet Bram, wil je dat ik die skill nu onderzoek en aanleer?" | Deels: aanleren en bouwlijst wel; zelf code bouwen tijdens het gesprek niet |
-| 19 | Google Maps: routes en ritafstanden | Gebouwd, niet uitgerold, sleutel nodig |
+| 19 | Google Maps: routes en ritafstanden | Gebouwd en getest tegen een nagebootste Google (`src/lib/zarvis/__tests__/buiten.test.ts`), niet uitgerold, sleutel nodig |
 | 20 | Agenda: verwittigen als hij nog op kantoor is en niet onderweg | Niet begonnen |
 | 21 | Browser: Zarvis surft zelf | Niet begonnen |
 | 22 | Computer use: "over een uur de voortgang in dit programma checken en dan op voltooien klikken" | Niet begonnen |

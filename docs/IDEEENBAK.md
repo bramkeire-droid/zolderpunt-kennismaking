@@ -184,7 +184,7 @@ Nummers zijn doorlopend en worden nooit hergebruikt.
 - **Eerste inschatting**: Een gereedschap dat een route opvraagt tussen twee adressen (afstand, rijtijd met verkeer) via de Routes API van Google. Adressen van klanten staan al in de dossiers. Nodig: een Google Cloud-sleutel als secret. Klein werk.
 - **Mijn open vragen erover**: Geen blokkerende. Vertrekpunt standaard het kantooradres.
 - **Behandeling**: na IDEE-16, samen met IDEE-20.
-- **Status**: gebouwd, niet uitgerold (2026-11-24). `bereken_route` staat in `supabase/functions/_shared/zarvis/buiten.ts` en is getest tegen een nagebootste Google. Nog te doen: de functie `zarvis` uitrollen, publiceren, en Bram moet de secret `GOOGLE_MAPS_API_KEY` toevoegen (Routes API aan in Google Cloud). Niet getest tegen de echte dienst.
+- **Status**: gebouwd en getest tegen een nagebootste Google (2026-11-24); nog niet gemerged of uitgerold, wacht op de sleutel `GOOGLE_MAPS_API_KEY`.
 
 ## IDEE-20 — Agenda en locatie: verwittigen als je nog niet onderweg bent
 - **Datum**: 2026-11-24
