@@ -3,6 +3,7 @@ import { Mic, Square, SendHorizonal, RotateCcw, Keyboard, Check, Loader2, AlertT
 import { useZarvis, type ZarvisStatus } from '@/contexts/ZarvisContext';
 import { useAuth } from '@/contexts/AuthContext';
 import ZarvisGat from '@/components/zarvis/ZarvisGat';
+import ZarvisWachtrij from '@/components/zarvis/ZarvisWachtrij';
 import { meetMicrofoon } from '@/lib/zarvis/niveau';
 import { leesStijl } from '@/lib/zarvis/instellingen';
 import { supabase } from '@/integrations/supabase/client';
@@ -323,6 +324,9 @@ export default function ZarvisVenster() {
         )}
         <div ref={onderkant} />
       </main>
+
+      {/* Wat op een ja wacht: de knop hier is de enige weg om iets buiten Compass uit te voeren. */}
+      <ZarvisWachtrij ververs={bezigNu} />
 
       {/* ── Eén zwevende balk: spreken, typen, onderbreken ── */}
       <footer className="shrink-0 px-3 pb-3 pt-1">
