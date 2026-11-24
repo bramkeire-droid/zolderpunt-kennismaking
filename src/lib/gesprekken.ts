@@ -28,6 +28,8 @@ export type GesprekNotitie = {
   tekst: string;
   door_user: string | null;
   created_at: string;
+  /** Wie de notitie zette: leeg = iemand in Compass, 'zarvis' = Zarvis (dan meestal zonder gesprek). */
+  bron?: string | null;
 };
 
 const gesprekkenTabel = () => supabase.from('gesprekken' as any);
@@ -46,7 +48,7 @@ export async function fetchGesprekken(leadId: string): Promise<Gesprek[]> {
 /** Alle post-its van een dossier, chronologisch oplopend. */
 export async function fetchNotities(leadId: string): Promise<GesprekNotitie[]> {
   const { data, error } = await notitiesTabel()
-    .select('id, lead_id, gesprek_id, soort, tekst, door_user, created_at')
+    .select('id, lead_id, gesprek_id, soort, tekst, door_user, created_at, bron')
     .eq('lead_id', leadId)
     .order('created_at', { ascending: true });
   if (error) throw new Error(error.message);
@@ -90,7 +92,7 @@ export async function voegNotitieToe(
 ): Promise<GesprekNotitie> {
   const { data, error } = await notitiesTabel()
     .insert({ lead_id: leadId, gesprek_id: gesprekId, soort, tekst } as any)
-    .select('id, lead_id, gesprek_id, soort, tekst, door_user, created_at')
+    .select('id, lead_id, gesprek_id, soort, tekst, door_user, created_at, bron')
     .single();
   if (error) throw new Error(error.message);
   return data as unknown as GesprekNotitie;
@@ -112,7 +114,7 @@ export async function wijzigNotitie(
   const { data, error } = await notitiesTabel()
     .update(patch as any)
     .eq('id', notitieId)
-    .select('id, lead_id, gesprek_id, soort, tekst, door_user, created_at')
+    .select('id, lead_id, gesprek_id, soort, tekst, door_user, created_at, bron')
     .single();
   if (error) throw new Error(error.message);
   return data as unknown as GesprekNotitie;
