@@ -65,7 +65,7 @@ SectionGroup /e "Connectoren" GrpCon
   SectionEnd
   Section "Google Maps: ritten en rijtijden" SecMaps
   SectionEnd
-  Section /o "Mail (nog niet gebouwd)" SecMail
+  Section "Mail: mails van een dossier lezen" SecMail
   SectionEnd
   Section /o "Agenda en Calendly (nog niet gebouwd)" SecAgenda
   SectionEnd
@@ -98,6 +98,7 @@ Section "-Keuzes"
   !insertmacro Keuze "whatsapp" ${SecWa} ","
   !insertmacro Keuze "stem" ${SecStem} ","
   !insertmacro Keuze "maps" ${SecMaps} ","
+  !insertmacro Keuze "mail" ${SecMail} ","
   !insertmacro Keuze "startMee" ${SecStart} ""
   FileWrite $9 "}"
   FileClose $9
@@ -107,7 +108,6 @@ SectionEnd
   SectionSetFlags ${SECTIE} ${SF_RO}
 !macroend
 Function .onInit
-  !insertmacro NogNiet ${SecMail}
   !insertmacro NogNiet ${SecAgenda}
   !insertmacro NogNiet ${SecBouwflow}
   !insertmacro NogNiet ${SecTodoist}
@@ -123,6 +123,7 @@ FunctionEnd
   !insertmacro MUI_DESCRIPTION_TEXT ${SecCompass} "De basis van Zarvis; staat altijd aan."
   !insertmacro MUI_DESCRIPTION_TEXT ${SecWa} "Leest mee en verstuurt wat je Zarvis laat versturen; een bericht aan een klant leest hij je eerst voor. Koppelen doe je na de installatie met je gsm."
   !insertmacro MUI_DESCRIPTION_TEXT ${SecMaps} "Afstand en rijtijd met verkeer, naar een adres of naar een klant."
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecMail} "Leest de mails en telefoongesprekken die aan een dossier gekoppeld zijn."
   !insertmacro MUI_DESCRIPTION_TEXT ${SecStem} "Vlaams via Azure. Uit: de stem van je computer."
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 

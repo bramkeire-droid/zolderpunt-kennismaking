@@ -10,7 +10,7 @@ const hier = __dirname;
 const versie = require('./package.json').version;
 const bin = (naam) => path.join(hier, 'node_modules', '.bin', naam + (process.platform === 'win32' ? '.cmd' : ''));
 
-execFileSync(bin('electron-builder'), ['--win', 'dir', '--x64', '--publish', 'never'], { cwd: hier, stdio: 'inherit' });
+execFileSync(bin('electron-builder'), ['--win', 'dir', '--x64', '--publish', 'never'], { cwd: hier, stdio: 'inherit', shell: process.platform === 'win32' }); // Windows start een .cmd alleen via de shell
 
 const cache = process.env.ELECTRON_BUILDER_CACHE
   || (process.platform === 'win32' ? path.join(process.env.LOCALAPPDATA, 'electron-builder', 'Cache')
