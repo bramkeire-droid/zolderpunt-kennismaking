@@ -71,6 +71,7 @@ function toonBeheer(eerste, keuzes) {
   if (eerste) vraag.set('eerste', '1');
   if (keuzes && keuzes.whatsapp === false) vraag.set('whatsapp', '0');
   if (keuzes && keuzes.stem === false) vraag.set('stem', '0');
+  if (keuzes && keuzes.maps === false) vraag.set('maps', '0');
   beheerVenster.loadURL(URL_BEHEER + (vraag.size ? `?${vraag}` : ''));
   beheerVenster.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   beheerVenster.webContents.on('will-navigate', (e, url) => { try { if (new URL(url).origin !== OORSPRONG) e.preventDefault(); } catch { e.preventDefault(); } });
