@@ -578,6 +578,45 @@ export type Database = {
           },
         ]
       }
+      klant_samenvoeg_log: {
+        Row: {
+          door: string | null
+          dossiers: string[]
+          id: string
+          naar_id: string
+          op: string
+          teruggedraaid_op: string | null
+          toegevoegd: string[]
+          van_contactgegevens: Json
+          van_id: string
+          van_rij: Json
+        }
+        Insert: {
+          door?: string | null
+          dossiers?: string[]
+          id?: string
+          naar_id: string
+          op?: string
+          teruggedraaid_op?: string | null
+          toegevoegd?: string[]
+          van_contactgegevens?: Json
+          van_id: string
+          van_rij: Json
+        }
+        Update: {
+          door?: string | null
+          dossiers?: string[]
+          id?: string
+          naar_id?: string
+          op?: string
+          teruggedraaid_op?: string | null
+          toegevoegd?: string[]
+          van_contactgegevens?: Json
+          van_id?: string
+          van_rij?: Json
+        }
+        Relationships: []
+      }
       koppeling_gezondheid: {
         Row: {
           bron: string
@@ -1750,6 +1789,19 @@ export type Database = {
           media_ids: string[]
           notes: string
         }[]
+      }
+      zarvis_klant_samenvoegen: {
+        Args: {
+          p_bevestigd?: boolean
+          p_door?: string
+          p_naar: string
+          p_van: string
+        }
+        Returns: Json
+      }
+      zarvis_klant_samenvoegen_terug: {
+        Args: { p_bevestigd?: boolean; p_log: string }
+        Returns: Json
       }
     }
     Enums: {
