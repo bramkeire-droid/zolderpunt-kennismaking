@@ -274,4 +274,10 @@ Nummers zijn doorlopend en worden nooit hergebruikt.
 - **Eerste inschatting**: Dit stuurt IDEE-10 tot 14 bij. Een loket dat alleen leest is niet het doel maar de eerste helft: elk loket krijgt van bij het begin ook acties die iets oplossen, met een logboek en terugdraaien. De verkenningen zeggen per app wat geld kost of niet terug te draaien is; dat blijft een ja van Bram vragen, de rest doet Zarvis zelf. Dezelfde regel als nu: intern zelf, extern vragen.
 - **Mijn open vragen erover**: Per app: welke dingen moet Zarvis zelf oplossen? Gevraagd aan Bram op 2026-11-24.
 - **Behandeling**: eerst; bepaalt wat er per rol gebouwd wordt.
-- **Status**: open
+- **Brams keuzes (2026-11-24, aangevinkt in een vragenlijst)**: hij koos alles behalve "voorraad bijhouden".
+  - Marketing: dure zoektermen uitsluiten; budget en biedingen bijsturen; pagina's verbeteren en publiceren; aanvragen opvolgen.
+  - Werf: registraties rechtzetten; arbeiders aanspreken; de maand klaarzetten voor het loon; uren in Bouwflow krijgen.
+  - Financiën: onbetaalde facturen opvolgen; boekhouding aanvullen; marge van offertes bewaken; kosten drukken.
+  - Inventaris: prijzen bijwerken; catalogus opkuisen; bestellen voor een werf. Niet gekozen: voorraad bijhouden.
+- **Volgorde**: per rol eerst de actie die op een bestaande, terugdraaibare weg in de app steunt. Marketing eerst (uitsluiten loopt al via `ads_actie` met goedkeuren en terugdraaien). Wat geld kost of naar buiten gaat (budget, bestellen, herinneringen, berichten aan arbeiders, publiceren) krijgt een plafond of een ja van Bram; die grenzen moet hij nog geven.
+- **Status**: open: keuzes gemaakt, bouw begint bij marketing.
