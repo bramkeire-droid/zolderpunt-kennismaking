@@ -111,7 +111,7 @@ Nummers zijn doorlopend en worden nooit hergebruikt.
 - **Eerste inschatting**: De website is een apart Lovable-project ("Zolderpunt Website", stuurt leads door via Make en Zapier). Een marketingdashboard heb ik nog niet gezien; ik weet niet of het bestaat of gebouwd moet worden. Voor Google Ads is toegang tot het advertentieaccount nodig; in deze omgeving zie ik wel een Ahrefs-koppeling, geen Google Ads-koppeling. Groot. Risico: advertentiebudget is echt geld; wijzigingen aan campagnes horen achter de goedkeuringsstap, nooit automatisch.
 - **Mijn open vragen erover**: (1) Welk marketingdashboard: bestaat het al, en waar? (2) "Altijd live": bewaking dat site en dashboard bereikbaar zijn, of dat de cijfers altijd actueel zijn? (3) Mag Zarvis campagnes en budgetten wijzigen, of alleen analyseren en voorstellen? (4) Welke bronnen: Google Ads, Analytics, Search Console, Ahrefs, Meta?
 - **Behandeling**: parkeren tot IDEE-10 loopt; eerst nagaan welke toegang er bestaat.
-- **Status**: verkend (2026-11-24), zie `docs/VERKENNING-MARKETING.md`. Google Ads en Search Console lopen al echt in het dashboard van de website; Zarvis kan er nog niet bij. Volgende stap: een leesloket in het project van de website. Wacht op vijf antwoorden van Bram.
+- **Status**: deels (2026-11-24): Zarvis leest de marketingcijfers en sluit zelf dure zoektermen uit, via een loket in het project van de website. Open: budget en biedingen bijsturen (wacht op een plafond van Bram), pagina's verbeteren en publiceren, aanvragen opvolgen. Zie `docs/VERKENNING-MARKETING.md`.
 
 ## IDEE-12 — Werf-app: arbeidsuren, tijdsnormen, loonadministratie
 - **Datum**: 2026-11-23
