@@ -10,6 +10,8 @@
 //   { gereedschap, invoer }   een van de vijf leesgereedschappen voor dossiers
 //   { actie: 'contact', dossier_id }   naam, adres, telefoon, mailadres en dossiernummer van één dossier
 //   { actie: 'context' }      welk dossier de gebruiker in Compass open heeft (gezocht op zijn mailadres)
+//   { actie: 'nummers', sleutels }   bij welk dossier elk gevraagd telefoonnummer hoort (laatste negen cijfers);
+//                             het loket geeft alleen antwoord voor de gevraagde nummers, nooit de hele lijst
 //
 // Het loket leest met de serversleutel van Compass. De grens zit dus hier in de
 // code: geen vrije vragen aan de databank, niets schrijven.
@@ -57,7 +59,7 @@ Deno.serve(async (req) => {
   const gebruiker = await zarvisGebruiker(auth.slice(7));
   if (!gebruiker) return json({ error: 'Geen toegang: alleen een gebruiker van Zarvis.' }, 403);
 
-  const body = await req.json().catch(() => null) as { gereedschap?: unknown; invoer?: unknown; actie?: unknown; dossier_id?: unknown } | null;
+  const body = await req.json().catch(() => null) as { gereedschap?: unknown; invoer?: unknown; actie?: unknown; dossier_id?: unknown; sleutels?: unknown } | null;
   const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 
   try {
@@ -83,6 +85,26 @@ Deno.serve(async (req) => {
       if (!hier) return json({ open: null });
       const { data: rij } = await db.from('zarvis_context').select('lead_id, dossier_naam, view, updated_at').eq('user_id', hier.id).maybeSingle();
       return json({ open: rij ?? null });
+    }
+    if (body?.actie === 'nummers') {
+      const gevraagd = new Set((Array.isArray(body.sleutels) ? body.sleutels : []).filter((x): x is string => typeof x === 'string' && /^\d{9}$/.test(x)).slice(0, 400));
+      if (!gevraagd.size) return json({ koppeling: {} });
+      const sleutel = (t: unknown) => { const c = typeof t === 'string' ? t.replace(/[^\d]/g, '') : ''; return c.length >= 9 ? c.slice(-9) : ''; };
+      // Nieuwste dossier eerst: heeft een klant meerdere dossiers, dan gaat het gesprek naar het meest recente.
+      const [dossiers, klanten] = await Promise.all([
+        db.from('leads').select('id, telefoon, customer_id, updated_at').order('updated_at', { ascending: false }).limit(2000),
+        db.from('customers').select('id, telefoon').not('telefoon', 'is', null).limit(2000),
+      ]);
+      if (dossiers.error || klanten.error) throw new Error((dossiers.error ?? klanten.error)!.message);
+      const vanKlant = new Map<string, string>();
+      for (const k of klanten.data ?? []) { const x = sleutel(k.telefoon); if (x) vanKlant.set(k.id, x); }
+      const koppeling: Record<string, string> = {};
+      for (const l of dossiers.data ?? []) {
+        for (const x of [sleutel(l.telefoon), l.customer_id ? vanKlant.get(l.customer_id) ?? '' : '']) {
+          if (x && gevraagd.has(x) && !koppeling[x]) koppeling[x] = l.id;
+        }
+      }
+      return json({ koppeling });
     }
     return json({ error: 'Onbekende vraag.' }, 400);
   } catch (e) {
