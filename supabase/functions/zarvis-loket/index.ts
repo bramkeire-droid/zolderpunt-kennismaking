@@ -6,7 +6,7 @@
 // rol heeft. De aanroeper stuurt zijn login van Zarvis mee; het loket legt die
 // voor aan Zarvis zelf. Er is geen gedeeld geheim.
 //
-// Wat kan het? Alleen lezen, alleen deze vaste acties:
+// Wat kan het? Alleen deze vaste acties; alle lezen, behalve de notitie (na bevestiging):
 //   { gereedschap, invoer }   een van de vijf leesgereedschappen voor dossiers
 //   { actie: 'contact', dossier_id }   naam, adres, telefoon, mailadres en dossiernummer van één dossier
 //   { actie: 'context' }      welk dossier de gebruiker in Compass open heeft (gezocht op zijn mailadres)
@@ -14,8 +14,13 @@
 //   { actie: 'nummers', sleutels }   bij welk dossier elk gevraagd telefoonnummer hoort (laatste negen cijfers);
 //                             het loket geeft alleen antwoord voor de gevraagde nummers, nooit de hele lijst
 //
+//   { actie: 'stand' }        (L3) pijplijn per fase en de lopende calculaties met bedrag en leeftijd
+//   { actie: 'notitie', dossier_id, tekst, bevestigd? }   (L5) SCHRIJFT na bevestiging: een notitie bij
+//                             een dossier (gesprek_notities, bron 'zarvis'); zonder bevestigd een droge proef
+//   { actie: 'notitie_terug', notitie_id, bevestigd? }    (L5) de weg terug: wist alleen een notitie van Zarvis
+//
 // Het loket leest met de serversleutel van Compass. De grens zit dus hier in de
-// code: geen vrije vragen aan de databank, niets schrijven.
+// code: geen vrije vragen aan de databank; schrijven alleen de notitie hierboven.
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { voerUit } from '../_shared/zarvis/gereedschap.ts';
@@ -138,6 +143,85 @@ Deno.serve(async (req) => {
         }
       }
       return json({ koppeling });
+    }
+    if (body?.actie === 'stand') {
+      // (L3, 2026-11-24) Alleen lezen: de pijplijn per fase in de volgorde van Bouwflow, met hoeveel
+      // dossiers langer dan 14 dagen niet gewijzigd zijn, en de lopende calculaties (dossiers in de
+      // categorie offerte) met het laatste bedrag en hoe oud dat is. Geen namen buiten de calculaties.
+      const [kaart, leads, calcs] = await Promise.all([
+        db.from('bouwflow_phase_category_map').select('phase_id, phase_title, compass_category, sort_order').order('sort_order'),
+        db.from('leads').select('id, voornaam, achternaam, bouwflow_phase, category_override, status, updated_at, offerte_datum').limit(2000),
+        db.from('calculaties').select('lead_id, budget_excl, created_at').order('created_at', { ascending: false }).limit(2000),
+      ]);
+      if (kaart.error || leads.error || calcs.error) throw new Error((kaart.error ?? leads.error ?? calcs.error)!.message);
+      const nu = Date.now();
+      const dagen = (iso: string | null) => iso ? Math.floor((nu - new Date(iso).getTime()) / 86400000) : null;
+      const fases = (kaart.data ?? []).map((f) => ({ fase: f.phase_title as string, categorie: f.compass_category as string, aantal: 0, stil_14_dagen: 0, _id: String(f.phase_id) }));
+      const perId = new Map(fases.map((f) => [f._id, f]));
+      let zonderFase = 0;
+      for (const l of leads.data ?? []) {
+        const f = l.bouwflow_phase ? perId.get(String(l.bouwflow_phase)) : undefined;
+        if (!f) { zonderFase++; continue; }
+        f.aantal++;
+        if ((dagen(l.updated_at) ?? 0) > 14) f.stil_14_dagen++;
+      }
+      const laatste = new Map<string, { budget_excl: number | null; created_at: string }>();
+      for (const c of calcs.data ?? []) if (c.lead_id && !laatste.has(c.lead_id)) laatste.set(c.lead_id, c);
+      const lopend = (leads.data ?? [])
+        .filter((l) => (l.category_override || perId.get(String(l.bouwflow_phase ?? ''))?.categorie) === 'offerte')
+        .map((l) => {
+          const c = laatste.get(l.id);
+          return {
+            dossier_id: l.id,
+            klant: [l.voornaam, l.achternaam].filter(Boolean).join(' ') || null,
+            fase: perId.get(String(l.bouwflow_phase ?? ''))?.fase ?? null,
+            bedrag_excl: c?.budget_excl ?? null,
+            calculatie_dagen_oud: c ? dagen(c.created_at) : null,
+            offerte_datum: l.offerte_datum ?? null,
+            stil_dagen: dagen(l.updated_at),
+          };
+        })
+        .sort((a, b) => (b.stil_dagen ?? 0) - (a.stil_dagen ?? 0));
+      return json({
+        op: new Date().toISOString(),
+        totaal: (leads.data ?? []).length,
+        zonder_fase: zonderFase,
+        fases: fases.map(({ _id, ...f }) => f),
+        lopende_calculaties: lopend,
+      });
+    }
+    if (body?.actie === 'notitie' || body?.actie === 'notitie_terug') {
+      // (L5, 2026-11-24) SCHRIJFT, na Brams ja: een post-it-notitie bij een dossier, in dezelfde tabel
+      // als de notities in Compass (gesprek_notities), met bron 'zarvis'. Zonder bevestigd: true een
+      // droge proef. De weg terug wist alleen een notitie met bron 'zarvis'.
+      const b = body as typeof body & { tekst?: unknown; notitie_id?: unknown; bevestigd?: unknown };
+      // Wie: de gebruiker in Compass met hetzelfde mailadres als in Zarvis (zoals bij 'context').
+      const { data: lijst } = await db.auth.admin.listUsers({ page: 1, perPage: 200 });
+      const hier = (lijst?.users ?? []).find((u) => (u.email ?? '').toLowerCase() === gebruiker.email);
+      if (body.actie === 'notitie_terug') {
+        if (!isUuid(b.notitie_id)) return json({ error: 'Geef een notitie_id.' }, 400);
+        const { data: n, error } = await db.from('gesprek_notities').select('id, lead_id, tekst, bron, created_at').eq('id', b.notitie_id).maybeSingle();
+        if (error) throw new Error(error.message);
+        if (!n) return json({ error: 'Notitie niet gevonden.' }, 404);
+        if (n.bron !== 'zarvis') return json({ error: 'Alleen een notitie van Zarvis kan hier teruggedraaid worden.' }, 409);
+        if (b.bevestigd !== true) return json({ droog: true, notitie: n, wat_er_gebeurt: 'Deze notitie wordt gewist.' });
+        const { error: weg } = await db.from('gesprek_notities').delete().eq('id', n.id).eq('bron', 'zarvis');
+        if (weg) throw new Error(weg.message);
+        return json({ gewist: true, notitie_id: n.id });
+      }
+      if (!isUuid(body.dossier_id)) return json({ error: 'Geef een dossier_id.' }, 400);
+      const tekst = typeof b.tekst === 'string' ? b.tekst.trim() : '';
+      if (!tekst || tekst.length > 4000) return json({ error: 'Geef een tekst van 1 tot 4000 tekens.' }, 400);
+      const { data: l, error } = await db.from('leads').select('id, voornaam, achternaam').eq('id', body.dossier_id).maybeSingle();
+      if (error) throw new Error(error.message);
+      if (!l) return json({ error: 'Dossier niet gevonden.' }, 404);
+      const voorstel = { dossier_id: l.id, klant: [l.voornaam, l.achternaam].filter(Boolean).join(' '), tekst, door: gebruiker.email, door_in_compass: !!hier, bron: 'zarvis' };
+      if (b.bevestigd !== true) return json({ droog: true, ...voorstel, wat_er_gebeurt: 'Er komt een notitie bij dit dossier in Compass, met bron Zarvis.' });
+      const { data: n, error: fout } = await db.from('gesprek_notities')
+        .insert({ lead_id: l.id, soort: 'notitie', tekst, door_user: hier?.id ?? null, bron: 'zarvis' })
+        .select('id, created_at').single();
+      if (fout) throw new Error(fout.message);
+      return json({ gemaakt: true, notitie_id: n.id, op: n.created_at, ...voorstel });
     }
     return json({ error: 'Onbekende vraag.' }, 400);
   } catch (e) {
