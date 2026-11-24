@@ -229,7 +229,7 @@ Nummers zijn doorlopend en worden nooit hergebruikt.
 - **Eerste inschatting**: Een gereedschap `weerbericht` in `supabase/functions/_shared/zarvis/buiten.ts`, naast `bereken_route`. De gratis dienst Open-Meteo werkt zonder sleutel en is op 2026-11-24 live nagekeken vanuit de databank: eerst een plaatsnaam omzetten naar coördinaten (`https://geocoding-api.open-meteo.com/v1/search?name=Aalter&count=1&language=nl`, antwoord `results[0].latitude/longitude/name`), dan de voorspelling (`https://api.open-meteo.com/v1/forecast?latitude=..&longitude=..&current=temperature_2m,weather_code,wind_speed_10m,precipitation&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_gusts_10m_max&timezone=Europe%2FBrussels&forecast_days=N`, antwoord met `current` en `daily` als lijsten per dag). De weercode is een WMO-code en moet naar gewoon Nederlands vertaald worden. Voor een dakwerker tellen vooral regen en rukwinden; laat Zarvis die uit zichzelf noemen bij een werf of plaatsbezoek. Plaats: uit de vraag, of uit het adres van een dossier (postcode en gemeente eruit halen; de dienst kent alleen plaatsnamen, geen straten).
 - **Mijn open vragen erover**: Geen blokkerende. Vaste plaats als er geen genoemd wordt: laten aanleren met `leer_vaardigheid`, niet in de code zetten.
 - **Behandeling**: eerst: klein, geen sleutel nodig.
-- **Status**: open
+- **Status**: gebouwd (2026-11-24): gereedschap `weerbericht`, nagekeken tegen de echte Open-Meteo.
 
 ## IDEE-25 — Familiale komische modus
 - **Datum**: 2026-11-24
@@ -238,7 +238,7 @@ Nummers zijn doorlopend en worden nooit hergebruikt.
 - **Eerste inschatting**: Een stijl van praten die Bram aan en uit zet met zijn stem. Bedoeld voor als de familie erbij is: warm, grappig, proper, en zonder zakelijke of vertrouwelijke gegevens hardop te zeggen tenzij hij er uitdrukkelijk om vraagt. Bouw: kolom `stijl` in `zarvis_instellingen` (waarden gewoon, familie, savage), een gereedschap `zet_stijl`, en per stijl een extra alinea in de instructie van `supabase/functions/zarvis/index.ts`. Het zwarte gat kan per stijl een eigen tint of tempo krijgen zodat zichtbaar is welke modus aan staat.
 - **Mijn open vragen erover**: Moet Zarvis in deze modus bedragen en klantnamen verzwijgen als er anderen bij zijn? Mijn voorstel: ja, tenzij Bram er op dat moment zelf om vraagt.
 - **Behandeling**: samen met IDEE-26, één bouwsteen.
-- **Status**: open
+- **Status**: gebouwd (2026-11-24): `zet_stijl` met stijl familie. De tint van het zwarte gat per stijl is niet gebouwd.
 
 ## IDEE-26 — Savage modus
 - **Datum**: 2026-11-24
@@ -247,7 +247,7 @@ Nummers zijn doorlopend en worden nooit hergebruikt.
 - **Eerste inschatting**: Zelfde bouwsteen als IDEE-25. Stijl: snoeihard eerlijk, droog, sarcastisch, zonder omwegen, ook over Brams eigen keuzes. Twee grenzen die in de instructie moeten staan en niet door de modus opgeheven worden: de feiten blijven kloppen (alleen zeggen wat gelezen is), en alles wat naar buiten gaat (WhatsApp of mail aan een klant) blijft professioneel, wat de modus ook is.
 - **Mijn open vragen erover**: Geen blokkerende.
 - **Behandeling**: samen met IDEE-25.
-- **Status**: open
+- **Status**: gebouwd (2026-11-24): `zet_stijl` met stijl savage. De tint van het zwarte gat per stijl is niet gebouwd.
 
 ## IDEE-27 — Smartphone use: Zarvis bedient apps op de gsm
 - **Datum**: 2026-11-24
