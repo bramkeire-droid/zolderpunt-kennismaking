@@ -4,6 +4,7 @@ import { useZarvis, type ZarvisStatus } from '@/contexts/ZarvisContext';
 import { useAuth } from '@/contexts/AuthContext';
 import ZarvisGat from '@/components/zarvis/ZarvisGat';
 import { meetMicrofoon } from '@/lib/zarvis/niveau';
+import { leesStijl } from '@/lib/zarvis/instellingen';
 import { supabase } from '@/integrations/supabase/client';
 import { BRON_PAD, bronnenVan, openBronKanaal } from '@/lib/zarvis/bronKanaal';
 
@@ -175,6 +176,11 @@ export default function ZarvisVenster() {
     return () => { weg = true; cancelAnimationFrame(beeld); stop?.(); zetMicGemeten(false); };
   }, [luistertNu]);
 
+  // De stijl kan in elk antwoord veranderd zijn (zet_stijl); lees ze opnieuw zodra Zarvis klaar is.
+  const bezigNu = zarvis?.status === 'denkt' || zarvis?.status === 'spreekt';
+  const [stijl, zetStijl] = useState('gewoon');
+  useEffect(() => { if (!bezigNu) void leesStijl().then(zetStijl); }, [bezigNu]);
+
   if (!zarvis) return null;
   const {
     status, berichten, tussentijds, micMelding, kanLuisteren,
@@ -198,7 +204,7 @@ export default function ZarvisVenster() {
       {/* ── Zarvis zelf: het zwarte gat, met de toestand in woorden eronder.
           Tegelijk het handvat om het venster te verslepen. ── */}
       <header style={sleep} className="relative shrink-0 h-[196px]">
-        <ZarvisGat status={status} className="absolute inset-0 h-full w-full" />
+        <ZarvisGat status={status} stijl={stijl} className="absolute inset-0 h-full w-full" />
         <div style={geenSleep} className="absolute right-3 top-3 flex gap-1.5">
           {berichten.length > 0 && (
             <button className={rondeKnop} onClick={nieuwGesprek} aria-label="Nieuw gesprek" title="Nieuw gesprek">
@@ -228,10 +234,10 @@ export default function ZarvisVenster() {
         {berichten.length === 0 ? (
           <div className="h-full flex flex-col justify-end pb-2">
             <p className="font-headline font-medium text-[22px] leading-snug tracking-[-0.015em]">
-              Vraag me iets over je dossiers.
+              Vraag het maar.
             </p>
             <p className="mt-2 text-sm leading-relaxed text-[#A9B4C8]">
-              Ik lees dossiers, gesprekken en calculaties, herinner je op een tijdstip, kijk iets op vaste tijden na en verstuur een WhatsApp.
+              Ik lees dossiers, gesprekken, calculaties en mails, geef het weer, zoek iets op, herinner je op een tijdstip, kijk iets op vaste tijden na en verstuur een WhatsApp.
             </p>
           </div>
         ) : (
