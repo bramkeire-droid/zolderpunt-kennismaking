@@ -68,3 +68,8 @@ verify_jwt = false
 # De Ja-knop: voert een voorstel uit de wachtrij pas uit nadat de gebruiker zelf goedkeurde.
 [functions.zarvis-goedkeuren]
 verify_jwt = true
+
+# Loket voor Zarvis (eigen project sinds 2026-11-24). De login komt uit het project van Zarvis,
+# dus niet uit dit project: de functie kijkt ze zelf na bij Zarvis.
+[functions.zarvis-loket]
+verify_jwt = false
