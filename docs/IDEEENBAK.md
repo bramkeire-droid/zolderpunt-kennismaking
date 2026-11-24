@@ -266,3 +266,18 @@ Nummers zijn doorlopend en worden nooit hergebruikt.
 - **Mijn open vragen erover**: (1) Welke dingen zijn dringend genoeg om te bellen? (2) Mag hij ook 's nachts en in het weekend bellen? (3) Een beldienst kost per oproep en vraagt een sleutel: akkoord met Twilio?
 - **Behandeling**: na de lopende taak (Maildude, IDEE-10). Alles tot aan de sleutel bouwen; de sleutel plakt Bram zelf in Lovable.
 - **Status**: gebouwd tot aan de sleutel (2026-11-24): een taak met verwittig "bel" belt via Twilio en leest voor. Wacht op de vier secrets van Bram. Een gesprek in twee richtingen is niet gebouwd.
+
+## IDEE-29 — Zarvis doet dingen in de apps, hij vertelt ze niet alleen
+- **Datum**: 2026-11-24
+- **Bram zei letterlijk**: "Je hebt mij nog niets gevraagd over wat zarvis in al deze apps kan DOEN. Ik wil feen papegaai die mij x verteld. Ik wil een assistent die dingen fixed"
+- **Waar ik mee bezig was**: de vier verkenningen (IDEE-11 tot 14) afronden; mijn voorstel was per app een leesloket.
+- **Eerste inschatting**: Dit stuurt IDEE-10 tot 14 bij. Een loket dat alleen leest is niet het doel maar de eerste helft: elk loket krijgt van bij het begin ook acties die iets oplossen, met een logboek en terugdraaien. De verkenningen zeggen per app wat geld kost of niet terug te draaien is; dat blijft een ja van Bram vragen, de rest doet Zarvis zelf. Dezelfde regel als nu: intern zelf, extern vragen.
+- **Mijn open vragen erover**: Per app: welke dingen moet Zarvis zelf oplossen? Gevraagd aan Bram op 2026-11-24.
+- **Behandeling**: eerst; bepaalt wat er per rol gebouwd wordt.
+- **Brams keuzes (2026-11-24, aangevinkt in een vragenlijst)**: hij koos alles behalve "voorraad bijhouden".
+  - Marketing: dure zoektermen uitsluiten; budget en biedingen bijsturen; pagina's verbeteren en publiceren; aanvragen opvolgen.
+  - Werf: registraties rechtzetten; arbeiders aanspreken; de maand klaarzetten voor het loon; uren in Bouwflow krijgen.
+  - Financiën: onbetaalde facturen opvolgen; boekhouding aanvullen; marge van offertes bewaken; kosten drukken.
+  - Inventaris: prijzen bijwerken; catalogus opkuisen; bestellen voor een werf. Niet gekozen: voorraad bijhouden.
+- **Volgorde**: per rol eerst de actie die op een bestaande, terugdraaibare weg in de app steunt. Marketing eerst (uitsluiten loopt al via `ads_actie` met goedkeuren en terugdraaien). Wat geld kost of naar buiten gaat (budget, bestellen, herinneringen, berichten aan arbeiders, publiceren) krijgt een plafond of een ja van Bram; die grenzen moet hij nog geven.
+- **Status**: open: keuzes gemaakt, bouw begint bij marketing.
