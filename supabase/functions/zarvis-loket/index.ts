@@ -51,16 +51,21 @@ const cors = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
+// Vaste foutvorm (2026-11-24, baan LOKETTEN): elke fout krijgt een soort, zodat een kaart een eerlijke zin kan tonen.
+// login = login verlopen, toegang = geen rol, vraag = verkeerde vraag, leeg = niets gevonden, app = de app faalt.
+const soortVan = (status: number) => status === 401 ? 'login' : status === 403 ? 'toegang' : status === 404 ? 'leeg' : status >= 500 ? 'app' : 'vraag';
+const metSoort = (body: unknown, status: number) =>
+  status >= 400 && body && typeof body === 'object' && !('soort' in body) ? { ...(body as object), soort: soortVan(status) } : body;
 const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), { status, headers: { ...cors, 'Content-Type': 'application/json' } });
+  new Response(JSON.stringify(metSoort(body, status)), { status, headers: { ...cors, 'Content-Type': 'application/json' } });
 const isUuid = (v: unknown): v is string =>
   typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
 
 /** Is dit iemand met een rol in Zarvis? Geeft zijn mailadres, of null. */
-async function zarvisGebruiker(token: string): Promise<{ email: string } | null> {
+async function zarvisGebruiker(token: string): Promise<{ email: string } | null | 'login' | 'app'> {
   const kop = { apikey: ZARVIS_SLEUTEL, Authorization: `Bearer ${token}` };
   const wie = await fetch(`${ZARVIS_URL}/auth/v1/user`, { headers: kop });
-  if (!wie.ok) return null;
+  if (!wie.ok) return wie.status >= 500 ? 'app' : 'login';
   const g = await wie.json() as { id?: string; email?: string };
   if (!g.id) return null;
   for (const rol of ['admin', 'user']) {
@@ -78,6 +83,8 @@ Deno.serve(async (req) => {
   const auth = req.headers.get('Authorization') ?? '';
   if (!auth.startsWith('Bearer ')) return json({ error: 'Niet ingelogd.' }, 401);
   const gebruiker = await zarvisGebruiker(auth.slice(7));
+  if (gebruiker === 'login') return json({ error: 'Je login is verlopen: meld je opnieuw aan.' }, 401);
+  if (gebruiker === 'app') return json({ error: 'Zarvis antwoordt nu niet om je login na te kijken; probeer zo meteen opnieuw.' }, 503);
   if (!gebruiker) return json({ error: 'Geen toegang: alleen een gebruiker van Zarvis.' }, 403);
 
   const body = await req.json().catch(() => null) as { gereedschap?: unknown; invoer?: unknown; actie?: unknown; dossier_id?: unknown; sleutels?: unknown; dagen?: unknown } | null;
