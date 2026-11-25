@@ -1601,6 +1601,81 @@ export type Database = {
           },
         ]
       }
+      zarvis_fase_opdrachten: {
+        Row: {
+          afwijs_reden_na: string | null
+          afwijs_reden_zetten: boolean
+          door: string
+          gemaakt_op: string
+          id: string
+          lead_id: string
+          melding: string | null
+          naar_fase: number
+          naar_titel: string
+          poging_op: string | null
+          project_nummer: string
+          reden: string | null
+          status: string
+          terug_van: string | null
+          uitgevoerd_op: string | null
+          van_fase: string | null
+          vorige_reden: string | null
+        }
+        Insert: {
+          afwijs_reden_na?: string | null
+          afwijs_reden_zetten?: boolean
+          door: string
+          gemaakt_op?: string
+          id?: string
+          lead_id: string
+          melding?: string | null
+          naar_fase: number
+          naar_titel: string
+          poging_op?: string | null
+          project_nummer: string
+          reden?: string | null
+          status?: string
+          terug_van?: string | null
+          uitgevoerd_op?: string | null
+          van_fase?: string | null
+          vorige_reden?: string | null
+        }
+        Update: {
+          afwijs_reden_na?: string | null
+          afwijs_reden_zetten?: boolean
+          door?: string
+          gemaakt_op?: string
+          id?: string
+          lead_id?: string
+          melding?: string | null
+          naar_fase?: number
+          naar_titel?: string
+          poging_op?: string | null
+          project_nummer?: string
+          reden?: string | null
+          status?: string
+          terug_van?: string | null
+          uitgevoerd_op?: string | null
+          van_fase?: string | null
+          vorige_reden?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "zarvis_fase_opdrachten_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "zarvis_fase_opdrachten_terug_van_fkey"
+            columns: ["terug_van"]
+            isOneToOne: false
+            referencedRelation: "zarvis_fase_opdrachten"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       zarvis_gesprekken: {
         Row: {
           created_at: string
