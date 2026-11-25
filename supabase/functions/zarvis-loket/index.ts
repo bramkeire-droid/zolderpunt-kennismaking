@@ -10,7 +10,8 @@
 //   { gereedschap, invoer }   een van de vijf leesgereedschappen voor dossiers
 //   { actie: 'contact', dossier_id }   naam, adres, telefoon, mailadres en dossiernummer van één dossier
 //   { actie: 'context' }      welk dossier de gebruiker in Compass open heeft (gezocht op zijn mailadres)
-//   { actie: 'agenda', dagen }  plaatsbezoeken en videocalls van vandaag en de dagen erna, met klant en adres
+//   { actie: 'agenda', dagen }  plaatsbezoeken en videocalls van vandaag en de dagen erna, met klant en adres;
+//                             per afspraak ook google_event_id (id in Brams Google-agenda via Calendly, of null)
 //   { actie: 'nummers', sleutels }   bij welk dossier elk gevraagd telefoonnummer hoort (laatste negen cijfers);
 //                             het loket geeft alleen antwoord voor de gevraagde nummers, nooit de hele lijst
 //
@@ -267,13 +268,13 @@ Deno.serve(async (req) => {
       const van = new Date(lokaal.getTime() - verschil).toISOString();
       const tot = new Date(lokaal.getTime() - verschil + dagen * 86400000).toISOString();
       const [bezoeken, calls] = await Promise.all([
-        db.from('pre_intake').select('lead_id, plaatsbezoek_scheduled_at').gte('plaatsbezoek_scheduled_at', van).lt('plaatsbezoek_scheduled_at', tot),
-        db.from('pre_intake').select('lead_id, videocall_scheduled_at, google_meet_link').gte('videocall_scheduled_at', van).lt('videocall_scheduled_at', tot),
+        db.from('pre_intake').select('lead_id, plaatsbezoek_scheduled_at, plaatsbezoek_google_event_id').gte('plaatsbezoek_scheduled_at', van).lt('plaatsbezoek_scheduled_at', tot),
+        db.from('pre_intake').select('lead_id, videocall_scheduled_at, google_meet_link, videocall_google_event_id').gte('videocall_scheduled_at', van).lt('videocall_scheduled_at', tot),
       ]);
       if (bezoeken.error || calls.error) throw new Error((bezoeken.error ?? calls.error)!.message);
       const ruw = [
-        ...(bezoeken.data ?? []).map((r) => ({ soort: 'plaatsbezoek', op: r.plaatsbezoek_scheduled_at as string, lead_id: r.lead_id as string | null })),
-        ...(calls.data ?? []).map((r) => ({ soort: 'videocall', op: r.videocall_scheduled_at as string, lead_id: r.lead_id as string | null, meet_link: (r.google_meet_link as string | null) ?? null })),
+        ...(bezoeken.data ?? []).map((r) => ({ soort: 'plaatsbezoek', op: r.plaatsbezoek_scheduled_at as string, lead_id: r.lead_id as string | null, google_event_id: (r.plaatsbezoek_google_event_id as string | null) ?? null })),
+        ...(calls.data ?? []).map((r) => ({ soort: 'videocall', op: r.videocall_scheduled_at as string, lead_id: r.lead_id as string | null, meet_link: (r.google_meet_link as string | null) ?? null, google_event_id: (r.videocall_google_event_id as string | null) ?? null })),
       ].sort((a, b) => a.op.localeCompare(b.op));
       const ids = [...new Set(ruw.map((r) => r.lead_id).filter((x): x is string => !!x))];
       const { data: leads, error } = ids.length
@@ -287,7 +288,7 @@ Deno.serve(async (req) => {
           const l = r.lead_id ? lead.get(r.lead_id) : null;
           // B-041: ook de telefoon van de klant, het dossiernummer en (bij een videocall) de Meet-link.
           return { soort: r.soort, op: r.op, dossier_id: r.lead_id, klant: l ? [l.voornaam, l.achternaam].filter(Boolean).join(' ') : null, adres: l?.adres ?? null,
-            telefoon: l?.telefoon || null, dossiernummer: l?.bouwflow_project_number ?? null, ...('meet_link' in r ? { meet_link: r.meet_link } : {}) };
+            telefoon: l?.telefoon || null, dossiernummer: l?.bouwflow_project_number ?? null, google_event_id: r.google_event_id, ...('meet_link' in r ? { meet_link: r.meet_link } : {}) };
         }),
         let_op: 'Compass bewaart per dossier één plaatsbezoek en één videocall, zonder duur en zonder of de afspraak verzet of geannuleerd werd.',
       });

@@ -31,6 +31,9 @@ function dataToRow(d: PreIntakeData) {
     scenario_chosen: d.scenario_chosen,
     videocall_scheduled_at: d.videocall_scheduled_at,
     plaatsbezoek_scheduled_at: d.plaatsbezoek_scheduled_at,
+    // Alleen meesturen als er iets in staat: zo blijft opslaan werken zolang de kolommen er nog niet zijn.
+    ...(d.videocall_calendly_uri ? { videocall_calendly_uri: d.videocall_calendly_uri, videocall_google_event_id: d.videocall_google_event_id ?? null } : {}),
+    ...(d.plaatsbezoek_calendly_uri ? { plaatsbezoek_calendly_uri: d.plaatsbezoek_calendly_uri, plaatsbezoek_google_event_id: d.plaatsbezoek_google_event_id ?? null } : {}),
     google_meet_link: d.google_meet_link,
     quick_notes: d.quick_notes,
     wat_tags: d.wat_tags,

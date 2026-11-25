@@ -211,10 +211,14 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
     if (kandidaat.type === 'videocall') {
       patch.videocall_planned = true;
       patch.videocall_scheduled_at = kandidaat.scheduledAt;
+      patch.videocall_calendly_uri = kandidaat.uri ?? null;
+      patch.videocall_google_event_id = kandidaat.calendarEventId ?? null;
       if (kandidaat.meetLink) patch.google_meet_link = kandidaat.meetLink;
     } else {
       patch.plaatsbezoek_planned = true;
       patch.plaatsbezoek_scheduled_at = kandidaat.scheduledAt;
+      patch.plaatsbezoek_calendly_uri = kandidaat.uri ?? null;
+      patch.plaatsbezoek_google_event_id = kandidaat.calendarEventId ?? null;
     }
     update(patch);
     await flushSave(patch);
@@ -249,6 +253,8 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
         patch.videocall_planned = true;
         if (magOverschrijven || !data.videocall_scheduled_at) {
           patch.videocall_scheduled_at = events.videocall.scheduledAt;
+          patch.videocall_calendly_uri = events.videocall.uri ?? null;
+          patch.videocall_google_event_id = events.videocall.calendarEventId ?? null;
         }
         if (events.videocall.meetLink) patch.google_meet_link = events.videocall.meetLink;
       }
@@ -256,6 +262,8 @@ export default function LiveCalling({ onGoHome, onGoDossiers, onOpenValidation, 
         patch.plaatsbezoek_planned = true;
         if (magOverschrijven || !data.plaatsbezoek_scheduled_at) {
           patch.plaatsbezoek_scheduled_at = events.plaatsbezoek.scheduledAt;
+          patch.plaatsbezoek_calendly_uri = events.plaatsbezoek.uri ?? null;
+          patch.plaatsbezoek_google_event_id = events.plaatsbezoek.calendarEventId ?? null;
         }
       }
 
