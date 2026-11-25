@@ -35,6 +35,14 @@
 //   { actie: 'klant_samenvoegen', van, naar, bevestigd? }  (L4) SCHRIJFT na bevestiging, via de databankfunctie
 //                             zarvis_klant_samenvoegen (logboek, terug te zetten); standaard droog
 //   { actie: 'klant_samenvoegen_terug', log_id, bevestigd? }  (L4) zet een samenvoeging terug; standaard droog
+//   { actie: 'whatsapp_gesprek', dossier_id? | telefoon?, max? }  (B-096) gesprek plus dossier, met vorm voor SCHERM. Lezen.
+//   { actie: 'whatsapp_sjablonen', dossier_id }  (B-097) vaste sjablonen en mogelijke bijlagen. Lezen, verstuurt niets.
+//   { actie: 'calculatie_scenario', dossier_id, calculatie_id?, zonder?, extra? }  (B-158) proefversie, bewaart niets. Lezen.
+//   { actie: 'tarief_gebruik', tarief?, procent? }  (B-155) welke open calculaties een tarief gebruiken. Lezen.
+//   { actie: 'fase_voorstel', dossier_id, naar_fase, reden? }  (B-087) droog voorstel, schrijft niets.
+//   { actie: 'afspraak_details', dossier_id }  (B-053) Calendly-afspraken met de links om te verzetten. Lezen.
+//   { actie: 'afspraak_annuleren', dossier_id | event_uri, reden, bevestigd? }  (B-053) SCHRIJFT buiten Compass (Calendly
+//                             mailt de klant); standaard droog, echt alleen met ZARVIS_CALENDLY_ANNULEREN=aan
 //
 // Het loket leest met de serversleutel van Compass. De grens zit dus hier in de
 // code: geen vrije vragen aan de databank; schrijven alleen de notitie en het samenvoegen hierboven.
@@ -44,7 +52,8 @@
 // toont. Een chatbericht van Zarvis zelf krijgt die vermelding onderaan in de tekst.
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { voerUit } from '../_shared/zarvis/gereedschap.ts';
+import { type Bron, voerUit } from '../_shared/zarvis/gereedschap.ts';
+import { type BewaardePost, herreken, tariefVanPost, tel9 } from './reken.ts';
 
 const ZARVIS_URL = 'https://jerekxoryumsnddalket.supabase.co';
 // Publieke sleutel van het project van Zarvis (staat ook in de browser); geen geheim.
@@ -97,6 +106,28 @@ async function alle(maak: () => any): Promise<any[]> {
     if ((data ?? []).length < 1000) return rijen;
   }
 }
+
+// B-053: Calendly langs dezelfde weg als sync-calendly-event (de connector-gateway van Lovable, met de twee
+// sleutels uit de omgeving van Compass). Het loket leest de sleutels alleen, het toont ze nooit.
+const CALENDLY = 'https://connector-gateway.lovable.dev/calendly';
+const calendlyKop = () => {
+  const a = Deno.env.get('LOVABLE_API_KEY'), b = Deno.env.get('CALENDLY_API_KEY');
+  return a && b ? { Authorization: `Bearer ${a}`, 'X-Connection-Api-Key': b } : null;
+};
+// deno-lint-ignore no-explicit-any
+async function calendly(pad: string, kop: Record<string, string>): Promise<any> {
+  const r = await fetch(`${CALENDLY}${pad}`, { headers: kop });
+  if (r.status === 404) return null;
+  if (!r.ok) throw new Error(`Calendly antwoordde ${r.status}.`);
+  return r.json();
+}
+/** Zelfde indeling als sync-calendly-event: plaatsbezoek of videocall, of null. */
+const soortAfspraak = (e: { name?: string; location?: { type?: string; location?: string; join_url?: string } }) => {
+  const h = `${e.name ?? ''} ${e.location?.type ?? ''} ${e.location?.location ?? ''}`.toLowerCase();
+  if (/plaatsbezoek|klantadres|physical/.test(h)) return 'plaatsbezoek';
+  if (/video|kennismaking|intake|conference/.test(h) || e.location?.join_url) return 'videocall';
+  return null;
+};
 
 /** Is dit iemand met een rol in Zarvis? Geeft zijn mailadres, of null. */
 async function zarvisGebruiker(token: string): Promise<{ email: string } | null | 'login' | 'app'> {
@@ -152,6 +183,51 @@ Deno.serve(async (req) => {
     } catch (e) {
       return { gezet: 0, reden: e instanceof Error ? e.message : 'onbekende fout' };
     }
+  };
+
+  // Alle documenten van een dossier in de opslag (de map en één niveau submappen), als paden.
+  const docPadenVan = async (id: string): Promise<string[]> => {
+    const { data: lijst1, error: e1 } = await db.storage.from('dossier-documenten').list(id, { limit: 100 });
+    if (e1) throw new Error(e1.message);
+    // Zelfde volgorde als voorheen: per item van de map, een submap op de plaats van die submap.
+    return (await Promise.all((lijst1 ?? []).map(async (o) => {
+      if (o.id) return [`${id}/${o.name}`];
+      const { data: lijst2, error: e2 } = await db.storage.from('dossier-documenten').list(`${id}/${o.name}`, { limit: 100 });
+      if (e2) throw new Error(e2.message);
+      return (lijst2 ?? []).filter((p) => p.id).map((p) => `${id}/${o.name}/${p.name}`);
+    }))).flat();
+  };
+  // B-053: de geplande (actieve, toekomstige) Calendly-afspraken van een dossier, of null als het dossier niet bestaat.
+  const afsprakenVan = async (id: string, kop: Record<string, string>) => {
+    const [{ data: l, error }, pre] = await Promise.all([
+      db.from('leads').select('id, email').eq('id', id).maybeSingle(),
+      db.from('pre_intake').select('videocall_scheduled_at, plaatsbezoek_scheduled_at').eq('lead_id', id).limit(5),
+    ]);
+    if (error || pre.error) throw new Error((error ?? pre.error)!.message);
+    if (!l) return null;
+    const ik = (await calendly('/users/me', kop))?.resource?.uri;
+    if (!ik) throw new Error('Calendly gaf geen gebruiker terug.');
+    const nu = new Date().toISOString();
+    const zoek = (extra: Record<string, string>) =>
+      calendly(`/scheduled_events?${new URLSearchParams({ user: ik, status: 'active', count: '20', sort: 'start_time:asc', ...extra })}`, kop).then((r) => (r?.collection ?? []) as Record<string, unknown>[]);
+    const mail = (l.email ?? '').trim().toLowerCase();
+    const tijden = (pre.data ?? []).flatMap((p) => [p.videocall_scheduled_at, p.plaatsbezoek_scheduled_at]).filter((t): t is string => !!t && t > nu);
+    const lijsten = await Promise.all([
+      mail ? zoek({ invitee_email: mail, min_start_time: nu }).then((x) => x.map((e) => ({ e, via: 'mailadres' }))) : [],
+      ...tijden.map((t) => zoek({ min_start_time: new Date(new Date(t).getTime() - 60000).toISOString(), max_start_time: new Date(new Date(t).getTime() + 60000).toISOString() })
+        .then((x) => x.map((e) => ({ e, via: 'tijdstip uit pre_intake' })))),
+    ]);
+    const per = new Map<string, { e: Record<string, unknown>; via: string[] }>();
+    for (const { e, via } of lijsten.flat()) {
+      const u = String(e.uri);
+      per.set(u, { e, via: [...new Set([...(per.get(u)?.via ?? []), via])] });
+    }
+    return (await Promise.all([...per.values()].map(async ({ e, via }) => {
+      const uuid = String(e.uri).split('/').pop()!;
+      const gen = ((await calendly(`/scheduled_events/${uuid}/invitees?status=active`, kop))?.collection ?? []) as { reschedule_url?: string; cancel_url?: string }[];
+      return { event_uri: String(e.uri), uuid, naam: e.name ?? null, soort: soortAfspraak(e as Parameters<typeof soortAfspraak>[0]), start: e.start_time ?? null, einde: e.end_time ?? null,
+        status: e.status ?? null, gevonden_via: via, genodigden: gen.length, reschedule_url: gen[0]?.reschedule_url ?? null, cancel_url: gen[0]?.cancel_url ?? null };
+    }))).sort((a, z) => String(a.start).localeCompare(String(z.start)));
   };
 
   try {
@@ -466,11 +542,11 @@ Deno.serve(async (req) => {
       // als link die een uur geldig is; de inhoud zelf leest het loket niet.
       if (!isUuid(body.dossier_id)) return json({ error: 'Geef een dossier_id.' }, 400);
       // Snelheid: het dossier en de map met documenten tegelijk; submappen tegelijk; beide soorten links tegelijk.
-      const [{ data: l, error }, { data: lijst1, error: e1 }] = await Promise.all([
+      const [{ data: l, error }, docPaden] = await Promise.all([
         db.from('leads')
           .select('id, rapport_tekst, rapport_gegenereerd_op, rapport_situatie_ai, rapport_verwachtingen_ai, rapport_besproken_ai, rapport_aandachtspunten_ai, fotos')
           .eq('id', body.dossier_id).maybeSingle(),
-        db.storage.from('dossier-documenten').list(body.dossier_id, { limit: 100 }),
+        docPadenVan(body.dossier_id),
       ]);
       if (error) throw new Error(error.message);
       if (!l) return json({ error: 'Dossier niet gevonden.' }, 404);
@@ -481,14 +557,6 @@ Deno.serve(async (req) => {
         if (e) throw new Error(e.message);
         return (data ?? []).map((d) => ({ naam: (d.path ?? '').split('/').pop(), link: d.signedUrl }));
       };
-      if (e1) throw new Error(e1.message);
-      // Zelfde volgorde als voorheen: per item van de map, een submap op de plaats van die submap.
-      const docPaden = (await Promise.all((lijst1 ?? []).map(async (o) => {
-        if (o.id) return [`${l.id}/${o.name}`];
-        const { data: lijst2, error: e2 } = await db.storage.from('dossier-documenten').list(`${l.id}/${o.name}`, { limit: 100 });
-        if (e2) throw new Error(e2.message);
-        return (lijst2 ?? []).filter((p) => p.id).map((p) => `${l.id}/${o.name}/${p.name}`);
-      }))).flat();
       const [fotoLinks, docLinks] = await Promise.all([ondertekend('lead-fotos', fotoPaden.slice(0, 20)), ondertekend('dossier-documenten', docPaden.slice(0, 50))]);
       return json({
         dossier_id: l.id,
@@ -687,6 +755,252 @@ Deno.serve(async (req) => {
           data.gedaan === true ? 'twee klantrijen samengevoegd tot de klant van dit dossier; terug te zetten.' : 'een samenvoeging van klanten teruggezet.') });
       }
       return json(data);
+    }
+    if (body?.actie === 'whatsapp_gesprek') {
+      // B-096: alleen lezen. Het WhatsApp-gesprek met een klant en het dossier ernaast, voor een kaart bij een
+      // inkomend bericht. Op dossier_id, of op telefoonnummer (laatste negen cijfers, zoals 'nummers').
+      const b = body as typeof body & { telefoon?: unknown; max?: unknown };
+      const max = Math.min(Math.max(Math.round(Number(b.max)) || 50, 1), 200);
+      const nr = tel9(b.telefoon);
+      if (!isUuid(body.dossier_id) && !nr) return json({ error: 'Geef een dossier_id of een telefoonnummer (minstens 9 cijfers).' }, 400);
+      let dossierId: string | null = isUuid(body.dossier_id) ? body.dossier_id : null;
+      if (!dossierId) {
+        // Nieuwste dossier eerst, met het nummer van het dossier of van de klant (zelfde regel als 'nummers').
+        const [dossiers, klanten] = await Promise.all([
+          db.from('leads').select('id, telefoon, customer_id').order('updated_at', { ascending: false }).limit(2000),
+          db.from('customers').select('id, telefoon').not('telefoon', 'is', null).limit(2000),
+        ]);
+        if (dossiers.error || klanten.error) throw new Error((dossiers.error ?? klanten.error)!.message);
+        const klantMet = new Set((klanten.data ?? []).filter((k) => tel9(k.telefoon) === nr).map((k) => k.id));
+        dossierId = (dossiers.data ?? []).find((l) => tel9(l.telefoon) === nr || (l.customer_id && klantMet.has(l.customer_id)))?.id ?? null;
+      }
+      // whatsapp_berichten.telefoon is alleen cijfers met landcode, dus het eindigt op de negen cijfers.
+      const waQ = db.from('whatsapp_berichten').select('van_mij, verstuurd_op, soort, tekst');
+      const [wa, l, kaart] = await Promise.all([
+        (dossierId ? waQ.eq('lead_id', dossierId) : waQ.like('telefoon', `%${nr}`)).order('verstuurd_op', { ascending: false }).limit(max),
+        dossierId ? db.from('leads').select('id, voornaam, achternaam, adres, telefoon, bouwflow_project_number, bouwflow_phase, volgende_stap, updated_at').eq('id', dossierId).maybeSingle() : Promise.resolve({ data: null, error: null }),
+        db.from('bouwflow_phase_category_map').select('phase_id, phase_title'),
+      ]);
+      for (const r of [wa, l, kaart]) if (r.error) throw new Error(r.error.message);
+      if (isUuid(body.dossier_id) && !l.data) return json({ error: 'Dossier niet gevonden.' }, 404);
+      const fase = l.data ? (kaart.data ?? []).find((f) => String(f.phase_id) === String(l.data?.bouwflow_phase))?.phase_title ?? null : null;
+      const berichten = (wa.data ?? []).reverse().map((m) => ({ van: m.van_mij ? 'wij' : 'klant', op: m.verstuurd_op, soort: m.soort, tekst: m.tekst ?? null }));
+      const dossier = l.data ? { id: l.data.id, klant: [l.data.voornaam, l.data.achternaam].filter(Boolean).join(' ') || null, adres: l.data.adres ?? null,
+        telefoon: l.data.telefoon ?? null, dossiernummer: l.data.bouwflow_project_number ?? null, fase, volgende_stap: (l.data.volgende_stap ?? '').trim() || null, laatst_gewijzigd: l.data.updated_at } : null;
+      const leeg = !berichten.length
+        ? 'Er staan geen WhatsApp-berichten in Compass voor dit gesprek. Berichten komen alleen binnen via het gekoppelde toestel, en berichten van een nummer zonder dossier bewaart Compass niet.'
+        : null;
+      const uur = (iso: string) => new Date(iso).toLocaleString('nl-BE', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Brussels' });
+      // Vorm voor SCHERM: dezelfde Bron als het gegevensvenster van Zarvis (_shared/zarvis/gereedschap.ts).
+      const scherm: Bron = {
+        titel: dossier?.klant ? `WhatsApp met ${dossier.klant}` : 'WhatsApp',
+        ondertitel: dossier ? [dossier.dossiernummer, fase].filter(Boolean).join(' · ') || undefined : 'Geen dossier bij dit nummer',
+        secties: [
+          { kop: 'Gesprek', lijst: berichten.slice(-60).map((m) => ({ links: m.van, tekst: m.tekst || `(${m.soort})`, rechts: uur(m.op), nadruk: m.van === 'klant' })), ...(leeg ? { leeg } : {}) },
+          dossier
+            ? { kop: 'Dossier', velden: ([['Klant', dossier.klant], ['Dossiernummer', dossier.dossiernummer], ['Fase', fase], ['Adres', dossier.adres], ['Telefoon', dossier.telefoon], ['Volgende stap', dossier.volgende_stap]] as [string, unknown][])
+              .filter(([, v]) => v != null && v !== '').map(([label, v]) => ({ label, waarde: String(v) })) }
+            : { kop: 'Dossier', leeg: 'Dit nummer hoort bij geen enkel dossier in Compass.' },
+        ],
+      };
+      return json({ dossier, aantal: berichten.length, berichten, laatste_van_klant: [...berichten].reverse().find((m) => m.van === 'klant')?.op ?? null, ...(leeg ? { uitleg: leeg } : {}), scherm });
+    }
+    if (body?.actie === 'whatsapp_sjablonen') {
+      // B-097: alleen lezen en NIETS versturen. Vaste sjablonen, ingevuld met de gegevens van het dossier, en welke
+      // foto's en documenten er zijn om mee te sturen. Versturen naar een klant bouwt het loket niet.
+      if (!isUuid(body.dossier_id)) return json({ error: 'Geef een dossier_id.' }, 400);
+      const [{ data: l, error }, pre, docs] = await Promise.all([
+        db.from('leads').select('id, voornaam, adres, offerte_nummer, fotos').eq('id', body.dossier_id).maybeSingle(),
+        db.from('pre_intake').select('videocall_scheduled_at, plaatsbezoek_scheduled_at, google_meet_link').eq('lead_id', body.dossier_id).limit(5),
+        docPadenVan(body.dossier_id),
+      ]);
+      if (error || pre.error) throw new Error((error ?? pre.error)!.message);
+      if (!l) return json({ error: 'Dossier niet gevonden.' }, 404);
+      const nu = Date.now();
+      const volgende = (k: 'videocall_scheduled_at' | 'plaatsbezoek_scheduled_at') =>
+        (pre.data ?? []).map((p) => p[k] as string | null).filter((t): t is string => !!t && new Date(t).getTime() > nu).sort()[0] ?? null;
+      const wanneer = (iso: string | null) => iso ? new Date(iso).toLocaleString('nl-BE', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Brussels' }) : null;
+      const meet = (pre.data ?? []).map((p) => p.google_meet_link).find(Boolean) ?? null;
+      const w: Record<string, string | null> = {
+        voornaam: (l.voornaam ?? '').trim() || null, adres: l.adres ?? null, offerte_nummer: l.offerte_nummer ?? null,
+        plaatsbezoek: wanneer(volgende('plaatsbezoek_scheduled_at')), videocall: wanneer(volgende('videocall_scheduled_at')), meet_link: meet,
+      };
+      // Bewust zonder beloftes over prijs of termijn: alleen wat vaststaat in het dossier.
+      const SJABLONEN: { sleutel: string; titel: string; tekst: string }[] = [
+        { sleutel: 'plaatsbezoek_bevestigen', titel: 'Plaatsbezoek bevestigen', tekst: 'Dag {voornaam}, ter bevestiging: het plaatsbezoek staat gepland op {plaatsbezoek}, op {adres}. Past dat toch niet meer, laat het gerust weten. Groeten, Bram van Zolderpunt' },
+        { sleutel: 'videocall_bevestigen', titel: 'Videocall bevestigen', tekst: 'Dag {voornaam}, ter bevestiging: onze videocall staat gepland op {videocall}. Je kan inloggen via {meet_link}. Tot dan! Groeten, Bram van Zolderpunt' },
+        { sleutel: 'offerte_opvolgen', titel: 'Offerte opvolgen', tekst: 'Dag {voornaam}, heb je de offerte {offerte_nummer} goed ontvangen? Heb je vragen, stuur gerust een bericht of bel even. Groeten, Bram van Zolderpunt' },
+        { sleutel: 'fotos_vragen', titel: "Foto's vragen", tekst: "Dag {voornaam}, mag ik je vragen om een paar foto's van de zolder te sturen? Bijvoorbeeld de toegang of trap, het dakvlak en de vloer. Zo kan ik me beter voorbereiden. Alvast bedankt! Groeten, Bram van Zolderpunt" },
+        { sleutel: 'bedankt_gesprek', titel: 'Bedankt na een gesprek', tekst: 'Dag {voornaam}, bedankt voor het fijne gesprek. Heb je intussen nog vragen, stuur gerust een bericht. Groeten, Bram van Zolderpunt' },
+      ];
+      const sjablonen = SJABLONEN.map((s) => {
+        const ontbreekt = [...s.tekst.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).filter((k) => !w[k]);
+        return { ...s, tekst: s.tekst.replace(/\{(\w+)\}/g, (_, k) => w[k] ?? `[${k}]`), klaar: !ontbreekt.length, ontbreekt };
+      });
+      const fotos = (Array.isArray(l.fotos) ? l.fotos : []).map((f: { path?: string; storage_path?: string }) => f?.storage_path || f?.path).filter((x): x is string => typeof x === 'string');
+      return json({
+        dossier_id: l.id, verstuurd: false, sjablonen,
+        bijlagen: { fotos: fotos.slice(0, 50).map((p) => ({ naam: p.split('/').pop() })), fotos_aantal: fotos.length, documenten: docs.slice(0, 50).map((p) => ({ naam: p.split('/').pop() })), documenten_aantal: docs.length },
+        let_op: 'Er wordt niets verstuurd. Dit zijn voorstellen om zelf te kopiëren in WhatsApp. Een link om een bijlage te openen geeft de actie documenten (een uur geldig).',
+      });
+    }
+    if (body?.actie === 'calculatie_scenario') {
+      // B-158: alleen lezen, niets bewaren. "Wat als": posten weglaten of erbij zetten, en het totaal en de vork
+      // herrekenen zoals de calculator (zie reken.ts; nagerekend op alle bewaarde calculaties).
+      const b = body as typeof body & { calculatie_id?: unknown; zonder?: unknown; extra?: unknown };
+      if (!isUuid(body.dossier_id)) return json({ error: 'Geef een dossier_id.' }, 400);
+      let q = db.from('calculaties').select('id, bron, budget_excl, budget_min_excl, budget_max_excl, inbegrepen_posten, calculator_state, created_at').eq('lead_id', body.dossier_id);
+      if (isUuid(b.calculatie_id)) q = q.eq('id', b.calculatie_id);
+      const { data, error } = await q.order('created_at', { ascending: false }).limit(1);
+      if (error) throw new Error(error.message);
+      const c = data?.[0];
+      if (!c) return json({ error: 'Geen calculatie gevonden voor dit dossier.' }, 404);
+      const posten = postenVan(c.inbegrepen_posten) as BewaardePost[];
+      const marge = (c.calculator_state as { marge?: { min?: unknown; max?: unknown } } | null)?.marge;
+      // Een postnaam telt ook zonder het deel tussen haakjes ("Velux dakramen" voor "Velux dakramen (2×)").
+      const kaal = (t: string) => t.replace(/\s*\(.*\)\s*$/, '').trim().toLowerCase();
+      const zonder = (Array.isArray(b.zonder) ? b.zonder : []).filter((x): x is string => typeof x === 'string' && !!x.trim()).slice(0, 50);
+      const weg = posten.filter((p) => zonder.some((z) => z.trim().toLowerCase() === p.post.toLowerCase() || kaal(z) === kaal(p.post)));
+      const extra = (Array.isArray(b.extra) ? b.extra : []).slice(0, 50)
+        .filter((x): x is { post: string; bedrag: number } => !!x && typeof x.post === 'string' && !!x.post.trim() && Number.isFinite(Number(x.bedrag)))
+        .map((x) => ({ post: x.post.trim(), bedrag: Math.round(Number(x.bedrag)), categorie: 'extra' }));
+      const scenario = [...posten.filter((p) => !weg.includes(p)), ...extra];
+      const was = herreken(posten, marge), wordt = herreken(scenario, marge);
+      return json({
+        calculatie: { id: c.id, op: c.created_at, bron: c.bron, budget_excl: c.budget_excl, min: c.budget_min_excl, max: c.budget_max_excl },
+        bewaard: false,
+        weggelaten: weg.map((p) => ({ post: p.post, bedrag: p.bedrag })),
+        niet_gevonden: zonder.filter((z) => !weg.some((p) => z.trim().toLowerCase() === p.post.toLowerCase() || kaal(z) === kaal(p.post))),
+        toegevoegd: extra.map(({ post, bedrag }) => ({ post, bedrag })),
+        was, wordt,
+        verschil: { totaal_excl: wordt.totaal_excl - was.totaal_excl, min_excl: wordt.min_excl - was.min_excl, max_excl: wordt.max_excl - was.max_excl },
+        let_op: [
+          'Niets is bewaard: dit is een proefversie. Een echte nieuwe versie maak je in de calculator van Compass.',
+          'Een toegevoegde post telt als extra met een vast bedrag (min = max), zonder bandbreedte erover.',
+          ...(marge ? [] : ['Geen verschoven marge bewaard: de vork gebruikt de standaard bandbreedte van 15%.']),
+        ],
+      });
+    }
+    if (body?.actie === 'tarief_gebruik') {
+      // B-155: alleen lezen. Welke open calculaties een tarief gebruiken, en wat ze ongeveer meer kosten als dat
+      // tarief een percentage duurder wordt. Compass rekent met de standaardtarieven in src/lib/prijscalculator.ts
+      // (calculator_tarieven is leeg); een post met een handmatig bedrag (calculator_state.overrides) telt niet mee.
+      // Een koppeling met artikels van Invensync bestaat niet in Compass: posten zijn tarieven, geen artikels.
+      const b = body as typeof body & { tarief?: unknown; procent?: unknown };
+      const procent = Number.isFinite(Number(b.procent)) && b.procent != null ? Number(b.procent) : null;
+      const [kaart, leads, calcs] = await Promise.all([
+        db.from('bouwflow_phase_category_map').select('phase_id, compass_category'),
+        db.from('leads').select('id, voornaam, achternaam, bouwflow_project_number, bouwflow_phase, category_override').limit(2000),
+        alle(() => db.from('calculaties').select('id, lead_id, inbegrepen_posten, calculator_state, created_at').order('created_at', { ascending: false }).order('id')),
+      ]);
+      if (kaart.error || leads.error) throw new Error((kaart.error ?? leads.error)!.message);
+      const cat = new Map((kaart.data ?? []).map((f) => [String(f.phase_id), f.compass_category as string]));
+      const open = new Map((leads.data ?? []).filter((l) => (l.category_override || cat.get(String(l.bouwflow_phase ?? ''))) === 'offerte').map((l) => [l.id, l]));
+      const gezien = new Set<string>();
+      const per: Record<string, { dossier_id: string; klant: string | null; dossiernummer: string | null; calculatie_id: string; post: string; bedrag: number; geschat_extra?: number }[]> = {};
+      let handmatig = 0;
+      for (const c of calcs) {
+        if (!open.has(c.lead_id) || gezien.has(c.lead_id)) continue; // alleen de nieuwste calculatie per open dossier
+        gezien.add(c.lead_id);
+        const l = open.get(c.lead_id)!;
+        const state = c.calculator_state as { dak_bekleed?: boolean; overrides?: Record<string, { regels?: unknown[][] }> } | null;
+        for (const p of postenVan(c.inbegrepen_posten)) {
+          if ((p.categorie ?? 'standaard') !== 'standaard') continue;
+          const t = tariefVanPost(p.post, state);
+          if (!t || (typeof b.tarief === 'string' && b.tarief !== t.tarief)) continue;
+          if ((state?.overrides?.[t.sleutel]?.regels ?? []).some((r) => Array.isArray(r) && (r[0] != null || r[1] != null))) { handmatig++; continue; }
+          (per[t.tarief] ??= []).push({ dossier_id: l.id, klant: [l.voornaam, l.achternaam].filter(Boolean).join(' ') || null, dossiernummer: l.bouwflow_project_number ?? null,
+            calculatie_id: c.id, post: p.post, bedrag: Number(p.bedrag) || 0, ...(procent != null ? { geschat_extra: Math.round((Number(p.bedrag) || 0) * procent / 100) } : {}) });
+        }
+      }
+      return json({
+        open_dossiers: open.size, met_calculatie: gezien.size, procent,
+        tarieven: Object.entries(per).map(([tarief, lijst]) => ({ tarief, aantal: lijst.length, som_bedrag: lijst.reduce((s, x) => s + x.bedrag, 0),
+          ...(procent != null ? { geschat_extra_totaal: lijst.reduce((s, x) => s + (x.geschat_extra ?? 0), 0) } : {}), calculaties: lijst })).sort((a, z) => z.som_bedrag - a.som_bedrag),
+        posten_met_handmatig_bedrag: handmatig,
+        let_op: 'Open = dossiers in de categorie offerte, telkens hun nieuwste calculatie. Het geschatte extra is het postbedrag maal het percentage (een staffel of airco schuift alleen mee als al zijn treden met hetzelfde percentage stijgen). Artikelprijzen van Invensync hangen niet aan calculaties in Compass.',
+      });
+    }
+    if (body?.actie === 'fase_voorstel') {
+      // B-087: alleen een DROOG voorstel, schrijft niets. Bouwflow laat de fase van een bestaand project niet
+      // schrijven langs zijn API (chrome-extension/README.md). Compass doet het zo: de Chrome-extensie zet de
+      // fase-keuzelijst op de projectenlijst van Bouwflow, push-bouwflow-phase leest de fase terug langs de API en
+      // zet pas dan Compass gelijk; bij Geweigerd bewaart Compass de reden in leads.afwijs_reden.
+      const b = body as typeof body & { naar_fase?: unknown; reden?: unknown };
+      if (!isUuid(body.dossier_id)) return json({ error: 'Geef een dossier_id.' }, 400);
+      const [{ data: l, error }, kaart] = await Promise.all([
+        db.from('leads').select('id, voornaam, achternaam, bouwflow_project_number, bouwflow_phase, afwijs_reden').eq('id', body.dossier_id).maybeSingle(),
+        db.from('bouwflow_phase_category_map').select('phase_id, phase_title, compass_category').order('sort_order'),
+      ]);
+      if (error || kaart.error) throw new Error((error ?? kaart.error)!.message);
+      if (!l) return json({ error: 'Dossier niet gevonden.' }, 404);
+      const fases = kaart.data ?? [];
+      const gevraagd = String(b.naar_fase ?? '').trim().toLowerCase();
+      const naar = fases.find((f) => String(f.phase_id) === gevraagd || String(f.phase_title).toLowerCase() === gevraagd);
+      if (!naar) return json({ error: 'Onbekende fase.', fases: fases.map((f) => ({ id: f.phase_id, titel: f.phase_title })) }, 400);
+      const van = fases.find((f) => String(f.phase_id) === String(l.bouwflow_phase ?? '')) ?? null;
+      const reden = typeof b.reden === 'string' ? b.reden.trim() : '';
+      const geweigerd = naar.compass_category === 'afgewezen';
+      if (geweigerd && !reden) return json({ error: 'Bij Geweigerd is een reden verplicht.' }, 400);
+      if (!l.bouwflow_project_number) return json({ error: 'Dit dossier heeft geen Bouwflow-projectnummer; de fase kan niet in Bouwflow gezet worden.' }, 409);
+      return json({
+        droog: true, geschreven: false,
+        dossier_id: l.id, klant: [l.voornaam, l.achternaam].filter(Boolean).join(' ') || null, dossiernummer: l.bouwflow_project_number,
+        van: van ? { id: van.phase_id, titel: van.phase_title } : null, naar: { id: naar.phase_id, titel: naar.phase_title },
+        al_in_deze_fase: van?.phase_id === naar.phase_id,
+        ...(geweigerd ? { reden, vorige_reden: l.afwijs_reden ?? null } : {}),
+        wat_er_zou_gebeuren: [
+          `In Bouwflow: project ${l.bouwflow_project_number} van "${van?.phase_title ?? 'geen fase'}" naar "${naar.phase_title}".`,
+          'Daarna zet Compass bij de volgende controle of synchronisatie dezelfde fase en categorie in het dossier.',
+          ...(geweigerd ? ['In Compass komt de reden bij het dossier (afwijs_reden). Bouwflow\'s eigen redenveld is langs de API niet te vullen.'] : []),
+        ],
+        handeling_in_bouwflow: `Open de projectenlijst in Bouwflow, zoek ${l.bouwflow_project_number} en kies in de fasekolom "${naar.phase_title}". Of sleep het dossier in Compass naar de nieuwe kolom: dan doet de Chrome-extensie dat en controleert Compass het.`,
+        let_op: 'Zarvis schrijft de fase niet: Bouwflow heeft daar geen API voor, en het loket bedient de Chrome-extensie niet.',
+      });
+    }
+    if (body?.actie === 'afspraak_details') {
+      // B-053: alleen lezen. De geplande Calendly-afspraken van een dossier, met de links waarmee de klant zelf
+      // verzet of annuleert. Compass bewaart geen event-uri: we zoeken in Calendly op het mailadres van het dossier
+      // en op de tijdstippen in pre_intake. Verzetten kan Calendly niet langs zijn API: verzetten = Bram geeft de
+      // reschedule_url aan de klant. Zarvis verstuurt niets.
+      if (!isUuid(body.dossier_id)) return json({ error: 'Geef een dossier_id.' }, 400);
+      const kop = calendlyKop();
+      if (!kop) return json({ error: 'De Calendly-koppeling is niet ingesteld in Compass.' }, 503);
+      const r = await afsprakenVan(body.dossier_id, kop);
+      if (!r) return json({ error: 'Dossier niet gevonden.' }, 404);
+      return json({ dossier_id: body.dossier_id, aantal: r.length, afspraken: r,
+        let_op: 'Verzetten kan niet langs de API van Calendly: geef de klant de reschedule_url (dat doet Bram, Zarvis verstuurt niets). Een afspraak die alleen op tijdstip gevonden werd, kan van iemand anders zijn: kijk gevonden_via na.' });
+    }
+    if (body?.actie === 'afspraak_annuleren') {
+      // B-053: SCHRIJFT na bevestiging, buiten Compass: Calendly annuleert en MAILT DE KLANT. Daarom staat het uit
+      // achter ZARVIS_CALENDLY_ANNULEREN=aan (standaard uit) en is het standaard droog. De .test-slot geldt bovenaan.
+      const b = body as typeof body & { event_uri?: unknown; reden?: unknown; bevestigd?: unknown };
+      const reden = typeof b.reden === 'string' ? b.reden.trim() : '';
+      if (!reden || reden.length > 500) return json({ error: 'Geef een reden van 1 tot 500 tekens (Calendly zet die in de mail aan de klant).' }, 400);
+      const uuidUit = (u: unknown) => { const x = typeof u === 'string' ? u.split('/').pop() ?? '' : ''; return /^[A-Za-z0-9-]{8,64}$/.test(x) ? x : ''; };
+      if (!isUuid(body.dossier_id) && !uuidUit(b.event_uri)) return json({ error: 'Geef een dossier_id of een event_uri.' }, 400);
+      const kop = calendlyKop();
+      if (!kop) return json({ error: 'De Calendly-koppeling is niet ingesteld in Compass.' }, 503);
+      let afspraak: Record<string, unknown> | null = null;
+      if (isUuid(body.dossier_id)) {
+        const r = await afsprakenVan(body.dossier_id, kop);
+        if (!r) return json({ error: 'Dossier niet gevonden.' }, 404);
+        const keuze = uuidUit(b.event_uri) ? r.filter((a) => a.uuid === uuidUit(b.event_uri)) : r;
+        if (keuze.length !== 1) return json({ error: keuze.length ? 'Er zijn meerdere afspraken: geef de event_uri van de juiste.' : 'Geen geplande afspraak gevonden bij dit dossier.', afspraken: r }, keuze.length ? 409 : 404);
+        afspraak = keuze[0];
+      } else {
+        const e = (await calendly(`/scheduled_events/${uuidUit(b.event_uri)}`, kop))?.resource;
+        if (!e) return json({ error: 'Afspraak niet gevonden in Calendly.' }, 404);
+        afspraak = { event_uri: e.uri, uuid: uuidUit(e.uri), naam: e.name, start: e.start_time, status: e.status };
+      }
+      if (afspraak.status && afspraak.status !== 'active') return json({ error: 'Deze afspraak is al geannuleerd.' }, 409);
+      const aan = Deno.env.get('ZARVIS_CALENDLY_ANNULEREN') === 'aan';
+      if (b.bevestigd !== true) return json({ droog: true, afspraak, reden, schakelaar_aan: aan,
+        wat_er_gebeurt: 'Calendly annuleert deze afspraak en mailt de klant de annulatie, met deze reden. Zarvis stuurt zelf niets.' });
+      if (!aan) return json({ error: 'Annuleren via Zarvis staat uit (ZARVIS_CALENDLY_ANNULEREN). Annuleer de afspraak in Calendly zelf.' }, 403);
+      const res = await fetch(`${CALENDLY}/scheduled_events/${afspraak.uuid}/cancellation`, { method: 'POST', headers: { ...kop, 'Content-Type': 'application/json' }, body: JSON.stringify({ reason: reden }) });
+      if (!res.ok) throw new Error(`Calendly weigerde de annulatie (${res.status}).`);
+      return json({ geannuleerd: true, afspraak, reden, spoor: await spoor([body.dossier_id], `Calendly-afspraak van ${String(afspraak.start ?? '')} geannuleerd (reden: ${reden.slice(0, 200)}).`) });
     }
     return json({ error: 'Onbekende vraag.' }, 400);
   } catch (e) {
