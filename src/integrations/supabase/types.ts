@@ -1050,6 +1050,8 @@ export type Database = {
           locked_at: string | null
           measurement_promised: boolean | null
           photos_promised: boolean | null
+          plaatsbezoek_calendly_uri: string | null
+          plaatsbezoek_google_event_id: string | null
           plaatsbezoek_planned: boolean
           plaatsbezoek_scheduled_at: string | null
           qual_in_region: boolean | null
@@ -1062,6 +1064,8 @@ export type Database = {
           scenario_chosen: string | null
           trigger_text: string | null
           updated_at: string | null
+          videocall_calendly_uri: string | null
+          videocall_google_event_id: string | null
           videocall_planned: boolean
           videocall_scheduled_at: string | null
           waarom_nu_timing: string | null
@@ -1086,6 +1090,8 @@ export type Database = {
           locked_at?: string | null
           measurement_promised?: boolean | null
           photos_promised?: boolean | null
+          plaatsbezoek_calendly_uri?: string | null
+          plaatsbezoek_google_event_id?: string | null
           plaatsbezoek_planned?: boolean
           plaatsbezoek_scheduled_at?: string | null
           qual_in_region?: boolean | null
@@ -1098,6 +1104,8 @@ export type Database = {
           scenario_chosen?: string | null
           trigger_text?: string | null
           updated_at?: string | null
+          videocall_calendly_uri?: string | null
+          videocall_google_event_id?: string | null
           videocall_planned?: boolean
           videocall_scheduled_at?: string | null
           waarom_nu_timing?: string | null
@@ -1122,6 +1130,8 @@ export type Database = {
           locked_at?: string | null
           measurement_promised?: boolean | null
           photos_promised?: boolean | null
+          plaatsbezoek_calendly_uri?: string | null
+          plaatsbezoek_google_event_id?: string | null
           plaatsbezoek_planned?: boolean
           plaatsbezoek_scheduled_at?: string | null
           qual_in_region?: boolean | null
@@ -1134,6 +1144,8 @@ export type Database = {
           scenario_chosen?: string | null
           trigger_text?: string | null
           updated_at?: string | null
+          videocall_calendly_uri?: string | null
+          videocall_google_event_id?: string | null
           videocall_planned?: boolean
           videocall_scheduled_at?: string | null
           waarom_nu_timing?: string | null
