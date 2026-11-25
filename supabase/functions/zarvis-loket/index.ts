@@ -229,6 +229,18 @@ Deno.serve(async (req) => {
       return (lijst2 ?? []).filter((p) => p.id).map((p) => `${id}/${o.name}/${p.name}`);
     }))).flat();
   };
+  // IDEE-83: een foto zonder datum (een upload in de app bewaart er geen) krijgt het tijdstip waarop ze in de opslag kwam.
+  const metOpslagDatum = async <T extends { pad: string; bucket: string; ontvangen_op: string | null }>(lijst: T[]): Promise<T[]> => {
+    const zonder = lijst.filter((x) => !x.ontvangen_op);
+    const mappen = [...new Set(zonder.map((x) => `${x.bucket}|${x.pad.slice(0, x.pad.lastIndexOf('/'))}`))].slice(0, 20);
+    const tijd = new Map<string, string>();
+    await Promise.all(mappen.map(async (m) => {
+      const [bucket, map] = m.split('|');
+      const { data } = await db.storage.from(bucket).list(map, { limit: 1000 });
+      for (const o of data ?? []) if (o.created_at) tijd.set(`${bucket}|${map}/${o.name}`, o.created_at);
+    }));
+    return lijst.map((x) => (x.ontvangen_op ? x : { ...x, ontvangen_op: tijd.get(`${x.bucket}|${x.pad}`) ?? null }));
+  };
   // B-053: de geplande (actieve, toekomstige) Calendly-afspraken van een dossier, of null als het dossier niet bestaat.
   const afsprakenVan = async (id: string, kop: Record<string, string>) => {
     const [{ data: l, error }, pre] = await Promise.all([
@@ -590,7 +602,7 @@ Deno.serve(async (req) => {
         return (data ?? []).map((d) => ({ naam: (d.path ?? '').split('/').pop(), link: d.signedUrl }));
       };
       // BREIN (plan_in_fotos, IDEE-83): ook alle foto's, elk met de datum en het kanaal (whatsapp, mail of null), hoogstens 100.
-      const alleFotos = fotosUit(l.fotos).sort((x, y) => (y.ontvangen_op ?? '').localeCompare(x.ontvangen_op ?? '')).slice(0, 100);
+      const alleFotos = (await metOpslagDatum(fotosUit(l.fotos))).sort((x, y) => (y.ontvangen_op ?? '').localeCompare(x.ontvangen_op ?? '')).slice(0, 100);
       // IDEE-83 (BREIN): met met_mail: true ook de beeldbijlagen uit de mails van het dossier (Mail-CRM, hello@ en info@),
       // met een link van 15 minuten. Alleen op vraag: zonder die vlag vraagt het loket niets aan Mail-CRM.
       let mailBeelden: { naam: string; link: string; op: string | null; kanaal: 'mail'; van: string | null }[] = [];
@@ -637,7 +649,7 @@ Deno.serve(async (req) => {
         const { data: lijst2 } = await db.storage.from('dossier-documenten').list(`${l.id}/${o.name}`, { limit: 200 });
         return (lijst2 ?? []).filter((p) => p.id).map((p) => ({ pad: `${l.id}/${o.name}/${p.name}`, created_at: p.created_at ?? null }));
       }))).flat();
-      const alle = [...fotosUit(l.fotos), ...documentenUit(docs)].filter((x) => b.soort !== 'foto' && b.soort !== 'document' ? true : x.soort === b.soort);
+      const alle = [...(await metOpslagDatum(fotosUit(l.fotos))), ...documentenUit(docs)].filter((x) => b.soort !== 'foto' && b.soort !== 'document' ? true : x.soort === b.soort);
       const pagina = blad(alle, Number(b.vanaf) || 0, Number(b.aantal) || 20);
       // Ondertekende links alleen voor deze bladzijde, per opslag.
       const links = new Map<string, string>();
