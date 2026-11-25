@@ -51,6 +51,7 @@ import { AppActionsProvider } from '@/contexts/AppActionsContext';
 import { SLIDE_ORDER, SLIDE_MODES, type SlideId } from '@/contexts/SessionContext';
 import type { LeadData } from '@/contexts/SessionContext';
 import KladversieHerstel from '@/components/KladversieHerstel';
+import FaseOpdrachtUitvoerder from '@/components/zarvis/FaseOpdrachtUitvoerder';
 import NieuwDossierDialog from '@/components/dossier/NieuwDossierDialog';
 
 const SLIDE_COMPONENTS: Record<SlideId, React.ComponentType> = {
@@ -474,6 +475,8 @@ function AuthGate() {
       {/* Boven élk scherm: je merkt pas dat er werk verloren dreigde te gaan
           wanneer je het dossier later opnieuw opent. */}
       <KladversieHerstel />
+      {/* Fase-opdrachten van Zarvis (na Brams Ja) uitvoeren zolang Compass open staat met de Bouwflow-extensie. */}
+      <FaseOpdrachtUitvoerder />
       <AppContent />
     </SessionProvider>
   );

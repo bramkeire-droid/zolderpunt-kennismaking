@@ -41,12 +41,18 @@
 //   { actie: 'calculatie_scenario', dossier_id, calculatie_id?, zonder?, extra? }  (B-158) proefversie, bewaart niets. Lezen.
 //   { actie: 'tarief_gebruik', tarief?, procent? }  (B-155) welke open calculaties een tarief gebruiken. Lezen.
 //   { actie: 'fase_voorstel', dossier_id, naar_fase, reden? }  (B-087) droog voorstel, schrijft niets.
+//   { actie: 'fase_wijzigen', dossier_id, naar_fase, reden?, bevestigd? }  SCHRIJFT na bevestiging een fase-opdracht
+//                             (zarvis_fase_opdrachten) die een open Compass met de Bouwflow-extensie uitvoert; zet de
+//                             fase IN BOUWFLOW. Reden verplicht bij Geweigerd. Standaard droog.
+//   { actie: 'fase_terug', opdracht_id, bevestigd? }  zet een uitgevoerde opdracht terug (nieuwe opdracht naar de vorige
+//                             fase en reden), alleen als het dossier sindsdien niet veranderde. Standaard droog.
+//   { actie: 'fase_opdrachten', opdracht_id? | dossier_id? }  de stand van de fase-opdrachten. Lezen.
 //   { actie: 'afspraak_details', dossier_id }  (B-053) Calendly-afspraken met de links om te verzetten. Lezen.
 //   { actie: 'afspraak_annuleren', dossier_id | event_uri, reden, bevestigd? }  (B-053) SCHRIJFT buiten Compass (Calendly
 //                             mailt de klant); standaard droog, echt alleen met ZARVIS_CALENDLY_ANNULEREN=aan
 //
 // Het loket leest met de serversleutel van Compass. De grens zit dus hier in de
-// code: geen vrije vragen aan de databank; schrijven alleen de notitie en het samenvoegen hierboven.
+// code: geen vrije vragen aan de databank; schrijven alleen wat hierboven als SCHRIJFT staat.
 //
 // Spoor in de app (2026-11-24): wat Zarvis echt schrijft (notitie, chat, aanvullen, samenvoegen en hun weg terug)
 // laat ook een regel "via Zarvis (<mailadres>): ..." achter in de chat van het dossier, die Compass bij elk dossier
@@ -61,6 +67,20 @@ const ZARVIS_URL = 'https://jerekxoryumsnddalket.supabase.co';
 const ZARVIS_SLEUTEL = 'sb_publishable_5c3VhVOOIubLmAM5mWVw-Q_0Y186yy2';
 
 const LEES = new Set(['zoek_dossier', 'lees_dossier', 'lees_gesprekken', 'lees_calculaties', 'pijplijn_overzicht']);
+
+// Fase wijzigen (2026-11-25, baan LOKETTEN): wat er gebeurt en wat naar buiten gaat, voor de Ja-kaart.
+// Nagekeken in Compass: geen trigger of geplande taak stuurt iets naar een klant bij een fasewijziging (de triggers op
+// leads loggen de fase en houden de klantkaart gelijk; mailcrm-projects-push zet de fase door naar Mail-CRM, eigen app).
+const FASE_UITVOERING = 'Uitgevoerd door een open Compass op een pc met de Bouwflow-extensie en een ingelogde Bouwflow, binnen een halve minuut; staat Compass nergens open, dan wacht de opdracht (hoogstens een dag, daarna vervalt ze).';
+const FASE_NAAR_BUITEN = 'Naar buiten: de fase verandert in Bouwflow, het bronsysteem (de extensie bedient de Bouwflow-pagina). Compass stuurt zelf niets naar de klant. Of Bouwflow bij deze fase zelf iets doet (een automatische mail of het klantenportaal), is van hieruit niet na te kijken: kijk het na in de instellingen van Bouwflow.';
+const faseGevolgen = (nr: string, van: string | null, naar: string, geweigerd: boolean) => [
+  `In Bouwflow: project ${nr} van "${van ?? 'geen fase'}" naar "${naar}".`,
+  'Daarna leest Compass de fase terug in Bouwflow en zet pas dan het dossier in de kolom (zoals bij slepen); lukt het niet, dan blijft alles staan.',
+  ...(geweigerd ? ['In Compass komt de reden bij het dossier (afwijs_reden). Het redenveld van Bouwflow zelf is langs de API niet te vullen.'] : []),
+  'De nieuwe fase gaat ook door naar Mail-CRM (eigen app).',
+  FASE_UITVOERING,
+  'Terugzetten kan met fase_terug zolang het dossier sindsdien niet van fase veranderde.',
+];
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -185,6 +205,10 @@ Deno.serve(async (req) => {
       return { gezet: 0, reden: e instanceof Error ? e.message : 'onbekende fout' };
     }
   };
+
+  // Fase-opdrachten (2026-11-25): hoogstens één open opdracht per dossier.
+  const openFaseOpdracht = async (lead: string) => (await db.from('zarvis_fase_opdrachten').select('id, naar_titel, status')
+    .eq('lead_id', lead).in('status', ['wacht', 'bezig']).limit(1)).data?.[0] ?? null;
 
   // Alle documenten van een dossier in de opslag (de map en één niveau submappen), als paden.
   const docPadenVan = async (id: string): Promise<string[]> => {
@@ -922,12 +946,13 @@ Deno.serve(async (req) => {
         let_op: 'Open = dossiers in de categorie offerte, telkens hun nieuwste calculatie. Het geschatte extra is het postbedrag maal het percentage (een staffel of airco schuift alleen mee als al zijn treden met hetzelfde percentage stijgen). Artikelprijzen van Invensync hangen niet aan calculaties in Compass.',
       });
     }
-    if (body?.actie === 'fase_voorstel') {
-      // B-087: alleen een DROOG voorstel, schrijft niets. Bouwflow laat de fase van een bestaand project niet
-      // schrijven langs zijn API (chrome-extension/README.md). Compass doet het zo: de Chrome-extensie zet de
-      // fase-keuzelijst op de projectenlijst van Bouwflow, push-bouwflow-phase leest de fase terug langs de API en
-      // zet pas dan Compass gelijk; bij Geweigerd bewaart Compass de reden in leads.afwijs_reden.
-      const b = body as typeof body & { naar_fase?: unknown; reden?: unknown };
+    if (body?.actie === 'fase_voorstel' || body?.actie === 'fase_wijzigen') {
+      // B-087, en sinds 25-11 echt (fase_wijzigen): Bouwflow laat de fase van een bestaand project niet schrijven
+      // langs zijn API (chrome-extension/README.md). Na Brams Ja schrijft het loket daarom een OPDRACHT in
+      // zarvis_fase_opdrachten; een open Compass met de Bouwflow-extensie voert ze uit zoals het slepen in de kanban
+      // (FaseOpdrachtUitvoerder): de extensie zet de fase in Bouwflow, push-bouwflow-phase leest ze terug en zet Compass
+      // pas dan gelijk. Bij Geweigerd is een reden verplicht en komt ze in leads.afwijs_reden. Zonder bevestigd droog.
+      const b = body as typeof body & { naar_fase?: unknown; reden?: unknown; bevestigd?: unknown };
       if (!isUuid(body.dossier_id)) return json({ error: 'Geef een dossier_id.' }, 400);
       const [{ data: l, error }, kaart] = await Promise.all([
         db.from('leads').select('id, voornaam, achternaam, bouwflow_project_number, bouwflow_phase, afwijs_reden').eq('id', body.dossier_id).maybeSingle(),
@@ -940,24 +965,79 @@ Deno.serve(async (req) => {
       const naar = fases.find((f) => String(f.phase_id) === gevraagd || String(f.phase_title).toLowerCase() === gevraagd);
       if (!naar) return json({ error: 'Onbekende fase.', fases: fases.map((f) => ({ id: f.phase_id, titel: f.phase_title })) }, 400);
       const van = fases.find((f) => String(f.phase_id) === String(l.bouwflow_phase ?? '')) ?? null;
-      const reden = typeof b.reden === 'string' ? b.reden.trim() : '';
+      const reden = typeof b.reden === 'string' ? b.reden.trim().slice(0, 500) : '';
       const geweigerd = naar.compass_category === 'afgewezen';
       if (geweigerd && !reden) return json({ error: 'Bij Geweigerd is een reden verplicht.' }, 400);
       if (!l.bouwflow_project_number) return json({ error: 'Dit dossier heeft geen Bouwflow-projectnummer; de fase kan niet in Bouwflow gezet worden.' }, 409);
-      return json({
-        droog: true, geschreven: false,
+      const al = van?.phase_id === naar.phase_id;
+      const voorstel = {
         dossier_id: l.id, klant: [l.voornaam, l.achternaam].filter(Boolean).join(' ') || null, dossiernummer: l.bouwflow_project_number,
         van: van ? { id: van.phase_id, titel: van.phase_title } : null, naar: { id: naar.phase_id, titel: naar.phase_title },
-        al_in_deze_fase: van?.phase_id === naar.phase_id,
+        al_in_deze_fase: al,
         ...(geweigerd ? { reden, vorige_reden: l.afwijs_reden ?? null } : {}),
-        wat_er_zou_gebeuren: [
-          `In Bouwflow: project ${l.bouwflow_project_number} van "${van?.phase_title ?? 'geen fase'}" naar "${naar.phase_title}".`,
-          'Daarna zet Compass bij de volgende controle of synchronisatie dezelfde fase en categorie in het dossier.',
-          ...(geweigerd ? ['In Compass komt de reden bij het dossier (afwijs_reden). Bouwflow\'s eigen redenveld is langs de API niet te vullen.'] : []),
-        ],
-        handeling_in_bouwflow: `Open de projectenlijst in Bouwflow, zoek ${l.bouwflow_project_number} en kies in de fasekolom "${naar.phase_title}". Of sleep het dossier in Compass naar de nieuwe kolom: dan doet de Chrome-extensie dat en controleert Compass het.`,
-        let_op: 'Zarvis schrijft de fase niet: Bouwflow heeft daar geen API voor, en het loket bedient de Chrome-extensie niet.',
-      });
+        wat_er_gebeurt: faseGevolgen(l.bouwflow_project_number, van?.phase_title ?? null, naar.phase_title, geweigerd),
+        naar_buiten: FASE_NAAR_BUITEN,
+      };
+      if (body.actie === 'fase_voorstel' || b.bevestigd !== true) return json({ droog: true, geschreven: false, ...voorstel });
+      if (al) return json({ error: `Het dossier staat al op "${naar.phase_title}".`, ...voorstel }, 409);
+      const open = await openFaseOpdracht(l.id);
+      if (open) return json({ error: `Er staat al een fase-opdracht open voor dit dossier (naar "${open.naar_titel}", ${open.status}).`, opdracht_id: open.id }, 409);
+      const { data: o, error: fout } = await db.from('zarvis_fase_opdrachten').insert({
+        lead_id: l.id, project_nummer: l.bouwflow_project_number, van_fase: l.bouwflow_phase ?? null,
+        naar_fase: naar.phase_id, naar_titel: naar.phase_title, reden: reden || null, vorige_reden: l.afwijs_reden ?? null,
+        afwijs_reden_zetten: geweigerd, afwijs_reden_na: geweigerd ? reden : null, door: gebruiker.email,
+      }).select('id, status, gemaakt_op').single();
+      if (fout) throw new Error(fout.message);
+      return json({ opdracht_id: o.id, status: o.status, gemaakt_op: o.gemaakt_op, ...voorstel,
+        spoor: await spoor([l.id], `fase-opdracht: van "${van?.phase_title ?? 'geen fase'}" naar "${naar.phase_title}"${geweigerd ? ` (reden: ${reden})` : ''}; terug te zetten.`) });
+    }
+    if (body?.actie === 'fase_terug') {
+      // De weg terug: een nieuwe opdracht naar de fase van vóór een uitgevoerde opdracht (en de vorige afwijsreden),
+      // alleen als het dossier sindsdien niet van fase veranderde. Zonder bevestigd droog.
+      const b = body as typeof body & { opdracht_id?: unknown; bevestigd?: unknown };
+      if (!isUuid(b.opdracht_id)) return json({ error: 'Geef een opdracht_id.' }, 400);
+      const { data: o, error } = await db.from('zarvis_fase_opdrachten').select('*').eq('id', b.opdracht_id).maybeSingle();
+      if (error) throw new Error(error.message);
+      if (!o) return json({ error: 'Opdracht niet gevonden.' }, 404);
+      if (o.status !== 'gedaan') return json({ error: `Deze opdracht is niet uitgevoerd (${o.status}); er is niets terug te zetten.` }, 409);
+      if (!o.van_fase) return json({ error: 'Het dossier had geen fase vóór deze opdracht; terugzetten kan niet.' }, 409);
+      const [{ data: l }, { data: f }] = await Promise.all([
+        db.from('leads').select('id, bouwflow_phase, bouwflow_project_number').eq('id', o.lead_id).maybeSingle(),
+        db.from('bouwflow_phase_category_map').select('phase_id, phase_title').eq('phase_id', Number(o.van_fase)).maybeSingle(),
+      ]);
+      if (!l) return json({ error: 'Het dossier bestaat niet meer.' }, 404);
+      if (String(l.bouwflow_phase ?? '') !== String(o.naar_fase)) return json({ error: 'Het dossier veranderde sindsdien van fase; terugzetten zou dat overschrijven.', nu: l.bouwflow_phase }, 409);
+      const titel = f?.phase_title ?? `fase ${o.van_fase}`;
+      const terug = {
+        dossier_id: l.id, dossiernummer: l.bouwflow_project_number, van: { id: o.naar_fase, titel: o.naar_titel }, naar: { id: Number(o.van_fase), titel },
+        ...(o.afwijs_reden_zetten ? { afwijs_reden_terug: o.vorige_reden } : {}),
+        wat_er_gebeurt: faseGevolgen(l.bouwflow_project_number ?? o.project_nummer, o.naar_titel, titel, false),
+        naar_buiten: FASE_NAAR_BUITEN,
+      };
+      if (b.bevestigd !== true) return json({ droog: true, geschreven: false, ...terug });
+      const open = await openFaseOpdracht(l.id);
+      if (open) return json({ error: 'Er staat al een fase-opdracht open voor dit dossier.', opdracht_id: open.id }, 409);
+      const { data: n, error: fout } = await db.from('zarvis_fase_opdrachten').insert({
+        lead_id: l.id, project_nummer: l.bouwflow_project_number ?? o.project_nummer, van_fase: String(o.naar_fase),
+        naar_fase: Number(o.van_fase), naar_titel: titel, reden: 'terugzetten', vorige_reden: o.afwijs_reden_na,
+        afwijs_reden_zetten: o.afwijs_reden_zetten, afwijs_reden_na: o.afwijs_reden_zetten ? o.vorige_reden : null,
+        terug_van: o.id, door: gebruiker.email,
+      }).select('id, status, gemaakt_op').single();
+      if (fout) throw new Error(fout.message);
+      return json({ opdracht_id: n.id, status: n.status, gemaakt_op: n.gemaakt_op, ...terug,
+        spoor: await spoor([l.id], `fase-opdracht terugzetten: van "${o.naar_titel}" naar "${titel}".`) });
+    }
+    if (body?.actie === 'fase_opdrachten') {
+      // Lezen: de stand van een opdracht, of de laatste opdrachten (van een dossier).
+      const b = body as typeof body & { opdracht_id?: unknown };
+      let q = db.from('zarvis_fase_opdrachten')
+        .select('id, lead_id, project_nummer, van_fase, naar_fase, naar_titel, reden, status, melding, door, terug_van, gemaakt_op, uitgevoerd_op')
+        .order('gemaakt_op', { ascending: false }).limit(10);
+      if (isUuid(b.opdracht_id)) q = q.eq('id', b.opdracht_id);
+      else if (isUuid(body.dossier_id)) q = q.eq('lead_id', body.dossier_id);
+      const { data, error } = await q;
+      if (error) throw new Error(error.message);
+      return json({ opdrachten: data ?? [], let_op: FASE_UITVOERING });
     }
     if (body?.actie === 'afspraak_details') {
       // B-053: alleen lezen. De geplande Calendly-afspraken van een dossier, met de links waarmee de klant zelf
