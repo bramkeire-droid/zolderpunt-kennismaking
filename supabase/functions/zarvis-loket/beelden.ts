@@ -41,3 +41,14 @@ export function blad(alle: Beeld[], vanaf = 0, aantal = 20) {
   const v = Math.max(0, Math.floor(vanaf) || 0), n = Math.min(50, Math.max(1, Math.floor(aantal) || 20));
   return { totaal: rij.length, per_bron, vanaf: v, items: rij.slice(v, v + n), volgende: v + n < rij.length ? v + n : null };
 }
+
+// plan_in_fotos (BREIN, 25 nov): een beeld boven 5 MB kan het model niet lezen. Zo'n foto krijgt een verkleinde link
+// (beeldomzetting van Storage, hoogstens 2000 px); lukt dat niet, dan blijft de gewone link met te_groot: true.
+export const MAX_BEELD_BYTES = 5 * 1024 * 1024;
+export const VERKLEIN = { width: 2000, height: 2000, resize: 'contain' as const, quality: 75 };
+export const teGroot = (grootte: number | null | undefined) => (grootte ?? 0) > MAX_BEELD_BYTES;
+/** Welke link en vlag een foto krijgt. Zuiver; getest. */
+export function beeldLink(grootte: number | null | undefined, gewoon: string | null, verkleind: string | null): { link: string | null; verkleind?: true; te_groot?: true } {
+  if (!teGroot(grootte)) return { link: gewoon };
+  return verkleind ? { link: verkleind, verkleind: true } : { link: gewoon, te_groot: true };
+}

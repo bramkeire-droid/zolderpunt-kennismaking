@@ -67,7 +67,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { type Bron, voerUit } from '../_shared/zarvis/gereedschap.ts';
 import { type BewaardePost, herreken, tariefVanPost, tel9 } from './reken.ts';
-import { blad, documentenUit, fotosUit } from './beelden.ts';
+import { blad, beeldLink, documentenUit, fotosUit, MAX_BEELD_BYTES, teGroot, VERKLEIN } from './beelden.ts';
 
 const ZARVIS_URL = 'https://jerekxoryumsnddalket.supabase.co';
 // Mail-CRM (IDEE-83: beeldbijlagen uit mails); aangesproken met dezelfde login van Zarvis, geen geheim.
@@ -232,16 +232,20 @@ Deno.serve(async (req) => {
     }))).flat();
   };
   // IDEE-83: een foto zonder datum (een upload in de app bewaart er geen) krijgt het tijdstip waarop ze in de opslag kwam.
-  const metOpslagDatum = async <T extends { pad: string; bucket: string; ontvangen_op: string | null }>(lijst: T[]): Promise<T[]> => {
-    const zonder = lijst.filter((x) => !x.ontvangen_op);
-    const mappen = [...new Set(zonder.map((x) => `${x.bucket}|${x.pad.slice(0, x.pad.lastIndexOf('/'))}`))].slice(0, 20);
-    const tijd = new Map<string, string>();
+  // De datum uit de opslag voor een stuk zonder datum, en voor elk stuk de grootte (voor beelden boven 5 MB).
+  const metOpslagDatum = async <T extends { pad: string; bucket: string; ontvangen_op: string | null }>(lijst: T[]): Promise<(T & { grootte: number | null })[]> => {
+    const mappen = [...new Set(lijst.map((x) => `${x.bucket}|${x.pad.slice(0, x.pad.lastIndexOf('/'))}`))].slice(0, 20);
+    const tijd = new Map<string, string>(), grootte = new Map<string, number>();
     await Promise.all(mappen.map(async (m) => {
       const [bucket, map] = m.split('|');
       const { data } = await db.storage.from(bucket).list(map, { limit: 1000 });
-      for (const o of data ?? []) if (o.created_at) tijd.set(`${bucket}|${map}/${o.name}`, o.created_at);
+      for (const o of data ?? []) {
+        if (o.created_at) tijd.set(`${bucket}|${map}/${o.name}`, o.created_at);
+        const n = Number((o.metadata as { size?: unknown } | null)?.size);
+        if (Number.isFinite(n)) grootte.set(`${bucket}|${map}/${o.name}`, n);
+      }
     }));
-    return lijst.map((x) => (x.ontvangen_op ? x : { ...x, ontvangen_op: tijd.get(`${x.bucket}|${x.pad}`) ?? null }));
+    return lijst.map((x) => ({ ...x, ontvangen_op: x.ontvangen_op ?? tijd.get(`${x.bucket}|${x.pad}`) ?? null, grootte: grootte.get(`${x.bucket}|${x.pad}`) ?? null }));
   };
   // B-053: de geplande (actieve, toekomstige) Calendly-afspraken van een dossier, of null als het dossier niet bestaat.
   const afsprakenVan = async (id: string, kop: Record<string, string>) => {
@@ -622,12 +626,22 @@ Deno.serve(async (req) => {
       }
       const [fotoLinks, docLinks, alleLinks] = await Promise.all([ondertekend('lead-fotos', fotoPaden.slice(0, 20)), ondertekend('dossier-documenten', docPaden.slice(0, 50)),
         alleFotos.length ? db.storage.from('lead-fotos').createSignedUrls(alleFotos.map((f) => f.pad), 3600).then(({ data }) => new Map((data ?? []).map((d) => [d.path, d.signedUrl]))) : Promise.resolve(new Map<string | null, string>())]);
+      // plan_in_fotos: een foto boven 5 MB krijgt een verkleinde link, eenmaal nagekeken (beeld, hoogstens 5 MB).
+      const verkleind = new Map<string, string>();
+      await Promise.all(alleFotos.filter((f) => teGroot(f.grootte)).slice(0, 25).map(async (f) => {
+        const { data } = await db.storage.from('lead-fotos').createSignedUrl(f.pad, 3600, { transform: VERKLEIN });
+        if (!data?.signedUrl) return;
+        const r = await fetch(data.signedUrl, { signal: AbortSignal.timeout(20_000) }).catch(() => null);
+        const n = Number(r?.headers.get('content-length') ?? NaN);
+        await r?.body?.cancel().catch(() => {});
+        if (r?.ok && (r.headers.get('content-type') ?? '').startsWith('image/') && !(n > MAX_BEELD_BYTES)) verkleind.set(f.pad, data.signedUrl);
+      }));
       return json({
         dossier_id: l.id,
         rapport: l.rapport_tekst ? { gemaakt_op: l.rapport_gegenereerd_op, tekst: String(l.rapport_tekst).slice(0, 8000) } : null,
         rapport_delen: { situatie: l.rapport_situatie_ai ?? null, verwachtingen: l.rapport_verwachtingen_ai ?? null, besproken: l.rapport_besproken_ai ?? null, aandachtspunten: l.rapport_aandachtspunten_ai ?? null },
         fotos: { aantal: fotoPaden.length, eerste: fotoLinks,
-          alle: [...alleFotos.map((f) => ({ naam: f.naam, link: alleLinks.get(f.pad) ?? null, op: f.ontvangen_op, kanaal: f.bron === 'whatsapp' || f.bron === 'mail' ? f.bron : null, van: f.van })), ...mailBeelden] },
+          alle: [...alleFotos.map((f) => ({ naam: f.naam, ...beeldLink(f.grootte, alleLinks.get(f.pad) ?? null, verkleind.get(f.pad) ?? null), op: f.ontvangen_op, kanaal: f.bron === 'whatsapp' || f.bron === 'mail' ? f.bron : null, van: f.van })), ...mailBeelden] },
         ...(mailFout ? { let_op_mail: mailFout } : {}),
         documenten: docLinks,
         documenten_aantal: docPaden.length, // alle gevonden documenten; de lijst hierboven toont er hoogstens 50

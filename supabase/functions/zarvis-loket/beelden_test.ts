@@ -1,5 +1,5 @@
 // Draaien: npx -y deno test --node-modules-dir=none supabase/functions/zarvis-loket/beelden_test.ts
-import { blad, documentenUit, fotosUit } from "./beelden.ts";
+import { beeldLink, blad, documentenUit, fotosUit } from "./beelden.ts";
 
 const eq = (a: unknown, b: unknown) => {
   if (JSON.stringify(a) !== JSON.stringify(b)) throw new Error(`verwacht ${JSON.stringify(b)}, kreeg ${JSON.stringify(a)}`);
@@ -29,4 +29,12 @@ Deno.test("bladeren boven 20: 43 foto's in drie bladzijden, nieuwste eerst, tell
   eq(b1.items[0].naam, "f42.jpg");
   eq(b1.per_bron, { mail: 22, whatsapp: 21 });
   eq(blad([...veel, ...veel], 0, 500).items.length, 50); // hoogstens 50 per keer
+});
+
+Deno.test("een foto boven 5 MB: verkleinde link, of de gewone met te_groot als verkleinen niet lukte", () => {
+  const MB = 1024 * 1024;
+  eq(beeldLink(4 * MB, "gewoon", "klein"), { link: "gewoon" });
+  eq(beeldLink(null, "gewoon", null), { link: "gewoon" });
+  eq(beeldLink(6 * MB, "gewoon", "klein"), { link: "klein", verkleind: true });
+  eq(beeldLink(6 * MB, "gewoon", null), { link: "gewoon", te_groot: true });
 });
