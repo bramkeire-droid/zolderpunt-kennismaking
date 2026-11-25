@@ -502,6 +502,9 @@ export async function appendPhotosToLead(
   leadId: string,
   paths: string[],
   source: InboundSource,
+  // 25-11-2026 (Zarvis, IDEE-83): wie het stuurde en wanneer het binnenkwam, per foto bewaard. Optioneel en additief.
+  van?: string | null,
+  ontvangen_op?: string | null,
 ): Promise<void> {
   const { data: lead } = await supabase
     .from('leads')
@@ -514,6 +517,8 @@ export async function appendPhotosToLead(
     bucket: 'lead-fotos',
     source: source === 'wa' ? 'whatsapp' : 'email',
     uploaded_at: new Date().toISOString(),
+    ...(van ? { van } : {}),
+    ...(ontvangen_op ? { ontvangen_op } : {}),
   }));
   await supabase.from('leads').update({ fotos: [...current, ...additions] }).eq('id', leadId);
 }
@@ -720,9 +725,10 @@ export async function assignPendingGroupToLead(
 ): Promise<number> {
   const { data: rows } = await supabase
     .from('inbound_media_pending')
-    .select('id, storage_paths')
+    .select('id, storage_paths, from_identifier, from_display, created_at')
     .in('id', mediaIds);
   const newPaths: string[] = [];
+  const eerste = (rows || [])[0] as { from_identifier?: string | null; from_display?: string | null; created_at?: string | null } | undefined;
   for (const item of rows || []) {
     const paths: string[] = Array.isArray(item.storage_paths) ? item.storage_paths : [];
     for (const src of paths) {
@@ -731,7 +737,7 @@ export async function assignPendingGroupToLead(
       if (!error || error.message?.includes('exists')) newPaths.push(dst);
     }
   }
-  if (newPaths.length) await appendPhotosToLead(supabase, leadId, newPaths, source);
+  if (newPaths.length) await appendPhotosToLead(supabase, leadId, newPaths, source, eerste?.from_display || eerste?.from_identifier || null, eerste?.created_at ?? null);
   await supabase
     .from('inbound_media_pending')
     .update({ status: 'assigned', assigned_lead_id: leadId, assigned_at: new Date().toISOString() })
@@ -1082,7 +1088,7 @@ export async function ingestInbound(payload: InboundPayload): Promise<IngestResu
   const paths = await uploadAttachments(supabase, confirmedLeadId ?? 'inbox', payload.attachments, payload.source);
 
   if (confirmedLeadId) {
-    await appendPhotosToLead(supabase, confirmedLeadId, paths, payload.source);
+    await appendPhotosToLead(supabase, confirmedLeadId, paths, payload.source, payload.fromDisplay || payload.fromIdentifier || null);
     await rememberConversation(supabase, payload.source, payload.fromIdentifier, confirmedLeadId);
   }
 
