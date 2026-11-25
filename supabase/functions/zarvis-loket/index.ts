@@ -585,12 +585,16 @@ Deno.serve(async (req) => {
         if (e) throw new Error(e.message);
         return (data ?? []).map((d) => ({ naam: (d.path ?? '').split('/').pop(), link: d.signedUrl }));
       };
-      const [fotoLinks, docLinks] = await Promise.all([ondertekend('lead-fotos', fotoPaden.slice(0, 20)), ondertekend('dossier-documenten', docPaden.slice(0, 50))]);
+      // BREIN (plan_in_fotos, IDEE-83): ook alle foto's, elk met de datum en het kanaal (whatsapp, mail of null), hoogstens 100.
+      const alleFotos = fotosUit(l.fotos).sort((x, y) => (y.ontvangen_op ?? '').localeCompare(x.ontvangen_op ?? '')).slice(0, 100);
+      const [fotoLinks, docLinks, alleLinks] = await Promise.all([ondertekend('lead-fotos', fotoPaden.slice(0, 20)), ondertekend('dossier-documenten', docPaden.slice(0, 50)),
+        alleFotos.length ? db.storage.from('lead-fotos').createSignedUrls(alleFotos.map((f) => f.pad), 3600).then(({ data }) => new Map((data ?? []).map((d) => [d.path, d.signedUrl]))) : Promise.resolve(new Map<string | null, string>())]);
       return json({
         dossier_id: l.id,
         rapport: l.rapport_tekst ? { gemaakt_op: l.rapport_gegenereerd_op, tekst: String(l.rapport_tekst).slice(0, 8000) } : null,
         rapport_delen: { situatie: l.rapport_situatie_ai ?? null, verwachtingen: l.rapport_verwachtingen_ai ?? null, besproken: l.rapport_besproken_ai ?? null, aandachtspunten: l.rapport_aandachtspunten_ai ?? null },
-        fotos: { aantal: fotoPaden.length, eerste: fotoLinks },
+        fotos: { aantal: fotoPaden.length, eerste: fotoLinks,
+          alle: alleFotos.map((f) => ({ naam: f.naam, link: alleLinks.get(f.pad) ?? null, op: f.ontvangen_op, kanaal: f.bron === 'whatsapp' || f.bron === 'mail' ? f.bron : null, van: f.van })) },
         documenten: docLinks,
         documenten_aantal: docPaden.length, // alle gevonden documenten; de lijst hierboven toont er hoogstens 50
         let_op: 'Links zijn een uur geldig. Zet ze nooit in een bericht aan iemand anders dan Bram.',
