@@ -67,6 +67,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { type Bron, voerUit } from '../_shared/zarvis/gereedschap.ts';
 import { type BewaardePost, herreken, tariefVanPost, tel9 } from './reken.ts';
+import { zarvisBeheerder } from './toegang.ts';
 import { blad, beeldLink, documentenUit, fotosUit, MAX_BEELD_BYTES, teGroot, VERKLEIN } from './beelden.ts';
 
 const ZARVIS_URL = 'https://jerekxoryumsnddalket.supabase.co';
@@ -159,27 +160,8 @@ const soortAfspraak = (e: { name?: string; location?: { type?: string; location?
   return null;
 };
 
-/** Is dit iemand met een rol in Zarvis? Geeft zijn mailadres, of null. */
-async function zarvisGebruiker(token: string): Promise<{ email: string } | null | 'login' | 'app'> {
-  const kop = { apikey: ZARVIS_SLEUTEL, Authorization: `Bearer ${token}` };
-  // Snelheid (2026-11-24): de login en de twee rollen worden tegelijk gevraagd, niet na elkaar (was tot drie
-  // rondes naar Zarvis). Het id voor has_role komt uit het token (sub); het telt alleen als Zarvis het token
-  // aanvaardt en precies dat id teruggeeft.
-  let sub = '';
-  try { sub = String(JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub ?? ''); } catch { /* geen leesbaar token: de loginvraag zegt nee */ }
-  const heeftRol = async (rol: string) => {
-    if (!sub) return false;
-    const r = await fetch(`${ZARVIS_URL}/rest/v1/rpc/has_role`, {
-      method: 'POST', headers: { ...kop, 'Content-Type': 'application/json' }, body: JSON.stringify({ _user_id: sub, _role: rol }),
-    });
-    return r.ok && (await r.json()) === true;
-  };
-  const [wie, admin, user] = await Promise.all([fetch(`${ZARVIS_URL}/auth/v1/user`, { headers: kop }), heeftRol('admin'), heeftRol('user')]);
-  if (!wie.ok) return wie.status >= 500 ? 'app' : 'login';
-  const g = await wie.json() as { id?: string; email?: string };
-  if (!g.id || g.id !== sub) return null;
-  return admin || user ? { email: (g.email ?? '').toLowerCase() } : null;
-}
+/** Alleen een admin van Zarvis komt binnen (toegang.ts, getest in toegang_test.ts). */
+const zarvisGebruiker = (token: string) => zarvisBeheerder(token, ZARVIS_URL, ZARVIS_SLEUTEL);
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
@@ -189,7 +171,7 @@ Deno.serve(async (req) => {
   const gebruiker = await zarvisGebruiker(auth.slice(7));
   if (gebruiker === 'login') return json({ error: 'Je login is verlopen: meld je opnieuw aan.' }, 401);
   if (gebruiker === 'app') return json({ error: 'Zarvis antwoordt nu niet om je login na te kijken; probeer zo meteen opnieuw.' }, 503);
-  if (!gebruiker) return json({ error: 'Geen toegang: alleen een gebruiker van Zarvis.' }, 403);
+  if (!gebruiker) return json({ error: 'Geen toegang: alleen een beheerder (admin) van Zarvis.' }, 403);
 
   const body = await req.json().catch(() => null) as { gereedschap?: unknown; invoer?: unknown; actie?: unknown; dossier_id?: unknown; sleutels?: unknown; dagen?: unknown } | null;
   // Slot (2026-11-24, na een incident): een proefgebruiker (mailadres op .test, bv. proef-loket@zarvis.test) schrijft
