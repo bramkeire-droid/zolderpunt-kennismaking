@@ -47,6 +47,8 @@
 //   { actie: 'fase_terug', opdracht_id, bevestigd? }  zet een uitgevoerde opdracht terug (nieuwe opdracht naar de vorige
 //                             fase en reden), alleen als het dossier sindsdien niet veranderde. Standaard droog.
 //   { actie: 'fase_opdrachten', opdracht_id? | dossier_id? }  de stand van de fase-opdrachten. Lezen.
+//   { actie: 'documenten', ..., met_mail?: true }  (IDEE-83) met met_mail ook de beeldbijlagen uit de mails (Mail-CRM
+//                             mail_beelden, link 15 minuten) in fotos.alle, kanaal 'mail'. Alleen op vraag.
 //   { actie: 'beelden', dossier_id, vanaf?, aantal?, soort?: foto|document }  (IDEE-83) alle foto's en documenten met
 //                             bron (whatsapp, mail, upload), ontvangen_op, van, en een link; bladeren per 20 (≤ 50). Lezen.
 //   { actie: 'afspraak_details', dossier_id }  (B-053) Calendly-afspraken met de links om te verzetten. Lezen.
@@ -66,6 +68,8 @@ import { type BewaardePost, herreken, tariefVanPost, tel9 } from './reken.ts';
 import { blad, documentenUit, fotosUit } from './beelden.ts';
 
 const ZARVIS_URL = 'https://jerekxoryumsnddalket.supabase.co';
+// Mail-CRM (IDEE-83: beeldbijlagen uit mails); aangesproken met dezelfde login van Zarvis, geen geheim.
+const MAILCRM_URL = 'https://ipnebgcuokehllepqwwm.supabase.co';
 // Publieke sleutel van het project van Zarvis (staat ook in de browser); geen geheim.
 const ZARVIS_SLEUTEL = 'sb_publishable_5c3VhVOOIubLmAM5mWVw-Q_0Y186yy2';
 
@@ -572,7 +576,7 @@ Deno.serve(async (req) => {
       // Snelheid: het dossier en de map met documenten tegelijk; submappen tegelijk; beide soorten links tegelijk.
       const [{ data: l, error }, docPaden] = await Promise.all([
         db.from('leads')
-          .select('id, rapport_tekst, rapport_gegenereerd_op, rapport_situatie_ai, rapport_verwachtingen_ai, rapport_besproken_ai, rapport_aandachtspunten_ai, fotos')
+          .select('id, rapport_tekst, rapport_gegenereerd_op, rapport_situatie_ai, rapport_verwachtingen_ai, rapport_besproken_ai, rapport_aandachtspunten_ai, fotos, bouwflow_project_number')
           .eq('id', body.dossier_id).maybeSingle(),
         docPadenVan(body.dossier_id),
       ]);
@@ -587,6 +591,21 @@ Deno.serve(async (req) => {
       };
       // BREIN (plan_in_fotos, IDEE-83): ook alle foto's, elk met de datum en het kanaal (whatsapp, mail of null), hoogstens 100.
       const alleFotos = fotosUit(l.fotos).sort((x, y) => (y.ontvangen_op ?? '').localeCompare(x.ontvangen_op ?? '')).slice(0, 100);
+      // IDEE-83 (BREIN): met met_mail: true ook de beeldbijlagen uit de mails van het dossier (Mail-CRM, hello@ en info@),
+      // met een link van 15 minuten. Alleen op vraag: zonder die vlag vraagt het loket niets aan Mail-CRM.
+      let mailBeelden: { naam: string; link: string; op: string | null; kanaal: 'mail'; van: string | null }[] = [];
+      let mailFout: string | null = null;
+      if ((body as { met_mail?: unknown }).met_mail === true && l.bouwflow_project_number) {
+        try {
+          const r = await fetch(`${MAILCRM_URL}/functions/v1/compass-loket`, {
+            method: 'POST', headers: { Authorization: auth, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'mail_beelden', zl: l.bouwflow_project_number }), signal: AbortSignal.timeout(60_000),
+          });
+          const j = await r.json().catch(() => null) as { beelden?: typeof mailBeelden; error?: string } | null;
+          if (r.ok && Array.isArray(j?.beelden)) mailBeelden = j!.beelden!;
+          else mailFout = `De beelden uit de mails konden niet gelezen worden (${j?.error ?? r.status}).`;
+        } catch { mailFout = 'Mail-CRM antwoordde niet; de beelden uit de mails ontbreken.'; }
+      }
       const [fotoLinks, docLinks, alleLinks] = await Promise.all([ondertekend('lead-fotos', fotoPaden.slice(0, 20)), ondertekend('dossier-documenten', docPaden.slice(0, 50)),
         alleFotos.length ? db.storage.from('lead-fotos').createSignedUrls(alleFotos.map((f) => f.pad), 3600).then(({ data }) => new Map((data ?? []).map((d) => [d.path, d.signedUrl]))) : Promise.resolve(new Map<string | null, string>())]);
       return json({
@@ -594,7 +613,8 @@ Deno.serve(async (req) => {
         rapport: l.rapport_tekst ? { gemaakt_op: l.rapport_gegenereerd_op, tekst: String(l.rapport_tekst).slice(0, 8000) } : null,
         rapport_delen: { situatie: l.rapport_situatie_ai ?? null, verwachtingen: l.rapport_verwachtingen_ai ?? null, besproken: l.rapport_besproken_ai ?? null, aandachtspunten: l.rapport_aandachtspunten_ai ?? null },
         fotos: { aantal: fotoPaden.length, eerste: fotoLinks,
-          alle: alleFotos.map((f) => ({ naam: f.naam, link: alleLinks.get(f.pad) ?? null, op: f.ontvangen_op, kanaal: f.bron === 'whatsapp' || f.bron === 'mail' ? f.bron : null, van: f.van })) },
+          alle: [...alleFotos.map((f) => ({ naam: f.naam, link: alleLinks.get(f.pad) ?? null, op: f.ontvangen_op, kanaal: f.bron === 'whatsapp' || f.bron === 'mail' ? f.bron : null, van: f.van })), ...mailBeelden] },
+        ...(mailFout ? { let_op_mail: mailFout } : {}),
         documenten: docLinks,
         documenten_aantal: docPaden.length, // alle gevonden documenten; de lijst hierboven toont er hoogstens 50
         let_op: 'Links zijn een uur geldig. Zet ze nooit in een bericht aan iemand anders dan Bram.',
