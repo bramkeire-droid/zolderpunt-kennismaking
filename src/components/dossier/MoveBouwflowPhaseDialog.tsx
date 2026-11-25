@@ -18,7 +18,7 @@ const EXT_SOURCE = 'zp-compass-ext';
 // zelf bewaard (leads.afwijs_reden).
 const REJECTED_PHASE_ID = 8;
 
-function askExtension<T = any>(payload: Record<string, unknown>, expectType: string, timeoutMs: number): Promise<T | null> {
+export function askExtension<T = any>(payload: Record<string, unknown>, expectType: string, timeoutMs: number): Promise<T | null> {
   return new Promise((resolve) => {
     const requestId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
     let done = false;
