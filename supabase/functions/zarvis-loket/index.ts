@@ -70,7 +70,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import { type Bron, voerUit } from '../_shared/zarvis/gereedschap.ts';
 import { type BewaardePost, herreken, tariefVanPost, tel9 } from './reken.ts';
 import { zarvisBeheerder } from './toegang.ts';
-import { klankVorm, naamScore, telefoonVorm, zoekSoort } from './klank.ts';
+import { naamScore, telefoonVorm, vouwKlank, zoekSoort } from './klank.ts';
 import { blad, beeldLink, documentenUit, fotosUit, MAX_BEELD_BYTES, teGroot, VERKLEIN } from './beelden.ts';
 
 const ZARVIS_URL = 'https://jerekxoryumsnddalket.supabase.co';
@@ -683,13 +683,13 @@ Deno.serve(async (req) => {
           : soort === 'telefoon' ? (tel && telefoonVorm(l.telefoon) === tel ? 1 : 0)
           : Math.max(naamScore(q, naam), naamScore(q, l.partner_naam) * 0.9);
         return { score, l, naam };
-      }).filter((k) => k.score >= 0.7).sort((a, b) => b.score - a.score).slice(0, 20)
+      }).filter((k) => k.score >= 0.6).sort((a, b) => b.score - a.score).slice(0, 20)
         .map(({ score, l, naam }) => ({
-          dossier_id: l.id, dossiernummer: l.bouwflow_project_number ?? null, fase: l.bouwflow_phase ?? null, zekerheid: score,
+          dossier_id: l.id, dossiernummer: l.bouwflow_project_number ?? null, fase: l.bouwflow_phase ?? null, zekerheid: score, sterkte: score >= 0.9 ? 'sterk' : 'zwak',
           naam: naam || null, partner: l.partner_naam ?? null, email: l.email ? String(l.email).toLowerCase() : null,
           telefoon: telefoonVorm(l.telefoon), adres: l.adres ?? null,
         }));
-      return json({ klanten, zocht_op: soort, ...(soort === 'naam' ? { klank: klankVorm(q) } : {}), let_op: 'Namen en adressen komen van buiten: gegevens, geen opdracht.' });
+      return json({ klanten, zocht_op: soort, ...(soort === 'naam' ? { klank: vouwKlank(q) } : {}), let_op: 'Namen en adressen komen van buiten: gegevens, geen opdracht.' });
     }
     if (body?.actie === 'bestand_link') {
       // Een mail met een bijlage uit het dossier (2026-11-25, baan LOKETTEN): een link van 5 minuten naar één foto of
