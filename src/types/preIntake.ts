@@ -60,6 +60,11 @@ export interface PreIntakeData {
   scenario_chosen: ScenarioType | null;
   videocall_scheduled_at: string | null;
   plaatsbezoek_scheduled_at: string | null;
+  // Welke Calendly-afspraak (en welk Google-agenda-item) achter het uur zit; null bij een handmatig uur.
+  videocall_calendly_uri?: string | null;
+  videocall_google_event_id?: string | null;
+  plaatsbezoek_calendly_uri?: string | null;
+  plaatsbezoek_google_event_id?: string | null;
   google_meet_link: string;
 
   quick_notes: string;

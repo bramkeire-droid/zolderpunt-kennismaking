@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
+import { koppel, type Rij } from './koppel.ts';
 
 const GATEWAY_URL = 'https://connector-gateway.lovable.dev/calendly';
 
@@ -11,6 +12,7 @@ type CalendlyEvent = {
   status?: string;
   invitees_counter?: { active?: number };
   location?: { type?: string; join_url?: string; location?: string };
+  calendar_event?: { kind?: string; external_id?: string } | null;
 };
 
 type Invitee = {
@@ -24,6 +26,8 @@ type Invitee = {
 type Kandidaat = {
   type: 'videocall' | 'plaatsbezoek';
   uri: string;
+  /** Id van de afspraak in Brams Google-agenda (calendar_event.external_id), of null. */
+  calendarEventId: string | null;
   name: string;
   scheduledAt: string;
   endTime: string | null;
@@ -46,6 +50,13 @@ function classifyEvent(event: CalendlyEvent): 'videocall' | 'plaatsbezoek' | nul
   if (haystack.includes('plaatsbezoek') || haystack.includes('klantadres') || haystack.includes('physical')) return 'plaatsbezoek';
   if (haystack.includes('video') || haystack.includes('kennismaking') || haystack.includes('intake') || haystack.includes('conference') || event.location?.join_url) return 'videocall';
   return null;
+}
+
+/** Google-id van de afspraak in de agenda van de organisator; alleen bij een Google-agenda (of als de soort ontbreekt). */
+function googleId(event: CalendlyEvent): string | null {
+  const c = event.calendar_event;
+  if (!c?.external_id) return null;
+  return !c.kind || c.kind === 'google' ? c.external_id : null;
 }
 
 /** Laatste 9 cijfers: zo matcht +32 486 99 88 07 met 0486998807. */
@@ -85,7 +96,8 @@ Deno.serve(async (req) => {
     const zoekNaam = normaliseer(typeof payloadIn.name === 'string' ? payloadIn.name : '');
     const zoekTelefoon = telefoonSleutel(typeof payloadIn.phone === 'string' ? payloadIn.phone : '');
 
-    if (!inviteeEmail && !zoekNaam && !zoekTelefoon) {
+    const aanvullen = payloadIn.aanvullen === true;
+    if (!aanvullen && !inviteeEmail && !zoekNaam && !zoekTelefoon) {
       return jsonResponse({ error: 'Email, name or phone is required' }, 400);
     }
     if (inviteeEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inviteeEmail)) {
@@ -138,6 +150,7 @@ Deno.serve(async (req) => {
     ): Kandidaat => ({
       type,
       uri: event.uri,
+      calendarEventId: googleId(event),
       name: event.name,
       scheduledAt: event.start_time,
       endTime: event.end_time ?? null,
@@ -147,6 +160,38 @@ Deno.serve(async (req) => {
       score,
       reden,
     });
+
+    // ── Eenmalig aanvullen: { aanvullen: true, bevestigd?: true } ───────────
+    // Voor de afspraken van de komende 30 dagen het Calendly-id en het Google-id invullen waar het uur exact
+    // overeenkomt (zie koppel.ts). Leest Calendly alleen; zonder bevestigd een droge proef die niets schrijft.
+    if (aanvullen) {
+      const van = new Date().toISOString();
+      const tot = new Date(Date.now() + 30 * 86400000).toISOString();
+      // ponytail: één pagina van 100; volstaat voor 30 dagen, anders next_page volgen.
+      const komend = await haalEvents({ min_start_time: van, max_start_time: tot, count: '100', sort: 'start_time:asc' });
+      const events = komend.flatMap((e) => {
+        const soort = classifyEvent(e);
+        return soort ? [{ soort, uri: e.uri, start: e.start_time, googleId: googleId(e) }] : [];
+      });
+      const [vc, pb] = await Promise.all([
+        authClient.from('pre_intake').select('id, videocall_scheduled_at').is('videocall_calendly_uri', null).gte('videocall_scheduled_at', van).lt('videocall_scheduled_at', tot),
+        authClient.from('pre_intake').select('id, plaatsbezoek_scheduled_at').is('plaatsbezoek_calendly_uri', null).gte('plaatsbezoek_scheduled_at', van).lt('plaatsbezoek_scheduled_at', tot),
+      ]);
+      if (vc.error || pb.error) throw new Error((vc.error ?? pb.error)!.message);
+      const rijen: Rij[] = [
+        ...(vc.data ?? []).map((r) => ({ id: r.id as string, soort: 'videocall' as const, op: r.videocall_scheduled_at as string })),
+        ...(pb.data ?? []).map((r) => ({ id: r.id as string, soort: 'plaatsbezoek' as const, op: r.plaatsbezoek_scheduled_at as string })),
+      ];
+      const koppelingen = koppel(events, rijen);
+      if (payloadIn.bevestigd === true) {
+        for (const k of koppelingen) {
+          const { error } = await authClient.from('pre_intake')
+            .update({ [`${k.soort}_calendly_uri`]: k.uri, [`${k.soort}_google_event_id`]: k.googleId }).eq('id', k.id);
+          if (error) throw new Error(error.message);
+        }
+      }
+      return jsonResponse({ droog: payloadIn.bevestigd !== true, events: events.length, afspraken: rijen.length, gekoppeld: koppelingen.length });
+    }
 
     const kandidaten: Kandidaat[] = [];
 
