@@ -71,6 +71,7 @@ import { type Bron, voerUit } from '../_shared/zarvis/gereedschap.ts';
 import { type BewaardePost, herreken, tariefVanPost, tel9 } from './reken.ts';
 import { zarvisBeheerder } from './toegang.ts';
 import { DIENST_ACTIES, dienstSleutelGeldig, gevraagdeNummers, koppelNummers } from './dienst.ts';
+import { HAND_ACTIES, handSleutelGeldig, kanNemen, standNaBevestig, standNaHand, type Opdracht } from './faseHand.ts';
 import { naamScore, telefoonVorm, vouwKlank, zoekSoort } from './klank.ts';
 import { blad, beeldLink, documentenUit, fotosUit, MAX_BEELD_BYTES, teGroot, VERKLEIN } from './beelden.ts';
 
@@ -191,10 +192,78 @@ async function dienstVraag(req: Request): Promise<Response> {
   return json({ koppeling: await nummersUit(db, gevraagd) });
 }
 
+// ---- Sprint 2 (SPRINTPLAN-OVERAL): de hand op de cloudserver (zarvis-server/bouwflow) -----------------------------
+// Alleen met de eigen sleutel BOUWFLOW_HAND_SLEUTEL (header x-bouwflow-sleutel), alleen deze drie acties. De hand zet de
+// fase in Bouwflow zoals de extensie; bevestigen gebeurt hier, via dezelfde proxy en hetzelfde geheim als
+// push-bouwflow-phase, en Compass wordt pas gelijkgezet als Bouwflow echt op de gevraagde fase staat.
+const BOUWFLOW_PROXY = 'https://hxisdviyjmjbgaiydlfk.supabase.co/functions/v1/update-bouwflow-project-phase';
+const OPDRACHT_VELDEN = 'id, lead_id, project_nummer, naar_fase, naar_titel, status, gemaakt_op, poging_op, afwijs_reden_zetten, afwijs_reden_na';
+
+async function handVraag(req: Request): Promise<Response> {
+  if (!handSleutelGeldig(req.headers.get('x-bouwflow-sleutel'), Deno.env.get('BOUWFLOW_HAND_SLEUTEL'))) return json({ error: 'Onbekende of lege sleutel.' }, 401);
+  const b = await req.json().catch(() => null) as { actie?: string; id?: string; ok?: boolean; fout?: string; niet_aangemeld?: boolean } | null;
+  if (!b || !(HAND_ACTIES as readonly string[]).includes(String(b.actie))) return json({ error: 'De hand mag alleen fase_opdracht_neem, _bevestig en _klaar.' }, 403);
+  const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+  const tabel = () => db.from('zarvis_fase_opdrachten');
+  const nu = Date.now();
+
+  if (b.actie === 'fase_opdracht_neem') {
+    const { data, error } = await tabel().select(OPDRACHT_VELDEN).in('status', ['wacht', 'bezig']).order('gemaakt_op').limit(20);
+    if (error) return json({ error: error.message }, 500);
+    for (const o of (data ?? []) as Opdracht[]) {
+      const k = kanNemen(o, nu);
+      if (k === 'te_oud') { await tabel().update({ status: 'mislukt', melding: 'Te oud: deze opdracht wachtte langer dan een dag. Niets gewijzigd.', uitgevoerd_op: new Date(nu).toISOString() }).eq('id', o.id).eq('status', o.status); continue; }
+      if (k !== 'neem') continue;
+      // Nemen alleen als niemand anders ze intussen nam (een open Compass kan ook nog uitvoeren).
+      const { data: g } = await tabel().update({ status: 'bezig', poging_op: new Date(nu).toISOString() }).eq('id', o.id).eq('status', o.status).select('id');
+      if (g?.length) return json({ opdracht: { id: o.id, project_nummer: o.project_nummer, naar_fase: o.naar_fase, naar_titel: o.naar_titel } });
+    }
+    return json({ opdracht: null });
+  }
+
+  const id = String(b.id ?? '');
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return json({ error: 'Geef het id van de opdracht.' }, 400);
+  const { data: o } = await tabel().select(OPDRACHT_VELDEN).eq('id', id).maybeSingle() as { data: Opdracht | null };
+  if (!o || o.status !== 'bezig') return json({ error: 'Deze opdracht is niet (meer) bezig.' }, 409);
+  const sluit = async (st: { status: string; melding: string }) => {
+    await tabel().update({ status: st.status, melding: st.melding, ...(st.status === 'wacht' ? {} : { uitgevoerd_op: new Date().toISOString() }) }).eq('id', id).eq('status', 'bezig');
+    return json(st);
+  };
+
+  if (b.actie === 'fase_opdracht_klaar') {
+    // De hand kon de fase niet zetten: nooit als gedaan, alleen wacht (niet aangemeld) of mislukt.
+    return sluit(standNaHand({ ok: false, fout: typeof b.fout === 'string' ? b.fout : undefined, niet_aangemeld: b.niet_aangemeld === true })!);
+  }
+
+  // fase_opdracht_bevestig: terugleggen in Bouwflow via de proxy, en pas dan Compass gelijkzetten.
+  const [{ data: lead }, { data: fase }] = await Promise.all([
+    db.from('leads').select('id, bouwflow_project_pk_id').eq('id', o.lead_id).maybeSingle(),
+    db.from('bouwflow_phase_category_map').select('phase_id, compass_category').eq('phase_id', o.naar_fase).maybeSingle(),
+  ]);
+  if (!lead?.bouwflow_project_pk_id || !fase) return sluit({ status: 'mislukt', melding: 'Dit dossier of deze fase is niet aan Bouwflow gekoppeld. Niets gewijzigd in Compass.' });
+  const r = await fetch(BOUWFLOW_PROXY, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: AbortSignal.timeout(20_000),
+    body: JSON.stringify({ secret: Deno.env.get('PUSH_LEAD_SECRET') || '', project_id: lead.bouwflow_project_pk_id, project_phase_id: o.naar_fase, verify_only: true }),
+  }).catch(() => null);
+  const p = r ? await r.json().catch(() => null) as { success?: boolean; current_phase?: number | null } | null : null;
+  if (!r?.ok || p?.success !== true) return json({ error: 'Bouwflow kon niet nagelezen worden; de opdracht blijft bezig en wordt opnieuw geprobeerd.' }, 502);
+  const st = standNaBevestig(o, p.current_phase == null ? null : Number(p.current_phase));
+  if (st.status === 'gedaan') {
+    const { error: e1 } = await db.from('leads').update({ bouwflow_phase: String(o.naar_fase), category_override: fase.compass_category, bouwflow_pull_synced_at: new Date().toISOString() }).eq('id', o.lead_id);
+    if (e1) return sluit({ status: 'mislukt', melding: `De fase staat goed in Bouwflow, maar Compass kon niet bijgewerkt worden: ${e1.message}` });
+    if (o.afwijs_reden_zetten) {
+      const { error: e2 } = await db.from('leads').update({ afwijs_reden: o.afwijs_reden_na, afgewezen_op: o.afwijs_reden_na ? new Date().toISOString() : null } as never).eq('id', o.lead_id);
+      if (e2) return sluit({ status: 'mislukt', melding: `De fase staat goed in Bouwflow en Compass, maar de reden kon niet bewaard worden: ${e2.message}` });
+    }
+  }
+  return sluit(st);
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   if (req.method !== 'POST') return json({ error: 'Alleen POST.' }, 405);
   if (req.headers.has('x-compass-dienst-sleutel')) return dienstVraag(req);
+  if (req.headers.has('x-bouwflow-sleutel')) return handVraag(req);
   const auth = req.headers.get('Authorization') ?? '';
   if (!auth.startsWith('Bearer ')) return json({ error: 'Niet ingelogd.' }, 401);
   const gebruiker = await zarvisGebruiker(auth.slice(7));
