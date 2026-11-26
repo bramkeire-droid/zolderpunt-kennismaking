@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { alleenIngelogd } from "../_shared/alleenIngelogd.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7,6 +8,9 @@ const corsHeaders = {
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  // 26 nov: alleen een aangemelde Compass-gebruiker met een rol (anders kon iedereen AI-credits verbruiken).
+  const nietIn = await alleenIngelogd(req, corsHeaders);
+  if (nietIn) return nietIn;
 
   try {
     const { leads } = await req.json();
