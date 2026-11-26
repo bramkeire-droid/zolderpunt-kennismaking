@@ -10,7 +10,7 @@
 //   { gereedschap, invoer }   een van de vijf leesgereedschappen voor dossiers
 //   { actie: 'contact', dossier_id }   naam, adres, telefoon, mailadres en dossiernummer van één dossier
 //   { actie: 'context' }      welk dossier de gebruiker in Compass open heeft (gezocht op zijn mailadres)
-//   { actie: 'agenda', dagen }  plaatsbezoeken en videocalls van vandaag en de dagen erna, met klant en adres;
+//   { actie: 'agenda', dagen, van? }  plaatsbezoeken en videocalls van vandaag en de dagen erna, met klant en adres;
 //                             per afspraak ook google_event_id (id in Brams Google-agenda via Calendly, of null)
 //   { actie: 'nummers', sleutels }   bij welk dossier elk gevraagd telefoonnummer hoort (laatste negen cijfers);
 //                             het loket geeft alleen antwoord voor de gevraagde nummers, nooit de hele lijst
@@ -273,7 +273,7 @@ Deno.serve(async (req) => {
   if (gebruiker === 'app') return json({ error: 'Zarvis antwoordt nu niet om je login na te kijken; probeer zo meteen opnieuw.' }, 503);
   if (!gebruiker) return json({ error: 'Geen toegang: alleen een beheerder (admin) van Zarvis.' }, 403);
 
-  const body = await req.json().catch(() => null) as { gereedschap?: unknown; invoer?: unknown; actie?: unknown; dossier_id?: unknown; sleutels?: unknown; dagen?: unknown } | null;
+  const body = await req.json().catch(() => null) as { gereedschap?: unknown; invoer?: unknown; actie?: unknown; dossier_id?: unknown; sleutels?: unknown; dagen?: unknown; van?: unknown } | null;
   // Slot (2026-11-24, na een incident): een proefgebruiker (mailadres op .test, bv. proef-loket@zarvis.test) schrijft
   // nooit echt, ook niet met een geldige ja. Droog mag wel. De controle zit hier in het loket, los van Zarvis.
   if ((body as { bevestigd?: unknown } | null)?.bevestigd === true && /\.test$/i.test(gebruiker.email)) return json({ error: 'Proefgebruiker (.test): alleen droog. Echt schrijven kan alleen met een echte login.' }, 403);
@@ -391,13 +391,20 @@ Deno.serve(async (req) => {
     }
     if (body?.actie === 'agenda') {
       const dagen = Math.min(Math.max(Math.round(Number(body.dagen)) || 2, 1), 14);
-      // Vanaf middernacht vandaag, Belgische tijd.
+      // Vanaf middernacht vandaag, Belgische tijd; of (agenda v3, hele week) vanaf middernacht van `van` (JJJJ-MM-DD,
+      // hoogstens 31 dagen terug).
       const nu = new Date();
       const lokaal = new Date(nu.toLocaleString('en-US', { timeZone: 'Europe/Brussels' }));
       const verschil = lokaal.getTime() - nu.getTime();
       lokaal.setHours(0, 0, 0, 0);
-      const van = new Date(lokaal.getTime() - verschil).toISOString();
-      const tot = new Date(lokaal.getTime() - verschil + dagen * 86400000).toISOString();
+      const vanDag = typeof body.van === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(body.van) && !Number.isNaN(Date.parse(body.van)) ? body.van : null;
+      if (body.van != null && !vanDag) return json({ error: 'Geef van als JJJJ-MM-DD.' }, 400);
+      if (vanDag && (Date.parse(vanDag) < lokaal.getTime() - 31 * 86400000 || Date.parse(vanDag) > lokaal.getTime() + 366 * 86400000)) return json({ error: 'van ligt hoogstens 31 dagen terug.' }, 400);
+      // Middernacht in Brussel van die dag: het verschil met UTC rond de middag van die dag (zomer- of wintertijd).
+      const middag = new Date(`${vanDag}T12:00:00Z`);
+      const begin = vanDag ? Date.parse(`${vanDag}T00:00:00Z`) - (new Date(middag.toLocaleString('en-US', { timeZone: 'Europe/Brussels' })).getTime() - new Date(middag.toLocaleString('en-US', { timeZone: 'UTC' })).getTime()) : lokaal.getTime() - verschil;
+      const van = new Date(begin).toISOString();
+      const tot = new Date(begin + dagen * 86400000).toISOString();
       const [bezoeken, calls] = await Promise.all([
         db.from('pre_intake').select('lead_id, plaatsbezoek_scheduled_at, plaatsbezoek_google_event_id').gte('plaatsbezoek_scheduled_at', van).lt('plaatsbezoek_scheduled_at', tot),
         db.from('pre_intake').select('lead_id, videocall_scheduled_at, google_meet_link, videocall_google_event_id').gte('videocall_scheduled_at', van).lt('videocall_scheduled_at', tot),
@@ -414,7 +421,7 @@ Deno.serve(async (req) => {
       if (error) throw new Error(error.message);
       const lead = new Map((leads ?? []).map((l) => [l.id, l]));
       return json({
-        dagen,
+        dagen, van, tot,
         afspraken: ruw.map((r) => {
           const l = r.lead_id ? lead.get(r.lead_id) : null;
           // B-041: ook de telefoon van de klant, het dossiernummer en (bij een videocall) de Meet-link.
