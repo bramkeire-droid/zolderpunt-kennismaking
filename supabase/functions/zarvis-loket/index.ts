@@ -756,17 +756,21 @@ Deno.serve(async (req) => {
         .map((x) => String(x).trim().toLowerCase()).filter((x) => x.includes('@')))].slice(0, 300);
       if (/\.test$/i.test(gebruiker.email) || !emails.length) return json({ per_email: {} });
       const [{ data: leads, error: e1 }, { data: klanten, error: e2 }] = await Promise.all([
-        db.from('leads').select('email, telefoon, customer_id, bouwflow_project_number').not('bouwflow_project_number', 'is', null).limit(5000),
+        db.from('leads').select('email, telefoon, customer_id, bouwflow_project_number, voornaam, achternaam, partner_naam').not('bouwflow_project_number', 'is', null).limit(5000),
         db.from('customers').select('id, email, telefoon').limit(5000),
       ]);
       if (e1 || e2) return json({ error: `Databasefout: ${(e1 ?? e2)!.message}` }, 500);
       const klant = new Map((klanten ?? []).map((c: { id: string; email: string | null; telefoon: string | null }) => [c.id, c]));
-      const per: Record<string, { dossiers: string[]; telefoons: { nummer: string; dossier: string }[] }> = {};
-      for (const l of (leads ?? []) as { email: string | null; telefoon: string | null; customer_id: string | null; bouwflow_project_number: string }[]) {
+      // 3.29 v3 (IDEE-114): ook de naam van de klant en partner_naam per dossier, voor het klantgezin en het verband "partner".
+      const per: Record<string, { dossiers: string[]; telefoons: { nummer: string; dossier: string }[]; namen: { dossier: string; klant: string | null; partner: string | null }[] }> = {};
+      for (const l of (leads ?? []) as { email: string | null; telefoon: string | null; customer_id: string | null; bouwflow_project_number: string; voornaam: string | null; achternaam: string | null; partner_naam: string | null }[]) {
         const c = l.customer_id ? klant.get(l.customer_id) : undefined;
         for (const adres of new Set([l.email, c?.email].map((x) => String(x ?? '').trim().toLowerCase()).filter((x) => emails.includes(x)))) {
-          const p = (per[adres] ??= { dossiers: [], telefoons: [] });
-          if (!p.dossiers.includes(l.bouwflow_project_number)) p.dossiers.push(l.bouwflow_project_number);
+          const p = (per[adres] ??= { dossiers: [], telefoons: [], namen: [] });
+          if (!p.dossiers.includes(l.bouwflow_project_number)) {
+            p.dossiers.push(l.bouwflow_project_number);
+            p.namen.push({ dossier: l.bouwflow_project_number, klant: [l.voornaam, l.achternaam].filter(Boolean).join(' ').trim() || null, partner: (l.partner_naam ?? '').trim() || null });
+          }
           for (const t of [l.telefoon, c?.telefoon]) {
             const n = telefoonVorm(t);
             if (n && !p.telefoons.some((x) => x.nummer === n)) p.telefoons.push({ nummer: n, dossier: l.bouwflow_project_number });
