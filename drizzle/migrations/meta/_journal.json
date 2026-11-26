@@ -8,6 +8,13 @@
       "when": 1795606466855,
       "tag": "0000_calendly_id_loket",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1795684869993,
+      "tag": "0001_internal_config_revoke_loket",
+      "breakpoints": true
     }
   ]
 }

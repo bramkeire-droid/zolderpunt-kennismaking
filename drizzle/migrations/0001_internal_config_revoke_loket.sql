@@ -1,0 +1,1 @@
+revoke all on table public.internal_config from anon, authenticated;
