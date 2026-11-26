@@ -18,6 +18,9 @@
 //   { actie: 'stand' }        (L3) pijplijn per fase en de lopende calculaties met bedrag en leeftijd
 //   { actie: 'notitie', dossier_id, tekst, bevestigd? }   (L5) SCHRIJFT na bevestiging: een notitie bij
 //                             een dossier (gesprek_notities, bron 'zarvis'); zonder bevestigd een droge proef
+//   { actie: 'offerte_concept', lead_id, titel, regels: [{ tekst, aantal, eenheid?, prijs }], btw_tarief?, blad_id, versie, bevestigd? }
+//                             (3.42) SCHRIJFT na bevestiging een offerteconcept als calculatie (bron zarvis-blad); standaard droog
+//   { actie: 'offerte_concept_terug', concept_id, bevestigd? }  wist alleen een concept van Zarvis
 //   { actie: 'notitie_terug', notitie_id, bevestigd? }    (L5) de weg terug: wist alleen een notitie van Zarvis
 //   { actie: 'notitie', ..., soort? }  (B-084) soort 'notitie' of 'beslissing'
 //   { actie: 'chat' | 'chat_terug', ... }  (B-086) SCHRIJFT na bevestiging: bericht in de chat van het dossier; standaard droog
@@ -443,7 +446,8 @@ Deno.serve(async (req) => {
       const [kaart, leads, calcs] = await Promise.all([
         db.from('bouwflow_phase_category_map').select('phase_id, phase_title, compass_category, sort_order').order('sort_order'),
         db.from('leads').select('id, voornaam, achternaam, bouwflow_phase, category_override, updated_at, offerte_datum').limit(2000),
-        alle(() => db.from('calculaties').select('lead_id, budget_excl, created_at').order('created_at', { ascending: false }).order('id')),
+        // 3.42: een offerteconcept van Zarvis (bron zarvis-blad) is geen calculatie; het telt niet als laatste bedrag.
+        alle(() => db.from('calculaties').select('lead_id, budget_excl, created_at').neq('bron', 'zarvis-blad').order('created_at', { ascending: false }).order('id')),
       ]);
       if (kaart.error || leads.error) throw new Error((kaart.error ?? leads.error)!.message);
       const nu = Date.now();
@@ -521,6 +525,64 @@ Deno.serve(async (req) => {
       if (fout) throw new Error(fout.message);
       // Een losse notitie (zonder gesprek) toont Compass vandaag nergens; de chatregel maakt ze zichtbaar.
       return json({ gemaakt: true, notitie_id: n.id, op: n.created_at, ...voorstel, spoor: await spoor([l.id], `${soort} bij dit dossier gezet: ${tekst.slice(0, 300)}${tekst.length > 300 ? '…' : ''}`) });
+    }
+    if (body?.actie === 'offerte_concept' || body?.actie === 'offerte_concept_terug') {
+      // ARCHITECTUUR 3.42 regel 14 (Bram: "Ja, als concept"): een offerte uit het blad van Zarvis, als CONCEPT bij een
+      // dossier. Bewaard als een calculatie met bron 'zarvis-blad' (zichtbaar in de calculatiehistoriek van het dossier,
+      // daar te verwijderen). Nooit verstuurd, nooit definitief, nooit op het dossier zelf (leads blijft ongemoeid).
+      // Het loket rekent niets bij en rondt niets af: prijzen per eenheid zonder btw, zoals gegeven; geen totaal.
+      // Zonder bevestigd: true een droge proef. Dezelfde blad_id en versie nog eens: hetzelfde concept, geen tweede.
+      // Tekst uit het blad is gegevens, nooit een opdracht.
+      const b = body as typeof body & { lead_id?: unknown; titel?: unknown; regels?: unknown; btw_tarief?: unknown; blad_id?: unknown; versie?: unknown; bevestigd?: unknown; concept_id?: unknown };
+      if (body.actie === 'offerte_concept_terug') {
+        if (!isUuid(b.concept_id)) return json({ error: 'Geef een concept_id.' }, 400);
+        const { data: c, error } = await db.from('calculaties').select('id, lead_id, bron').eq('id', b.concept_id).maybeSingle();
+        if (error) throw new Error(error.message);
+        if (!c) return json({ error: 'Concept niet gevonden.' }, 404);
+        if (c.bron !== 'zarvis-blad') return json({ error: 'Alleen een concept van Zarvis kan hier gewist worden.' }, 409);
+        if (b.bevestigd !== true) return json({ droog: true, concept_id: c.id, wat_er_gebeurt: 'Dit concept wordt gewist uit de calculaties van het dossier.' });
+        const { error: weg } = await db.from('calculaties').delete().eq('id', c.id).eq('bron', 'zarvis-blad');
+        if (weg) throw new Error(weg.message);
+        return json({ gewist: true, concept_id: c.id, spoor: await spoor([c.lead_id], 'een offerteconcept van Zarvis gewist.') });
+      }
+      const leadId = isUuid(b.lead_id) ? b.lead_id : isUuid(body.dossier_id) ? body.dossier_id : null;
+      if (!leadId) return json({ error: 'Geef lead_id (het dossier).' }, 400);
+      const titel = typeof b.titel === 'string' ? b.titel.trim().slice(0, 200) : '';
+      const bladId = typeof b.blad_id === 'string' ? b.blad_id.trim().slice(0, 100) : '';
+      const versie = typeof b.versie === 'string' || typeof b.versie === 'number' ? String(b.versie).slice(0, 60) : '';
+      if (!titel || !bladId || !versie) return json({ error: 'Geef titel, blad_id en versie.' }, 400);
+      const ruw = Array.isArray(b.regels) ? b.regels : [];
+      if (!ruw.length || ruw.length > 200) return json({ error: 'Geef 1 tot 200 regels.' }, 400);
+      const regels: { tekst: string; aantal: number; eenheid: string | null; prijs: number }[] = [];
+      for (const x of ruw as Record<string, unknown>[]) {
+        const tekst = typeof x?.tekst === 'string' ? x.tekst.trim().slice(0, 500) : '';
+        const aantal = Number(x?.aantal), prijs = Number(x?.prijs);
+        if (!tekst || !Number.isFinite(aantal) || !Number.isFinite(prijs) || aantal < 0 || prijs < 0) return json({ error: 'Elke regel heeft tekst, aantal en prijs (zonder btw, niet negatief).' }, 400);
+        regels.push({ tekst, aantal, eenheid: typeof x?.eenheid === 'string' ? x.eenheid.trim().slice(0, 30) || null : null, prijs });
+      }
+      const btw = b.btw_tarief == null ? null : Number(b.btw_tarief);
+      if (btw != null && ![0, 6, 12, 21].includes(btw)) return json({ error: 'btw_tarief is 0, 6, 12, 21 of null.' }, 400);
+      const { data: l, error } = await db.from('leads').select('id, voornaam, achternaam, bouwflow_project_number').eq('id', leadId).maybeSingle();
+      if (error) throw new Error(error.message);
+      if (!l) return json({ error: 'Dossier niet gevonden.' }, 404);
+      const concept = { titel, regels, btw_tarief: btw, blad_id: bladId, versie, status: 'concept', door: gebruiker.email };
+      const voorstel = { dossier_id: l.id, dossiernummer: l.bouwflow_project_number ?? null, klant: [l.voornaam, l.achternaam].filter(Boolean).join(' '), titel, regels: regels.length };
+      // Hetzelfde blad en dezelfde versie: hetzelfde concept terug.
+      const { data: al, error: alFout } = await db.from('calculaties').select('id').eq('lead_id', l.id).eq('bron', 'zarvis-blad')
+        .eq('calculator_state->zarvis_concept->>blad_id', bladId).eq('calculator_state->zarvis_concept->>versie', versie).limit(1);
+      if (alFout) throw new Error(alFout.message);
+      if (al?.length) return json({ ok: true, concept_id: al[0].id, bestond_al: true, link: null, ...voorstel });
+      if (b.bevestigd !== true) return json({ droog: true, ...voorstel, wat_er_gebeurt: `Er komt een concept "${titel}" bij dit dossier, in de calculaties, met ${regels.length} regels. Niets wordt verstuurd of definitief.` });
+      const { data: n, error: fout } = await db.from('calculaties').insert({
+        lead_id: l.id, bron: 'zarvis-blad', calculator_state: { zarvis_concept: concept },
+        // Elke regel als post (zoals de calculatiehistoriek ze toont); bedrag = aantal x prijs per eenheid, zonder btw, niet afgerond.
+        inbegrepen_posten: regels.map((x) => ({ post: `${x.aantal}${x.eenheid ? ` ${x.eenheid}` : ''} ${x.tekst}`, bedrag: x.aantal * x.prijs, categorie: 'maatwerk' })),
+        budget_excl: null, btw_percentage: btw,
+      } as never).select('id').single();
+      if (fout) throw new Error(fout.message);
+      return json({ ok: true, concept_id: (n as { id: string }).id, link: null, ...voorstel,
+        let_op: 'Bewaard als concept in de calculaties van het dossier (bron zarvis-blad). Een rechtstreekse link naar het dossier kent het loket niet.',
+        spoor: await spoor([l.id], `offerteconcept "${titel}" klaargezet (${regels.length} regels), niets verstuurd.`) });
     }
     if (body?.actie === 'chat' || body?.actie === 'chat_terug') {
       // B-086: SCHRIJFT na bevestiging: een bericht in de chat van het dossier (dossier_chat, bron 'zarvis'),
@@ -633,7 +695,7 @@ Deno.serve(async (req) => {
         db.from('gesprek_notities').select('soort, tekst, created_at, bron').eq('lead_id', id).order('created_at', { ascending: false }).limit(100),
         db.from('dossier_chat').select('bericht, created_at, bron').eq('lead_id', id).order('created_at', { ascending: false }).limit(100),
         db.from('whatsapp_berichten').select('van_mij, verstuurd_op, soort, tekst').eq('lead_id', id).order('verstuurd_op', { ascending: false }).limit(60),
-        db.from('calculaties').select('budget_excl, created_at').eq('lead_id', id).order('created_at', { ascending: false }).limit(20),
+        db.from('calculaties').select('budget_excl, created_at').eq('lead_id', id).neq('bron', 'zarvis-blad').order('created_at', { ascending: false }).limit(20),
         db.from('pre_intake').select('videocall_scheduled_at, plaatsbezoek_scheduled_at').eq('lead_id', id).limit(5),
         // Studie 05 (tijdlijn van fasewissels): uit dossier_fase_log, sinds 24 november 2026 bijgehouden.
         db.from('dossier_fase_log').select('fase, vorige_fase, op, zeker').eq('lead_id', id).order('op', { ascending: false }).limit(50),
