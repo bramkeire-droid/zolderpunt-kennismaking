@@ -70,6 +70,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import { type Bron, voerUit } from '../_shared/zarvis/gereedschap.ts';
 import { type BewaardePost, herreken, tariefVanPost, tel9 } from './reken.ts';
 import { zarvisBeheerder } from './toegang.ts';
+import { DIENST_ACTIES, dienstSleutelGeldig, gevraagdeNummers, koppelNummers } from './dienst.ts';
 import { HAND_ACTIES, handSleutelGeldig, kanNemen, standNaBevestig, standNaHand, type Opdracht } from './faseHand.ts';
 import { naamScore, telefoonVorm, vouwKlank, zoekSoort } from './klank.ts';
 import { blad, beeldLink, documentenUit, fotosUit, MAX_BEELD_BYTES, teGroot, VERKLEIN } from './beelden.ts';
@@ -167,6 +168,30 @@ const soortAfspraak = (e: { name?: string; location?: { type?: string; location?
 /** Alleen een admin van Zarvis komt binnen (toegang.ts, getest in toegang_test.ts). */
 const zarvisGebruiker = (token: string) => zarvisBeheerder(token, ZARVIS_URL, ZARVIS_SLEUTEL);
 
+/** Nummer -> dossier uit Compass (gedeeld door de gewone weg en de dienstweg). */
+// deno-lint-ignore no-explicit-any
+async function nummersUit(db: any, gevraagd: Set<string>): Promise<Record<string, string>> {
+  // Nieuwste dossier eerst: heeft een klant meerdere dossiers, dan gaat het gesprek naar het meest recente.
+  const [dossiers, klanten] = await Promise.all([
+    db.from('leads').select('id, telefoon, customer_id, updated_at').order('updated_at', { ascending: false }).limit(2000),
+    db.from('customers').select('id, telefoon').not('telefoon', 'is', null).limit(2000),
+  ]);
+  if (dossiers.error || klanten.error) throw new Error((dossiers.error ?? klanten.error)!.message);
+  return koppelNummers(gevraagd, (dossiers.data ?? []) as never, (klanten.data ?? []) as never);
+}
+
+// Sprint 1: de dienstfunctie van SPRAAK (WhatsApp op de cloudserver), zonder Brams aanmelding. Alleen met de eigen
+// sleutel COMPASS_DIENST_SLEUTEL (header x-compass-dienst-sleutel), alleen de actie 'nummers'.
+async function dienstVraag(req: Request): Promise<Response> {
+  if (!dienstSleutelGeldig(req.headers.get('x-compass-dienst-sleutel'), Deno.env.get('COMPASS_DIENST_SLEUTEL'))) return json({ error: 'Onbekende of lege sleutel.' }, 401);
+  const b = await req.json().catch(() => null) as { actie?: string; sleutels?: unknown } | null;
+  if (!b || !(DIENST_ACTIES as readonly string[]).includes(String(b.actie))) return json({ error: "Deze sleutel mag alleen de actie 'nummers'." }, 403);
+  const gevraagd = gevraagdeNummers(b.sleutels);
+  if (!gevraagd.size) return json({ koppeling: {} });
+  const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+  return json({ koppeling: await nummersUit(db, gevraagd) });
+}
+
 // ---- Sprint 2 (SPRINTPLAN-OVERAL): de hand op de cloudserver (zarvis-server/bouwflow) -----------------------------
 // Alleen met de eigen sleutel BOUWFLOW_HAND_SLEUTEL (header x-bouwflow-sleutel), alleen deze drie acties. De hand zet de
 // fase in Bouwflow zoals de extensie; bevestigen gebeurt hier, via dezelfde proxy en hetzelfde geheim als
@@ -237,6 +262,7 @@ async function handVraag(req: Request): Promise<Response> {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   if (req.method !== 'POST') return json({ error: 'Alleen POST.' }, 405);
+  if (req.headers.has('x-compass-dienst-sleutel')) return dienstVraag(req);
   if (req.headers.has('x-bouwflow-sleutel')) return handVraag(req);
   const auth = req.headers.get('Authorization') ?? '';
   if (!auth.startsWith('Bearer ')) return json({ error: 'Niet ingelogd.' }, 401);
@@ -397,24 +423,9 @@ Deno.serve(async (req) => {
       });
     }
     if (body?.actie === 'nummers') {
-      const gevraagd = new Set((Array.isArray(body.sleutels) ? body.sleutels : []).filter((x): x is string => typeof x === 'string' && /^\d{9}$/.test(x)).slice(0, 400));
+      const gevraagd = gevraagdeNummers(body.sleutels);
       if (!gevraagd.size) return json({ koppeling: {} });
-      const sleutel = (t: unknown) => { const c = typeof t === 'string' ? t.replace(/[^\d]/g, '') : ''; return c.length >= 9 ? c.slice(-9) : ''; };
-      // Nieuwste dossier eerst: heeft een klant meerdere dossiers, dan gaat het gesprek naar het meest recente.
-      const [dossiers, klanten] = await Promise.all([
-        db.from('leads').select('id, telefoon, customer_id, updated_at').order('updated_at', { ascending: false }).limit(2000),
-        db.from('customers').select('id, telefoon').not('telefoon', 'is', null).limit(2000),
-      ]);
-      if (dossiers.error || klanten.error) throw new Error((dossiers.error ?? klanten.error)!.message);
-      const vanKlant = new Map<string, string>();
-      for (const k of klanten.data ?? []) { const x = sleutel(k.telefoon); if (x) vanKlant.set(k.id, x); }
-      const koppeling: Record<string, string> = {};
-      for (const l of dossiers.data ?? []) {
-        for (const x of [sleutel(l.telefoon), l.customer_id ? vanKlant.get(l.customer_id) ?? '' : '']) {
-          if (x && gevraagd.has(x) && !koppeling[x]) koppeling[x] = l.id;
-        }
-      }
-      return json({ koppeling });
+      return json({ koppeling: await nummersUit(db, gevraagd) });
     }
     if (body?.actie === 'stand') {
       // (L3, 2026-11-24) Alleen lezen: de pijplijn per fase in de volgorde van Bouwflow, met hoeveel
