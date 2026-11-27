@@ -79,7 +79,7 @@ import { zarvisBeheerder } from './toegang.ts';
 import { DIENST_ACTIES, dienstSleutelGeldig, gevraagdeNummers, koppelNummers } from './dienst.ts';
 import { HAND_ACTIES, handSleutelGeldig, kanNemen, standNaBevestig, standNaHand, type Opdracht } from './faseHand.ts';
 import { naamScore, telefoonVorm, vouwKlank, zoekSoort } from './klank.ts';
-import { gemeenteUit } from './gemeente.ts';
+import { gemeenteUit, postcodeUit } from './gemeente.ts';
 import { blad, beeldLink, documentenUit, fotosUit, MAX_BEELD_BYTES, teGroot, VERKLEIN } from './beelden.ts';
 
 const ZARVIS_URL = 'https://jerekxoryumsnddalket.supabase.co';
@@ -823,15 +823,24 @@ Deno.serve(async (req) => {
     if (body?.actie === 'dossier_gemeenten') {
       // IDEE-124 (keuzelijst van dossiers in Zarvis): per dossiernummer alleen de gemeente, afgeleid uit het adres
       // (postcode en plaats); nooit het volledige adres. Alleen lezen; een proefgebruiker krijgt niets.
-      if (/\.test$/i.test(gebruiker.email)) return json({ gemeenten: {} });
-      const { data, error } = await db.from('leads').select('bouwflow_project_number, adres').not('bouwflow_project_number', 'is', null).limit(5000);
-      if (error) throw new Error(error.message);
+      // Terugval: de regio uit de pre-intake (region_gemeente). Daarnaast de postcode (veel adressen zijn alleen een postcode).
+      if (/\.test$/i.test(gebruiker.email)) return json({ gemeenten: {}, postcodes: {} });
+      const [{ data, error }, { data: pre, error: e2 }] = await Promise.all([
+        db.from('leads').select('id, bouwflow_project_number, adres').not('bouwflow_project_number', 'is', null).limit(5000),
+        db.from('pre_intake').select('lead_id, region_gemeente').not('region_gemeente', 'is', null).limit(5000),
+      ]);
+      if (error || e2) throw new Error((error ?? e2)!.message);
+      const regio = new Map((pre ?? []).map((p) => [String(p.lead_id), String(p.region_gemeente ?? '').trim()]));
       const gemeenten: Record<string, string> = {};
+      const postcodes: Record<string, string> = {};
       for (const l of data ?? []) {
-        const g = gemeenteUit(l.adres as string | null);
-        if (g) gemeenten[String(l.bouwflow_project_number)] = g;
+        const nr = String(l.bouwflow_project_number);
+        const g = gemeenteUit(l.adres as string | null) ?? (regio.get(String(l.id)) || null);
+        if (g) gemeenten[nr] = g;
+        const pc = postcodeUit(l.adres as string | null);
+        if (pc) postcodes[nr] = pc;
       }
-      return json({ gemeenten });
+      return json({ gemeenten, postcodes });
     }
     if (body?.actie === 'klanten_van') {
       // IDEE-110 (Bram, 26 nov: "geen telefoonnummers" op de fiches): een dossier in Compass maakt iemand klant, en de
